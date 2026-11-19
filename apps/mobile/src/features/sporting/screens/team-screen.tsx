@@ -4,6 +4,7 @@ import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import {
+  sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
@@ -110,6 +111,7 @@ function TeamPage({
             )
           }
           collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map((item) => {
             const participation = data.participations.find(
               (pool) => pool.pool.id === item.id,

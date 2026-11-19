@@ -20,6 +20,7 @@ import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
 import type { SupportOrigin } from "@/features/support";
 import { homeHref } from "@/shared/native/home-href";
+import { useNativeSplashLayout } from "@/shared/native/native-splash-handoff";
 import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
 
 const connectionErrorMessage = `${TECHNICAL_ERROR_TITLE}.`;
@@ -59,6 +60,7 @@ function SignInJourney({
   const connection = session.connection;
   const feedback = useActionFeedback();
   const guest = useGuestNavigation();
+  const onLayout = useNativeSplashLayout();
   const busy = Boolean(session.operation) || session.status === "restoring";
   const failure = connection.error ?? session.error;
   const cancelled = failure instanceof ApiError && failure.kind === "cancelled";
@@ -117,7 +119,11 @@ function SignInJourney({
 
   return (
     // Only the decorative hero yields height; actions retain their native bottom inset and touch targets.
-    <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
+    <View
+      testID="sign-in-screen"
+      onLayout={onLayout}
+      style={[styles.screen, { backgroundColor: colors.canvas }]}
+    >
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
         <SignInClubRail />

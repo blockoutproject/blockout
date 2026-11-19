@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { hashKey } from "@tanstack/react-query";
 import type { SearchResourceTypeEnum } from "../../../../.generated/schemas/index.zod";
 import { useSearchOptions } from "../api/use-search-options";
 import {
@@ -21,8 +22,19 @@ function useSportingSelection(
   enabled: boolean,
 ) {
   const query = useSearchOptions(resource, enabled);
-  const [selection, setSelection] = useState<SearchFilters>();
+  const [selection, setSelection] = useState<{
+    filters: SearchFilters;
+    initialKey: string;
+  }>();
   const [catalogue, setCatalogue] = useState<typeof query.data>();
+
+  function apply(filters: SearchFilters) {
+    setSelection((current) => ({
+      filters,
+      initialKey: current?.initialKey ?? hashKey([filters]),
+    }));
+  }
+
   // Persist successful disappearance before a later reappearance can revive an obsolete choice.
   // Adjusting this component's state during render prevents issuing a read with obsolete criteria.
   // A new visit waits for the re-enabled read rather than initializing from the paused catalogue.
@@ -34,13 +46,18 @@ function useSportingSelection(
     query.data !== catalogue
   ) {
     setCatalogue(query.data);
-    setSelection(reconcileSearchFilters(selection, query.data));
+    apply(reconcileSearchFilters(selection?.filters, query.data));
   }
   const reset = useCallback(() => {
     setSelection(undefined);
     setCatalogue(undefined);
   }, []);
-  return { query, filters: selection, apply: setSelection, reset };
+  const filters = selection?.filters;
+  const key = hashKey([filters]);
+  // Resolving this visit's first filters continues the existing initial list.
+  const listFilterKey =
+    selection && key !== selection.initialKey ? key : undefined;
+  return { query, filters, listFilterKey, apply, reset };
 }
 
 /** One visit spans the native search, draft and selection routes; no callback registry or persisted history. */

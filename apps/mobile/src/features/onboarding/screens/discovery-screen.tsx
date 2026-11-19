@@ -93,6 +93,7 @@ export function DiscoveryScreen() {
 
   return (
     <Page
+      headerMinHeight={tokens.layout.brandHeader}
       header={
         <BrandHeader>
           {step < 4 && (

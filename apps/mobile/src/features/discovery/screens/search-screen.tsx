@@ -68,9 +68,9 @@ export function SearchScreen() {
   const searchable = !examples && searchSchema.safeParse({ q: text }).success;
   // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
   const queryText = searchable ? text : "";
-  const textKey = hashKey(
-    createDiscoveryContext("club", { q: queryText }).queryKey,
-  );
+  const textKey = searchable
+    ? hashKey(createDiscoveryContext("club", { q: queryText }).queryKey)
+    : undefined;
   const teamQuery = useDiscoveryQuery(
     "team",
     { q: queryText, ...visit.team.filters },
@@ -157,14 +157,12 @@ export function SearchScreen() {
           }
         }}
         tabs={searchTabs.map(({ id, label }) => {
-          // The catalogue is independent of text until its successful read initializes filters.
-          const criteria =
-            id !== "club" && !visit[id].filters
-              ? "options"
-              : hashKey([
-                  textKey,
-                  id === "club" ? undefined : visit[id].filters,
-                ]);
+          const selection = id === "club" ? undefined : visit[id];
+          // Editing text does not replace an unresolved catalogue or its Retry.
+          const criteria = hashKey([
+            id === "club" || selection?.filters ? textKey : undefined,
+            selection?.listFilterKey,
+          ]);
           const canClear = !examples || hasChangedFilters(id);
           let emptyDescription = "Essayez un autre nom.";
           if (examples) {
@@ -205,6 +203,11 @@ export function SearchScreen() {
             ),
           };
         })}
+        tabBarMinHeight={
+          tokens.touch.minimum +
+          tokens.size.control.default +
+          2 * tokens.spacing.sm
+        }
         renderTabBar={(tabBar) => (
           <>
             <View style={styles.navigation}>

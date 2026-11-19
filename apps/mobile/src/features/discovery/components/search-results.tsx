@@ -1,17 +1,20 @@
 import { PageList } from "@/shared/components/page-list";
-import { PageScrollView, pageContentStyle } from "@/shared/components/page";
+import { pageContentStyle } from "@/shared/components/page";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { StyleSheet, Text, View } from "react-native";
-import { useRef, type ReactElement, type ReactNode } from "react";
-import type { LegendListRef } from "@legendapp/list/react-native";
+import type { ReactElement, ReactNode } from "react";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { SportingEntityCard } from "@/features/sporting/entity-card";
+import {
+  SportingEntityCard,
+  SportingEntityCardLoading,
+} from "@/features/sporting/entity-card";
 import type { SearchResult } from "../model/search-result";
 
 export interface SearchResultsProps {
   items: readonly SearchResult[];
+  loading: boolean;
   examples?: boolean;
   heading?: ReactElement;
   emptyComponent?: ReactElement | null;
@@ -21,12 +24,10 @@ export interface SearchResultsProps {
   onOpen(item: SearchResult): void;
 }
 
-/**
- * Native rows and feedback share the viewport below Search controls.
- * Restores the last native offset after a scoped card while the shared page supplies the toolbar inset.
- */
+/** Keeps results and their structural feedback in the same list viewport. */
 export function SearchResults({
   items,
+  loading,
   examples = false,
   heading,
   emptyComponent,
@@ -34,38 +35,29 @@ export function SearchResults({
   onEndReached,
   onOpen,
 }: Readonly<SearchResultsProps>) {
-  const list = useRef<LegendListRef>(null);
-  const offset = useRef(0);
-  if (items.length === 0) {
-    return (
-      <PageScrollView>
-        {heading && <View style={styles.feedbackHeading}>{heading}</View>}
-        {emptyComponent}
-        {continuation}
-      </PageScrollView>
-    );
-  }
+  const hasItems = items.length > 0;
   return (
     <PageList
-      ref={list}
       maintainVisibleContentPosition={{ size: false, data: true }}
-      accessibilityRole="list"
-      accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}
-      alwaysBounceVertical
+      accessibilityRole={hasItems ? "list" : undefined}
+      accessibilityLabel={
+        hasItems
+          ? examples
+            ? "Exemples"
+            : "Résultats de recherche"
+          : undefined
+      }
+      alwaysBounceVertical={hasItems}
       onEndReached={onEndReached}
-      onScroll={({ nativeEvent }) => {
-        offset.current = nativeEvent.contentOffset.y;
-      }}
-      onLoad={() => {
-        if (offset.current > 0) {
-          void list.current?.scrollToOffset({
-            offset: offset.current,
-            animated: false,
-          });
-        }
-      }}
       ListHeaderComponent={heading}
-      ListHeaderComponentStyle={styles.listHeading}
+      ListHeaderComponentStyle={
+        hasItems || loading ? styles.listHeading : undefined
+      }
+      loadingFeedback={{
+        active: loading,
+        content: <SportingEntityCardLoading label="Chargement des résultats" />,
+      }}
+      ListEmptyComponent={emptyComponent}
       ListFooterComponent={
         <>
           {continuation}
@@ -123,7 +115,6 @@ export function SearchHeading({
 const styles = StyleSheet.create({
   listContent: { ...pageContentStyle, paddingTop: 0 },
   listHeading: { paddingBottom: tokens.layout.content.start },
-  feedbackHeading: { paddingHorizontal: tokens.spacing.screen },
   heading: {
     minHeight: tokens.layout.collection.toolbarMinHeight,
     justifyContent: "center",

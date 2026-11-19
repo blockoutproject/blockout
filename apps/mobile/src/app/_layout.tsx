@@ -2,7 +2,8 @@ import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
-import { SplashScreen, Stack, useSegments } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
+import { NativeSplashHandoff } from "@/shared/native/native-splash-handoff";
 import { homeHref } from "@/shared/native/home-href";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
@@ -52,15 +53,9 @@ function Navigation({
   const discovery = useDiscovery();
   const age = useAgeDeclaration();
   const session = useAccountSession();
-  const [rootSegment] = useSegments();
   const waiting =
     (!access.snapshot.complete && !hasReadError(access.query)) ||
     (access.ordinary && (discovery.loading || session.status === "restoring"));
-  useEffect(() => {
-    if (!waiting && rootSegment && rootSegment !== "index") {
-      SplashScreen.hide();
-    }
-  }, [waiting, rootSegment]);
   if (waiting) {
     return null;
   }
@@ -157,26 +152,31 @@ function RootLayout() {
   );
   return (
     <GestureHandlerRootView style={styles.root}>
-      <QueryClientProvider client={queryClient}>
-        <ApplicationAccessProvider>
-          <DiscoveryProvider>
-            <AccountSessionProvider
-              preparePushRemoval={registration.prepareRemoval}
-              fallback={
-                <ThemeProvider>
-                  <ActionFeedbackProvider scopeKey="startup">
-                    <StartupAccessGate />
-                  </ActionFeedbackProvider>
-                </ThemeProvider>
-              }
-            >
-              <AccessAdmissionProvider>
-                <ProNavigation registration={registration} privacy={privacy} />
-              </AccessAdmissionProvider>
-            </AccountSessionProvider>
-          </DiscoveryProvider>
-        </ApplicationAccessProvider>
-      </QueryClientProvider>
+      <NativeSplashHandoff>
+        <QueryClientProvider client={queryClient}>
+          <ApplicationAccessProvider>
+            <DiscoveryProvider>
+              <AccountSessionProvider
+                preparePushRemoval={registration.prepareRemoval}
+                fallback={
+                  <ThemeProvider>
+                    <ActionFeedbackProvider scopeKey="startup">
+                      <StartupAccessGate />
+                    </ActionFeedbackProvider>
+                  </ThemeProvider>
+                }
+              >
+                <AccessAdmissionProvider>
+                  <ProNavigation
+                    registration={registration}
+                    privacy={privacy}
+                  />
+                </AccessAdmissionProvider>
+              </AccountSessionProvider>
+            </DiscoveryProvider>
+          </ApplicationAccessProvider>
+        </QueryClientProvider>
+      </NativeSplashHandoff>
     </GestureHandlerRootView>
   );
 }

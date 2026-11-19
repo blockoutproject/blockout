@@ -862,7 +862,7 @@ it("reloads an empty queue from its card and restores native refresh only when r
   // Then
   expect(await screen.findByText("Aucun lien à traiter")).toBeOnTheScreen();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   queueEmpty = false;
@@ -875,7 +875,7 @@ it("reloads an empty queue from its card and restores native refresh only when r
       name: `${detail.match.home.name} – ${detail.match.away.name}`,
     }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
   expect(writes).toEqual([]);
 });

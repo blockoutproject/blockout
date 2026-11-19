@@ -102,7 +102,7 @@ export function AgeDeclarationScreen() {
   }
 
   return (
-    <Page header={<BrandHeader />}>
+    <Page header={<BrandHeader />} headerMinHeight={tokens.layout.brandHeader}>
       <PageScrollView>{renderContent()}</PageScrollView>
     </Page>
   );

@@ -6,6 +6,7 @@ import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import {
+  sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
@@ -106,6 +107,7 @@ function PoolPage({
             )
           }
           collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map(({ id: value, label }) => {
             const content =
               value === "upcoming" || value === "completed" ? (

@@ -1560,7 +1560,7 @@ it.each([false, true])(
         ? "Aucun match pour cette sélection"
         : "Aucun suivi à afficher",
     );
-    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
     if (!hasAvailableFollows) {
       await userEvent.press(
         screen.getByRole("button", {

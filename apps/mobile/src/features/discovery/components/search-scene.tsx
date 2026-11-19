@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { Keyboard } from "react-native";
+import { Keyboard, StyleSheet } from "react-native";
 import { useNavigation } from "expo-router";
 import { useSportingNavigation } from "@/features/sporting/navigation";
 import { useSearchVisit } from "../forms/search-visit";
@@ -10,8 +10,6 @@ import type {
 } from "../api/use-discovery-query";
 import { uniqueSearchResults } from "../model/search-result";
 import { SearchHeading, SearchResults } from "./search-results";
-import { PageContent } from "@/shared/components/page";
-import { SportingEntityCardLoading } from "@/features/sporting/entity-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { EmptyState } from "@/shared/components/state-card";
@@ -59,6 +57,11 @@ export function SearchScene({
     textQuery.isFetchNextPageError;
   const failed = hasReadError(read) && !continuationFailed;
   const resultsReady = (searchable || examples) && !filtersMissing;
+  const loading =
+    (searchable || examples) &&
+    !failed &&
+    (filtersMissing || read.isPending) &&
+    read.isFetching;
 
   /** Only the selected focused valid text context may continue its current cursor. */
   function loadMore() {
@@ -80,7 +83,7 @@ export function SearchScene({
   if (searchable || examples) {
     if (failed) {
       emptyContent = (
-        <ScreenState>
+        <ScreenState style={styles.listState}>
           <ReadFeedback
             key={filtersMissing ? "options" : criteria}
             query={read}
@@ -91,17 +94,14 @@ export function SearchScene({
           />
         </ScreenState>
       );
-    } else if (filtersMissing || read.isPending) {
-      if (read.isFetching) {
-        emptyContent = (
-          <PageContent>
-            <SportingEntityCardLoading label="Chargement des résultats" />
-          </PageContent>
-        );
-      }
-    } else if (!continuationFailed && !textQuery.isFetchingNextPage) {
+    } else if (
+      !filtersMissing &&
+      !read.isPending &&
+      !continuationFailed &&
+      !textQuery.isFetchingNextPage
+    ) {
       emptyContent = (
-        <ScreenState>
+        <ScreenState style={styles.listState}>
           <EmptyState
             title={
               examples
@@ -119,13 +119,13 @@ export function SearchScene({
 
   return (
     <SearchResults
-      key={criteria}
       onOpen={({ kind, identity }) => {
         Keyboard.dismiss();
         void sportingNavigation.navigate(kind, identity.id);
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}
+      loading={loading}
       heading={
         failed ? undefined : (
           <SearchHeading
@@ -153,3 +153,7 @@ export function SearchScene({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  listState: { paddingHorizontal: 0, paddingBottom: 0 },
+});

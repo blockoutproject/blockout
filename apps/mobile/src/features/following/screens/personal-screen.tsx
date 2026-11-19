@@ -199,15 +199,16 @@ function PersonalSpace({
   return (
     <Page fullBleed>
       <PagedTabs
-        resetKey={season?.seasonId ?? "all-seasons"}
         selected={tab}
         onSelect={setTab}
         collapsibleHeader={<PersonalHeader />}
         fadeHeaderOnScroll
         renderTabBar={controls}
+        tabBarMinHeight={tokens.spacing.sm + tokens.touch.minimum}
         tabs={tabs.map(({ id, label }) => ({
           id,
           label,
+          resetKey: season?.seasonId,
           content:
             !ready || !scope ? (
               <PageScrollView>
@@ -237,7 +238,6 @@ function PersonalSpace({
               </PageScrollView>
             ) : id === "upcoming" || id === "completed" ? (
               <PersonalCalendar
-                key={season?.seasonId ?? "all-seasons"}
                 owner={scope.owner}
                 request={scope.request}
                 seasonId={season?.seasonId}
@@ -247,7 +247,6 @@ function PersonalSpace({
               />
             ) : (
               <FollowedLists
-                key={season?.seasonId ?? "all-seasons"}
                 owner={scope.owner}
                 request={scope.request}
                 seasonId={season?.seasonId}

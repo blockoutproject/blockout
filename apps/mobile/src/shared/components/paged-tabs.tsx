@@ -58,6 +58,9 @@ export interface PagedTabsProps {
   resetKey?: string;
   header?: ReactNode;
   collapsibleHeader?: ReactNode;
+  /** The minimum that the existing header and rail reserve before native layout reports their size. */
+  collapsibleHeaderMinHeight?: number;
+  tabBarMinHeight?: number;
   /** The Home brand fades while it folds; sporting cards clip below fixed navigation. */
   fadeHeaderOnScroll?: boolean;
   renderTabBar?: (tabBar: ReactNode) => ReactNode;
@@ -103,6 +106,8 @@ function NativePagedTabs({
   contextColor,
   header,
   collapsibleHeader,
+  collapsibleHeaderMinHeight = tokens.layout.header,
+  tabBarMinHeight = tokens.touch.minimum,
   fadeHeaderOnScroll = false,
   renderTabBar,
 }: Readonly<
@@ -123,8 +128,8 @@ function NativePagedTabs({
   const [pinnedHeight, setPinnedHeight] = useState(
     header ? tokens.layout.header : 0,
   );
-  const [brandHeight, setBrandHeight] = useState(0);
-  const [railHeight, setRailHeight] = useState(0);
+  const [brandHeight, setBrandHeight] = useState(collapsibleHeaderMinHeight);
+  const [railHeight, setRailHeight] = useState(tabBarMinHeight);
   const [settled, setSettled] = useState(selected);
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
@@ -476,13 +481,18 @@ function NativePagedTabs({
               onLayout={({ nativeEvent }) =>
                 setBrandHeight(nativeEvent.layout.height)
               }
-              style={[!fadeHeaderOnScroll && styles.top, brandStyle]}
+              style={[
+                !fadeHeaderOnScroll && styles.top,
+                { minHeight: collapsibleHeaderMinHeight },
+                brandStyle,
+              ]}
             >
               {collapsibleHeader}
             </Animated.View>
           </Animated.View>
         )}
         <View
+          style={{ minHeight: tabBarMinHeight }}
           onLayout={({ nativeEvent }) =>
             setRailHeight(nativeEvent.layout.height)
           }
