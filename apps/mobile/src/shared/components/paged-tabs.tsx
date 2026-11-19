@@ -1,211 +1,225 @@
 import {
+  useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
-  useMemo,
   type ReactNode,
 } from "react";
-import { StyleSheet, View, type ViewInstance } from "react-native";
+import {
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScrollViewInstance,
+  type ViewInstance,
+} from "react-native";
 import { BlurTargetView } from "expo-blur";
 import Animated, {
+  clamp,
+  makeMutable,
   useAnimatedProps,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useDerivedValue,
+  useSharedValue,
+  type SharedValue,
 } from "react-native-reanimated";
-import {
-  Container,
-  Tab,
-  useCollapsingTabsContext,
-  useHeaderMeasurements,
-  useCurrentTabScrollY,
-  useCollapseProgress,
-  type CollapsingTabsRef,
-} from "react-native-collapsible-tab";
+import { scheduleOnRN } from "react-native-worklets";
 import {
   NavigationBackdrop,
-  NavigationInsetContext,
   NavigationSafeAreaContext,
-  useNavigationInset,
+  NavigationScrollMarker,
 } from "./navigation-backdrop";
 import { NavigationTabBar } from "./navigation-tab-bar";
-import { PagedTabContext } from "./paged-tab-context";
+import { PageScrollContext } from "./page-scroll-binding";
+import { PagedTabCollapseContext } from "./paged-tab-context";
+import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
-/** Stable feature identities and their explicitly composed scenes; data remains feature-owned. */
 export interface PagedTab {
   id: string;
   label: string;
   content: ReactNode;
-  /** A changed reading context replaces only this scene and its native scroll memory. */
+  /** A changed reading context replaces only this scene and its native scroll position. */
   resetKey?: string;
+  /** Reserves the viewport below pinned controls for content that owns its gestures. */
+  fullHeight?: boolean;
 }
 
-/** The same library owns all paging, continuous tab progress and optional header collapse. */
 export interface PagedTabsProps {
   tabs: readonly PagedTab[];
   selected: string;
   onSelect: (id: string) => void;
-  /** A single division may tint its local tab selection. */
   contextColor?: string;
-  /** Replaces all native scroll geometry when the shared reading scope changes, retaining visited admission. */
+  /** A changed shared reading scope resets all offsets while preserving visited admission. */
   resetKey?: string;
-  /** Page navigation remains pinned above the tab rail. */
   header?: ReactNode;
-  /** Home branding or sporting identity folds as a scene scrolls. */
   collapsibleHeader?: ReactNode;
-  /** Home branding follows the native collapse with an unclipped fade; sporting cards keep their fixed-navigation clip. */
+  /** The Home brand fades while it folds; sporting cards clip below fixed navigation. */
   fadeHeaderOnScroll?: boolean;
-  /** Composes feature controls beside or below the library's tab bar. */
   renderTabBar?: (tabBar: ReactNode) => ReactNode;
 }
 
-/** Supported native container APIs own scene offsets and gestures; overlays sample only scene content. */
-export function PagedTabs({
+interface SceneOffset {
+  id: string;
+  resetKey: string | undefined;
+  fullHeight: boolean;
+  offset: SharedValue<number>;
+}
+
+interface TabCommand {
+  target: number;
+  instant: boolean;
+  jump?: { start: number; collapse: number; material: number };
+}
+
+/** A visit admits feature content once; the native pager can reset reading geometry independently. */
+export function PagedTabs({ resetKey, ...props }: Readonly<PagedTabsProps>) {
+  const [visited, setVisited] = useState(() => new Set([props.selected]));
+  const visit = useCallback((id: string) => {
+    setVisited((current) =>
+      current.has(id) ? current : new Set([...current, id]),
+    );
+  }, []);
+  return (
+    <NativePagedTabs
+      key={resetKey}
+      {...props}
+      visited={visited}
+      onVisit={visit}
+    />
+  );
+}
+
+function NativePagedTabs({
   tabs,
   selected,
   onSelect,
+  visited,
+  onVisit,
   contextColor,
-  resetKey,
   header,
   collapsibleHeader,
   fadeHeaderOnScroll = false,
   renderTabBar,
-}: Readonly<PagedTabsProps>) {
-  const pager = useRef<CollapsingTabsRef>(null);
+}: Readonly<
+  Omit<PagedTabsProps, "resetKey"> & {
+    visited: ReadonlySet<string>;
+    onVisit: (id: string) => void;
+  }
+>) {
+  const horizontal = useRef<ScrollViewInstance>(null);
+  const blurTarget = useRef<ViewInstance>(null);
   const reducedMotion = useReducedMotion();
   const topInset = useContext(NavigationSafeAreaContext);
-  const [inset, setInset] = useState(topInset);
-  const [visited, setVisited] = useState(() => new Set([selected]));
-  if (!visited.has(selected)) {
-    setVisited(new Set([...visited, selected]));
-  }
-  const [identities, setIdentities] = useState(() =>
-    tabs.map(({ id, resetKey }) => ({ id, resetKey, generation: 0 })),
-  );
-  const changed =
-    tabs.length !== identities.length ||
-    tabs.some(
-      (tab, index) =>
-        tab.id !== identities[index]?.id ||
-        tab.resetKey !== identities[index]?.resetKey,
-    );
-  const scenes = changed
-    ? tabs.map(({ id, resetKey }) => {
-        const previous = identities.find((scene) => scene.id === id);
-        return {
-          id,
-          resetKey,
-          generation:
-            (previous?.generation ?? 0) +
-            (previous && previous.resetKey !== resetKey ? 1 : 0),
-        };
-      })
-    : identities;
-  // RNCT retains offsets by name even after removal. A generation prevents an
-  // old search from resurrecting its former position when its criteria return.
-  if (changed) {
-    setIdentities(scenes);
-  }
-  const names = scenes.map(({ id, generation }) => `${id}:${generation}`);
-  const selectedName = names[tabs.findIndex((tab) => tab.id === selected)];
-  useEffect(() => {
-    if (selectedName && pager.current?.getFocusedTab() !== selectedName) {
-      pager.current?.jumpToTab(selectedName, !reducedMotion);
-    }
-  }, [selectedName, tabs, reducedMotion]);
-  return (
-    <NavigationInsetContext value={inset}>
-      <Container
-        key={resetKey}
-        ref={pager}
-        initialTabName={selectedName}
-        lazy={false}
-        pagerProps={{
-          testID: "native-tabs-pager",
-          keyboardDismissMode: "on-drag",
-        }}
-        minHeaderHeight={inset}
-        headerBackgroundColor="transparent"
-        renderHeader={() => (
-          <PagerHeader
-            inset={inset}
-            topInset={topInset}
-            onInsetChange={setInset}
-            header={header}
-            fadeOnScroll={fadeHeaderOnScroll}
-            reducedMotion={reducedMotion}
-          >
-            {collapsibleHeader}
-          </PagerHeader>
-        )}
-        renderTabBar={(props) => {
-          const bar = (
-            <NavigationTabBar
-              {...props}
-              reducedMotion={reducedMotion}
-              contextColor={contextColor}
-              onTabPress={
-                reducedMotion
-                  ? (id) => pager.current?.jumpToTab(id, false)
-                  : props.onTabPress
-              }
-            />
-          );
-          return <View>{renderTabBar ? renderTabBar(bar) : bar}</View>;
-        }}
-        onTabChange={({ tabName }) => {
-          const tab = tabs[names.indexOf(tabName)];
-          if (tab) {
-            onSelect(tab.id);
-          }
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <Tab key={names[index]} name={names[index]} label={tab.label}>
-            <TabScene
-              active={selected === tab.id}
-              visited={selected === tab.id || visited.has(tab.id)}
-            >
-              {tab.content}
-            </TabScene>
-          </Tab>
-        ))}
-      </Container>
-    </NavigationInsetContext>
-  );
-}
-
-/** Pins measured navigation while sporting cards clip below it and Home branding fades along the native collapse. */
-function PagerHeader({
-  inset,
-  topInset,
-  onInsetChange,
-  header,
-  fadeOnScroll,
-  reducedMotion,
-  children,
-}: Readonly<{
-  inset: number;
-  topInset: number;
-  onInsetChange: (height: number) => void;
-  header: ReactNode;
-  fadeOnScroll: boolean;
-  reducedMotion: boolean;
-  children: ReactNode;
-}>) {
-  const { top } = useHeaderMeasurements();
-  const collapse = useCollapseProgress();
-  const visibility = useDerivedValue(() => {
-    const progress = collapse.get();
-    if (reducedMotion) {
-      return progress >= 1 ? 0 : 1;
-    }
-    return 1 - progress;
+  const window = useWindowDimensions();
+  const [{ width, height }, setViewport] = useState({
+    width: window.width,
+    height: 0,
   });
-  const brand = useAnimatedStyle(() => ({ opacity: visibility.get() }));
-  const accessibility = useAnimatedProps(() => {
-    const hidden = visibility.get() <= 0;
+  const [pinnedHeight, setPinnedHeight] = useState(
+    header ? tokens.layout.header : 0,
+  );
+  const [brandHeight, setBrandHeight] = useState(0);
+  const [railHeight, setRailHeight] = useState(0);
+  const [settled, setSettled] = useState(selected);
+  const settledTab = useRef(selected);
+  const controlledTab = useRef(selected);
+  useEffect(() => onVisit(settled), [onVisit, settled]);
+  const retainedIndex = tabs.findIndex(({ id }) => id === settled);
+  const selectedIndex =
+    retainedIndex >= 0
+      ? retainedIndex
+      : Math.max(
+          0,
+          tabs.findIndex(({ id }) => id === selected),
+        );
+  const [initialOffset] = useState(() => ({ x: selectedIndex * width, y: 0 }));
+  const position = useSharedValue(selectedIndex);
+  const command = useSharedValue<TabCommand | null>(null);
+  const lastIndex = Math.max(0, tabs.length - 1);
+  const headerHeight = collapsibleHeader ? brandHeight : 0;
+  const inset = topInset + (header ? pinnedHeight : 0);
+  const stickyInset = inset + railHeight;
+  const contentInset = stickyInset + headerHeight;
+
+  const [scenes, setScenes] = useState(() =>
+    tabs.map((tab) => createSceneOffset(tab)),
+  );
+  const scenesChanged =
+    tabs.length !== scenes.length ||
+    tabs.some(
+      ({ id, resetKey, fullHeight }, index) =>
+        scenes[index]?.id !== id ||
+        scenes[index]?.resetKey !== resetKey ||
+        scenes[index]?.fullHeight !== Boolean(fullHeight),
+    );
+  if (scenesChanged) {
+    setScenes(
+      tabs.map(
+        (tab) =>
+          scenes.find(
+            ({ id, resetKey, fullHeight }) =>
+              id === tab.id &&
+              resetKey === tab.resetKey &&
+              fullHeight === Boolean(tab.fullHeight),
+          ) ?? createSceneOffset(tab),
+      ),
+    );
+  }
+
+  const chromeOffset = useDerivedValue(() => {
+    const page = position.get();
+    const request = command.get();
+    return request?.jump
+      ? mix(
+          request.jump.collapse,
+          sceneOffset(scenes[request.target], headerHeight),
+          jumpProgress(page, request.jump.start, request.target),
+        )
+      : visibleOffset(scenes, page, headerHeight);
+  });
+  const materialOffset = useDerivedValue(() => {
+    const page = position.get();
+    const request = command.get();
+    const limit = tokens.layout.header;
+    const visible = visibleOffset(scenes, page, limit);
+    if (!request?.jump) {
+      return visible;
+    }
+    // A passing scrolled page still needs material behind the fixed identity.
+    return Math.max(
+      visible,
+      mix(
+        request.jump.material,
+        sceneOffset(scenes[request.target], limit),
+        jumpProgress(page, request.jump.start, request.target),
+      ),
+    );
+  });
+  const collapseProgress = useDerivedValue(() =>
+    headerHeight > 0 ? chromeOffset.get() / headerHeight : 0,
+  );
+  const materialStyle = useAnimatedStyle(() => ({
+    height: contentInset - chromeOffset.get(),
+  }));
+  const chromeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: fadeHeaderOnScroll ? -chromeOffset.get() : 0 }],
+  }));
+  const clipStyle = useAnimatedStyle(() =>
+    fadeHeaderOnScroll ? {} : { height: headerHeight - chromeOffset.get() },
+  );
+  const brandStyle = useAnimatedStyle(() => {
+    const progress = collapseProgress.get();
+    return fadeHeaderOnScroll
+      ? { opacity: reducedMotion ? Number(progress < 1) : 1 - progress }
+      : { transform: [{ translateY: -chromeOffset.get() }] };
+  });
+  const brandAccessibility = useAnimatedProps(() => {
+    const hidden = collapseProgress.get() >= 1;
     return {
       accessibilityElementsHidden: hidden,
       importantForAccessibility: hidden
@@ -213,114 +227,392 @@ function PagerHeader({
         : ("auto" as const),
     };
   });
-  // The identity's clipping edge stays below fixed navigation while the library
-  // translates its content. Otherwise a folded logo/card would cover the status bar.
-  const clip = useAnimatedStyle(() => ({
-    transform: [{ translateY: -top.get() }],
-  }));
-  const content = useAnimatedStyle(() => ({
-    transform: [{ translateY: top.get() }],
-  }));
-  const pinned = useAnimatedStyle(() => ({
-    transform: [{ translateY: -top.get() }],
-  }));
-  // Folded clipping wrappers must pass touches through to the scene below.
+
+  const commit = useCallback(
+    (id: string | undefined) => {
+      if (id === undefined || id === settledTab.current) {
+        return;
+      }
+      settledTab.current = id;
+      setSettled(id);
+      onSelect(id);
+    },
+    [onSelect],
+  );
+  const scrollHandler = useAnimatedScrollHandler({
+    onBeginDrag: () => command.set(null),
+    onScroll: ({ contentOffset }) => {
+      if (!width) {
+        return;
+      }
+      const previous = position.get();
+      const page = clamp(contentOffset.x / width, 0, lastIndex);
+      position.set(page);
+      const request = command.get();
+      if (
+        request?.instant &&
+        Math.abs(previous - request.target) * width > 1 &&
+        Math.abs(contentOffset.x - request.target * width) <= 1
+      ) {
+        // Keep the destination until a terminal event or another input supersedes it.
+        scheduleOnRN(commit, scenes[request.target]?.id);
+      }
+    },
+  });
+
+  const goTo = useCallback(
+    (index: number) => {
+      const target = scenes[index]?.id;
+      if (!target || !width || !horizontal.current) {
+        return;
+      }
+      const current = command.get();
+      const from = position.get();
+      const atTarget = Math.abs(index - from) * width <= 1;
+      if (
+        index === current?.target ||
+        (!current && atTarget && target === settledTab.current)
+      ) {
+        return;
+      }
+      const instant = reducedMotion || atTarget;
+      command.set({
+        target: index,
+        instant,
+        jump:
+          !instant && (current?.jump || Math.abs(index - from) > 1)
+            ? {
+                start: from,
+                collapse: chromeOffset.get(),
+                material: materialOffset.get(),
+              }
+            : undefined,
+      });
+      horizontal.current.scrollTo({ x: index * width, animated: !instant });
+      // Native can omit a terminal event for a command at its current coordinate.
+      if (atTarget) {
+        commit(target);
+      }
+    },
+    [
+      width,
+      scenes,
+      reducedMotion,
+      command,
+      position,
+      chromeOffset,
+      materialOffset,
+      commit,
+    ],
+  );
+
+  const geometry = useRef({ width, ids: scenes.map(({ id }) => id) });
+  useLayoutEffect(() => {
+    const previous = geometry.current;
+    if (
+      previous.width === width &&
+      previous.ids.length === scenes.length &&
+      scenes.every(({ id }, index) => id === previous.ids[index])
+    ) {
+      return;
+    }
+    geometry.current = { width, ids: scenes.map(({ id }) => id) };
+    command.set(null);
+    position.set(selectedIndex);
+    horizontal.current?.scrollTo({
+      x: selectedIndex * width,
+      animated: false,
+    });
+    const id = scenes[selectedIndex]?.id ?? selected;
+    if (id !== settledTab.current) {
+      settledTab.current = id;
+      setSettled(id);
+    }
+  }, [width, scenes, command, position, selected, selectedIndex]);
+
+  useEffect(() => {
+    if (controlledTab.current === selected) {
+      return;
+    }
+    controlledTab.current = selected;
+    if (settledTab.current !== selected) {
+      goTo(scenes.findIndex(({ id }) => id === selected));
+    }
+  }, [selected, goTo, scenes]);
+
+  function settle({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (!width) {
+      return;
+    }
+    const index = clamp(
+      Math.round(nativeEvent.contentOffset.x / width),
+      0,
+      lastIndex,
+    );
+    const request = command.get();
+    if (Math.abs(nativeEvent.contentOffset.x - index * width) > 1) {
+      return;
+    }
+    if (request && request.target !== index) {
+      // An earlier animator can still report an end after a same-coordinate command.
+      if (request.instant) {
+        horizontal.current?.scrollTo({
+          x: request.target * width,
+          animated: false,
+        });
+      }
+      return;
+    }
+    command.set(null);
+    position.set(index);
+    commit(scenes[index]?.id);
+  }
+
+  function finishDrag(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, targetContentOffset, velocity } = event.nativeEvent;
+    if (
+      targetContentOffset
+        ? Math.abs(targetContentOffset.x - contentOffset.x) <= 1
+        : !velocity?.x
+    ) {
+      settle(event);
+    }
+  }
+
+  const rail = (
+    <NavigationTabBar
+      tabs={tabs}
+      selected={selectedIndex}
+      position={position}
+      onTabPress={goTo}
+      reducedMotion={reducedMotion}
+      contextColor={contextColor}
+    />
+  );
+
   return (
-    <View pointerEvents="box-none" style={{ paddingTop: inset }}>
-      {fadeOnScroll ? (
-        <Animated.View animatedProps={accessibility} style={brand}>
-          {children}
-        </Animated.View>
-      ) : (
-        <Animated.View pointerEvents="box-none" style={[styles.clip, clip]}>
-          <Animated.View pointerEvents="box-none" style={content}>
-            {children}
+    <View
+      style={styles.fill}
+      onLayout={({ nativeEvent: { layout } }) =>
+        setViewport((current) =>
+          current.width === layout.width && current.height === layout.height
+            ? current
+            : { width: layout.width, height: layout.height },
+        )
+      }
+    >
+      <BlurTargetView ref={blurTarget} style={styles.fill}>
+        <NavigationScrollMarker>
+          <Animated.ScrollView
+            ref={horizontal}
+            style={styles.fill}
+            testID="native-tabs-pager"
+            horizontal
+            pagingEnabled
+            scrollEnabled={!scenes[selectedIndex]?.fullHeight}
+            removeClippedSubviews={false}
+            bounces={false}
+            directionalLockEnabled
+            showsHorizontalScrollIndicator={false}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            scrollEventThrottle={16}
+            contentOffset={initialOffset}
+            onScroll={scrollHandler}
+            onScrollEndDrag={finishDrag}
+            onMomentumScrollEnd={settle}
+          >
+            {tabs.map((tab, index) => (
+              <TabScene
+                key={JSON.stringify([tab.id, tab.resetKey])}
+                scene={scenes[index]}
+                index={index}
+                command={command}
+                collapse={chromeOffset}
+                active={index === selectedIndex}
+                visited={index === selectedIndex || visited.has(tab.id)}
+                width={width}
+                height={height}
+                contentInset={contentInset}
+                stickyInset={stickyInset}
+                headerHeight={headerHeight}
+              >
+                {tab.content}
+              </TabScene>
+            ))}
+          </Animated.ScrollView>
+        </NavigationScrollMarker>
+      </BlurTargetView>
+      <NavigationBackdrop
+        target={blurTarget}
+        scrollOffset={materialOffset}
+        style={[styles.material, materialStyle]}
+      />
+      <Animated.View
+        pointerEvents="box-none"
+        style={[styles.top, { top: inset }, chromeStyle]}
+      >
+        {collapsibleHeader && (
+          <Animated.View
+            pointerEvents="box-none"
+            animatedProps={brandAccessibility}
+            style={!fadeHeaderOnScroll && [styles.clip, clipStyle]}
+          >
+            <Animated.View
+              pointerEvents="box-none"
+              onLayout={({ nativeEvent }) =>
+                setBrandHeight(nativeEvent.layout.height)
+              }
+              style={[!fadeHeaderOnScroll && styles.top, brandStyle]}
+            >
+              {collapsibleHeader}
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
-      )}
-      <Animated.View pointerEvents="box-none" style={[styles.header, pinned]}>
+        )}
         <View
-          style={{ paddingTop: topInset }}
           onLayout={({ nativeEvent }) =>
-            onInsetChange(nativeEvent.layout.height)
+            setRailHeight(nativeEvent.layout.height)
           }
         >
-          {header}
+          {renderTabBar ? renderTabBar(rail) : rail}
         </View>
       </Animated.View>
-    </View>
-  );
-}
-
-/** Each stable blur target and its sibling material travel with the native page, without a selection-time target switch. */
-function TabScene({
-  active,
-  visited,
-  children,
-}: Readonly<{
-  active: boolean;
-  visited: boolean;
-  children: ReactNode;
-}>) {
-  const inset = useNavigationInset();
-  const target = useRef<ViewInstance>(null);
-  const { paddingTop, tabBarHeight, headerHeight } = useCollapsingTabsContext();
-  const { top } = useHeaderMeasurements();
-  const scrollOffset = useCurrentTabScrollY();
-  const material = useAnimatedStyle(() => ({
-    height: Math.max(0, headerHeight + tabBarHeight + top.get()),
-  }));
-  const layout = useMemo(
-    () => ({ contentInset: paddingTop, stickyInset: inset + tabBarHeight }),
-    [paddingTop, inset, tabBarHeight],
-  );
-  return (
-    <View style={styles.fill}>
-      <BlurTargetView ref={target} style={styles.fill}>
-        <PagedTabContext value={layout}>
-          <PagedTabScene active={active} visited={visited}>
-            {children}
-          </PagedTabScene>
-        </PagedTabContext>
-      </BlurTargetView>
-      {visited && (
-        <NavigationBackdrop
-          target={target}
-          scrollOffset={scrollOffset}
-          style={[styles.sceneMaterial, material]}
-        />
+      {header && (
+        <View
+          pointerEvents="box-none"
+          style={[styles.top, { paddingTop: topInset }]}
+        >
+          <View
+            onLayout={({ nativeEvent }) =>
+              setPinnedHeight(nativeEvent.layout.height)
+            }
+          >
+            <PagedTabCollapseContext value={collapseProgress}>
+              {header}
+            </PagedTabCollapseContext>
+          </View>
+        </View>
       )}
     </View>
   );
 }
 
-/** First selection mounts the scene once; retained children own their native position and resource lifetime. */
-export function PagedTabScene({
+function TabScene({
+  scene,
+  index,
+  command,
+  collapse,
   active,
   visited,
+  width,
+  height,
+  contentInset,
+  stickyInset,
+  headerHeight,
   children,
 }: Readonly<{
+  scene: SceneOffset;
+  index: number;
+  command: SharedValue<TabCommand | null>;
+  collapse: Pick<SharedValue<number>, "get">;
   active: boolean;
   visited: boolean;
+  width: number;
+  height: number;
+  contentInset: number;
+  stickyInset: number;
+  headerHeight: number;
   children: ReactNode;
 }>) {
+  const frame = useAnimatedStyle(() => {
+    if (scene.fullHeight) {
+      return { top: contentInset - collapse.get() };
+    }
+    const request = command.get();
+    const passing =
+      request?.jump &&
+      index > Math.min(request.jump.start, request.target) &&
+      index < Math.max(request.jump.start, request.target);
+    // Align the passing viewport while its vertical scroller retains its offset.
+    return {
+      top: passing
+        ? -Math.max(0, collapse.get() - sceneOffset(scene, headerHeight))
+        : 0,
+    };
+  });
   return (
     <View
       collapsable={false}
-      style={styles.scene}
+      style={[styles.clip, { width, height: height || "100%" }]}
       pointerEvents={active ? "auto" : "none"}
       accessibilityElementsHidden={!active}
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
     >
-      {visited ? children : null}
+      {visited && (
+        <Animated.View style={[StyleSheet.absoluteFill, frame]}>
+          <PageScrollContext
+            value={
+              scene.fullHeight
+                ? null
+                : {
+                    offset: scene.offset,
+                    contentInset,
+                    stickyInset,
+                    minContentHeight: height ? height + headerHeight : 0,
+                  }
+            }
+          >
+            {children}
+          </PageScrollContext>
+        </Animated.View>
+      )}
     </View>
+  );
+}
+
+function createSceneOffset(tab: PagedTab): SceneOffset {
+  return {
+    id: tab.id,
+    resetKey: tab.resetKey,
+    fullHeight: Boolean(tab.fullHeight),
+    offset: makeMutable(0),
+  };
+}
+
+function mix(from: number, to: number, fraction: number) {
+  "worklet";
+  return from + (to - from) * fraction;
+}
+
+function jumpProgress(position: number, from: number, to: number) {
+  "worklet";
+  return clamp((position - from) / (to - from), 0, 1);
+}
+
+function sceneOffset(scene: SceneOffset | undefined, limit: number) {
+  "worklet";
+  return scene?.fullHeight ? limit : clamp(scene?.offset.get() ?? 0, 0, limit);
+}
+
+function visibleOffset(
+  scenes: readonly SceneOffset[],
+  position: number,
+  limit: number,
+) {
+  "worklet";
+  const index = Math.floor(position);
+  return mix(
+    sceneOffset(scenes[index], limit),
+    sceneOffset(scenes[Math.ceil(position)], limit),
+    position - index,
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  top: { position: "absolute", top: 0, left: 0, right: 0 },
   clip: { overflow: "hidden" },
-  header: { position: "absolute", top: 0, left: 0, right: 0 },
-  scene: { width: "100%", height: "100%" },
-  sceneMaterial: { bottom: "auto" },
+  material: { bottom: "auto" },
 });

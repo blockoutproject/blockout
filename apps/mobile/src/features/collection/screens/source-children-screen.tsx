@@ -1,5 +1,4 @@
 import { PageFlatList } from "@/shared/components/page-list";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { Page, PageContent, pageContentStyle } from "@/shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
@@ -121,7 +120,6 @@ export function SourceChildrenScreen({
   return (
     <Page header={<PageHeader title="Groupes découverts" />}>
       <PageFlatList
-        {...hiddenScrollIndicators}
         testID="collection-source-children-list"
         alwaysBounceVertical={authority.enabled && !denied && items.length > 0}
         refreshControl={

@@ -19,26 +19,17 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { ScrollViewMarker } from "react-native-screens/experimental";
+import { PageScrollContext } from "./page-scroll-binding";
 import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-
-/** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
-export const NavigationInsetContext = createContext(0);
+const supportsNavigationBlur =
+  Platform.OS !== "android" || Number(Platform.Version) >= 31;
 
 /** Page publishes the native top inset when its chrome extends behind the status bar. */
 export const NavigationSafeAreaContext = createContext(0);
-
-/** The current ordinary page's native scroller owns this offset; material and compact navigation only observe it. */
-export const NavigationScrollOffsetContext =
-  createContext<SharedValue<number> | null>(null);
-
-/** Reads only layout clearance, independently of feature selection and scroll position. */
-export function useNavigationInset() {
-  return useContext(NavigationInsetContext);
-}
 
 /** Apply the Stack edge policy when an iOS scroller mounts after the screen attaches. */
 export function NavigationScrollMarker({
@@ -57,7 +48,7 @@ export function NavigationScrollMarker({
   );
 }
 
-/** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
+/** Reveals one shared material with scroll and uses the semantic tint on older Android. */
 export function NavigationBackdrop({
   target,
   scrollOffset,
@@ -65,17 +56,18 @@ export function NavigationBackdrop({
 }: Readonly<{
   target: RefObject<ViewInstance | null>;
   scrollOffset: SharedValue<number>;
-  /** Pagers size their material to the library's visible header and tab rail. */
+  /** Pagers size their material to the visible header and tab rail. */
   style?: ComponentProps<typeof Animated.View>["style"];
 }>) {
   const { scheme } = useTheme();
   const progress = useDerivedValue(() =>
     Math.min(1, Math.max(0, scrollOffset.get()) / tokens.layout.header),
   );
-  // UIKit visual effects require full ancestor alpha; animate the supported intensity instead.
-  const reveal = useAnimatedStyle(() => ({
-    opacity: progress.get() > 0 ? 1 : 0,
-  }));
+  // UIKit visual effects require full ancestor alpha. Only the fallback fades as a view.
+  const reveal = useAnimatedStyle(() => {
+    const amount = progress.get();
+    return { opacity: supportsNavigationBlur ? Number(amount > 0) : amount };
+  });
   const material = useAnimatedProps(() => ({
     intensity: Math.max(
       1,
@@ -85,16 +77,25 @@ export function NavigationBackdrop({
   return (
     <Animated.View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, style, reveal]}
+      style={[
+        StyleSheet.absoluteFill,
+        !supportsNavigationBlur && {
+          backgroundColor: tokens.blur.navigation.headerVeil[scheme],
+        },
+        style,
+        reveal,
+      ]}
     >
-      <AnimatedBlurView
-        blurTarget={target}
-        blurMethod="dimezisBlurView"
-        tint={tokens.blur.navigation.tint[scheme]}
-        animatedProps={material}
-        blurReductionFactor={tokens.blur.navigation.androidReduction}
-        style={StyleSheet.absoluteFill}
-      />
+      {supportsNavigationBlur && (
+        <AnimatedBlurView
+          blurTarget={target}
+          blurMethod="dimezisBlurViewSdk31Plus"
+          tint={tokens.blur.navigation.headerTint[scheme]}
+          animatedProps={material}
+          blurReductionFactor={tokens.blur.navigation.androidReduction}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
     </Animated.View>
   );
 }
@@ -113,20 +114,18 @@ export function PageViewport({
   const [height, setHeight] = useState(0);
   return (
     <View style={styles.fill}>
-      <NavigationInsetContext value={height}>
-        <NavigationScrollOffsetContext value={scrollOffset}>
-          <BlurTargetView ref={target} style={styles.fill}>
-            {children}
-          </BlurTargetView>
-          <View
-            style={[styles.header, { paddingTop: top }]}
-            onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
-          >
-            <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
-            {header}
-          </View>
-        </NavigationScrollOffsetContext>
-      </NavigationInsetContext>
+      <PageScrollContext value={{ offset: scrollOffset, contentInset: height }}>
+        <BlurTargetView ref={target} style={styles.fill}>
+          {children}
+        </BlurTargetView>
+        <View
+          style={[styles.header, { paddingTop: top }]}
+          onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
+        >
+          <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
+          {header}
+        </View>
+      </PageScrollContext>
     </View>
   );
 }

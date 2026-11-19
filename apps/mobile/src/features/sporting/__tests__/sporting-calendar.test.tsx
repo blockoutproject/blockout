@@ -9,7 +9,10 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -180,18 +183,6 @@ function CalendarTab({ children }: Readonly<PropsWithChildren>) {
       tabs={[{ id: "calendar", label: "Calendrier", content: children }]}
     />
   );
-}
-
-/** Supplies a completed native swipe sequence; shared production code decides platform settlement. */
-async function settleNativePage(position: number) {
-  const pager = screen.getByTestId("native-tabs-pager");
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position } });
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position, offset: 0 },
-  });
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
 }
 
 it.each([
@@ -1250,11 +1241,11 @@ it("pages from club information through teams to the calendar and back without r
   await screen.findByText("Coordonnées");
 
   // When: the native pager selects all resource tabs, including retained neighbour panels.
-  await settleNativePage(1);
+  await scrollNativeTabs(1, true);
   await screen.findByText("Aucune équipe pour cette saison");
-  await settleNativePage(2);
+  await scrollNativeTabs(2, true);
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  await settleNativePage(1);
+  await scrollNativeTabs(1, true);
 
   // Then
   expect(
@@ -1391,7 +1382,7 @@ it("changes calendar category with the native horizontal pager without rereading
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   // When: native page settlement is not expressible with userEvent.
-  await settleNativePage(1);
+  await scrollNativeTabs(1, true);
 
   // Then
   await waitFor(() =>

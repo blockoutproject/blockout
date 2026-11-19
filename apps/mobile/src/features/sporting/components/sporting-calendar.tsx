@@ -35,7 +35,6 @@ import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "@/shared/components/screen-state";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { calendarDays, type CalendarSelection } from "../api/sporting-calendar";
@@ -247,7 +246,6 @@ export function SportingCalendarView({
   }
   return (
     <PageList<CalendarRow>
-      {...hiddenScrollIndicators}
       // Replace the native grid when its column count changes; Query retains the traversal.
       key={columns}
       ref={list}

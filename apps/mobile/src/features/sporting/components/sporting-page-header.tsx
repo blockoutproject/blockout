@@ -9,7 +9,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 import { SportingPresentationAction } from "./sporting-actions";
-import { useCollapseProgress } from "react-native-collapsible-tab";
+import { usePagedTabCollapseProgress } from "@/shared/components/paged-tab-context";
 
 /** Pinned navigation reveals canonical identity only as the shared sporting card collapses. */
 export interface SportingPageHeaderProps {
@@ -28,7 +28,7 @@ export function SportingPageHeader({
   action,
 }: Readonly<SportingPageHeaderProps>) {
   const { colors } = useTheme();
-  const progress = useCollapseProgress();
+  const progress = usePagedTabCollapseProgress();
   return (
     <PageHeader
       title={identity.name}

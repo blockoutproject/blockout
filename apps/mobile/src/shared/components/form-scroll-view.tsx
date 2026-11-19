@@ -1,18 +1,6 @@
-import {
-  NavigationScrollOffsetContext,
-  NavigationScrollMarker,
-  useNavigationInset,
-} from "./navigation-backdrop";
-import { cloneElement, useCallback, useContext, type RefCallback } from "react";
-import {
-  useCollapsingTabsContext,
-  useRegisterTabList,
-  useRestoreTabOffset,
-  useTabContentStyle,
-  useTabPageContext,
-  useTabScrollLifecycle,
-} from "react-native-collapsible-tab";
-import { PagedTabContext } from "./paged-tab-context";
+import { NavigationScrollMarker } from "./navigation-backdrop";
+import { useCallback } from "react";
+import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   Platform,
@@ -42,146 +30,46 @@ export type FormScrollViewProps = Pick<
   | "scrollIndicatorInsets"
 >;
 
-/** Preserves each platform's native keyboard mechanism, handled taps and trailing page-owned bottom clearance. */
+/** The native keyboard scroller keeps its position and publishes its offset without replacing caller events. */
 export function FormScrollView({
   children,
   contentContainerStyle,
   ...props
 }: Readonly<FormScrollViewProps>) {
-  const inset = useNavigationInset();
-  const tab = useContext(PagedTabContext);
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ??
-          tab?.contentInset ??
-          inset,
-      })
-    : undefined;
-  return tab ? (
-    <TabbedFormScrollView
-      {...props}
-      refreshControl={refreshControl}
-      contentContainerStyle={contentContainerStyle}
-    >
-      {children}
-    </TabbedFormScrollView>
-  ) : (
-    <OrdinaryFormScrollView
-      {...props}
-      refreshControl={refreshControl}
-      contentContainerStyle={contentContainerStyle}
-    >
-      {children}
-    </OrdinaryFormScrollView>
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
+    contentContainerStyle,
+    props.refreshControl,
   );
-}
-
-/** Ordinary forms observe their page material without taking over caller scroll events. */
-function OrdinaryFormScrollView({
-  contentContainerStyle,
-  ...props
-}: Readonly<FormScrollViewProps>) {
-  const inset = useNavigationInset();
-  const offset = useContext(NavigationScrollOffsetContext);
   const scroll = useAnimatedRef<ScrollViewInstance>();
   useScrollOffset(offset ? scroll : null, offset ?? undefined);
-  // The keyboard component forwards the native ScrollView; discard the animated ref's return value.
+  // The keyboard component forwards the native ScrollView and expects a void ref callback.
   const bindScroll = useCallback(
     (node: ScrollViewInstance | null) => {
       scroll(node);
     },
     [scroll],
   );
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  const insets = {
-    paddingTop: inset + (typeof padding === "number" ? padding : 0),
+  const scrollProps = {
+    ...props,
+    ...hiddenScrollIndicators,
+    ref: bindScroll,
+    alwaysBounceVertical: !!refreshControl,
+    keyboardShouldPersistTaps: "handled" as const,
+    scrollEventThrottle: props.scrollEventThrottle ?? 16,
+    contentContainerStyle: [styles.content, contentContainerStyle, clearance],
+    refreshControl,
   };
-  return (
-    <NativeFormScrollView
-      {...props}
-      nativeRef={bindScroll}
-      contentContainerStyle={[styles.content, contentContainerStyle, insets]}
-    />
-  );
-}
 
-/** Public RNCT adapter hooks retain native keyboard handling and caller events while publishing the scene offset. */
-function TabbedFormScrollView({
-  contentContainerStyle,
-  ...props
-}: Readonly<FormScrollViewProps>) {
-  const { offsets } = useCollapsingTabsContext();
-  const { index, scrollRef } = useTabPageContext();
-  useScrollOffset(scrollRef, offsets[index]);
-  const bindScroll = useCallback(
-    (node: ScrollViewInstance | null) => {
-      scrollRef(node);
-    },
-    [scrollRef],
-  );
-
-  /** Container commands always reach the current native form rather than retaining a former node. */
-  function scrollToOffset(offset: number, animated = false) {
-    scrollRef.current?.scrollTo({ y: offset, animated });
-  }
-
-  useRegisterTabList({
-    scrollToOffset: ({ offset, animated }) => scrollToOffset(offset, animated),
-  });
-  useRestoreTabOffset(scrollToOffset);
-  const content = useTabContentStyle([styles.content, contentContainerStyle]);
-  const lifecycle = useTabScrollLifecycle({});
-  return (
-    <NativeFormScrollView
-      {...props}
-      {...lifecycle}
-      nativeRef={bindScroll}
-      contentContainerStyle={content}
-    />
-  );
-}
-
-/** One native form primitive keeps keyboard handling and trailing clearance identical in both page compositions. */
-function NativeFormScrollView({
-  children,
-  nativeRef,
-  ...props
-}: Readonly<
-  FormScrollViewProps &
-    Pick<
-      ScrollViewProps,
-      "onScrollBeginDrag" | "onScrollEndDrag" | "onMomentumScrollEnd"
-    > & {
-      nativeRef: RefCallback<ScrollViewInstance>;
-    }
->) {
   return Platform.OS === "ios" ? (
     <NavigationScrollMarker>
-      <Animated.ScrollView
-        {...props}
-        ref={nativeRef}
-        scrollEventThrottle={props.scrollEventThrottle ?? 16}
-        {...hiddenScrollIndicators}
-        alwaysBounceVertical={!!props.refreshControl}
-        automaticallyAdjustKeyboardInsets
-        keyboardShouldPersistTaps="handled"
-      >
+      <Animated.ScrollView {...scrollProps} automaticallyAdjustKeyboardInsets>
         {children}
         <BottomContentSpacer />
       </Animated.ScrollView>
     </NavigationScrollMarker>
   ) : (
     <KeyboardProvider>
-      <KeyboardAwareScrollView
-        {...props}
-        ref={nativeRef}
-        {...hiddenScrollIndicators}
-        alwaysBounceVertical={!!props.refreshControl}
-        keyboardShouldPersistTaps="handled"
-      >
+      <KeyboardAwareScrollView {...scrollProps}>
         {children}
         <BottomContentSpacer />
       </KeyboardAwareScrollView>

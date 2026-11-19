@@ -1,6 +1,11 @@
-import type { ComponentProps } from "react";
-import { StyleSheet } from "react-native";
-import { DefaultTabBar } from "react-native-collapsible-tab";
+import { useEffect, useRef, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  type LayoutRectangle,
+  type ScrollViewInstance,
+} from "react-native";
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -9,81 +14,139 @@ import Animated, {
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { solidForeground } from "@/shared/theme/solid-foreground";
-import { Tabs, type TabSelection } from "./tabs";
 
-/** Every pager keeps library navigation and binds only label color to its existing native progress. */
+interface NavigationTabBarProps {
+  tabs: readonly { id: string; label: string }[];
+  selected: number;
+  position: SharedValue<number>;
+  onTabPress: (index: number) => void;
+  reducedMotion: boolean;
+  contextColor?: string;
+}
+
+/** The indicator and ink follow the same native offset; accessible selection follows settlement. */
 export function NavigationTabBar({
+  tabs,
+  selected,
+  position,
+  onTabPress,
   reducedMotion,
   contextColor,
-  ...props
-}: Readonly<
-  ComponentProps<typeof DefaultTabBar> & {
-    /** The shared pager owns one native preference for page commands and the existing static fallback. */
-    reducedMotion: boolean;
-    contextColor?: string;
-  }
->) {
+}: Readonly<NavigationTabBarProps>) {
   const { colors, membership } = useTheme();
-  const selection: TabSelection = contextColor
+  const selection = contextColor
     ? { fill: contextColor, content: solidForeground(contextColor) }
     : membership;
-  // RNCT 0.1.3 always animates its rail's auto-centering. Its public renderTabBar
-  // slot reuses our existing static rail when the platform requests reduced motion.
-  if (reducedMotion) {
-    return (
-      <Tabs
-        items={props.tabNames.map((id) => ({
-          id,
-          label: props.tabLabels?.[id] ?? id,
-        }))}
-        selected={props.tabNames[props.activeIndex] ?? ""}
-        onSelect={props.onTabPress}
-        selection={selection}
-      />
-    );
-  }
+  const rail = useRef<ScrollViewInstance>(null);
+  const [layouts, setLayouts] = useState<Record<string, LayoutRectangle>>({});
+  const [width, setWidth] = useState(0);
+  const rectangles = tabs.map(({ id }) => layouts[id]);
+  const target = rectangles[selected];
+  useEffect(() => {
+    if (target && width > 0) {
+      rail.current?.scrollTo({
+        x: Math.max(0, target.x + (target.width - width) / 2),
+        animated: !reducedMotion,
+      });
+    }
+  }, [reducedMotion, target, width]);
+
+  const indicator = useAnimatedStyle(() => {
+    const page = reducedMotion ? selected : position.get();
+    const index = Math.floor(page);
+    const from = rectangles[index] ?? target;
+    const to = rectangles[index + 1] ?? from;
+    if (!from || !to) {
+      return { opacity: 0 };
+    }
+    const fraction = page - index;
+    return {
+      opacity: 1,
+      left: from.x + (to.x - from.x) * fraction,
+      top: from.y + (to.y - from.y) * fraction,
+      width: from.width + (to.width - from.width) * fraction,
+      height: from.height + (to.height - from.height) * fraction,
+    };
+  });
+
   return (
-    <DefaultTabBar
-      {...props}
-      activeColor={selection.content}
-      inactiveColor={colors.secondaryText}
-      indicatorColor={selection.fill}
-      style={styles.bar}
-      tabStyle={styles.tab}
-      indicatorStyle={styles.indicator}
-      renderLabel={({ label, index, focused }) => (
-        <NavigationTabLabel
-          label={label}
-          index={index}
-          focused={focused}
-          position={props.indexDecimal}
-          activeColor={selection.content}
-          inactiveColor={colors.secondaryText}
-        />
-      )}
-    />
+    <ScrollView
+      horizontal
+      ref={rail}
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.rail}
+      onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
+    >
+      <Animated.View
+        accessible={false}
+        pointerEvents="none"
+        style={[
+          styles.indicator,
+          { backgroundColor: selection.fill },
+          indicator,
+        ]}
+      />
+      {tabs.map(({ id, label }, index) => (
+        <Pressable
+          key={id}
+          accessibilityRole="tab"
+          accessibilityLabel={label}
+          accessibilityState={{ selected: selected === index }}
+          onPress={() => onTabPress(index)}
+          onLayout={({ nativeEvent }) => {
+            const layout = nativeEvent.layout;
+            setLayouts((current) => {
+              const prior = current[id];
+              return prior?.x === layout.x &&
+                prior.y === layout.y &&
+                prior.width === layout.width &&
+                prior.height === layout.height
+                ? current
+                : { ...current, [id]: layout };
+            });
+          }}
+          style={({ pressed }) => [
+            styles.tab,
+            { opacity: pressed ? tokens.opacity.pressed : 1 },
+          ]}
+        >
+          <NavigationTabLabel
+            index={index}
+            page={reducedMotion ? selected : position}
+            focused={selected === index}
+            activeColor={selection.content}
+            inactiveColor={colors.secondaryText}
+          >
+            {label}
+          </NavigationTabLabel>
+        </Pressable>
+      ))}
+    </ScrollView>
   );
 }
 
-/** Colors the label from the library's shared position, preserving its settled font-weight behavior. */
 function NavigationTabLabel({
-  label,
   index,
+  page,
   focused,
-  position,
   activeColor,
   inactiveColor,
+  children,
 }: Readonly<{
-  label: string;
   index: number;
+  page: number | SharedValue<number>;
   focused: boolean;
-  position: SharedValue<number>;
   activeColor: string;
   inactiveColor: string;
+  children: string;
 }>) {
   const appearance = useAnimatedStyle(() => ({
     color: interpolateColor(
-      Math.min(1, Math.abs(position.get() - index)),
+      Math.min(
+        1,
+        Math.abs((typeof page === "number" ? page : page.get()) - index),
+      ),
       [0, 1],
       [activeColor, inactiveColor],
     ),
@@ -96,29 +159,23 @@ function NavigationTabLabel({
         appearance,
       ]}
     >
-      {label}
+      {children}
     </Animated.Text>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    backgroundColor: "transparent",
-    elevation: 0,
-    shadowOpacity: 0,
-    borderBottomWidth: 0,
+  rail: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.screen,
   },
   tab: {
-    width: "auto",
     minHeight: tokens.touch.minimum,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.xs,
-    // The library's 12-point content inset plus this margin yields 16 at rest and 8 between tabs.
-    marginHorizontal: tokens.spacing.xs,
+    justifyContent: "center",
   },
-  indicator: {
-    height: "100%",
-    borderRadius: tokens.radius.control,
-    zIndex: -1,
-  },
+  indicator: { position: "absolute", borderRadius: tokens.radius.control },
 });

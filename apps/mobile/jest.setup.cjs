@@ -33,12 +33,19 @@ jest.mock("react-native-worklets", () =>
 );
 require("react-native-reanimated").setUpTests();
 
-// Router and pager doubles share the upstream mock through Jest's module boundary.
-// Its animated-ref stub is an object; keep the supported callable JS ref for keyboard/scroll bindings.
-jest.mock("react-native-reanimated/mock", () => ({
-  ...jest.requireActual("react-native-reanimated/mock"),
-  useAnimatedRef: jest.requireActual("react-native-reanimated").useAnimatedRef,
-}));
+// Expo Router loads the upstream mock directly. Route and pager tests share the
+// same native scroll events, writable offset values and callable animated refs.
+jest.mock("react-native-reanimated/mock", () => {
+  const upstream = jest.requireActual("react-native-reanimated/mock");
+  const { mockReanimatedTabScroll } = jest.requireActual(
+    "@/shared/native/test-support/tab-scroll-boundary",
+  );
+  return {
+    ...mockReanimatedTabScroll(upstream),
+    useAnimatedRef: jest.requireActual("react-native-reanimated")
+      .useAnimatedRef,
+  };
+});
 
 // The upstream RefreshControl mock drops all props. Preserve the native event and
 // accessibility boundary so tests can exercise the real read owner through refresh.

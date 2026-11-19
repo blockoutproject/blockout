@@ -250,12 +250,23 @@ export const tokens = {
   touch,
   border: { thin: 1, subtle: 1.5 },
   opacity: { disabled: 0.45, pressed: 0.9 },
-  // Use the native material's tint without another overlay; Expo intensity is not a Figma blur radius.
+  // Native presets own their tint. The header fallback projects overlay/header-scroll from the UI Library.
   blur: {
     navigation: {
       intensity: 100,
       headerIntensity: 85,
       androidReduction: 2.8125,
+      headerTint: {
+        light:
+          Platform.OS === "android"
+            ? "default"
+            : "systemUltraThinMaterialLight",
+        dark: "systemUltraThinMaterialDark",
+      } as const,
+      headerVeil: {
+        light: "rgba(255, 255, 255, 0.5)",
+        dark: "rgba(17, 17, 18, 0.5)",
+      },
       tint: {
         light: "systemThickMaterialLight" as const,
         dark: "systemThickMaterialDark" as const,

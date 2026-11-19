@@ -1,5 +1,4 @@
 import { PageFlatList } from "@/shared/components/page-list";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
 import { PageHeader } from "@/shared/components/page-header";
@@ -124,7 +123,6 @@ export function DivisionsScreen() {
         </PageScrollView>
       ) : (
         <PageFlatList
-          {...hiddenScrollIndicators}
           alwaysBounceVertical={items.length > 0 && !failed}
           refreshControl={
             query.data &&
@@ -370,7 +368,7 @@ const styles = StyleSheet.create({
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
   },
-  // Activity chips filter one catalogue; resource-section navigation uses the shared Tabs rail.
+  // Activity chips change results within the same catalogue.
   filters: { flexDirection: "row", gap: tokens.spacing.sm },
   filterTarget: {
     minHeight: tokens.touch.minimum,

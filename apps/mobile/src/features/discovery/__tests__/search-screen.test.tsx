@@ -6,7 +6,10 @@ import {
   PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SearchVisitProvider } from "../forms/search-visit";
@@ -358,19 +361,7 @@ it("selects the search resource through native page settlement and retains its s
   ).toBe(false);
 
   // When: the native pager settles on Clubs without a tab-bar press.
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 2 },
-  });
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
-    nativeEvent: { position: 2, offset: 0 },
-  });
-  await fireEvent(
-    screen.getByTestId("native-tabs-pager"),
-    "pageScrollStateChanged",
-    {
-      nativeEvent: { pageScrollState: "idle" },
-    },
-  );
+  await scrollNativeTabs(2, true);
 
   // Then: selection, the scrolling heading and the shared input agree with the settled page.
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
@@ -392,19 +383,7 @@ it("selects the search resource through native page settlement and retains its s
   mockFetch.mockClear();
 
   // When
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 0 },
-  });
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
-    nativeEvent: { position: 0, offset: 0 },
-  });
-  await fireEvent(
-    screen.getByTestId("native-tabs-pager"),
-    "pageScrollStateChanged",
-    {
-      nativeEvent: { pageScrollState: "idle" },
-    },
-  );
+  await scrollNativeTabs(0, true);
 
   // Then: the visited result and controls remain coherent through ordinary native rereading.
   expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();

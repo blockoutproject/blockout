@@ -11,7 +11,6 @@ import { Text } from "react-native";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { Button } from "@/shared/components/button";
-import { Tabs } from "@/shared/components/tabs";
 import { PersonalSeasonSelector } from "../components/personal-season-selector";
 import { PersonalSeasonChoices } from "../components/personal-season-choices";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
@@ -78,15 +77,8 @@ function PersonalProbe({ enabled = true }: Readonly<{ enabled?: boolean }>) {
   }
   return (
     <>
-      <Tabs
-        items={[
-          { id: "upcoming", label: "À venir" },
-          { id: "completed", label: "Terminés" },
-          { id: "following", label: "Suivis" },
-        ]}
-        selected={tab}
-        onSelect={setTab}
-      />
+      <Button label="Terminés" onPress={() => setTab("completed")} />
+      <Button label="Suivis" onPress={() => setTab("following")} />
       <PersonalSeasonSelector
         options={season.options.data}
         seasonId={season.seasonId}
@@ -175,8 +167,8 @@ it("shares one retained choice across all three tabs and both generated list sel
   // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
   await user.press(screen.getByRole("radio", { name: newer.label }));
-  await user.press(screen.getByRole("tab", { name: "Terminés" }));
-  await user.press(screen.getByRole("tab", { name: "Suivis" }));
+  await user.press(screen.getByRole("button", { name: "Terminés" }));
+  await user.press(screen.getByRole("button", { name: "Suivis" }));
 
   // Then
   await screen.findByText("Loaded");

@@ -20,7 +20,6 @@ import {
 } from "@/shared/components/page";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { PagedTabs } from "@/shared/components/paged-tabs";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageHeader } from "@/shared/components/page-header";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -502,7 +501,6 @@ function VersionScene({
   return (
     <PageList
       key={identity}
-      {...hiddenScrollIndicators}
       recycleItems={false}
       accessibilityLabel={
         state === "pending" ? "Propositions de liens" : "Historique des liens"

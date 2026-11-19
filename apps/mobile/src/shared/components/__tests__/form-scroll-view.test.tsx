@@ -1,28 +1,17 @@
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
-import { createRef } from "react";
-import {
-  Platform,
-  Pressable,
-  Text,
-  type ScrollViewInstance,
-} from "react-native";
-import {
-  Container,
-  Tab,
-  useTabPageContext,
-  type CollapsingTabsRef,
-} from "react-native-collapsible-tab";
+import { useState } from "react";
+import { Platform, Text, TextInput } from "react-native";
 import {
   fireEvent,
   render,
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { FormScrollView } from "../form-scroll-view";
-import { PagedTabContext } from "../paged-tab-context";
+import { PagedTabs } from "../paged-tabs";
 
-// Keyboard geometry remains device evidence; the upstream double preserves the native ScrollView ref.
+// Native keyboard geometry remains device evidence.
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
@@ -30,61 +19,58 @@ jest.mock("react-native-keyboard-controller", () =>
 afterEach(() => jest.restoreAllMocks());
 
 it.each(["ios", "android"] as const)(
-  "preserves %s form scroll events and the container's native return command",
+  "keeps %s form scroll events and the mounted draft when changing tabs",
   async (platform) => {
     // Given
     jest.replaceProperty(Platform, "OS", platform);
-    const pager = createRef<CollapsingTabsRef>();
     const onScroll = jest.fn();
     const user = userEvent.setup();
-    let scrollTo: jest.SpyInstance | undefined;
 
-    /** Observes the public adapter ref; native event-to-offset delivery still needs a device. */
-    function NativeScrollBoundary() {
-      const { scrollRef } = useTabPageContext();
+    function Example() {
+      const [tab, setTab] = useState("form");
       return (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Revenir au début"
-          onPress={() => {
-            const native: ScrollViewInstance | null = scrollRef.current;
-            if (native) {
-              scrollTo = jest.spyOn(native, "scrollTo");
-            }
-            pager.current?.scrollToTop(false);
-          }}
-        >
-          <Text>Revenir au début</Text>
-        </Pressable>
+        <ThemeProvider>
+          <PagedTabs
+            selected={tab}
+            onSelect={setTab}
+            tabs={[
+              {
+                id: "form",
+                label: "Publication",
+                content: (
+                  <FormScrollView
+                    accessibilityLabel="Formulaire de publication"
+                    onScroll={onScroll}
+                  >
+                    <TextInput accessibilityLabel="Lien vidéo" />
+                  </FormScrollView>
+                ),
+              },
+              {
+                id: "history",
+                label: "Historique",
+                content: <Text>Publications précédentes</Text>,
+              },
+            ]}
+          />
+        </ThemeProvider>
       );
     }
 
-    await render(
-      <GestureHandlerRootView>
-        <Container ref={pager} initialTabName="active">
-          <Tab name="active">
-            <PagedTabContext value={{ contentInset: 80, stickyInset: 80 }}>
-              <FormScrollView
-                accessibilityLabel="Formulaire de publication"
-                onScroll={onScroll}
-              >
-                <Text>Formulaire conservé</Text>
-              </FormScrollView>
-              <NativeScrollBoundary />
-            </PagedTabContext>
-          </Tab>
-        </Container>
-      </GestureHandlerRootView>,
-    );
+    await render(<Example />);
     await layoutNativeTabs();
     const event = { nativeEvent: { contentOffset: { x: 0, y: 80 } } };
 
     // When
+    await user.type(
+      screen.getByLabelText("Lien vidéo"),
+      "https://example.org/video",
+    );
     await fireEvent.scroll(
       screen.getByLabelText("Formulaire de publication"),
       event,
     );
-    await user.press(screen.getByRole("button", { name: "Revenir au début" }));
+    await user.press(screen.getByRole("tab", { name: "Historique" }));
 
     // Then
     expect(onScroll).toHaveBeenCalledWith(
@@ -92,8 +78,15 @@ it.each(["ios", "android"] as const)(
         nativeEvent: expect.objectContaining(event.nativeEvent),
       }),
     );
-    expect(scrollTo).toBeDefined();
-    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
-    expect(screen.getByText("Formulaire conservé")).toBeOnTheScreen();
+    expect(screen.getByText("Publications précédentes")).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Lien vidéo")).toBeNull();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Publication" }));
+
+    // Then
+    expect(screen.getByLabelText("Lien vidéo")).toHaveDisplayValue(
+      "https://example.org/video",
+    );
   },
 );

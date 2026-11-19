@@ -2,7 +2,7 @@ import { useContext, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
-import { NavigationScrollOffsetContext } from "@/shared/components/navigation-backdrop";
+import { PageScrollContext } from "@/shared/components/page-scroll-binding";
 import { PageHeader } from "@/shared/components/page-header";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -20,7 +20,7 @@ export function MatchPageHeader({
   match,
   action,
 }: Readonly<MatchPageHeaderProps>) {
-  const offset = useContext(NavigationScrollOffsetContext);
+  const offset = useContext(PageScrollContext)?.offset;
   const progress = useDerivedValue(() =>
     Math.min(1, Math.max(0, offset?.get() ?? 0) / tokens.layout.header),
   );

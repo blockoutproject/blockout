@@ -16,6 +16,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -31,6 +32,7 @@ import type {
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
@@ -240,6 +242,7 @@ function panel(active = true) {
         {
           id: "map",
           label: "Carte",
+          fullHeight: true,
           content: <PoolMap pool={pool} active={active} />,
         },
       ]}
@@ -472,7 +475,9 @@ it("updates the selected point's rail when same-city clubs join and leave after 
     participant(sportingId, "Rives", first),
     participant(secondTeamId, "Marais", first),
   ];
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
 
   // Then: selection survives and the new choice becomes available.
   expect(
@@ -484,7 +489,9 @@ it("updates the selected point's rail when same-city clubs join and leave after 
 
   // When: the other team leaves, while the selected participant remains current.
   participants.items = [participant(sportingId, "Rives", first)];
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
   await screen.findByRole("button", { name: "Paris: Rives" });
 
   // Then: the singleton retains its card and exact destination without a stale rail.
@@ -611,7 +618,9 @@ it("distinguishes no usable locations from no participating teams", async () => 
       .filter((node) => node.props.coordinate !== undefined),
   ).toHaveLength(0);
   expect(screen.queryByText(/Aucune équipe/)).toBeNull();
-  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser la carte" }),
+  ).not.toBeOnTheScreen();
   const background = Promise.withResolvers<Response>();
   mockFetch.mockImplementationOnce(() => background.promise);
 
@@ -992,7 +1001,9 @@ it("refreshes both resources and drops a selected invalidated locality", async (
   mockFetch.mockClear();
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
 
   // Then
   await waitFor(() =>
@@ -1036,7 +1047,9 @@ it("keeps markers and selection usable with a simple unavailable record after a 
   standingsFailure = 503;
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
 
   // Then: retained facts stay in Query while only this optional display changes.
   expect(await screen.findByText("Bilan indisponible")).toBeOnTheScreen();
@@ -1081,13 +1094,14 @@ it.each(["initial", "refresh"] as const)(
       });
       expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
       participantsFailure = 503;
-      await fireEvent(
-        screen.getByLabelText("Actualiser les données"),
-        "refresh",
+      await user.press(
+        screen.getByRole("button", { name: "Actualiser la carte" }),
       );
     }
     await screen.findByRole("button", { name: "Réessayer", busy: false });
-    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Actualiser la carte" }),
+    ).not.toBeOnTheScreen();
     expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
     const pending = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
@@ -1107,7 +1121,9 @@ it.each(["initial", "refresh"] as const)(
     expect(
       screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
     ).toBeOnTheScreen();
-    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Actualiser la carte" }),
+    ).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "La Rochelle: Rives" }),
     ).not.toBeOnTheScreen();
@@ -1136,7 +1152,9 @@ it.each(["initial", "refresh"] as const)(
       await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     ).toBeOnTheScreen();
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    ).toBeEnabled();
     // The real access provider may recheck admission after 503; Retry owns only these pool reads.
     expect(
       mockFetch.mock.calls
@@ -1180,13 +1198,17 @@ it.each([401, 403, 404])(
     standingsFailure = status;
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await waitFor(() => expect(publicClient.isFetching()).toBe(0));
     await screen.findByText("Bilan indisponible");
     standingsFailure = 503;
     mockFetch.mockClear();
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await waitFor(() => expect(publicClient.isFetching()).toBe(0));
 
@@ -1229,7 +1251,9 @@ it.each([401, 403, 404])(
     participantsFailure = status;
 
     // When
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await screen.findByRole("button", { name: "Réessayer", busy: false });
     participantsFailure = 503;
@@ -1307,9 +1331,7 @@ it.each([
         : []),
     ];
     const user = userEvent.setup();
-    await open();
-    await screen.findByRole("tab", { name: "Carte" });
-    await layoutNativeTabs();
+    await open(<PoolMap pool={pool} />);
     // The controlled native boundary has no semantic action for its lifecycle callbacks.
     const nativeMap = await screen.findByTestId("native-map-boundary");
     const frame = nativeMapCommands.fitToCoordinates;
@@ -1346,6 +1368,49 @@ it.each([
     expect(
       screen.getByRole("button", { name: "Afficher toutes les équipes" }),
     ).toBeEnabled();
+  },
+);
+
+it.each(["ios", "android"] as const)(
+  "reserves the navigation capsule once for the %s map provider",
+  async (platform) => {
+    // Given
+    jest.replaceProperty(Platform, "OS", platform);
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+    ];
+    await open(
+      <BottomContentInsetContext value={80}>
+        <PoolMap pool={pool} />
+      </BottomContentInsetContext>,
+    );
+    const map = await screen.findByTestId("native-map-boundary");
+
+    // When
+    await fireEvent(map, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 600 } },
+    });
+    await fireEvent(map, "mapReady");
+
+    // Then: Google adds its base map padding to the camera fit; Apple's label insets leave the camera unchanged.
+    if (platform === "ios") {
+      expect(map.props.legalLabelInsets.bottom).toBe(80);
+      expect(map.props.appleLogoInsets.bottom).toBe(80);
+    } else {
+      expect(map.props.mapPadding.bottom).toBe(80);
+    }
+    expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({
+        edgePadding: expect.objectContaining({
+          bottom: platform === "ios" ? 144 : 64,
+        }),
+      }),
+    );
   },
 );
 
@@ -1398,11 +1463,32 @@ it("keeps the lone location frame until Show all explicitly clears and reframes 
     ),
     participant(secondTeamId, "Marais", updatedLocation),
   ];
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByText("Rives with a much longer published name");
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/participants")
+      ? pending.promise
+      : mapResponse(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Actualiser la carte" }));
 
-  // Then: club markers remain exact; only an explicit Show all requests another native frame.
+  // Then: the explicit button shows progress and retains the current selection until the fresh read arrives.
+  expect(
+    await screen.findByRole("button", {
+      name: "Actualiser la carte",
+      busy: true,
+    }),
+  ).toBeDisabled();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  await act(async () => pending.resolve(Response.json(participants)));
+  await screen.findByText("Rives with a much longer published name");
+  expect(
+    await screen.findByRole("button", {
+      name: "Actualiser la carte",
+      busy: false,
+    }),
+  ).toBeEnabled();
+
+  // Club markers remain exact; only an explicit Show all requests another native frame.
   expect(nativeMapCommands.fitToCoordinates).not.toHaveBeenCalled();
   expect(
     screen.getByRole("button", {

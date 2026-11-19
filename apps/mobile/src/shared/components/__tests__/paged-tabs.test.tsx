@@ -1,16 +1,12 @@
 import {
   layoutNativeTabs,
   mockPagerCommands,
+  scrollNativeTabs,
 } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "../paged-tabs";
 
@@ -26,22 +22,46 @@ function Draft() {
   );
 }
 
+function FirstScene({ onRead }: Readonly<{ onRead?: () => void }>) {
+  useEffect(() => onRead?.(), [onRead]);
+  return <Text>Scène initiale</Text>;
+}
+
 /** Feature selection is real React state; only the native pager/animation boundary is controlled. */
-function Example({ resetKey }: Readonly<{ resetKey?: string }>) {
-  const [selected, setSelected] = useState("one");
+function Example({
+  initialSelected = "one",
+  readFirstScene,
+  resetKey,
+  removeSecond = false,
+}: Readonly<{
+  initialSelected?: string;
+  readFirstScene?: () => void;
+  resetKey?: string;
+  removeSecond?: boolean;
+}>) {
+  const [selected, setSelected] = useState(initialSelected);
   return (
     <GestureHandlerRootView>
       <ThemeProvider>
         <PagedTabs
-          selected={selected}
+          selected={removeSecond && selected === "two" ? "three" : selected}
           onSelect={setSelected}
           tabs={[
             {
               id: "one",
               label: "Premier",
-              content: <Text>Scène initiale</Text>,
+              content: <FirstScene onRead={readFirstScene} />,
             },
-            { id: "two", label: "Deuxième", content: <Draft />, resetKey },
+            ...(removeSecond
+              ? []
+              : [
+                  {
+                    id: "two",
+                    label: "Deuxième",
+                    content: <Draft />,
+                    resetKey,
+                  },
+                ]),
             {
               id: "three",
               label: "Troisième",
@@ -63,10 +83,10 @@ it.each([false, true])(
     jest
       .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
       .mockResolvedValue(reducedMotion);
-    mockPagerCommands.animated.mockClear();
-    mockPagerCommands.immediate.mockClear();
     await render(<Example />);
     await layoutNativeTabs();
+    mockPagerCommands.animated.mockClear();
+    mockPagerCommands.immediate.mockClear();
     const user = userEvent.setup();
 
     // When
@@ -83,16 +103,12 @@ it.each([false, true])(
   },
 );
 
-it("keeps neighboring feature reads unmounted during a partial swipe and admits the library's selected page", async () => {
+it("keeps neighboring feature reads unmounted until the native swipe settles", async () => {
   // Given
   await render(<Example />);
   await layoutNativeTabs();
-  const pager = screen.getByTestId("native-tabs-pager");
-
   // When
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position: 0, offset: 0.5 },
-  });
+  await scrollNativeTabs(0.5);
 
   // Then
   expect(
@@ -103,7 +119,7 @@ it("keeps neighboring feature reads unmounted during a partial swipe and admits 
   ).toBeNull();
 
   // When
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 1 } });
+  await scrollNativeTabs(1, true);
 
   // Then
   expect(
@@ -139,24 +155,80 @@ it("replaces only an invalidated scene and does not revive its earlier reading c
   expect(screen.getByLabelText("Note retenue")).toHaveDisplayValue("");
 });
 
-it("accepts Android settlement even when idle precedes its selected event", async () => {
+it("does not admit a page briefly crossed before the swipe settles elsewhere", async () => {
   // Given
-  jest.replaceProperty(Platform, "OS", "android");
   await render(<Example />);
   await layoutNativeTabs();
-  const pager = screen.getByTestId("native-tabs-pager");
 
   // When
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 1 } });
+  await scrollNativeTabs(1);
+  await scrollNativeTabs(2, true);
+
+  // Then
+  expect(
+    screen.getByRole("tab", { name: "Troisième", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Dernière scène")).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Note retenue", { includeHiddenElements: true }),
+  ).toBeNull();
+});
+
+it("keeps the selected intermediate page if an earlier animated jump ends elsewhere", async () => {
+  // Given
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(false);
+  await render(<Example />);
+  await layoutNativeTabs();
+  const user = userEvent.setup();
+  mockPagerCommands.animated.mockReturnValueOnce(false);
+  await user.press(screen.getByRole("tab", { name: "Troisième" }));
+  await scrollNativeTabs(1);
+
+  // When: native already reported this offset, so its same-offset command emits no event.
+  mockPagerCommands.immediate.mockReturnValueOnce(false);
+  await user.press(screen.getByRole("tab", { name: "Deuxième" }));
+  await scrollNativeTabs(2, true);
 
   // Then
   expect(
     screen.getByRole("tab", { name: "Deuxième", selected: true }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Dernière scène", { includeHiddenElements: true }),
+  ).toBeNull();
+});
+
+it("directly admits the controlled replacement when the active scene is removed", async () => {
+  // Given
+  const readFirstScene = jest.fn();
+  const view = await render(
+    <Example initialSelected="two" readFirstScene={readFirstScene} />,
+  );
+  await layoutNativeTabs();
+  mockPagerCommands.animated.mockClear();
+  mockPagerCommands.immediate.mockClear();
+
+  // When
+  await view.rerender(
+    <Example
+      initialSelected="two"
+      readFirstScene={readFirstScene}
+      removeSecond
+    />,
+  );
+
+  // Then
+  expect(
+    screen.getByRole("tab", { name: "Troisième", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Dernière scène")).toBeOnTheScreen();
+  expect(readFirstScene).not.toHaveBeenCalled();
+  expect(mockPagerCommands.immediate).toHaveBeenCalledTimes(1);
+  expect(mockPagerCommands.immediate).toHaveBeenCalledWith(1);
+  expect(mockPagerCommands.animated).not.toHaveBeenCalled();
 });
 
 it("uses nonanimated confirmation and preserves a visited draft while hiding the inactive scene", async () => {

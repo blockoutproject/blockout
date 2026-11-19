@@ -1,34 +1,19 @@
-import {
-  cloneElement,
-  useContext,
-  useImperativeHandle,
-  useMemo,
-  type Ref,
-} from "react";
-import { TabLegendList } from "react-native-collapsible-tab/legend-list";
-import { TabFlatList } from "react-native-collapsible-tab";
-import { PagedTabContext } from "./paged-tab-context";
-import { FlatList, StyleSheet, type FlatListProps } from "react-native";
-import {
-  type LegendListProps,
-  type LegendListRef,
-} from "@legendapp/list/react-native";
+import { useImperativeHandle, useMemo, type Ref } from "react";
+import { FlatList, type FlatListProps } from "react-native";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import {
   AnimatedLegendList,
   type AnimatedLegendListProps,
 } from "@legendapp/list/reanimated";
 import { useAnimatedRef, useScrollOffset } from "react-native-reanimated";
-import {
-  NavigationScrollOffsetContext,
-  NavigationScrollMarker,
-  useNavigationInset,
-} from "./navigation-backdrop";
+import { NavigationScrollMarker } from "./navigation-backdrop";
+import { usePageScrollBinding } from "./page-scroll-binding";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 
-/** Keeps LegendList's public callbacks while correcting its legacy ScrollView component-ref type. */
-type PageListProps<T> = Omit<LegendListProps<T>, "refScrollView"> &
-  Pick<AnimatedLegendListProps<T>, "refScrollView"> & {
-    ref?: Ref<LegendListRef>;
-  };
+/** The page owns the offset published to pinned chrome. */
+type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
+  ref?: Ref<LegendListRef>;
+};
 
 /** Native virtualized content scrolls behind the shared pinned chrome. */
 export function PageList<T>({
@@ -36,42 +21,24 @@ export function PageList<T>({
   stickyHeaderConfig,
   ...props
 }: Readonly<PageListProps<T>>) {
-  const inset = useNavigationInset();
-  const tab = useContext(PagedTabContext);
-  const scrollOffset = useContext(NavigationScrollOffsetContext);
-  const sharedValues = useMemo(
-    () => (scrollOffset ? { scrollOffset } : undefined),
-    [scrollOffset],
+  const { offset, stickyInset, clearance } = usePageScrollBinding(
+    contentContainerStyle,
   );
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  if (tab) {
-    return (
-      <TabLegendList
-        {...props}
-        contentContainerStyle={contentContainerStyle}
-        stickyHeaderConfig={{
-          ...stickyHeaderConfig,
-          offset: tab.stickyInset + (stickyHeaderConfig?.offset ?? 0),
-        }}
-      />
-    );
-  }
+  const sharedValues = useMemo(
+    () => (offset ? { scrollOffset: offset } : undefined),
+    [offset],
+  );
+  // LegendList already includes content padding in its refresh offset.
   return (
     <NavigationScrollMarker>
       <AnimatedLegendList
         {...props}
+        {...hiddenScrollIndicators}
         sharedValues={sharedValues}
-        contentContainerStyle={[
-          contentContainerStyle,
-          {
-            paddingTop: inset + (typeof padding === "number" ? padding : 0),
-          },
-        ]}
+        contentContainerStyle={[contentContainerStyle, clearance]}
         stickyHeaderConfig={{
           ...stickyHeaderConfig,
-          offset: inset + (stickyHeaderConfig?.offset ?? 0),
+          offset: stickyInset + (stickyHeaderConfig?.offset ?? 0),
         }}
       />
     </NavigationScrollMarker>
@@ -84,50 +51,26 @@ export function PageFlatList<T>({
   ref,
   ...props
 }: Readonly<FlatListProps<T> & { ref?: Ref<FlatList<T>> }>) {
-  const inset = useNavigationInset();
-  const tab = useContext(PagedTabContext);
-  const offset = useContext(NavigationScrollOffsetContext);
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
+    contentContainerStyle,
+    props.refreshControl,
+  );
   const list = useAnimatedRef<FlatList<T>>();
-  useScrollOffset(!tab && offset ? list : null, offset ?? undefined);
+  useScrollOffset(offset ? list : null, offset ?? undefined);
   useImperativeHandle<FlatList<T> | null, FlatList<T> | null>(
-    tab ? undefined : ref,
+    ref,
     () => list.current,
     [list],
   );
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ??
-          tab?.contentInset ??
-          inset,
-      })
-    : undefined;
-  if (tab) {
-    return (
-      <TabFlatList
-        {...props}
-        ref={ref}
-        refreshControl={refreshControl}
-        contentContainerStyle={contentContainerStyle}
-      />
-    );
-  }
   return (
     <NavigationScrollMarker>
       <FlatList
         {...props}
+        {...hiddenScrollIndicators}
         ref={list}
         scrollEventThrottle={props.scrollEventThrottle ?? 16}
         refreshControl={refreshControl}
-        contentContainerStyle={[
-          contentContainerStyle,
-          {
-            paddingTop: inset + (typeof padding === "number" ? padding : 0),
-          },
-        ]}
+        contentContainerStyle={[contentContainerStyle, clearance]}
       />
     </NavigationScrollMarker>
   );

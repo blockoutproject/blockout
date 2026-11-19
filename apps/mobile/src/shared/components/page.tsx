@@ -1,22 +1,19 @@
 import {
   PageViewport,
   NavigationScrollMarker,
-  useNavigationInset,
   NavigationSafeAreaContext,
-  NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
-  cloneElement,
   createContext,
   useContext,
   useImperativeHandle,
+  useLayoutEffect,
   type PropsWithChildren,
   type Ref,
   type ReactNode,
 } from "react";
-import { TabScrollView } from "react-native-collapsible-tab";
-import { PagedTabContext } from "./paged-tab-context";
+import { PageScrollContext, usePageScrollBinding } from "./page-scroll-binding";
 import {
   StyleSheet,
   View,
@@ -127,7 +124,7 @@ export function Page({
           ownsTop && overlay ? Math.max(safeArea.top, tokens.spacing.sm) : 0
         }
       >
-        <NavigationScrollOffsetContext value={null}>
+        <PageScrollContext value={null}>
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
@@ -137,7 +134,7 @@ export function Page({
               )}
             </BottomContentInsetContext>
           </PageCanvasBackingContext>
-        </NavigationScrollOffsetContext>
+        </PageScrollContext>
       </NavigationSafeAreaContext>
     </SafeAreaView>
   );
@@ -174,42 +171,22 @@ export function PageScrollView({
   ref,
   ...props
 }: Readonly<PageScrollViewProps>) {
-  const inset = useNavigationInset();
-  const tab = useContext(PagedTabContext);
-  const offset = useContext(NavigationScrollOffsetContext);
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
+    contentContainerStyle,
+    props.refreshControl,
+  );
   const scroll = useAnimatedRef<ScrollViewInstance>();
-  // Observe native events without replacing the caller's onScroll or RNCT's adapter handler.
-  useScrollOffset(!tab && offset ? scroll : null, offset ?? undefined);
+  useScrollOffset(offset ? scroll : null, offset ?? undefined);
+  const initialOffset = props.contentOffset?.y ?? 0;
+  // A feedback view can replace a scrolled list before emitting a native scroll event.
+  useLayoutEffect(() => {
+    offset?.set(initialOffset);
+  }, [offset, initialOffset]);
   useImperativeHandle<ScrollViewInstance | null, ScrollViewInstance | null>(
-    tab ? undefined : ref,
+    ref,
     () => scroll.current,
     [scroll],
   );
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ??
-          tab?.contentInset ??
-          inset,
-      })
-    : undefined;
-  if (tab) {
-    return (
-      <TabScrollView
-        {...props}
-        ref={ref}
-        {...hiddenScrollIndicators}
-        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-        refreshControl={refreshControl}
-      >
-        {children}
-        <BottomContentSpacer />
-      </TabScrollView>
-    );
-  }
   return (
     <NavigationScrollMarker>
       <Animated.ScrollView
@@ -222,9 +199,7 @@ export function PageScrollView({
         contentContainerStyle={[
           styles.scrollContent,
           contentContainerStyle,
-          {
-            paddingTop: inset + (typeof padding === "number" ? padding : 0),
-          },
+          clearance,
         ]}
       >
         {children}

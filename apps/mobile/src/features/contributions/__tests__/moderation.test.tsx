@@ -1,5 +1,8 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -2316,20 +2319,8 @@ it("accepts the same native pager settlement used by a swipe and retains the ina
     "https://youtu.be/swipe-draft",
   );
 
-  // When: iOS confirms the page's terminal zero offset and idle state after its selected event.
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 2 },
-  });
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
-    nativeEvent: { position: 2, offset: 0 },
-  });
-  await fireEvent(
-    screen.getByTestId("native-tabs-pager"),
-    "pageScrollStateChanged",
-    {
-      nativeEvent: { pageScrollState: "idle" },
-    },
-  );
+  // When: the native horizontal scroll settles on the History page.
+  await scrollNativeTabs(2, true);
   await screen.findByRole("tab", { name: "Historique", selected: true });
   await user.press(screen.getByRole("tab", { name: "Actif" }));
 

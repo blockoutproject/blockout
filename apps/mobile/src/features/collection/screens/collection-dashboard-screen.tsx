@@ -26,7 +26,6 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 import { EmptyState } from "@/shared/components/state-card";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
@@ -514,7 +513,6 @@ function ControlDashboard({
         </PageScrollView>
       ) : (
         <PageFlatList
-          {...hiddenScrollIndicators}
           testID="collection-results-list"
           alwaysBounceVertical
           refreshControl={

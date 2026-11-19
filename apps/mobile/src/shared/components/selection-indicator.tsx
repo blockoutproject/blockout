@@ -9,22 +9,18 @@ import Animated, {
 import { tokens } from "@/shared/theme/tokens";
 
 /** The owner supplies a selected child's native rectangle in the same borderless coordinate space. */
-export interface SelectionIndicatorProps {
+interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
-  radius?: number;
   /** A shared fill animates paint independently of the indicator bounds. */
-  fill: string | DerivedValue<string>;
-  borderColor?: string;
+  fill: DerivedValue<string>;
 }
 
 /** Animates measured bounds directly on the UI thread on both platforms; reduced motion settles immediately. */
 export function SelectionIndicator({
   layout,
   reducedMotion,
-  radius = tokens.radius.control,
   fill,
-  borderColor,
 }: Readonly<SelectionIndicatorProps>) {
   const animated = useAnimatedStyle(() => {
     if (!layout) {
@@ -49,20 +45,11 @@ export function SelectionIndicator({
     <Animated.View
       accessible={false}
       pointerEvents="none"
-      style={[
-        styles.indicator,
-        {
-          backgroundColor: fill,
-          borderRadius: radius,
-          borderColor,
-          borderWidth: borderColor ? tokens.border.thin : 0,
-        },
-        animated,
-      ]}
+      style={[styles.indicator, { backgroundColor: fill }, animated]}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  indicator: { position: "absolute" },
+  indicator: { position: "absolute", borderRadius: tokens.radius.panelInset },
 });
