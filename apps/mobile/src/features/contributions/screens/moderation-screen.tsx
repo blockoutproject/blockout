@@ -25,7 +25,6 @@ import {
   pageContentStyle,
 } from "@/shared/components/page";
 import { PagedTabs } from "@/shared/components/paged-tabs";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageHeader } from "@/shared/components/page-header";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -303,7 +302,6 @@ function QueueScene({
   return (
     <PageList
       key={criteria}
-      {...hiddenScrollIndicators}
       recycleItems
       accessibilityLabel="File de modération des liens"
       data={rows}

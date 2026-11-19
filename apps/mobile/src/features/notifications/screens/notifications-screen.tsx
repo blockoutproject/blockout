@@ -1,7 +1,6 @@
 import { Flag, RefreshCw } from "lucide-react-native";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
   useMutation,
@@ -233,7 +232,6 @@ function Inbox({
   return (
     <Page edges={["top", "left", "right"]} header={<NotificationsHeader />}>
       <PageFlatList
-        {...hiddenScrollIndicators}
         alwaysBounceVertical={rows.length > 0}
         data={rows}
         onEndReached={() => {

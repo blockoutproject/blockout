@@ -35,12 +35,10 @@ import type {
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import {
-  BottomContentSpacer,
-  useBottomContentInset,
-} from "@/shared/components/bottom-content-inset";
+import { useBottomContentInset } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { IconButton } from "@/shared/components/icon-button";
+import { PageScrollView } from "@/shared/components/page";
 
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -130,7 +128,7 @@ export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
         </View>
       )}
       {failed || (data && !hasLocations) ? (
-        <ScrollView {...hiddenScrollIndicators} style={styles.fill}>
+        <PageScrollView style={styles.fill}>
           <ScreenState>
             {failed ? (
               <ReadFeedback
@@ -158,8 +156,7 @@ export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
               </EmptyState>
             )}
           </ScreenState>
-          <BottomContentSpacer />
-        </ScrollView>
+        </PageScrollView>
       ) : participants.isLoading ? (
         <LoadingGroup label="Chargement des participants" style={styles.fill}>
           <Skeleton height="100%" shape="rectangle" radius={0} />

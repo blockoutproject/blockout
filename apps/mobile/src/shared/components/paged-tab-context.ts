@@ -1,12 +1,6 @@
 import { createContext, useContext } from "react";
 import type { DerivedValue } from "react-native-reanimated";
 
-export const PagedTabContext = createContext<{
-  contentInset: number;
-  stickyInset: number;
-  minContentHeight: number;
-} | null>(null);
-
 export const PagedTabCollapseContext =
   createContext<DerivedValue<number> | null>(null);
 

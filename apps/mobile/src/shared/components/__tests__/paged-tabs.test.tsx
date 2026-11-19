@@ -4,7 +4,7 @@ import {
   scrollNativeTabs,
 } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
@@ -22,12 +22,24 @@ function Draft() {
   );
 }
 
+function FirstScene({ onRead }: Readonly<{ onRead?: () => void }>) {
+  useEffect(() => onRead?.(), [onRead]);
+  return <Text>Scène initiale</Text>;
+}
+
 /** Feature selection is real React state; only the native pager/animation boundary is controlled. */
 function Example({
+  initialSelected = "one",
+  readFirstScene,
   resetKey,
   removeSecond = false,
-}: Readonly<{ resetKey?: string; removeSecond?: boolean }>) {
-  const [selected, setSelected] = useState("one");
+}: Readonly<{
+  initialSelected?: string;
+  readFirstScene?: () => void;
+  resetKey?: string;
+  removeSecond?: boolean;
+}>) {
+  const [selected, setSelected] = useState(initialSelected);
   return (
     <GestureHandlerRootView>
       <ThemeProvider>
@@ -38,7 +50,7 @@ function Example({
             {
               id: "one",
               label: "Premier",
-              content: <Text>Scène initiale</Text>,
+              content: <FirstScene onRead={readFirstScene} />,
             },
             ...(removeSecond
               ? []
@@ -191,21 +203,29 @@ it("keeps the selected intermediate page if an earlier animated jump ends elsewh
 
 it("directly admits the controlled replacement when the active scene is removed", async () => {
   // Given
-  const view = await render(<Example />);
+  const readFirstScene = jest.fn();
+  const view = await render(
+    <Example initialSelected="two" readFirstScene={readFirstScene} />,
+  );
   await layoutNativeTabs();
-  const user = userEvent.setup();
-  await user.press(screen.getByRole("tab", { name: "Deuxième" }));
   mockPagerCommands.animated.mockClear();
   mockPagerCommands.immediate.mockClear();
 
   // When
-  await view.rerender(<Example removeSecond />);
+  await view.rerender(
+    <Example
+      initialSelected="two"
+      readFirstScene={readFirstScene}
+      removeSecond
+    />,
+  );
 
   // Then
   expect(
     screen.getByRole("tab", { name: "Troisième", selected: true }),
   ).toBeOnTheScreen();
   expect(screen.getByText("Dernière scène")).toBeOnTheScreen();
+  expect(readFirstScene).not.toHaveBeenCalled();
   expect(mockPagerCommands.immediate).toHaveBeenCalledTimes(1);
   expect(mockPagerCommands.immediate).toHaveBeenCalledWith(1);
   expect(mockPagerCommands.animated).not.toHaveBeenCalled();

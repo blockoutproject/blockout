@@ -7,7 +7,6 @@ import { SportingInitialComposition } from "../components/sporting-initial-compo
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -348,7 +347,6 @@ function ClubTeams({
   return (
     <PageList
       ref={list}
-      {...hiddenScrollIndicators}
       alwaysBounceVertical
       recycleItems
       onScroll={({ nativeEvent }) => {

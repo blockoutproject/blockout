@@ -1,6 +1,5 @@
 import { PageList } from "@/shared/components/page-list";
 import { PageScrollView, pageContentStyle } from "@/shared/components/page";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { StyleSheet, Text, View } from "react-native";
@@ -24,7 +23,7 @@ export interface SearchResultsProps {
 
 /**
  * Native rows and feedback share the viewport below Search controls.
- * Restores the last native offset after a scoped card; RNCT owns the pinned toolbar inset.
+ * Restores the last native offset after a scoped card while the shared page supplies the toolbar inset.
  */
 export function SearchResults({
   items,
@@ -49,7 +48,6 @@ export function SearchResults({
   return (
     <PageList
       ref={list}
-      {...hiddenScrollIndicators}
       maintainVisibleContentPosition={{ size: false, data: true }}
       accessibilityRole="list"
       accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}

@@ -1,4 +1,4 @@
-import { cloneElement, useImperativeHandle, useMemo, type Ref } from "react";
+import { useImperativeHandle, useMemo, type Ref } from "react";
 import { FlatList, type FlatListProps } from "react-native";
 import {
   type LegendListProps,
@@ -11,6 +11,7 @@ import {
 import { useAnimatedRef, useScrollOffset } from "react-native-reanimated";
 import { NavigationScrollMarker } from "./navigation-backdrop";
 import { usePageScrollBinding } from "./page-scroll-binding";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 
 /** Keeps LegendList's public callbacks while correcting its legacy ScrollView component-ref type. */
 type PageListProps<T> = Omit<LegendListProps<T>, "refScrollView"> &
@@ -24,19 +25,20 @@ export function PageList<T>({
   stickyHeaderConfig,
   ...props
 }: Readonly<PageListProps<T>>) {
-  const { offset, contentInset, stickyInset, clearance } = usePageScrollBinding(
+  const { offset, stickyInset, clearance } = usePageScrollBinding(
     contentContainerStyle,
   );
   const sharedValues = useMemo(
     () => (offset ? { scrollOffset: offset } : undefined),
     [offset],
   );
+  // LegendList already includes content padding in its refresh offset.
   return (
     <NavigationScrollMarker>
       <AnimatedLegendList
         {...props}
+        {...hiddenScrollIndicators}
         sharedValues={sharedValues}
-        progressViewOffset={props.progressViewOffset ?? contentInset}
         contentContainerStyle={[contentContainerStyle, clearance]}
         stickyHeaderConfig={{
           ...stickyHeaderConfig,
@@ -53,8 +55,9 @@ export function PageFlatList<T>({
   ref,
   ...props
 }: Readonly<FlatListProps<T> & { ref?: Ref<FlatList<T>> }>) {
-  const { offset, contentInset, clearance } = usePageScrollBinding(
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
     contentContainerStyle,
+    props.refreshControl,
   );
   const list = useAnimatedRef<FlatList<T>>();
   useScrollOffset(offset ? list : null, offset ?? undefined);
@@ -63,16 +66,11 @@ export function PageFlatList<T>({
     () => list.current,
     [list],
   );
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ?? contentInset,
-      })
-    : undefined;
   return (
     <NavigationScrollMarker>
       <FlatList
         {...props}
+        {...hiddenScrollIndicators}
         ref={list}
         scrollEventThrottle={props.scrollEventThrottle ?? 16}
         refreshControl={refreshControl}

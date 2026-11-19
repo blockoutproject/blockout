@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageScrollView } from "@/shared/components/page";
 import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -241,7 +240,6 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   }
   return (
     <PageList
-      {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}

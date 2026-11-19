@@ -28,7 +28,6 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ContributionProposalsLoading } from "../components/contribution-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 
-import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { AccountSessionFeedback } from "@/features/accounts/current-account";
@@ -176,7 +175,6 @@ export function OwnContributionsScreen({
       header={<PageHeader title="Lien de diffusion" />}
     >
       <PageFlatList
-        {...hiddenScrollIndicators}
         accessibilityLabel="Liste de mes propositions"
         automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         keyboardShouldPersistTaps="handled"

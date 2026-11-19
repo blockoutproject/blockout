@@ -19,6 +19,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { ScrollViewMarker } from "react-native-screens/experimental";
+import { PageScrollContext } from "./page-scroll-binding";
 import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -27,20 +28,8 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 const supportsNavigationBlur =
   Platform.OS !== "android" || Number(Platform.Version) >= 31;
 
-/** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
-export const NavigationInsetContext = createContext(0);
-
 /** Page publishes the native top inset when its chrome extends behind the status bar. */
 export const NavigationSafeAreaContext = createContext(0);
-
-/** The current ordinary page's native scroller owns this offset; material and compact navigation only observe it. */
-export const NavigationScrollOffsetContext =
-  createContext<SharedValue<number> | null>(null);
-
-/** Reads only layout clearance, independently of feature selection and scroll position. */
-export function useNavigationInset() {
-  return useContext(NavigationInsetContext);
-}
 
 /** Apply the Stack edge policy when an iOS scroller mounts after the screen attaches. */
 export function NavigationScrollMarker({
@@ -125,20 +114,18 @@ export function PageViewport({
   const [height, setHeight] = useState(0);
   return (
     <View style={styles.fill}>
-      <NavigationInsetContext value={height}>
-        <NavigationScrollOffsetContext value={scrollOffset}>
-          <BlurTargetView ref={target} style={styles.fill}>
-            {children}
-          </BlurTargetView>
-          <View
-            style={[styles.header, { paddingTop: top }]}
-            onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
-          >
-            <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
-            {header}
-          </View>
-        </NavigationScrollOffsetContext>
-      </NavigationInsetContext>
+      <PageScrollContext value={{ offset: scrollOffset, contentInset: height }}>
+        <BlurTargetView ref={target} style={styles.fill}>
+          {children}
+        </BlurTargetView>
+        <View
+          style={[styles.header, { paddingTop: top }]}
+          onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
+        >
+          <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
+          {header}
+        </View>
+      </PageScrollContext>
     </View>
   );
 }

@@ -30,13 +30,12 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import {
   NavigationBackdrop,
-  NavigationInsetContext,
   NavigationSafeAreaContext,
   NavigationScrollMarker,
-  NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
 import { NavigationTabBar } from "./navigation-tab-bar";
-import { PagedTabCollapseContext, PagedTabContext } from "./paged-tab-context";
+import { PageScrollContext } from "./page-scroll-binding";
+import { PagedTabCollapseContext } from "./paged-tab-context";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
@@ -130,10 +129,14 @@ function NativePagedTabs({
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
   useEffect(() => onVisit(settled), [onVisit, settled]);
-  const selectedIndex = Math.max(
-    0,
-    tabs.findIndex(({ id }) => id === settled),
-  );
+  const retainedIndex = tabs.findIndex(({ id }) => id === settled);
+  const selectedIndex =
+    retainedIndex >= 0
+      ? retainedIndex
+      : Math.max(
+          0,
+          tabs.findIndex(({ id }) => id === selected),
+        );
   const [initialOffset] = useState(() => ({ x: selectedIndex * width, y: 0 }));
   const position = useSharedValue(selectedIndex);
   const command = useSharedValue<TabCommand | null>(null);
@@ -314,25 +317,18 @@ function NativePagedTabs({
       return;
     }
     geometry.current = { width, ids: scenes.map(({ id }) => id) };
-    const retainedIndex = scenes.findIndex(
-      ({ id }) => id === settledTab.current,
-    );
-    const index =
-      retainedIndex >= 0
-        ? retainedIndex
-        : Math.max(
-            0,
-            scenes.findIndex(({ id }) => id === selected),
-          );
     command.set(null);
-    position.set(index);
-    horizontal.current?.scrollTo({ x: index * width, animated: false });
-    if (retainedIndex < 0) {
-      const id = scenes[index]?.id ?? selected;
+    position.set(selectedIndex);
+    horizontal.current?.scrollTo({
+      x: selectedIndex * width,
+      animated: false,
+    });
+    const id = scenes[selectedIndex]?.id ?? selected;
+    if (id !== settledTab.current) {
       settledTab.current = id;
       setSettled(id);
     }
-  }, [width, scenes, command, position, selected]);
+  }, [width, scenes, command, position, selected, selectedIndex]);
 
   useEffect(() => {
     if (controlledTab.current === selected) {
@@ -556,22 +552,20 @@ function TabScene({
     >
       {visited && (
         <Animated.View style={[StyleSheet.absoluteFill, frame]}>
-          <NavigationInsetContext value={scene.fullHeight ? 0 : stickyInset}>
-            <NavigationScrollOffsetContext
-              value={scene.fullHeight ? null : scene.offset}
-            >
-              <PagedTabContext
-                value={{
-                  contentInset: scene.fullHeight ? 0 : contentInset,
-                  stickyInset: scene.fullHeight ? 0 : stickyInset,
-                  minContentHeight:
-                    scene.fullHeight || !height ? 0 : height + headerHeight,
-                }}
-              >
-                {children}
-              </PagedTabContext>
-            </NavigationScrollOffsetContext>
-          </NavigationInsetContext>
+          <PageScrollContext
+            value={
+              scene.fullHeight
+                ? null
+                : {
+                    offset: scene.offset,
+                    contentInset,
+                    stickyInset,
+                    minContentHeight: height ? height + headerHeight : 0,
+                  }
+            }
+          >
+            {children}
+          </PageScrollContext>
         </Animated.View>
       )}
     </View>

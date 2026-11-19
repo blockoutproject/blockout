@@ -2,19 +2,18 @@ import {
   PageViewport,
   NavigationScrollMarker,
   NavigationSafeAreaContext,
-  NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
-  cloneElement,
   createContext,
   useContext,
   useImperativeHandle,
+  useLayoutEffect,
   type PropsWithChildren,
   type Ref,
   type ReactNode,
 } from "react";
-import { usePageScrollBinding } from "./page-scroll-binding";
+import { PageScrollContext, usePageScrollBinding } from "./page-scroll-binding";
 import {
   StyleSheet,
   View,
@@ -125,7 +124,7 @@ export function Page({
           ownsTop && overlay ? Math.max(safeArea.top, tokens.spacing.sm) : 0
         }
       >
-        <NavigationScrollOffsetContext value={null}>
+        <PageScrollContext value={null}>
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
@@ -135,7 +134,7 @@ export function Page({
               )}
             </BottomContentInsetContext>
           </PageCanvasBackingContext>
-        </NavigationScrollOffsetContext>
+        </PageScrollContext>
       </NavigationSafeAreaContext>
     </SafeAreaView>
   );
@@ -172,23 +171,22 @@ export function PageScrollView({
   ref,
   ...props
 }: Readonly<PageScrollViewProps>) {
-  const { offset, contentInset, clearance } = usePageScrollBinding(
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
     contentContainerStyle,
+    props.refreshControl,
   );
   const scroll = useAnimatedRef<ScrollViewInstance>();
   useScrollOffset(offset ? scroll : null, offset ?? undefined);
+  const initialOffset = props.contentOffset?.y ?? 0;
+  // A feedback view can replace a scrolled list before emitting a native scroll event.
+  useLayoutEffect(() => {
+    offset?.set(initialOffset);
+  }, [offset, initialOffset]);
   useImperativeHandle<ScrollViewInstance | null, ScrollViewInstance | null>(
     ref,
     () => scroll.current,
     [scroll],
   );
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ?? contentInset,
-      })
-    : undefined;
-
   return (
     <NavigationScrollMarker>
       <Animated.ScrollView

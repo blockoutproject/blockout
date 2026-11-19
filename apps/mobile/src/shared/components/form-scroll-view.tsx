@@ -1,5 +1,5 @@
 import { NavigationScrollMarker } from "./navigation-backdrop";
-import { cloneElement, useCallback } from "react";
+import { useCallback } from "react";
 import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
@@ -36,8 +36,9 @@ export function FormScrollView({
   contentContainerStyle,
   ...props
 }: Readonly<FormScrollViewProps>) {
-  const { offset, contentInset, clearance } = usePageScrollBinding(
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
     contentContainerStyle,
+    props.refreshControl,
   );
   const scroll = useAnimatedRef<ScrollViewInstance>();
   useScrollOffset(offset ? scroll : null, offset ?? undefined);
@@ -48,12 +49,6 @@ export function FormScrollView({
     },
     [scroll],
   );
-  const refreshControl = props.refreshControl
-    ? cloneElement(props.refreshControl, {
-        progressViewOffset:
-          props.refreshControl.props.progressViewOffset ?? contentInset,
-      })
-    : undefined;
   const scrollProps = {
     ...props,
     ...hiddenScrollIndicators,

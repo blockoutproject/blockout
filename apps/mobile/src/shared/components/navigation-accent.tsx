@@ -8,10 +8,11 @@ import {
   type SetStateAction,
 } from "react";
 import { solidForeground } from "@/shared/theme/solid-foreground";
-import type { TabSelection } from "./tabs";
 
-export interface NavigationAccentSelection extends TabSelection {
+export interface NavigationAccentSelection {
   routeKey: string;
+  fill: string;
+  content: string;
 }
 
 type AccentScope = {
