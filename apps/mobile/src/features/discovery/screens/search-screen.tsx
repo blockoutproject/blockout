@@ -64,9 +64,8 @@ export function SearchScreen() {
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const text = useWatch({ control, name: "q" });
-  const valid = searchSchema.safeParse({ q: text }).success;
-  const textual = /[^\p{White_Space}]/u.test(text);
-  const searchable = valid && textual;
+  const examples = !/[^\p{White_Space}]/u.test(text);
+  const searchable = !examples && searchSchema.safeParse({ q: text }).success;
   // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
   const queryText = searchable ? text : "";
   const textKey = hashKey(
@@ -87,7 +86,6 @@ export function SearchScreen() {
     { q: queryText },
     resource === "club" && searchable,
   );
-  const examples = text.replace(/\p{White_Space}/gu, "") === "";
   const teamExamples = useSearchExamplesQuery(
     "team",
     { ...visit.team.filters },

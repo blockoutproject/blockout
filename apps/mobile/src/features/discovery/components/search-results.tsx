@@ -39,7 +39,7 @@ export function SearchResults({
   const offset = useRef(0);
   if (items.length === 0) {
     return (
-      <PageScrollView keyboardShouldPersistTaps="handled">
+      <PageScrollView>
         {heading && <View style={styles.feedbackHeading}>{heading}</View>}
         {emptyComponent}
         {continuation}
