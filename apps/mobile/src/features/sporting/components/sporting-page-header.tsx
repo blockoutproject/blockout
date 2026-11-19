@@ -9,9 +9,9 @@ import { tokens } from "@/shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 import { SportingPresentationAction } from "./sporting-actions";
-import { usePagedTabCollapseProgress } from "@/shared/components/paged-tab-context";
+import { usePagedTabHeaderOffset } from "@/shared/components/paged-tab-context";
 
-/** Pinned navigation reveals canonical identity only as the shared sporting card collapses. */
+/** Pinned navigation presents the sporting identity as the pager scrolls. */
 export interface SportingPageHeaderProps {
   identity: SportingIdentityResponse;
   kind: "team" | "pool" | "club";
@@ -28,11 +28,11 @@ export function SportingPageHeader({
   action,
 }: Readonly<SportingPageHeaderProps>) {
   const { colors } = useTheme();
-  const progress = usePagedTabCollapseProgress();
+  const offset = usePagedTabHeaderOffset();
   return (
     <PageHeader
       title={identity.name}
-      revealProgress={progress}
+      revealOffset={offset}
       action={
         <>
           <SportingPresentationAction target={{ kind, id: identity.id }} />
