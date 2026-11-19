@@ -140,7 +140,7 @@ export function SearchScreen() {
     reset(searchValues());
   }
 
-  /** The results heading clears this resource's criteria; the input clear action retains sporting filters. */
+  /** The empty-state action resets the shared text and this resource's sporting filters. */
   function clearCriteria(target: DiscoveryResource) {
     clearSearch();
     const selection = target === "club" ? undefined : visit[target];
@@ -168,7 +168,6 @@ export function SearchScreen() {
                   id === "club" ? undefined : visit[id].filters,
                 ]);
           const canClear = !examples || hasChangedFilters(id);
-          const clear = () => clearCriteria(id);
           let emptyDescription = "Essayez un autre nom.";
           if (examples) {
             emptyDescription = canClear
@@ -188,14 +187,13 @@ export function SearchScreen() {
                 query={queries[id]}
                 exampleQuery={exampleQueries[id]}
                 examples={examples}
-                onClear={canClear ? clear : undefined}
                 emptyDescription={emptyDescription}
                 emptyAction={
                   canClear ? (
                     <Button
                       label="Effacer les critères"
                       leadingIcon={Eraser}
-                      onPress={clear}
+                      onPress={() => clearCriteria(id)}
                     />
                   ) : (
                     <Button

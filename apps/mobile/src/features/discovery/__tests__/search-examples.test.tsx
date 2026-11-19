@@ -555,7 +555,7 @@ it("masks cached examples on failure and repopulates a formerly empty current se
   expect(screen.queryByText("Aucun exemple disponible")).not.toBeOnTheScreen();
 });
 
-it("selects again for changed filters and resets to the current default season", async () => {
+it("reloads examples for changed filters within the default season", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
@@ -576,20 +576,11 @@ it("selects again for changed filters and resets to the current default season",
   // Then
   const filtered = new URL(collectionCalls("teams").at(-1)![0]);
   expect(filtered.searchParams.get("gender")).toBe("female");
+  expect(filtered.searchParams.get("seasonId")).toBe(season.id);
   expect([...filtered.searchParams.keys()].sort()).toEqual([
     "gender",
     "seasonId",
   ]);
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Effacer" }));
-  await screen.findByText("Club public");
-
-  // Then
-  const reset = new URL(collectionCalls("teams").at(-1)![0]);
-  expect(reset.searchParams.get("seasonId")).toBe(season.id);
-  expect(reset.searchParams.has("gender")).toBe(false);
-  expect([...reset.searchParams.keys()]).toEqual(["seasonId"]);
 });
 
 it("explains empty filtered examples and clears their existing criteria", async () => {

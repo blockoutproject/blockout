@@ -3,7 +3,7 @@ import { PageScrollView, pageContentStyle } from "@/shared/components/page";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRef, type ReactElement, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -93,17 +93,12 @@ export function SearchResults({
 export interface SearchHeadingProps {
   count?: number;
   examples?: boolean;
-  onClear?: () => void;
 }
 
-/**
- * Product Design Search Heading 7130:19183; clearing preserves the selected resource tab.
- * The title and clear label stay vertically centered while wrapping preserves the action's native target.
- */
+/** Product Design Search Heading 7130:19183 keeps the existing compact vertical clearance. */
 export function SearchHeading({
   count,
   examples = false,
-  onClear,
 }: Readonly<SearchHeadingProps>) {
   const { colors } = useTheme();
   let title = "Résultats";
@@ -114,30 +109,15 @@ export function SearchHeading({
     title = `${count} résultat${plural} chargé${plural}`;
   }
   return (
-    <View style={styles.toolbar}>
+    <View style={styles.heading}>
       <Text
         accessibilityRole="header"
         accessibilityLabel={title}
         accessibilityLiveRegion="polite"
-        style={[styles.heading, { color: colors.text }]}
+        style={[tokens.typography.navigation, { color: colors.text }]}
       >
         {title}
       </Text>
-      {onClear && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Effacer"
-          onPress={onClear}
-          style={({ pressed }) => [
-            styles.clear,
-            { opacity: pressed ? tokens.opacity.pressed : 1 },
-          ]}
-        >
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Effacer
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -146,16 +126,8 @@ const styles = StyleSheet.create({
   listContent: { ...pageContentStyle, paddingTop: 0 },
   listHeading: { paddingBottom: tokens.layout.content.start },
   feedbackHeading: { paddingHorizontal: tokens.spacing.screen },
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
+  heading: {
     minHeight: tokens.layout.collection.toolbarMinHeight,
-    gap: tokens.spacing.sm,
-  },
-  heading: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
-  clear: {
-    minHeight: tokens.touch.minimum,
-    minWidth: tokens.touch.minimum,
     justifyContent: "center",
   },
 });

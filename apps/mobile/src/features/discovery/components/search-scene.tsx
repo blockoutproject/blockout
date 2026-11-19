@@ -26,7 +26,6 @@ export interface SearchSceneProps {
   query: ReturnType<typeof useDiscoveryQuery>;
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
-  onClear?: () => void;
   emptyDescription: string;
   emptyAction: ReactNode;
 }
@@ -40,7 +39,6 @@ export function SearchScene({
   query: textQuery,
   exampleQuery,
   examples,
-  onClear,
   emptyDescription,
   emptyAction,
 }: Readonly<SearchSceneProps>) {
@@ -133,7 +131,6 @@ export function SearchScene({
           <SearchHeading
             examples={examples}
             count={searchable && textQuery.data ? items.length : undefined}
-            onClear={onClear}
           />
         )
       }

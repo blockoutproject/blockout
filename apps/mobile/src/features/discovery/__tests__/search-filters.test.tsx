@@ -658,7 +658,7 @@ it("reconciles disappeared draft choices on successful reload without erasing ot
   ).toHaveAccessibilityValue({ text: "Mixte" });
 });
 
-it("retains filters when clearing text and resets the current criteria from the results heading", async () => {
+it("retains sporting filters when clearing the shared search field", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
@@ -674,21 +674,14 @@ it("retains filters when clearing text and resets the current criteria from the 
     screen.getByRole("button", { name: "Effacer la recherche" }),
   );
   await openFilters();
-  expect(
-    screen.getByRole("button", { name: "Saison" }),
-  ).toHaveAccessibilityValue({ text: oldSeason.label });
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
-  await user.press(await screen.findByRole("button", { name: "Effacer" }));
-  await openFilters();
 
   // Then
   expect(
     screen.getByRole("button", { name: "Saison" }),
-  ).toHaveAccessibilityValue({ text: season.label });
+  ).toHaveAccessibilityValue({ text: oldSeason.label });
   expect(
     screen.getByRole("button", { name: "Genre" }),
-  ).toHaveAccessibilityValue({ text: "Tout afficher" });
+  ).toHaveAccessibilityValue({ text: "Féminin" });
 });
 
 it.each(["Saison", "Division", "Format", "Genre"])(
