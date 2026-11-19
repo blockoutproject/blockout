@@ -9,7 +9,10 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import * as proSessionModule from "@/features/pro/pro-session";
 import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
@@ -404,6 +407,103 @@ it.each(["team", "pool"] as const)(
         ),
       ),
     ).toHaveLength(0);
+  },
+);
+
+it.each([
+  {
+    kind: "pool",
+    source: "Classement",
+    start: 0,
+    destination: 1,
+    category: "upcoming",
+  },
+  {
+    kind: "team",
+    source: "Pool",
+    start: 2,
+    destination: 1,
+    category: "completed",
+  },
+] as const)(
+  "admits the first $kind $category read only after settling on that tab",
+  async ({ kind, source, start, destination, category }) => {
+    // Given: controlled HTTP holds both initial reads while the real pager owns visit selection.
+    const standings = Promise.withResolvers<Response>();
+    const calendar = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+      const { pathname } = new URL(url);
+      if (pathname.endsWith("/standings")) {
+        return standings.promise;
+      }
+      return pathname === "/matches" ? calendar.promise : reads(url, request);
+    });
+    const listRequests = () =>
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter(({ pathname }) =>
+          ["/matches", `/pools/${sportingId}/participants`].includes(pathname),
+        );
+    await renderPage(
+      kind === "pool" ? (
+        <PoolScreen poolId={sportingId} />
+      ) : (
+        <TeamScreen teamId={sportingId} />
+      ),
+    );
+    await layoutSportingPage();
+    await screen.findByRole("progressbar", {
+      name: "Chargement du classement",
+    });
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement des matchs" }),
+    ).toBeNull();
+
+    // When: the current table confirms ordinary absence, and a first swipe is canceled.
+    await act(async () =>
+      standings.resolve(
+        Response.json({
+          poolId: sportingId,
+          availability: "not-published",
+          columns: [],
+          rows: [],
+        }),
+      ),
+    );
+    await screen.findByText("Pas de classement pour cette phase");
+    await scrollNativeTabs((start + destination) / 2);
+
+    // Then: selection stays settled and there is no active or announced read during the gesture.
+    expect(
+      screen.getByRole("tab", { name: source, selected: true }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    await scrollNativeTabs(start, true);
+    expect(listRequests()).toHaveLength(0);
+
+    // When: a subsequent gesture settles on the neighboring tab.
+    await scrollNativeTabs(destination, true);
+
+    // Then: the actual calendar shows its own progress and sends its first request only now.
+    expect(
+      await screen.findByRole("progressbar", { name: "Chargement des matchs" }),
+    ).toBeOnTheScreen();
+    expect(listRequests()).toHaveLength(1);
+    const [request] = listRequests();
+    expect(request.searchParams.get("category")).toBe(category);
+    expect(request.searchParams.has("nextDay")).toBe(false);
+    await act(async () => calendar.resolve(await reads(request.href)));
+    await screen.findByText("Aucun match pour cette sélection");
+
+    // When: the user returns to the standings and revisits the same calendar.
+    await scrollNativeTabs(start, true);
+    await scrollNativeTabs(destination, true);
+
+    // Then: the retained calendar is visible and no other pane has begun reading.
+    expect(
+      screen.getByText("Aucun match pour cette sélection"),
+    ).toBeOnTheScreen();
+    expect(listRequests()).toHaveLength(1);
   },
 );
 

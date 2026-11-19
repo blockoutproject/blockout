@@ -26,6 +26,7 @@ export interface SportingLogoProps {
   identity: SportingIdentityResponse;
   kind: "club" | "team" | "division";
   size?: number;
+  nativeSize?: SportingMediaProps["nativeSize"];
   presentation?: SportingMediaProps["presentation"];
   /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
   renderWithAtmosphere?: SportingMediaProps["renderWithAtmosphere"];
@@ -37,6 +38,7 @@ export function SportingLogo({
   identity,
   kind,
   size = tokens.size.media.row,
+  nativeSize,
   presentation,
   renderWithAtmosphere,
   atmosphere,
@@ -48,6 +50,7 @@ export function SportingLogo({
       identity={identity}
       kind={kind}
       size={size}
+      nativeSize={nativeSize}
       presentation={presentation}
       uri={logo.uri}
       loading={logo.loading}

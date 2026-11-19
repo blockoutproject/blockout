@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { startTransition, useCallback, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
@@ -8,6 +8,8 @@ import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { tokens } from "@/shared/theme/tokens";
+import { CalendarSkeleton } from "./calendar-loading";
+import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 
 /** Minimum of the shared identity card in the standard PageContent insets. */
 export const sportingIdentityHeaderMinHeight =
@@ -20,6 +22,35 @@ export type SportingInitialRead = Pick<
   UseQueryResult<unknown, Error>,
   "data" | "isError" | "isPending" | "errorUpdatedAt" | "isFetching" | "refetch"
 >;
+
+function isSportingInitialReadReady(read: SportingInitialRead) {
+  return read.data !== undefined && !hasReadError(read);
+}
+
+/** Prepares one decorative neighbor after standings and common admission, without mounting a calendar reader. */
+export function useStandingsCalendarPreview(
+  category: CalendarCategoryEnum,
+  detail: SportingInitialRead,
+  follow?: SportingInitialRead,
+) {
+  const [prepared, setPrepared] = useState(false);
+  const prepare = useCallback(() => {
+    startTransition(() => setPrepared(true));
+  }, []);
+  const commonReady =
+    isSportingInitialReadReady(detail) &&
+    (!follow || isSportingInitialReadReady(follow));
+
+  return {
+    onStandingsReady: commonReady && !prepared ? prepare : undefined,
+    preview:
+      commonReady && prepared ? (
+        <PageContent>
+          <CalendarSkeleton category={category} />
+        </PageContent>
+      ) : undefined,
+  };
+}
 
 /** The public page retains its real measured scenes while one initial presentation owns unresolved inputs. */
 export interface SportingInitialCompositionProps {
@@ -41,9 +72,7 @@ export function SportingInitialComposition({
   children,
 }: Readonly<SportingInitialCompositionProps>) {
   const reads = follow ? [detail, follow] : [detail];
-  const unresolved = reads.filter(
-    (read) => read.data === undefined || hasReadError(read),
-  );
+  const unresolved = reads.filter((read) => !isSportingInitialReadReady(read));
   const [retrying, setRetrying] = useState(false);
   const blocked = unresolved.length > 0;
   const fetching = unresolved.some((read) => read.isFetching);

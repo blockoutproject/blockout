@@ -1,8 +1,9 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
 import { Page, PageContent } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
 
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Surface } from "@/shared/components/surface";
@@ -57,40 +58,27 @@ export function SupportScreen() {
   );
 }
 
-/** Keeps the left-aligned title on one visual line with its complete accessible name; the close action retains the dirty-form guard. */
 function SupportHeader() {
   const router = useRouter();
   const { colors } = useTheme();
   return (
-    <View style={styles.header}>
-      <Text
-        accessibilityRole="header"
-        accessibilityLabel="Assistance et suggestions"
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        style={[styles.title, { color: colors.text }]}
-      >
-        Assistance et suggestions
-      </Text>
-      <IconButton
-        label="Fermer"
-        onPress={() =>
-          router.canGoBack() ? router.back() : router.replace(homeHref)
-        }
-      >
-        <X accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
-      </IconButton>
-    </View>
+    <PageHeader
+      title="Assistance et suggestions"
+      back={false}
+      action={
+        <IconButton
+          label="Fermer"
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace(homeHref)
+          }
+        >
+          <X
+            accessible={false}
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+          />
+        </IconButton>
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    minHeight: tokens.layout.header,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
-  },
-  title: { ...tokens.typography.navigation, flex: 1 },
-});

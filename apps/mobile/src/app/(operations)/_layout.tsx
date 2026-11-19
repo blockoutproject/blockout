@@ -1,4 +1,4 @@
-import { stackScreenOptions } from "@/shared/native/stack-screen-options";
+import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { ClassificationVisitProvider } from "@/features/sporting-administration/forms/classification-visit";
 import { Stack } from "expo-router";
 import { sheetScreenOptions } from "@/shared/components/sheet";
@@ -8,11 +8,12 @@ import { canReadDivisions } from "@/features/access/division-catalog-access";
 
 /** Protects each implemented operational destination with its own current action grant. */
 export default function OperationsLayout() {
+  const screenOptions = useStackScreenOptions();
   const { permissions } = useAccessAdmission();
   const { colors } = useTheme();
   return (
     <ClassificationVisitProvider>
-      <Stack screenOptions={stackScreenOptions}>
+      <Stack screenOptions={screenOptions}>
         <Stack.Screen name="administration/index" />
         <Stack.Protected guard={permissions?.manageMaintenance === true}>
           <Stack.Screen name="administration/maintenance" />

@@ -1,4 +1,4 @@
-import { stackScreenOptions } from "@/shared/native/stack-screen-options";
+import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { NotificationState } from "@/features/notifications/state/notification-state";
 import { Stack, usePathname } from "expo-router";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -38,6 +38,7 @@ export default function OrdinaryLayout() {
 
 /** Contextual presentations share the Stack above Tabs, so native layering covers the retained capsule on both platforms. */
 function OrdinaryStack() {
+  const screenOptions = useStackScreenOptions();
   const { colors } = useTheme();
   const scope = usePersonalSeasonScope();
   const canChooseSeason = Boolean(
@@ -48,7 +49,7 @@ function OrdinaryStack() {
     contentStyle: { backgroundColor: colors.surface },
   };
   return (
-    <Stack screenOptions={stackScreenOptions}>
+    <Stack screenOptions={screenOptions}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="search/(sheets)/filters"

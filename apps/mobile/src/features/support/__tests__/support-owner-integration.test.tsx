@@ -212,6 +212,31 @@ async function sentMetadata(): Promise<SubmitSupportRequest> {
   return JSON.parse(await (body.get("metadata") as Blob).text());
 }
 
+it("closes Assistance from its header and returns to the originating profile", async () => {
+  // Given
+  await openRoute("/profile");
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Assistance et suggestions" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("DEPUIS CET ÉCRAN")).toBeOnTheScreen();
+  expect(screen.getByText("Profil")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen).toHavePathname("/profile");
+  expect(
+    await screen.findByRole("header", { name: "Mon profil" }),
+  ).toBeOnTheScreen();
+});
+
 it("closes an invalid choice route back to the retained draft without a fictional retry", async () => {
   // Given
   await openRoute("/support");

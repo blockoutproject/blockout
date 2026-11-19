@@ -492,6 +492,39 @@ it("numbers Team cards without printed ranks, a standings refetch or team emphas
   expect(requestedPaths).not.toContain(`/pools/${pool.pool.id}/standings`);
 });
 
+it("keeps the displayed podium logo through cards and back to the list", async () => {
+  // Given
+  const user = userEvent.setup();
+  table.rows[0] = {
+    ...table.rows[0],
+    team: {
+      id: sportingId,
+      name: "Effective Z",
+      logoUrl: `/teams/${sportingId}/logo`,
+    },
+  };
+  await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  const name = "Logo : Effective Z";
+  const logo = await screen.findByRole("image", { name, busy: true });
+  await fireEvent(logo, "display");
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
+
+  // Then
+  expect(screen.getByRole("image", { name, busy: false })).toBeOnTheScreen();
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Afficher en liste" }));
+
+  // Then
+  expect(screen.getByRole("image", { name, busy: false })).toBeOnTheScreen();
+  expect(screen.queryByTestId("sporting-logo-atmosphere")).toBeNull();
+});
+
 it("keeps Pool row numbers through the 2–1–3 card layout even with irregular printed ranks", async () => {
   // Given: two rows share a printed rank and points, and the unlinked row has the most points.
   const user = userEvent.setup();

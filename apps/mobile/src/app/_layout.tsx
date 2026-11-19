@@ -1,4 +1,4 @@
-import { stackScreenOptions } from "@/shared/native/stack-screen-options";
+import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
@@ -48,6 +48,7 @@ SplashScreen.preventAutoHideAsync();
 function Navigation({
   registration,
 }: Readonly<{ registration: PushRegistration }>) {
+  const screenOptions = useStackScreenOptions();
   const theme = useTheme();
   const access = useAccessAdmission();
   const discovery = useDiscovery();
@@ -66,7 +67,7 @@ function Navigation({
         enabled={access.ordinary && discovery.complete}
       />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={stackScreenOptions}>
+      <Stack screenOptions={screenOptions}>
         <Stack.Protected guard={!access.ordinary}>
           <Stack.Screen name="access" />
         </Stack.Protected>
@@ -81,8 +82,8 @@ function Navigation({
           redirectTo={access.ordinary ? "/onboarding" : "/access"}
         >
           <Stack.Screen name="index" />
-          <Stack.Screen name="(ordinary)" options={{ animation: "none" }} />
-          <Stack.Screen name="(recovery)" options={{ animation: "none" }} />
+          <Stack.Screen name="(ordinary)" />
+          <Stack.Screen name="(recovery)" />
         </Stack.Protected>
         <Stack.Protected
           guard={access.ordinary && discovery.complete && age.required}

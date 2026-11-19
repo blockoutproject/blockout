@@ -59,6 +59,7 @@ function Example({
                     id: "two",
                     label: "Deuxième",
                     content: <Draft />,
+                    preview: <Text>Aperçu décoratif</Text>,
                     resetKey,
                   },
                 ]),
@@ -103,7 +104,7 @@ it.each([false, true])(
   },
 );
 
-it("keeps neighboring feature reads unmounted until the native swipe settles", async () => {
+it("draws a decorative neighbor during a swipe and admits its content only at settlement", async () => {
   // Given
   await render(<Example />);
   await layoutNativeTabs();
@@ -113,6 +114,10 @@ it("keeps neighboring feature reads unmounted until the native swipe settles", a
   // Then
   expect(
     screen.getByRole("tab", { name: "Premier", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aperçu décoratif")).toBeNull();
+  expect(
+    screen.getByText("Aperçu décoratif", { includeHiddenElements: true }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Note retenue", { includeHiddenElements: true }),
@@ -126,6 +131,9 @@ it("keeps neighboring feature reads unmounted until the native swipe settles", a
     screen.getByRole("tab", { name: "Deuxième", selected: true }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Aperçu décoratif", { includeHiddenElements: true }),
+  ).toBeNull();
 });
 
 it("replaces only an invalidated scene and does not revive its earlier reading context", async () => {

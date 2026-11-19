@@ -27,6 +27,8 @@ import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 
+const PHOTO_TOO_LARGE = "La photo dépasse la limite de 5 Mio.";
+
 /** An editable snapshot of this original account; parent native principal changes remount it. */
 export interface ProfileFormProps {
   /** Native refresh remains available for an authorized account independently of its optional photo. */
@@ -74,9 +76,14 @@ export function ProfileForm({
           return;
         }
         if (error instanceof ImageValidationError) {
-          setError("photo", {
-            message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
-          });
+          if (error.reason === "too-large") {
+            clearErrors("photo");
+            feedback.error(PHOTO_TOO_LARGE);
+          } else {
+            setError("photo", {
+              message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
+            });
+          }
         } else {
           throw error;
         }
@@ -84,18 +91,25 @@ export function ProfileForm({
     },
   });
   const busy = selection.pending || save.isPending;
-  const { control, handleSubmit, setValue, getValues, setError, reset } =
-    useForm<ProfileValues>({
-      resolver: zodResolver(profileSchema),
-      defaultValues: profileValues(account),
-      // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
-      values: busy ? undefined : profileValues(account),
-      resetOptions: {
-        keepDirtyValues: true,
-        keepDirty: true,
-        keepErrors: true,
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    setError,
+    clearErrors,
+    reset,
+  } = useForm<ProfileValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: profileValues(account),
+    // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
+    values: busy ? undefined : profileValues(account),
+    resetOptions: {
+      keepDirtyValues: true,
+      keepDirty: true,
+      keepErrors: true,
+    },
+  });
   const { isDirty, dirtyFields } = useFormState({ control });
   useDiscardChanges(isDirty, () => {
     const photo = getValues("photo");
@@ -145,6 +159,7 @@ export function ProfileForm({
   /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
   function replacePhoto(next: ProfileValues["photo"]) {
     const previous = getValues("photo");
+    feedback.clear();
     setValue("photo", next, { shouldDirty: true, shouldValidate: true });
     if (
       previous.action === "replace" &&
@@ -186,9 +201,14 @@ export function ProfileForm({
         setError("username", { message: "Ce pseudo est déjà utilisé." });
       } else if (
         error instanceof ApiError &&
+        error.problem?.type === "urn:blockout:problem:payload-too-large"
+      ) {
+        clearErrors("photo");
+        feedback.error(PHOTO_TOO_LARGE);
+      } else if (
+        error instanceof ApiError &&
         [
           "urn:blockout:problem:invalid-image",
-          "urn:blockout:problem:payload-too-large",
           "urn:blockout:problem:unsupported-media-type",
         ].includes(error.problem?.type ?? "")
       ) {

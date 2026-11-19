@@ -32,15 +32,20 @@ export interface SportingMediaProps {
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
+  /** Keep Expo Image's bounds fixed when the same artwork slot is visually resized. */
+  nativeSize?: number;
   presentation?: "logo" | "entity" | "identity";
   /** The owner places both layers. A failed sharp source withdraws its decoration as well. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
-  atmosphere?: Readonly<{
-    layout?: AtmosphereLayout;
-    testID?: string;
-    /** Standings retain their paired fallback if either native image fails. */
-    withdrawLogoOnError?: boolean;
-  }>;
+  /** False keeps the foreground composition mounted with no decorative image. */
+  atmosphere?:
+    | false
+    | Readonly<{
+        layout?: AtmosphereLayout;
+        testID?: string;
+        /** Standings retain their paired fallback if either native image fails. */
+        withdrawLogoOnError?: boolean;
+      }>;
 }
 
 /** Keeps native media beneath its skeleton without remounting the caller's card. */
@@ -51,6 +56,7 @@ export function SportingMedia({
   error = false,
   kind,
   size = tokens.size.media.row,
+  nativeSize,
   presentation = "logo",
   renderWithAtmosphere,
   atmosphere,
@@ -58,7 +64,9 @@ export function SportingMedia({
   /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
   function renderArtwork() {
     if (available) {
-      return (
+      const scale = nativeSize === undefined ? 1 : size / nativeSize;
+      const radius = identityPlate ? borderRadius : mediaRadius(imageSize);
+      const artwork = (
         <Image
           key={image.attemptKey}
           accessible
@@ -72,12 +80,28 @@ export function SportingMedia({
           onDisplay={image.onDisplay}
           onError={image.onError}
           style={{
-            width: imageSize,
-            height: imageSize,
-            borderRadius: identityPlate ? borderRadius : mediaRadius(imageSize),
-            overflow: "hidden",
+            width: nativeImageSize,
+            height: nativeImageSize,
+            borderRadius: nativeSize === undefined ? radius : undefined,
+            overflow: nativeSize === undefined ? "hidden" : undefined,
           }}
         />
+      );
+      // Expo Image reloads on a native bounds change. Resize the display without changing those bounds.
+      return nativeSize === undefined ? (
+        artwork
+      ) : (
+        <View
+          style={{
+            width: nativeImageSize,
+            height: nativeImageSize,
+            borderRadius: radius / scale,
+            overflow: "hidden",
+            transform: [{ scale }],
+          }}
+        >
+          {artwork}
+        </View>
       );
     }
     if (loading) {
@@ -115,8 +139,9 @@ export function SportingMedia({
       : error || failed
         ? "Logo indisponible"
         : "Logo absent";
-  const imageSize =
-    kind === "division" || identityPlate ? size : size * (5 / 6);
+  const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
+  const imageSize = size * artworkScale;
+  const nativeImageSize = (nativeSize ?? size) * artworkScale;
   const borderRadius = identityPlate
     ? tokens.media.radius.profile
     : mediaRadius(size);
@@ -162,15 +187,16 @@ export function SportingMedia({
   if (!renderWithAtmosphere) {
     return logo;
   }
-  const halo = available ? (
-    <SportingAtmosphere
-      key={image.attemptKey}
-      testID={atmosphere?.testID}
-      uri={uri}
-      layout={atmosphere?.layout}
-      onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
-    />
-  ) : null;
+  const halo =
+    available && atmosphere !== false ? (
+      <SportingAtmosphere
+        key={image.attemptKey}
+        testID={atmosphere?.testID}
+        uri={uri}
+        layout={atmosphere?.layout}
+        onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
+      />
+    ) : null;
   return renderWithAtmosphere(logo, halo);
 }
 

@@ -32,6 +32,7 @@ export function SportingPageHeader({
   return (
     <PageHeader
       title={identity.name}
+      titleAlignment="start"
       revealOffset={offset}
       action={
         <>
@@ -73,7 +74,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: tokens.spacing.sm,
   },
   name: { ...tokens.typography.navigation, flexShrink: 1 },

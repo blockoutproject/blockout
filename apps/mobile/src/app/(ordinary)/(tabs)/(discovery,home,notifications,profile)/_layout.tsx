@@ -1,4 +1,4 @@
-import { stackScreenOptions } from "@/shared/native/stack-screen-options";
+import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack } from "expo-router";
 
 /** Each tab retains its root behind cold links; the first alphabetical group makes Search the sporting default. */
@@ -10,5 +10,6 @@ export const unstable_settings = {
 };
 
 export default function SharedTabLayout() {
-  return <Stack screenOptions={stackScreenOptions} />;
+  const screenOptions = useStackScreenOptions();
+  return <Stack screenOptions={screenOptions} />;
 }

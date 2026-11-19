@@ -9,6 +9,7 @@ import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
+  useStandingsCalendarPreview,
 } from "../components/sporting-initial-composition";
 import { PageHeader } from "@/shared/components/page-header";
 import { PageContent } from "@/shared/components/page";
@@ -51,6 +52,11 @@ function PoolPage({
   const queries = useConsultationQueries();
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
+  const { onStandingsReady, preview } = useStandingsCalendarPreview(
+    "upcoming",
+    pool,
+    initialFollow,
+  );
   const data = pool.data;
   const divisionColor = data?.pool.classification.division?.color;
   const identity = data ? (
@@ -121,6 +127,7 @@ function PoolPage({
                   divisionColor={divisionColor}
                   active={tab === value}
                   refreshEmpty={false}
+                  onReady={onStandingsReady}
                 />
               ) : (
                 <PoolMap pool={data.pool} active={tab === value} />
@@ -129,6 +136,7 @@ function PoolPage({
               id: value,
               label,
               content,
+              preview: value === "upcoming" ? preview : undefined,
               fullHeight: value === "map",
             };
           })}

@@ -22,6 +22,7 @@ import { IconButton } from "./icon-button";
 /** Register these options in the owning Expo Router layout before opening a sheet route. */
 export const sheetScreenOptions = {
   presentation: "formSheet",
+  animation: "default",
   headerShown: false,
   sheetGrabberVisible: true,
   sheetAllowedDetents: "fitToContents",

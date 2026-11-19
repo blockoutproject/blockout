@@ -1,13 +1,14 @@
-import { stackScreenOptions } from "@/shared/native/stack-screen-options";
+import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack } from "expo-router";
 import { sheetScreenOptions } from "@/shared/components/sheet";
 import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Filters keep their short sheet; match and report readers use ordinary native stack pages. */
 export default function ModerationLayout() {
+  const screenOptions = useStackScreenOptions();
   const { colors } = useTheme();
   return (
-    <Stack screenOptions={stackScreenOptions}>
+    <Stack screenOptions={screenOptions}>
       <Stack.Screen
         name="filters"
         options={{

@@ -32,6 +32,11 @@ export function NativeSplashHandoff({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
+/** The cold-entry selector reveals its first real destination before page transitions begin. */
+export function useNativeSplashPending(): boolean {
+  return Boolean(use(ReleaseSplashContext));
+}
+
 /** An anchor behind a cold deep link may lay out first; its focus must also be current. */
 export function useNativeSplashLayout() {
   const release = use(ReleaseSplashContext);

@@ -26,7 +26,7 @@ export interface ButtonProps {
   accessibilityHint?: string;
   /** Destination openings use link semantics; commands retain the default button role. */
   accessibilityRole?: "button" | "link";
-  /** Effective #RRGGBB accent for contextual actions or an inverse outline. */
+  /** Effective accent for a contextual action, including a transparent secondary outline. */
   contextColor?: string;
   /** Three qualified authored primary-action stops; null/absence uses the primary-to-8%-darker default. */
   contextGradient?: readonly string[] | null;
@@ -64,6 +64,7 @@ export function Button({
 }: Readonly<ButtonProps>) {
   const { context, colors, scheme } = useTheme();
   const contextualPrimary = variant === "primary" && contextColor !== undefined;
+  const outlinedAccent = variant === "secondary" ? contextColor : undefined;
   const actionContext: ContextColors = contextualPrimary
     ? {
         primary: contextColor,
@@ -73,13 +74,18 @@ export function Button({
         shadow: scheme === "dark" ? "#00000033" : `${contextColor}1A`,
       }
     : context;
-  const { foreground, backgroundColor } =
-    variant === "solid" && contextColor
-      ? {
-          foreground: contextForeground ?? solidForeground(contextColor),
-          backgroundColor: contextColor,
-        }
-      : buttonPaints(variant, actionContext, colors);
+  let { foreground, backgroundColor } = buttonPaints(
+    variant,
+    actionContext,
+    colors,
+  );
+  if (variant === "solid" && contextColor) {
+    foreground = contextForeground ?? solidForeground(contextColor);
+    backgroundColor = contextColor;
+  } else if (outlinedAccent) {
+    foreground = outlinedAccent;
+    backgroundColor = "transparent";
+  }
   const Icon = LeadingIcon ?? TrailingIcon;
   const icon =
     Icon &&
@@ -131,7 +137,7 @@ export function Button({
               borderColor:
                 variant === "inverse" && contextColor
                   ? `${contextColor}${colors.contextBorderAlpha}`
-                  : colors.border,
+                  : (outlinedAccent ?? colors.border),
               opacity: controlOpacity(disabled, pressed),
               boxShadow:
                 disabled || pressed || variant !== "primary"

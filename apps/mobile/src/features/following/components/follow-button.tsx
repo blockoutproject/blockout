@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import type { FollowStateRead } from "../api/use-follow-state-query";
 import { useFollowMutation } from "../api/follow-mutations";
@@ -63,6 +64,7 @@ function FollowAction({
   const action = useFollowMutation(target, read);
   const router = useRouter();
   const feedback = useActionFeedback();
+  const { colors } = useTheme();
   const { query, usable, accountUsable, sessionStatus } = read;
   const guest = sessionStatus === "guest";
   const following = accountUsable ? query.data?.following : undefined;
@@ -73,6 +75,7 @@ function FollowAction({
     query.isPending &&
     query.isFetching;
   const unavailable = !guest && following === undefined && !initialLoading;
+  const ready = !unavailable && !initialLoading;
   const followIcon = following ? Check : Plus;
   let label = "Suivre";
   if (unavailable) {
@@ -85,9 +88,9 @@ function FollowAction({
     <Button
       label={label}
       size="compact"
-      variant={!unavailable && !initialLoading ? "solid" : "inverse"}
-      contextColor={contextColor}
-      bordered={false}
+      variant={ready ? (following ? "secondary" : "solid") : "inverse"}
+      contextColor={following ? colors.onSuccessSubtle : contextColor}
+      bordered={following === true}
       leadingIcon={unavailable ? undefined : followIcon}
       selected={following}
       accessibilityHint={
