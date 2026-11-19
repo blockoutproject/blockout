@@ -26,7 +26,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Linking } from "react-native";
+import { Linking, Text } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -73,7 +73,7 @@ import { MatchLinks } from "@/features/sporting/components/match-links";
 import { ClubScreen } from "@/features/sporting/screens/club-screen";
 import { PoolScreen } from "@/features/sporting/screens/pool-screen";
 import { TeamScreen } from "@/features/sporting/screens/team-screen";
-import { SportingLink } from "@/features/sporting/components/sporting-identity";
+import { SportingLink } from "@/features/sporting/link";
 import {
   clubDetail,
   matchDetail,
@@ -467,17 +467,23 @@ function Entries({
         kind="club"
         id="00000000-0000-4000-8000-000000000011"
         label="Club"
-      />
+      >
+        <Text>Club</Text>
+      </SportingLink>
       <SportingLink
         kind="team"
         id="00000000-0000-4000-8000-000000000012"
         label="Équipe"
-      />
+      >
+        <Text>Équipe</Text>
+      </SportingLink>
       <SportingLink
         kind="pool"
         id="00000000-0000-4000-8000-000000000013"
         label="Poule"
-      />
+      >
+        <Text>Poule</Text>
+      </SportingLink>
       {consumer !== "personal" && (
         <CalendarMatch
           match={matchDetail().match}
@@ -694,7 +700,7 @@ it.each([
   },
 );
 
-it("shares nine real club/team/pool openings with the tenth calendar opening and deduplicates pending taps", async () => {
+it("counts a team link inside a calendar match as the tenth opening and deduplicates pending taps", async () => {
   // Given
   await mount();
   const user = userEvent.setup();
@@ -707,11 +713,16 @@ it("shares nine real club/team/pool openings with the tenth calendar opening and
   }
   expect(mockPush).toHaveBeenCalledTimes(9);
   expect(ad.show).not.toHaveBeenCalled();
-  const match = screen.getByRole("link", { name: /Ouvrir le match/ });
+  const team = matchDetail().match.home;
+  const teamLink = screen.getByRole("link", {
+    name: `Ouvrir l’équipe ${team.name}`,
+  });
+
   // When
-  await user.press(match);
-  await user.press(match);
-  await user.press(screen.getByRole("link", { name: "Club" }));
+  await user.press(teamLink);
+  await user.press(teamLink);
+  await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
+
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(9);
@@ -721,8 +732,8 @@ it("shares nine real club/team/pool openings with the tenth calendar opening and
   });
   expect(mockPush).toHaveBeenCalledTimes(10);
   expect(mockPush).toHaveBeenLastCalledWith({
-    pathname: "/matches/[matchId]",
-    params: { matchId: matchDetail().match.id },
+    pathname: "/teams/[teamId]",
+    params: { teamId: team.id },
   });
 });
 it("shares actual Search, personal calendar, followed cards and F03 openings with one tenth live placement", async () => {

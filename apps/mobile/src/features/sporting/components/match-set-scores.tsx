@@ -6,6 +6,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { SportingLink } from "../link";
 import { MatchSurface } from "./match-surface";
 import { SportingLogo } from "./sporting-identity";
 
@@ -111,8 +112,14 @@ function MatchScoreTeam({
   side: "home" | "away";
 }>) {
   const { colors } = useTheme();
+  const sideLabel = side === "home" ? "Domicile" : "Extérieur";
   return (
-    <View style={styles.team}>
+    <SportingLink
+      kind="team"
+      id={identity.id}
+      label={`Ouvrir l’équipe ${identity.name} · ${sideLabel}`}
+      style={styles.team}
+    >
       <SportingLogo
         identity={identity}
         kind="team"
@@ -136,9 +143,9 @@ function MatchScoreTeam({
         {identity.name}
       </Text>
       <Text style={[styles.side, { color: colors.secondaryText }]}>
-        {side === "home" ? "Domicile" : "Extérieur"}
+        {sideLabel}
       </Text>
-    </View>
+    </SportingLink>
   );
 }
 

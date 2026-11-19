@@ -13,6 +13,7 @@ import {
 import type { SearchResult } from "../model/search-result";
 
 export interface SearchResultsProps {
+  resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
   examples?: boolean;
@@ -21,11 +22,12 @@ export interface SearchResultsProps {
   continuation?: ReactNode;
   onEndReached?: () => void;
   /** Routes a selected identity through the scene's existing sporting-opening owner. */
-  onOpen(item: SearchResult): void;
+  onOpen(kind: SearchResult["kind"], id: string): void;
 }
 
 /** Keeps results and their structural feedback in the same list viewport. */
 export function SearchResults({
+  resource,
   items,
   loading,
   examples = false,
@@ -55,7 +57,12 @@ export function SearchResults({
       }
       loadingFeedback={{
         active: loading,
-        content: <SportingEntityCardLoading label="Chargement des résultats" />,
+        content: (
+          <SportingEntityCardLoading
+            kind={resource}
+            label="Chargement des résultats"
+          />
+        ),
       }}
       ListEmptyComponent={emptyComponent}
       ListFooterComponent={
@@ -73,7 +80,7 @@ export function SearchResults({
       contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
-        <SportingEntityCard {...item} onPress={() => onOpen(item)} />
+        <SportingEntityCard {...item} onOpen={onOpen} />
       )}
     />
   );

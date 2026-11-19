@@ -3,6 +3,8 @@ import { useLayoutEffect, useRef } from "react";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
 
+export type SportingResourceKind = "club" | "team" | "pool" | "match";
+
 /** Exact UUID routes share F11's boundary; composed actions may own failure feedback, and inactive tabs cannot release old intent. */
 export function useSportingNavigation(active = true) {
   const router = useRouter();
@@ -16,7 +18,7 @@ export function useSportingNavigation(active = true) {
 
   /** Delegates safe destination failure to the optional event owner; ordinary sporting interactions keep their own toast. */
   function navigate(
-    kind: "club" | "team" | "pool" | "match",
+    kind: SportingResourceKind,
     id: string,
     onFailure?: () => void,
   ) {

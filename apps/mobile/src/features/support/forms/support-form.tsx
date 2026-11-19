@@ -186,6 +186,7 @@ export function SupportForm({ onSubmit }: Readonly<SupportFormProps>) {
       <FieldMessage helper="Évitez les informations personnelles inutiles, mots de passe et justificatifs de paiement." />
       <Button
         label="Envoyer la demande"
+        fullWidth
         loading={isSubmitting}
         disabled={attachments.selection.pending || unready}
         onPress={() => void send()}

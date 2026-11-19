@@ -6,6 +6,8 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 
 /** Canonical season identity in the preparation context; never inferred from a provider identifier. */
 export function SeasonIdentity({
@@ -30,6 +32,19 @@ export function SeasonIdentity({
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           {season.label}
         </Text>
+      </View>
+    </View>
+  );
+}
+
+/** Reserves the same icon and two lines while the preparation season is being read. */
+export function SeasonIdentitySkeleton() {
+  return (
+    <View style={styles.link}>
+      <Skeleton width={tokens.size.icon.lg} height={tokens.size.icon.lg} />
+      <View>
+        <TextSkeleton role="metadata" width={38} />
+        <TextSkeleton width={68} />
       </View>
     </View>
   );

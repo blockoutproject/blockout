@@ -12,8 +12,10 @@ export function ContributionFormLoading() {
     <LoadingGroup label="Chargement du lien de diffusion" style={styles.stack}>
       <Surface>
         <TextSkeleton role="title" width="58%" />
-        <FieldSkeleton labelWidth="38%" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        <View style={styles.stack}>
+          <FieldSkeleton labelWidth="38%" />
+          <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        </View>
       </Surface>
     </LoadingGroup>
   );
@@ -26,9 +28,12 @@ export function ContributionReportLoading() {
       <Surface>
         <TextSkeleton role="title" width="58%" />
         <TextSkeleton width="85%" />
-        <FieldSkeleton labelWidth="45%" height={120} />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        <View style={styles.stack}>
+          <TextSkeleton width="92%" />
+          <FieldSkeleton labelWidth="45%" height={96} />
+          <Skeleton height={tokens.size.control.default} shape="rectangle" />
+          <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        </View>
       </Surface>
     </LoadingGroup>
   );

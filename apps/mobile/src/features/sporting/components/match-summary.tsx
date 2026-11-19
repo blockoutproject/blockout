@@ -1,10 +1,14 @@
 import { divisionTextColor } from "../presentation";
-import { useSportingNavigation } from "../navigation";
-import type { PropsWithChildren } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { SportingLink } from "../link";
+import { Fragment } from "react";
+import { ChevronRight } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
@@ -44,53 +48,71 @@ export function MatchSummary({
   const result = match.result;
   const contextual = presentation === "context";
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
-  return (
-    <MatchSurface division={division} raised={!contextual}>
-      <View
+  const poolContent = (
+    <>
+      {contextual && division && <DivisionPaint division={division} />}
+      {contextual && division && <SportingArtwork division={division} />}
+      {division ? (
+        <SportingLogo
+          kind="division"
+          identity={division}
+          renderWithAtmosphere={
+            contextual
+              ? undefined
+              : (logo, atmosphere) => (
+                  <>
+                    {atmosphere}
+                    {logo}
+                  </>
+                )
+          }
+        />
+      ) : (
+        <SportingMedia kind="division" identity={match.pool.pool} />
+      )}
+      <Text
+        accessibilityRole="header"
+        accessibilityLabel={match.pool.pool.name}
+        numberOfLines={2}
+        ellipsizeMode="tail"
         style={[
-          styles.pool,
-          contextual && styles.contextPool,
-          { backgroundColor: contextual ? accent : colors.surface },
+          styles.copy,
+          tokens.typography.strong,
+          { color: contextual ? onAccent : colors.text },
         ]}
       >
-        {contextual && division && <DivisionPaint division={division} />}
-        {contextual && division && <SportingArtwork division={division} />}
-        {division ? (
-          <SportingLogo
-            kind="division"
-            identity={division}
-            renderWithAtmosphere={
-              contextual
-                ? undefined
-                : (logo, atmosphere) => (
-                    <>
-                      {atmosphere}
-                      {logo}
-                    </>
-                  )
-            }
-          />
-        ) : (
-          <SportingMedia kind="division" identity={match.pool.pool} />
-        )}
-        <Text
-          accessibilityRole="header"
-          accessibilityLabel={match.pool.pool.name}
-          numberOfLines={2}
-          ellipsizeMode="tail"
-          style={[
-            styles.poolName,
-            { color: contextual ? onAccent : colors.text },
-          ]}
-        >
-          {match.pool.pool.name}
+        {match.pool.pool.name}
+      </Text>
+      {contextual && (
+        <Text style={[styles.metadataText, { color: onAccent }]}>
+          {schedule.time}
         </Text>
-        {contextual && (
-          <Text style={[styles.metadataText, { color: onAccent }]}>
-            {schedule.time}
-          </Text>
-        )}
-      </View>
+      )}
+    </>
+  );
+  return (
+    <MatchSurface division={division} raised={!contextual}>
+      {contextual ? (
+        <View
+          style={[styles.pool, styles.contextPool, { backgroundColor: accent }]}
+        >
+          {poolContent}
+        </View>
+      ) : (
+        <SportingLink
+          kind="pool"
+          id={match.pool.pool.id}
+          label={match.pool.pool.name}
+          style={[styles.pool, { backgroundColor: colors.surface }]}
+        >
+          {poolContent}
+          <ChevronRight
+            accessible={false}
+            size={tokens.size.icon.sm}
+            color={colors.icon}
+          />
+        </SportingLink>
+      )}
       {!contextual && (
         <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
           <View style={styles.status}>
@@ -131,7 +153,13 @@ export function MatchSummary({
           const content = (
             <>
               <SportingLogo kind="team" identity={team} />
-              <Text style={[styles.teamName, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.copy,
+                  tokens.typography.navigation,
+                  { color: colors.text },
+                ]}
+              >
                 {team.name}
               </Text>
               {(!contextual || score !== undefined) && (
@@ -166,13 +194,15 @@ export function MatchSummary({
               {contextual ? (
                 <View style={[styles.team, styles.contextTeam]}>{content}</View>
               ) : (
-                <TeamScoreLink
+                <SportingLink
                   key={team.id}
-                  teamId={team.id}
+                  kind="team"
+                  id={team.id}
+                  style={styles.team}
                   label={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
                 >
                   {content}
-                </TeamScoreLink>
+                </SportingLink>
               )}
             </View>
           );
@@ -192,25 +222,48 @@ export function MatchSummary({
   );
 }
 
-/** Only the full consultation's actual team action consumes sporting navigation; informational context stays independent. */
-function TeamScoreLink({
-  teamId,
-  label,
-  children,
-}: Readonly<PropsWithChildren<{ teamId: string; label: string }>>) {
-  const sporting = useSportingNavigation();
+/** Reserves the pool, schedule and teams without implying a match status. */
+export function MatchSummaryLoading() {
+  const { colors } = useTheme();
+  const media = (
+    <Skeleton
+      width={tokens.size.media.row}
+      height={tokens.size.media.row}
+      radius={tokens.media.radius.tile}
+    />
+  );
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      onPress={() => void sporting.navigate("team", teamId)}
-      style={({ pressed }) => [
-        styles.team,
-        { opacity: pressed ? tokens.opacity.pressed : 1 },
-      ]}
-    >
-      {children}
-    </Pressable>
+    <LoadingGroup label="Chargement du match">
+      <MatchSurface>
+        <View style={styles.pool}>
+          {media}
+          <View style={styles.copy}>
+            <TextSkeleton width="85%" />
+          </View>
+        </View>
+        <View style={[styles.metadata, { justifyContent: "flex-end" }]}>
+          <TextSkeleton role="metadata" width="48%" />
+        </View>
+        {(["home", "away"] as const).map((side) => (
+          <Fragment key={side}>
+            {side === "away" && (
+              <View
+                style={[styles.separator, { backgroundColor: colors.border }]}
+              />
+            )}
+            <View style={styles.team}>
+              {media}
+              <View style={styles.copy}>
+                <TextSkeleton role="navigation" width="80%" />
+              </View>
+              <View style={styles.scoreCell}>
+                <TextSkeleton role="heading" width={tokens.spacing.md} />
+              </View>
+            </View>
+          </Fragment>
+        ))}
+      </MatchSurface>
+    </LoadingGroup>
   );
 }
 
@@ -232,7 +285,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.xs,
     gap: tokens.spacing.sm,
   },
-  poolName: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
+  copy: { flex: 1, minWidth: 0 },
   metadata: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -267,7 +320,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.md,
   },
-  teamName: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   scoreCell: {
     minWidth: tokens.sporting.scoreSize,
     minHeight: tokens.sporting.scoreSize,

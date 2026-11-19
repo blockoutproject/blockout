@@ -6,6 +6,7 @@ import { FieldSkeleton } from "@/shared/components/form-loading";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { SeasonIdentitySkeleton } from "./source-summary";
 
 /** Product Design 6019:46573: two decorative destination rows while the season catalogue is unknown. */
 export function CollectionLoading() {
@@ -67,15 +68,14 @@ export function CollectionResultsLoading() {
   );
 }
 
-/** A source's retained editor has one URL field below its identity and current qualification tracks. */
+/** Uses the source's initial closed editor with its link summary and command slot. */
 export function SourcePreparationLoading() {
   return (
     <LoadingGroup label="Chargement de la source" style={styles.rows}>
-      <TextSkeleton role="title" width="55%" />
+      <SeasonIdentitySkeleton />
       <Surface>
         <TextSkeleton width="70%" />
         <TextSkeleton role="metadata" width="45%" />
-        <FieldSkeleton labelWidth="38%" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </Surface>
     </LoadingGroup>
@@ -86,7 +86,7 @@ export function SourcePreparationLoading() {
 export function ProviderPreparationLoading() {
   return (
     <LoadingGroup label="Chargement des sources" style={styles.rows}>
-      <TextSkeleton role="title" width="55%" />
+      <SeasonIdentitySkeleton />
       <DestinationLoading />
       <DestinationLoading />
       <Skeleton height={tokens.size.control.default} shape="rectangle" />
@@ -101,8 +101,9 @@ export function CloseSeasonLoading() {
       label="Chargement de la clôture de saison"
       style={styles.rows}
     >
-      <TextSkeleton role="title" width="55%" />
+      <SeasonIdentitySkeleton />
       <Surface>
+        <TextSkeleton role="heading" width="54%" />
         <TextSkeleton width="85%" />
         <TextSkeleton width="70%" />
         <FieldSkeleton labelWidth="46%" />

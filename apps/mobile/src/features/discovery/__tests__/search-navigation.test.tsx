@@ -10,6 +10,7 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { Keyboard } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -23,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { SearchJourneyLayout } from "../test-support/search-journey-layout";
 import { SearchScreen } from "../screens/search-screen";
@@ -372,6 +374,9 @@ it("announces each namesake with its available public context", async () => {
       "Volley, Club public, 2026/2027, 6 × 6, Féminin",
     ),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Voir le club Club public" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Poules" }));
@@ -390,6 +395,31 @@ it("announces each namesake with its available public context", async () => {
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
+});
+
+it("dismisses the search keyboard before opening a team's associated club", async () => {
+  // Given: the native keyboard is controlled while Search and sporting navigation remain real.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  const results = await screen.findByLabelText("Résultats de recherche");
+  const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => {});
+  const open = jest.spyOn(privacy, "openSportingTransition");
+
+  // When
+  await user.press(
+    within(results).getByRole("link", { name: "Voir le club Club public" }),
+  );
+
+  // Then
+  expect(dismiss).toHaveBeenCalledTimes(1);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(dismiss.mock.invocationCallOrder[0]).toBeLessThan(
+    open.mock.invocationCallOrder[0],
+  );
+  expect(screen).toHavePathname(`/clubs/${secondId}`);
+  expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
 });
 
 it.each(["network", "schema", "http"])(

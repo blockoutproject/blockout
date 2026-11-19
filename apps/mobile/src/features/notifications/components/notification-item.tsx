@@ -5,10 +5,12 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { ChevronRight } from "lucide-react-native";
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { SportingLink } from "@/features/sporting/link";
 import {
   MatchSurface,
   SportingLogo,
@@ -52,73 +54,120 @@ export function NotificationItem({
   const result =
     row.match.result?.state === "final" ? row.match.result : undefined;
   const score = result?.homeSets !== undefined && result.awaySets !== undefined;
+  const pool = row.match.pool.pool;
   const teams = [
-    { name: row.match.home.name, value: result?.homeSets, side: "domicile" },
-    { name: row.match.away.name, value: result?.awaySets, side: "extérieur" },
-  ].map((team) => ({
-    ...team,
-    name: team.name.trim() ? team.name : "Nom indisponible",
-  }));
+    { identity: row.match.home, value: result?.homeSets, side: "domicile" },
+    { identity: row.match.away, value: result?.awaySets, side: "extérieur" },
+  ];
   const teamDescription = teams
     .map(
-      ({ name, value, side }) =>
-        `${name}${score ? `, Score ${side} : ${value}` : ""}`,
+      ({ identity, value, side }) =>
+        `${identity.name.trim() || "Nom indisponible"}${score ? `, Score ${side} : ${value}` : ""}`,
     )
     .join(". ");
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`${row.title} ${row.match.pool.pool.name}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`}
-      accessibilityHint="Ouvrir la fiche du match"
-      accessibilityState={{ disabled: pending, busy: pending }}
-      disabled={pending}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        opacity: pressed ? tokens.opacity.pressed : 1,
-      })}
-    >
-      <MatchSurface division={division}>
-        <View style={[styles.header, { backgroundColor: division.color }]}>
-          <DivisionPaint division={division} />
-          <SportingArtwork division={division} />
+    <MatchSurface division={division}>
+      <View style={[styles.header, { backgroundColor: division.color }]}>
+        <DivisionPaint division={division} />
+        <SportingArtwork division={division} />
+        <SportingLink
+          kind="pool"
+          id={pool.id}
+          label={`Voir la poule ${pool.name}`}
+          style={styles.pool}
+        >
           <SportingLogo kind="division" identity={division} />
           <View style={styles.identity}>
             <Text
               numberOfLines={1}
               style={[tokens.typography.strong, { color: foreground }]}
             >
-              {row.match.pool.pool.name}
+              {pool.name}
             </Text>
             <Text style={[tokens.typography.metadata, { color: foreground }]}>
               {date}
             </Text>
           </View>
-          <View style={styles.status}>
-            {pending ? (
-              <LoadingIndicator color={foreground} />
-            ) : (
-              !row.read && (
-                <View
-                  accessible={false}
-                  style={[
-                    styles.dot,
-                    { backgroundColor: colors.secondaryText },
-                  ]}
-                />
-              )
-            )}
-          </View>
+          <ChevronRight
+            accessible={false}
+            size={tokens.size.icon.sm}
+            color={foreground}
+          />
+        </SportingLink>
+        <View style={styles.status}>
+          {pending ? (
+            <LoadingIndicator color={foreground} />
+          ) : (
+            !row.read && (
+              <View
+                accessible={false}
+                style={[styles.dot, { backgroundColor: colors.secondaryText }]}
+              />
+            )
+          )}
         </View>
-        <View style={styles.body}>
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
+      </View>
+      <View style={styles.body}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${row.title} ${pool.name}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`}
+          accessibilityHint="Ouvrir la fiche du match"
+          accessibilityState={{ disabled: pending, busy: pending }}
+          disabled={pending}
+          onPress={onPress}
+          style={({ pressed }) => [
+            styles.match,
+            { opacity: pressed ? tokens.opacity.pressed : 1 },
+          ]}
+        >
+          <Text
+            style={[
+              tokens.typography.body,
+              styles.copy,
+              { color: colors.text },
+            ]}
+          >
             {row.title}
           </Text>
-          <View style={styles.teams}>
-            {teams.map(({ name, value, side }) => (
+          <ChevronRight
+            accessible={false}
+            size={tokens.size.icon.sm}
+            color={colors.icon}
+          />
+        </Pressable>
+        <View style={styles.teams}>
+          {teams.map(({ identity, value, side }) => {
+            const name = identity.name.trim();
+            const title = (
+              <Text
+                style={[
+                  tokens.typography.strong,
+                  styles.copy,
+                  { color: colors.text },
+                ]}
+              >
+                {name || "Nom indisponible"}
+              </Text>
+            );
+            return (
               <View key={side} style={styles.team}>
-                <Text style={[styles.teamName, { color: colors.text }]}>
-                  {name}
-                </Text>
+                {name ? (
+                  <SportingLink
+                    kind="team"
+                    id={identity.id}
+                    label={`Voir l’équipe ${name}`}
+                    style={styles.teamLink}
+                  >
+                    {title}
+                    <ChevronRight
+                      accessible={false}
+                      size={tokens.size.icon.sm}
+                      color={colors.icon}
+                    />
+                  </SportingLink>
+                ) : (
+                  <View style={styles.teamLink}>{title}</View>
+                )}
                 {score && (
                   <View
                     style={[
@@ -141,11 +190,11 @@ export function NotificationItem({
                   </View>
                 )}
               </View>
-            ))}
-          </View>
+            );
+          })}
         </View>
-      </MatchSurface>
-    </Pressable>
+      </View>
+    </MatchSurface>
   );
 }
 
@@ -158,6 +207,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   identity: { flex: 1, gap: tokens.spacing.optical, minWidth: 0 },
+  pool: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
   status: {
     width: tokens.size.icon.md,
     height: tokens.size.icon.md,
@@ -169,10 +226,28 @@ const styles = StyleSheet.create({
     height: tokens.spacing.sm,
     borderRadius: tokens.radius.full,
   },
-  body: { padding: tokens.spacing.md, gap: tokens.spacing.sm },
+  body: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
+  copy: { flex: 1, minWidth: 0 },
+  match: {
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
   teams: { gap: tokens.spacing.sm },
   team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
-  teamName: { ...tokens.typography.strong, flex: 1 },
+  teamLink: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
   score: {
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.spacing.sm,

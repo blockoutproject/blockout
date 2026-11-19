@@ -7,6 +7,7 @@ import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
+  useStandingsCalendarPreview,
 } from "../components/sporting-initial-composition";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
@@ -52,7 +53,13 @@ function TeamPage({
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
+  const { onStandingsReady, preview } = useStandingsCalendarPreview(
+    "completed",
+    team,
+    initialFollow,
+  );
   const data = team.data;
+  const firstParticipation = data?.participations[0]?.pool.id;
   const divisionColor = data?.team.classification.division?.color;
   const tabs = [
     { id: "upcoming", label: "À venir" },
@@ -64,7 +71,7 @@ function TeamPage({
   ];
   const tab = tabs.some((item) => item.id === selected)
     ? selected
-    : (data?.participations[0]?.pool.id ?? "upcoming");
+    : (firstParticipation ?? "upcoming");
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -131,6 +138,9 @@ function TeamPage({
                 divisionColor={divisionColor}
                 highlightTeamId={teamId}
                 active={tab === item.id}
+                onReady={
+                  item.id === firstParticipation ? onStandingsReady : undefined
+                }
               >
                 <PoolParticipationLink
                   pool={participation}
@@ -142,6 +152,7 @@ function TeamPage({
               id: item.id,
               label: item.label,
               content,
+              preview: item.id === "completed" ? preview : undefined,
             };
           })}
         />

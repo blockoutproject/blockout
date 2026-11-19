@@ -4,6 +4,10 @@ import { ChevronRight, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+
+const contactIconSize = 40;
 
 /** Accepts only published HTTP(S) destinations without credentials; malformed values remain plain text. */
 export function safeWebsite(value?: string): string | undefined {
@@ -151,6 +155,23 @@ export function ContactLink(props: Readonly<ContactLinkProps>) {
   return <ContactHandoff key={props.destination} {...props} />;
 }
 
+/** The contact's optional destination has no action or disclosure until it is known. */
+export function ContactLinkSkeleton() {
+  return (
+    <View style={styles.row}>
+      <Skeleton
+        width={contactIconSize}
+        height={contactIconSize}
+        shape="rectangle"
+      />
+      <View style={styles.value}>
+        <TextSkeleton role="metadata" width="35%" />
+        <TextSkeleton width="70%" />
+      </View>
+    </View>
+  );
+}
+
 /** Keeps native failure with one mounted destination; changing it discards old feedback and late completion. */
 function ContactHandoff({
   label,
@@ -276,8 +297,8 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.lg,
   },
   icon: {
-    width: 40,
-    height: 40,
+    width: contactIconSize,
+    height: contactIconSize,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,

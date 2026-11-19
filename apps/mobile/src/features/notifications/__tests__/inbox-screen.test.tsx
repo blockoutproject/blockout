@@ -222,6 +222,48 @@ it("opens support from the notifications root without marking entries", async ()
   );
 });
 
+it.each([
+  {
+    label: "Voir la poule Poule A",
+    route: {
+      pathname: "/pools/[poolId]",
+      params: { poolId: row.match.pool.pool.id },
+    },
+  },
+  {
+    label: "Voir l’équipe Équipe A",
+    route: {
+      pathname: "/teams/[teamId]",
+      params: { teamId: row.match.home.id },
+    },
+  },
+  {
+    label: "Voir l’équipe Équipe B",
+    route: {
+      pathname: "/teams/[teamId]",
+      params: { teamId: row.match.away.id },
+    },
+  },
+])(
+  "$label opens independently of the match and read action",
+  async ({ label, route }) => {
+    // Given
+    await showInbox();
+    const user = userEvent.setup();
+
+    // When
+    await user.press(await screen.findByRole("link", { name: label }));
+
+    // Then
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith(route);
+    expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init.method === "PATCH"),
+    ).toBe(false);
+  },
+);
+
 it.each([false, true])(
   "keeps accepted read state when navigation fails (lost acknowledgement: %s)",
   async (lost) => {
@@ -248,14 +290,14 @@ it.each([false, true])(
   },
 );
 
-it("reports a tap failure once when navigation and its independent read command fail at different times", async () => {
+it("opens a related team during a pending read and reports the match tap failure only once", async () => {
   // Given
   const reading = Promise.withResolvers<Response>();
   const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     init.method === "PATCH" ? reading.promise : response(url, init),
   );
-  mockPush.mockImplementation(() => {
+  mockPush.mockImplementationOnce(() => {
     throw new Error("Native navigation unavailable");
   });
   await showInbox();
@@ -264,9 +306,21 @@ it("reports a tap failure once when navigation and its independent read command 
   // When
   await user.press(await screen.findByRole("link", { name: /non lue$/ }));
   await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
+  await screen.findByRole("link", { name: /non lue$/, busy: true });
+  await user.press(
+    screen.getByRole("link", { name: "Voir l’équipe Équipe A" }),
+  );
 
   // Then
-  expect(mockPush).toHaveBeenCalledTimes(1);
+  expect(mockPush).toHaveBeenCalledTimes(2);
+  expect(mockPush).toHaveBeenNthCalledWith(1, {
+    pathname: "/matches/[matchId]",
+    params: { matchId: row.match.id },
+  });
+  expect(mockPush).toHaveBeenNthCalledWith(2, {
+    pathname: "/teams/[teamId]",
+    params: { teamId: row.match.home.id },
+  });
   expect(
     mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
   ).toHaveLength(1);

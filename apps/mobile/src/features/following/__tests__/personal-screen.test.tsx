@@ -431,6 +431,27 @@ it("hands Home's Instagram destination to the native platform without changing p
 
 it("shows separate current teams and pools in Following and opens their exact sporting destinations", async () => {
   // Given
+  const club = {
+    id: "00000000-0000-4000-8000-000000000992",
+    name: "Club du Port",
+  };
+  mockFetch.mockImplementation((url: string, request?: RequestInit) =>
+    new URL(url).pathname === `/accounts/${accountId}/team-follows`
+      ? Promise.resolve(
+          Response.json({
+            items: [
+              {
+                team: { id: team.id, name: "Étoile" },
+                club,
+                professional: false,
+                season: older,
+                classification: {},
+              },
+            ],
+          }),
+        )
+      : transport(url, request),
+  );
   await mount();
   await screen.findByRole("button", {
     name: "Saison des suivis",
@@ -445,8 +466,12 @@ it("shows separate current teams and pools in Following and opens their exact sp
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
   const teamLink = await screen.findByRole("link", { name: /Étoile/ });
+  const clubLink = await screen.findByRole("link", {
+    name: "Voir le club Club du Port",
+  });
   const poolLink = await screen.findByRole("link", { name: /Poule A/ });
   await userEvent.press(teamLink);
+  await userEvent.press(clubLink);
   await userEvent.press(poolLink);
 
   // Then
@@ -459,6 +484,10 @@ it("shows separate current teams and pools in Following and opens their exact sp
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/teams/[teamId]",
     params: { teamId: team.id },
+  });
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/clubs/[clubId]",
+    params: { clubId: club.id },
   });
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/pools/[poolId]",

@@ -1,5 +1,6 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { EntryGroup } from "@/shared/components/entry-group";
+import { FieldSkeleton } from "@/shared/components/form-loading";
 import { IdentityCard } from "@/shared/components/identity-card";
 import { EntryRowSkeleton } from "@/shared/components/list-loading";
 import { LoadingGroup } from "@/shared/components/loading-group";
@@ -30,22 +31,17 @@ export function ProfileLoading({
         <>
           <SingleImageFieldSkeleton />
           <EditorFieldsSkeleton />
-          <Skeleton height={actionHeight} shape="rectangle" />
-          <Skeleton height={actionHeight} shape="rectangle" />
         </>
       ) : (
         <>
           <ProfileIdentitySkeleton />
           <View style={styles.group}>
             <TextSkeleton role="label" width={144} />
-            <View style={styles.legalLinks}>
-              <EntryGroup>
-                <EntryRowSkeleton />
-                <EntryRowSkeleton />
-                <EntryRowSkeleton />
-              </EntryGroup>
-              <TextSkeleton role="metadata" width={292} />
-            </View>
+            <EntryGroup>
+              <EntryRowSkeleton />
+              <EntryRowSkeleton />
+              <EntryRowSkeleton />
+            </EntryGroup>
           </View>
           <View style={styles.group}>
             <TextSkeleton role="label" width={144} />
@@ -54,12 +50,16 @@ export function ProfileLoading({
               <EntryRowSkeleton />
             </EntryGroup>
           </View>
-          <Skeleton height={actionHeight} shape="rectangle" />
-          <Skeleton height={actionHeight} shape="rectangle" />
-          <View style={styles.version}>
-            <TextSkeleton role="metadata" width={72} />
-          </View>
         </>
+      )}
+      <View style={styles.actions}>
+        <Skeleton height={actionHeight} shape="rectangle" />
+        <Skeleton height={actionHeight} shape="rectangle" />
+      </View>
+      {!editor && (
+        <View style={styles.version}>
+          <TextSkeleton role="metadata" width={72} />
+        </View>
       )}
     </LoadingGroup>
   );
@@ -91,27 +91,12 @@ function ProfileIdentitySkeleton() {
 function EditorFieldsSkeleton() {
   const { fontScale } = useWindowDimensions();
   const enlarged = fontScale >= 1.6;
-  const fieldHeight = Math.max(
-    tokens.size.control.default,
-    tokens.typography.body.lineHeight * fontScale +
-      2 * (tokens.spacing.md + tokens.border.thin),
-  );
   return (
     <Surface>
       <View style={styles.form}>
-        <View style={styles.field}>
-          <TextSkeleton role="label" width={39 * fontScale} />
-          <Skeleton height={fieldHeight} shape="rectangle" />
-          <View>
-            {Array.from({ length: enlarged ? 4 : 1 }, (_, index) => (
-              <TextSkeleton key={index} role="metadata" />
-            ))}
-            <TextSkeleton role="metadata" width="85%" />
-          </View>
-        </View>
+        <FieldSkeleton labelWidth={39 * fontScale} />
         <View style={[styles.field, styles.readOnly]}>
-          <TextSkeleton role="label" width={91 * fontScale} />
-          <Skeleton height={fieldHeight} shape="rectangle" />
+          <FieldSkeleton labelWidth={91 * fontScale} />
           <View>
             <TextSkeleton role="metadata" />
             {enlarged && <TextSkeleton role="metadata" />}
@@ -126,7 +111,7 @@ function EditorFieldsSkeleton() {
 const styles = StyleSheet.create({
   body: { gap: tokens.spacing.lg },
   group: { gap: tokens.spacing.md },
-  legalLinks: { gap: tokens.spacing.sm },
+  actions: { gap: tokens.layout.actions.gap },
   version: { alignItems: "center" },
   form: { gap: tokens.layout.form.gap },
   field: { gap: tokens.layout.form.labelGap },

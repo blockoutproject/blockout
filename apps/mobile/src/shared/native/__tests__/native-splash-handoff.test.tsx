@@ -8,11 +8,13 @@ import {
 } from "@testing-library/react-native";
 import { SplashScreen, Stack } from "expo-router";
 import { renderRouter, testRouter } from "expo-router/testing-library";
-import { Text, View } from "react-native";
+import { AccessibilityInfo, Text, View } from "react-native";
 import {
   NativeSplashHandoff,
   useNativeSplashLayout,
+  useNativeSplashPending,
 } from "../native-splash-handoff";
+import { useStackScreenOptions } from "../stack-screen-options";
 
 jest.mock("expo-router", () => {
   const actual = jest.requireActual("expo-router");
@@ -33,6 +35,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  jest.restoreAllMocks();
   jest.useRealTimers();
 });
 
@@ -43,6 +46,39 @@ function Surface({ title }: Readonly<{ title: string }>) {
     </View>
   );
 }
+
+function PageTransition() {
+  const splashPending = useNativeSplashPending();
+  const { animation } = useStackScreenOptions(splashPending);
+  return <Surface title={animation} />;
+}
+
+it.each([
+  { reducedMotion: false, warmAnimation: "ios_from_right" },
+  { reducedMotion: true, warmAnimation: "none" },
+])(
+  "applies the native motion setting after cold entry (reduced motion: $reducedMotion)",
+  async ({ reducedMotion, warmAnimation }) => {
+    // Given
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    await render(
+      <NativeSplashHandoff>
+        <PageTransition />
+      </NativeSplashHandoff>,
+    );
+    expect(screen.getByText("none")).toBeOnTheScreen();
+
+    // When
+    await fireEvent(screen.getByTestId("surface"), "layout", fullLayout);
+    await act(() => jest.advanceTimersToNextFrame());
+
+    // Then
+    expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(warmAnimation)).toBeOnTheScreen();
+  },
+);
 
 it("waits for a laid-out deep-link anchor to become focused", async () => {
   // Given

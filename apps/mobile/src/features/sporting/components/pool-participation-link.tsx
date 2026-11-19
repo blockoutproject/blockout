@@ -1,9 +1,9 @@
 import { ChevronRight } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { PoolSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useSportingNavigation } from "../navigation";
+import { SportingLink } from "../link";
 import { poolLabel } from "../model/resource-sections";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
@@ -19,21 +19,16 @@ export function PoolParticipationLink({
   pool,
   active,
 }: Readonly<PoolParticipationLinkProps>) {
-  const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   const division = pool.classification.division;
   const label = poolLabel(pool);
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      onPress={() => void sporting.navigate("pool", pool.pool.id)}
-      style={({ pressed }) => [
-        styles.target,
-        {
-          opacity: pressed ? tokens.opacity.pressed : 1,
-        },
-      ]}
+    <SportingLink
+      kind="pool"
+      id={pool.pool.id}
+      label={label}
+      active={active}
+      style={styles.target}
     >
       <View style={[styles.entry, { backgroundColor: colors.subtle }]}>
         {division ? (
@@ -59,7 +54,7 @@ export function PoolParticipationLink({
           strokeWidth={1.5}
         />
       </View>
-    </Pressable>
+    </SportingLink>
   );
 }
 

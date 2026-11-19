@@ -174,6 +174,7 @@ it.each(pages)(
     expect(
       await screen.findByRole("progressbar", { name: loadingLabel }),
     ).toBeOnTheScreen();
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
     expect(screen.queryByText(label)).not.toBeOnTheScreen();
 
     // When

@@ -1,15 +1,10 @@
 import { PageScrollView, PageContent } from "@/shared/components/page";
-import {
-  standingColumnLabel,
-  standingPointsColumn,
-  standingVisibleColumns,
-} from "../model/standing-columns";
+import { standingVisibleColumns } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
-import { useSportingNavigation } from "../navigation";
 import { divisionTextColor } from "../presentation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   ReduceMotion,
@@ -17,7 +12,6 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
-import type { StandingRowResponse } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
@@ -28,9 +22,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { useConsultationQueries } from "../api/use-consultation-queries";
-import { SportingLogo } from "./sporting-identity";
-import { SportingMedia } from "./sporting-media";
-import { StandingCards } from "./standing-cards";
+import { StandingTable, type StandingLayout } from "./standing-table";
 import { StandingsLoading } from "./standings-loading";
 
 const layoutSize = tokens.size.control.compact;
@@ -53,6 +45,8 @@ export interface PoolStandingsProps {
   children?: ReactNode;
   /** Team participation Empty retains its refresh action; the approved Pool pane has no such action. */
   refreshEmpty?: boolean;
+  /** A useful active table or confirmed absence lets the enclosing page prepare its calendar preview. */
+  onReady?: () => void;
 }
 
 /** Retains each table's layout and Query data while failures replace only its dependent pane. */
@@ -63,12 +57,13 @@ export function PoolStandings({
   active = true,
   children,
   refreshEmpty = true,
+  onReady,
 }: Readonly<PoolStandingsProps>) {
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(poolId));
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
-  const [layout, setLayout] = useState<"list" | "cards">("list");
+  const [layout, setLayout] = useState<StandingLayout>("list");
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);
   const selectedFill = divisionColor ?? colors.subtle;
@@ -97,6 +92,12 @@ export function PoolStandings({
   const hasRows = data?.availability === "available" && data.rows.length > 0;
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
+  const ready = active && data !== undefined && !failed;
+  useEffect(() => {
+    if (ready) {
+      onReady?.();
+    }
+  }, [ready, onReady]);
 
   const headerRow = (
     <View style={styles.headerRow}>
@@ -205,8 +206,6 @@ export function PoolStandings({
       </PageScrollView>
     );
   }
-  // Number the entire published table before the cards arrange the podium.
-  const rows = data.rows.map((row, index) => ({ row, displayRank: index + 1 }));
   return (
     <PageScrollView
       alwaysBounceVertical
@@ -221,175 +220,18 @@ export function PoolStandings({
       <PageContent style={styles.content}>
         <View style={styles.standings}>
           {headerRow}
-          {layout === "cards" ? (
-            <StandingCards rows={rows} columns={columns} active={active} />
-          ) : (
-            <View>
-              {rows.map(({ row, displayRank }) => (
-                <StandingEntry
-                  key={`${displayRank}:${row.team?.id ?? "unlinked"}`}
-                  row={row}
-                  displayRank={displayRank}
-                  active={active}
-                  columns={columns}
-                  highlighted={
-                    row.team !== undefined && row.team.id === highlightTeamId
-                  }
-                  color={divisionColor}
-                  last={displayRank === rows.length}
-                />
-              ))}
-            </View>
-          )}
+          <StandingTable
+            rows={data.rows}
+            columns={columns}
+            layout={layout}
+            active={active}
+            highlightTeamId={highlightTeamId}
+            divisionColor={divisionColor}
+          />
         </View>
       </PageContent>
     </PageScrollView>
   );
-}
-
-interface StandingEntryProps {
-  row: StandingRowResponse;
-  displayRank: number;
-  columns: string[];
-  highlighted: boolean;
-  color?: string;
-  last: boolean;
-  active: boolean;
-}
-
-/** Preserves source labels, nominal media and optional values; only an explicitly associated team opens a route. */
-function StandingEntry({
-  row,
-  displayRank,
-  columns,
-  highlighted,
-  color,
-  last,
-  active,
-}: Readonly<StandingEntryProps>) {
-  const { colors } = useTheme();
-  const sporting = useSportingNavigation(active);
-  const statistics = columns
-    .map((column) => `${column} : ${row.statistics[column] ?? "non renseigné"}`)
-    .join(", ");
-  const rankLabel = `Rang ${displayRank}`;
-  const label = [row.sourceName, rankLabel, statistics]
-    .filter(Boolean)
-    .join(". ");
-  const points = standingPointsColumn(columns);
-  let medal: "first" | "second" | "third" | undefined;
-  if (displayRank === 1) {
-    medal = "first";
-  } else if (displayRank === 2) {
-    medal = "second";
-  } else if (displayRank === 3) {
-    medal = "third";
-  } else {
-    medal = undefined;
-  }
-  const rankFill = medal ? colors.rank[medal] : colors.rank.neutral;
-  const rankInk = medal ? colors.rank[`${medal}Content`] : colors.text;
-  const content = (
-    <>
-      {highlighted && (
-        <View
-          pointerEvents="none"
-          style={[styles.marker, { backgroundColor: color ?? colors.text }]}
-        />
-      )}
-      <Text
-        accessibilityLabel={rankLabel}
-        style={[
-          styles.position,
-          tokens.typography.headingSm,
-          { color: rankInk, backgroundColor: rankFill },
-        ]}
-      >
-        {displayRank}
-      </Text>
-      <View style={styles.identity}>
-        {row.team ? (
-          <SportingLogo
-            identity={row.team}
-            kind="team"
-            size={tokens.size.media.match}
-          />
-        ) : (
-          <SportingMedia
-            identity={{ name: row.sourceName }}
-            kind="team"
-            size={tokens.size.media.match}
-          />
-        )}
-        <View style={styles.copy}>
-          <Text
-            numberOfLines={1}
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            {row.sourceName}
-          </Text>
-          <View style={styles.statistics}>
-            {columns
-              .filter((column) => column !== points)
-              .map((column) => (
-                <View key={column} style={styles.statistic}>
-                  <Text
-                    style={[tokens.typography.metadata, { color: colors.text }]}
-                  >
-                    {row.statistics[column] ?? "—"}
-                  </Text>
-                  <Text
-                    style={[
-                      tokens.typography.metadata,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    {standingColumnLabel(column)}
-                  </Text>
-                </View>
-              ))}
-          </View>
-        </View>
-      </View>
-      {points && (
-        <View style={styles.points}>
-          <Text style={[tokens.typography.headingLg, { color: colors.text }]}>
-            {row.statistics[points] ?? "—"}
-          </Text>
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            {standingColumnLabel(points)}
-          </Text>
-        </View>
-      )}
-    </>
-  );
-  const style = [
-    styles.row,
-    {
-      borderBottomColor: colors.border,
-      borderBottomWidth: last ? 0 : tokens.border.thin,
-    },
-  ];
-  if (row.team) {
-    const teamId = row.team.id;
-    return (
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={label}
-        accessibilityState={{ selected: highlighted }}
-        onPress={() => void sporting.navigate("team", teamId)}
-        style={style}
-      >
-        {content}
-      </Pressable>
-    );
-  }
-  return <View style={style}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -421,44 +263,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   layoutIndicator: { top: layoutInset, width: layoutSize, height: layoutSize },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.compact,
-    borderBottomWidth: tokens.border.thin,
-    minHeight: tokens.sporting.standingsRowMinHeight,
-  },
-  marker: {
-    position: "absolute",
-    left: -tokens.spacing.sm,
-    height: tokens.sporting.standingsMarkerHeight,
-    width: tokens.sporting.standingsMarkerWidth,
-    borderRadius: tokens.sporting.standingsMarkerWidth / 2,
-  },
-  position: {
-    width: tokens.sporting.standingsRankWidth,
-    minHeight: tokens.sporting.standingsRankHeight,
-    textAlign: "center",
-    borderRadius: tokens.radius.sm,
-    paddingVertical: tokens.spacing.xs,
-  },
-  identity: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    minWidth: 0,
-  },
-  copy: { flex: 1, gap: tokens.spacing.xs },
-  statistics: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: tokens.spacing.compact,
-  },
-  statistic: { flexDirection: "row", gap: tokens.spacing.xs },
-  points: {
-    alignItems: "flex-end",
-    minWidth: tokens.sporting.standingsPointsWidth,
-  },
 });

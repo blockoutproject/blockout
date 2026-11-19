@@ -43,6 +43,8 @@ export interface PagedTab {
   id: string;
   label: string;
   content: ReactNode;
+  /** Decorative content for a first transition, before the settled page admits its own content and reads. */
+  preview?: ReactNode;
   /** A changed reading context replaces only this scene and its native scroll position. */
   resetKey?: string;
   /** Reserves the viewport below pinned controls for content that owns its gestures. */
@@ -77,7 +79,7 @@ interface TabCommand {
   jump?: { start: number; collapse: number; material: number; header: number };
 }
 
-/** A visit admits feature content once; each scene owns its reading position. */
+/** Settling a visit admits feature content once; each scene owns its reading position. */
 export function PagedTabs({
   tabs,
   selected,
@@ -427,6 +429,7 @@ export function PagedTabs({
                 collapse={chromeOffset}
                 active={index === selectedIndex}
                 visited={index === selectedIndex || visited.has(tab.id)}
+                preview={tab.preview}
                 width={width}
                 height={height}
                 contentInset={contentInset}
@@ -506,6 +509,7 @@ function TabScene({
   collapse,
   active,
   visited,
+  preview,
   width,
   height,
   contentInset,
@@ -520,6 +524,7 @@ function TabScene({
   collapse: Pick<SharedValue<number>, "get">;
   active: boolean;
   visited: boolean;
+  preview?: ReactNode;
   width: number;
   height: number;
   contentInset: number;
@@ -552,22 +557,32 @@ function TabScene({
       accessibilityElementsHidden={!active}
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
     >
-      {visited && (
-        <Animated.View style={[StyleSheet.absoluteFill, frame]}>
-          <PageScrollContext
-            value={
-              scene.fullHeight
-                ? null
-                : {
-                    offset: scene.offset,
-                    contentInset,
-                    stickyInset,
-                    minContentHeight,
-                  }
-            }
-          >
-            {children}
-          </PageScrollContext>
+      {(visited || preview != null) && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            frame,
+            !visited && { paddingTop: contentInset },
+          ]}
+        >
+          {visited ? (
+            <PageScrollContext
+              value={
+                scene.fullHeight
+                  ? null
+                  : {
+                      offset: scene.offset,
+                      contentInset,
+                      stickyInset,
+                      minContentHeight,
+                    }
+              }
+            >
+              {children}
+            </PageScrollContext>
+          ) : (
+            preview
+          )}
         </Animated.View>
       )}
     </View>

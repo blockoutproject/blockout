@@ -27,6 +27,8 @@ import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 
+const PHOTO_TOO_LARGE = "La photo dépasse la limite de 5 Mio.";
+
 /** An editable snapshot of this original account; parent native principal changes remount it. */
 export interface ProfileFormProps {
   /** Native refresh remains available for an authorized account independently of its optional photo. */
@@ -73,29 +75,39 @@ export function ProfileForm({
         if (!active.current) {
           return;
         }
-        if (error instanceof ImageValidationError) {
+        if (!(error instanceof ImageValidationError)) {
+          throw error;
+        }
+        if (error.reason === "too-large") {
+          showPhotoSizeError();
+        } else {
           setError("photo", {
             message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
           });
-        } else {
-          throw error;
         }
       }
     },
   });
   const busy = selection.pending || save.isPending;
-  const { control, handleSubmit, setValue, getValues, setError, reset } =
-    useForm<ProfileValues>({
-      resolver: zodResolver(profileSchema),
-      defaultValues: profileValues(account),
-      // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
-      values: busy ? undefined : profileValues(account),
-      resetOptions: {
-        keepDirtyValues: true,
-        keepDirty: true,
-        keepErrors: true,
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    setError,
+    clearErrors,
+    reset,
+  } = useForm<ProfileValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: profileValues(account),
+    // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
+    values: busy ? undefined : profileValues(account),
+    resetOptions: {
+      keepDirtyValues: true,
+      keepDirty: true,
+      keepErrors: true,
+    },
+  });
   const { isDirty, dirtyFields } = useFormState({ control });
   useDiscardChanges(isDirty, () => {
     const photo = getValues("photo");
@@ -145,6 +157,7 @@ export function ProfileForm({
   /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
   function replacePhoto(next: ProfileValues["photo"]) {
     const previous = getValues("photo");
+    feedback.clear();
     setValue("photo", next, { shouldDirty: true, shouldValidate: true });
     if (
       previous.action === "replace" &&
@@ -153,6 +166,11 @@ export function ProfileForm({
     ) {
       deleteOwnedImage(previous.prepared);
     }
+  }
+
+  function showPhotoSizeError() {
+    clearErrors("photo");
+    feedback.error(PHOTO_TOO_LARGE);
   }
 
   /** Submits the captured profile intent without automatic write retries. */
@@ -179,25 +197,22 @@ export function ProfileForm({
       if (!active.current) {
         return;
       }
-      if (
-        error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:username-unavailable"
-      ) {
-        setError("username", { message: "Ce pseudo est déjà utilisé." });
-      } else if (
-        error instanceof ApiError &&
-        [
-          "urn:blockout:problem:invalid-image",
-          "urn:blockout:problem:payload-too-large",
-          "urn:blockout:problem:unsupported-media-type",
-        ].includes(error.problem?.type ?? "")
-      ) {
-        setError("photo", {
-          message:
-            "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
-        });
-      } else {
-        feedback.error();
+      switch (error instanceof ApiError ? error.problem?.type : undefined) {
+        case "urn:blockout:problem:username-unavailable":
+          setError("username", { message: "Ce pseudo est déjà utilisé." });
+          break;
+        case "urn:blockout:problem:payload-too-large":
+          showPhotoSizeError();
+          break;
+        case "urn:blockout:problem:invalid-image":
+        case "urn:blockout:problem:unsupported-media-type":
+          setError("photo", {
+            message:
+              "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
+          });
+          break;
+        default:
+          feedback.error();
       }
     } finally {
       uploading.current = undefined;

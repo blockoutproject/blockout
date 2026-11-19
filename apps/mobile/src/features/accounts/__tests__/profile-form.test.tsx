@@ -1110,7 +1110,6 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
 
 it.each([
   { status: 422, type: "invalid-image" },
-  { status: 413, type: "payload-too-large" },
   { status: 415, type: "unsupported-media-type" },
 ])(
   "routes $type to the photo field and keeps the username",
@@ -1147,6 +1146,50 @@ it.each([
     ).toHaveLength(1);
   },
 );
+
+it("shows the photo size toast when the server rejects an upload", async () => {
+  // Given: the native picker supplies an admissible local file and the server refuses its upload.
+  const user = userEvent.setup();
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/source.png", width: 64, height: 64 },
+    ],
+  });
+  await mountProfile();
+  await user.clear(await screen.findByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+  await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
+  await screen.findByRole("image", { name: "Miniature : Photo de profil" });
+  mockFetch.mockImplementation(async (_url, request) =>
+    request?.method === "PATCH"
+      ? json(
+          {
+            type: "urn:blockout:problem:payload-too-large",
+            title: "Rejected",
+            status: 413,
+          },
+          413,
+        )
+      : json(account),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "La photo dépasse la limite de 5 Mio.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Miniature : Photo de profil" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+});
 
 it("retains a dirty draft on background refetch and whole-save username refusal", async () => {
   // Given
@@ -1225,6 +1268,40 @@ it("preserves the draft when native selection is cancelled or permission is refu
   expect(
     mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
   ).toBe(false);
+});
+
+it("shows the size toast for a picked photo one byte over 5 MiB", async () => {
+  // Given: the native picker delivers a PNG and the file reports its actual byte size.
+  const user = userEvent.setup();
+  jest.mocked(File).mockReturnValueOnce({
+    ...mockPickedFile,
+    size: 5 * 1024 * 1024 + 1,
+  } as unknown as File);
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/large.png", width: 1800, height: 1800 },
+    ],
+  });
+  await mountProfile();
+  await user.clear(await screen.findByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "La photo dépasse la limite de 5 Mio.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Choisissez une image PNG ou JPEG de 5 Mio maximum."),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(mockPickedFile.copy).not.toHaveBeenCalled();
 });
 
 it("keeps dirty input and ordinary failure feedback after a lost save response", async () => {

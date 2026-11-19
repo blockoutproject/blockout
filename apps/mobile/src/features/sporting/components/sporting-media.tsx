@@ -32,15 +32,20 @@ export interface SportingMediaProps {
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
+  /** Keep Expo Image's bounds fixed when the same artwork slot is visually resized. */
+  nativeSize?: number;
   presentation?: "logo" | "entity" | "identity";
   /** The owner places both layers. A failed sharp source withdraws its decoration as well. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
-  atmosphere?: Readonly<{
-    layout?: AtmosphereLayout;
-    testID?: string;
-    /** Standings retain their paired fallback if either native image fails. */
-    withdrawLogoOnError?: boolean;
-  }>;
+  /** False keeps the foreground composition mounted with no decorative image. */
+  atmosphere?:
+    | false
+    | Readonly<{
+        layout?: AtmosphereLayout;
+        testID?: string;
+        /** Standings retain their paired fallback if either native image fails. */
+        withdrawLogoOnError?: boolean;
+      }>;
 }
 
 /** Keeps native media beneath its skeleton without remounting the caller's card. */
@@ -51,52 +56,51 @@ export function SportingMedia({
   error = false,
   kind,
   size = tokens.size.media.row,
+  nativeSize,
   presentation = "logo",
   renderWithAtmosphere,
   atmosphere,
 }: Readonly<SportingMediaProps>) {
-  /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
+  /** Expo Image reloads when its bounds change. Resize the display with the wrapping view. */
   function renderArtwork() {
-    if (available) {
-      return (
-        <Image
-          key={image.attemptKey}
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel={`${label} : ${identity.name}`}
-          accessibilityState={{ busy: pending }}
-          source={{ uri }}
-          cachePolicy="none"
-          contentFit="contain"
-          recyclingKey={uri}
-          onDisplay={image.onDisplay}
-          onError={image.onError}
-          style={{
-            width: imageSize,
-            height: imageSize,
-            borderRadius: identityPlate ? borderRadius : mediaRadius(imageSize),
-            overflow: "hidden",
-          }}
-        />
-      );
-    }
-    if (loading) {
-      return (
-        <Skeleton
-          width={size}
-          height={size}
-          shape="rectangle"
-          radius={borderRadius}
-        />
-      );
-    }
-    return (
-      <ImageFallback
-        color={colors.logoInk}
-        size={
-          presentation !== "logo" ? tokens.size.icon.lg : tokens.size.icon.md
-        }
+    const fixedSize = nativeSize !== undefined;
+    const radius = identityPlate ? borderRadius : mediaRadius(imageSize);
+    const artwork = (
+      <Image
+        key={image.attemptKey}
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={`${label} : ${identity.name}`}
+        accessibilityState={{ busy }}
+        source={{ uri }}
+        cachePolicy="none"
+        contentFit="contain"
+        onDisplay={image.onDisplay}
+        onError={image.onError}
+        style={{
+          width: nativeImageSize,
+          height: nativeImageSize,
+          borderRadius: fixedSize ? undefined : radius,
+          overflow: fixedSize ? undefined : "hidden",
+        }}
       />
+    );
+    if (!fixedSize) {
+      return artwork;
+    }
+    const scale = size / nativeSize;
+    return (
+      <View
+        style={{
+          width: nativeImageSize,
+          height: nativeImageSize,
+          borderRadius: radius / scale,
+          overflow: "hidden",
+          transform: [{ scale }],
+        }}
+      >
+        {artwork}
+      </View>
     );
   }
 
@@ -104,7 +108,7 @@ export function SportingMedia({
   const image = useNativeImageLifecycle(uri);
   const failed = image.status === "failed";
   const available = !!uri && !failed;
-  const pending = available && image.status === "pending";
+  const busy = available ? image.status === "pending" : loading;
   const identityPlate = presentation === "identity";
   const label = available
     ? identityPlate && error
@@ -115,38 +119,40 @@ export function SportingMedia({
       : error || failed
         ? "Logo indisponible"
         : "Logo absent";
-  const imageSize =
-    kind === "division" || identityPlate ? size : size * (5 / 6);
+  const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
+  const imageSize = size * artworkScale;
+  const nativeImageSize = (nativeSize ?? size) * artworkScale;
   const borderRadius = identityPlate
     ? tokens.media.radius.profile
     : mediaRadius(size);
+  const frame = {
+    width: size,
+    borderRadius,
+    backgroundColor: colors.logoSurface,
+  };
   const logo = (
-    <View
-      style={[
-        styles.media,
-        { width: size },
-        { borderRadius, backgroundColor: colors.logoSurface },
-      ]}
-    >
+    <View style={[styles.media, frame]}>
       <View
         accessible={!available}
         accessibilityRole={available ? undefined : "image"}
         accessibilityLabel={
           available ? undefined : `${label} : ${identity.name}`
         }
-        accessibilityState={{ busy: loading && !available }}
-        style={[
-          styles.slot,
-          {
-            width: size,
-            height: size,
-            backgroundColor: colors.logoSurface,
-            borderRadius,
-          },
-        ]}
+        accessibilityState={{ busy: !available && busy }}
+        style={[styles.slot, frame, { height: size }]}
       >
-        {renderArtwork()}
-        {pending && (
+        {available && renderArtwork()}
+        {!available && !busy && (
+          <ImageFallback
+            color={colors.logoInk}
+            size={
+              presentation === "logo"
+                ? tokens.size.icon.md
+                : tokens.size.icon.lg
+            }
+          />
+        )}
+        {busy && (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             <Skeleton
               width={size}
@@ -162,15 +168,16 @@ export function SportingMedia({
   if (!renderWithAtmosphere) {
     return logo;
   }
-  const halo = available ? (
-    <SportingAtmosphere
-      key={image.attemptKey}
-      testID={atmosphere?.testID}
-      uri={uri}
-      layout={atmosphere?.layout}
-      onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
-    />
-  ) : null;
+  const halo =
+    available && atmosphere !== false ? (
+      <SportingAtmosphere
+        key={image.attemptKey}
+        testID={atmosphere?.testID}
+        uri={uri}
+        layout={atmosphere?.layout}
+        onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
+      />
+    ) : null;
   return renderWithAtmosphere(logo, halo);
 }
 

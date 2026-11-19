@@ -11,6 +11,7 @@ export interface SearchResult {
   identity: SportingIdentityResponse;
   city?: string;
   subtitle?: string;
+  club?: SportingIdentityResponse;
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;
 }
@@ -28,7 +29,7 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
     return page.teams.map(({ team, club, season, classification }) => ({
       kind: "team",
       identity: team,
-      subtitle: club?.name,
+      club,
       season,
       classification,
     }));

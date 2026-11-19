@@ -1,8 +1,8 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
-import { useSportingNavigation } from "../navigation";
+import { SportingLink } from "../link";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   SportingIdentityResponse,
   SportingClassificationResponse,
@@ -22,39 +22,26 @@ import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
 import { IdentityCard } from "@/shared/components/identity-card";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
-export interface SportingLogoProps {
+export type SportingLogoProps = Pick<
+  SportingMediaProps,
+  | "kind"
+  | "size"
+  | "nativeSize"
+  | "presentation"
+  | "renderWithAtmosphere"
+  | "atmosphere"
+> & {
   identity: SportingIdentityResponse;
-  kind: "club" | "team" | "division";
-  size?: number;
-  presentation?: SportingMediaProps["presentation"];
-  /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
-  renderWithAtmosphere?: SportingMediaProps["renderWithAtmosphere"];
-  atmosphere?: SportingMediaProps["atmosphere"];
-}
+};
 
 /** Native image failure keeps a readable identity; known resource restriction withdraws foreground and atmosphere. */
 export function SportingLogo({
   identity,
-  kind,
-  size = tokens.size.media.row,
-  presentation,
-  renderWithAtmosphere,
-  atmosphere,
+  ...media
 }: Readonly<SportingLogoProps>) {
-  const logo = useSportingLogo(identity, kind);
+  const logo = useSportingLogo(identity, media.kind);
   return (
-    <SportingMedia
-      key={`${identity.id}:${identity.logoUrl ?? ""}`}
-      identity={identity}
-      kind={kind}
-      size={size}
-      presentation={presentation}
-      uri={logo.uri}
-      loading={logo.loading}
-      error={logo.error}
-      renderWithAtmosphere={renderWithAtmosphere}
-      atmosphere={atmosphere}
-    />
+    <SportingMedia key={identity.id} identity={identity} {...media} {...logo} />
   );
 }
 
@@ -220,17 +207,13 @@ export function SportingIdentity({
 
 /** Keeps the club chip visually equal to its metadata peers inside a native minimum-size touch target. */
 function ClubBadge({ clubId }: Readonly<{ clubId: string }>) {
-  const sporting = useSportingNavigation();
   const { colors } = useTheme();
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel="Le club"
-      onPress={() => void sporting.navigate("club", clubId)}
-      style={({ pressed }) => [
-        styles.clubTarget,
-        { opacity: pressed ? tokens.opacity.pressed : 1 },
-      ]}
+    <SportingLink
+      kind="club"
+      id={clubId}
+      label="Le club"
+      style={styles.clubTarget}
     >
       <View
         style={[styles.badge, styles.clubBadge, { borderColor: colors.border }]}
@@ -246,56 +229,7 @@ function ClubBadge({ clubId }: Readonly<{ clubId: string }>) {
           color={colors.secondaryText}
         />
       </View>
-    </Pressable>
-  );
-}
-
-/** Exact route destination supplied by the owning relationship, never derived from a display name. */
-export interface SportingLinkProps {
-  kind: "club" | "team" | "pool" | "match";
-  id: string;
-  label: string;
-  identity?: SportingIdentityResponse;
-  /** A retained inactive native panel must not continue a former resource-link action. */
-  active?: boolean;
-}
-
-/** Whole-row accessible resource link with an optional original-color identity image. */
-export function SportingLink({
-  kind,
-  id,
-  label,
-  identity,
-  active = true,
-}: Readonly<SportingLinkProps>) {
-  const sporting = useSportingNavigation(active);
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      onPress={() => void sporting.navigate(kind, id)}
-      style={({ pressed }) => [
-        styles.link,
-        { opacity: pressed ? tokens.opacity.pressed : 1 },
-      ]}
-    >
-      {identity && kind !== "match" && (
-        <SportingLogo
-          identity={identity}
-          kind={kind === "pool" ? "division" : kind}
-        />
-      )}
-      {!identity && kind === "pool" && (
-        <SportingMedia identity={{ name: label }} kind="division" />
-      )}
-      <Text style={[styles.linkLabel, { color: colors.text }]}>{label}</Text>
-      <ChevronRight
-        accessible={false}
-        size={tokens.size.icon.sm}
-        color={colors.icon}
-      />
-    </Pressable>
+    </SportingLink>
   );
 }
 
@@ -328,12 +262,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.xs,
   },
-  link: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.md,
-    minHeight: tokens.touch.minimum,
-    paddingVertical: tokens.spacing.sm,
-  },
-  linkLabel: { ...tokens.typography.strong, flex: 1 },
 });

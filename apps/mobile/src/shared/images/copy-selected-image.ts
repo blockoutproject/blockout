@@ -10,12 +10,12 @@ export async function copySelectedImage(
 ): Promise<File> {
   const original = new File(asset.uri);
   const mediaType = asset.mimeType ?? original.type;
-  if (
-    (mediaType !== "image/png" && mediaType !== "image/jpeg") ||
-    original.size < 1 ||
-    original.size > 5 * 1024 * 1024
-  ) {
-    throw new ImageValidationError("Choose a PNG or JPEG up to 5 MiB.");
+  const size = original.size;
+  if ((mediaType !== "image/png" && mediaType !== "image/jpeg") || size < 1) {
+    throw new ImageValidationError("invalid");
+  }
+  if (size > 5 * 1024 * 1024) {
+    throw new ImageValidationError("too-large");
   }
   const copy = new File(
     Paths.cache,
