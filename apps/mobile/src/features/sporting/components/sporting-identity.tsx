@@ -18,6 +18,7 @@ import {
   SportingCover,
   type SportingMediaProps,
 } from "./sporting-media";
+import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
 import { IdentityCard } from "@/shared/components/identity-card";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
@@ -73,12 +74,25 @@ export function SportingArtwork({
   ) : null;
 }
 
-/** Loads the team card's division artwork independently from its foreground team logo. */
+/** Resolves the team's division image independently of its foreground crest. */
 export function SportingDivisionAtmosphere({
   division,
-}: Readonly<{ division: SportingDivisionResponse }>) {
+  render,
+}: Readonly<{
+  division: SportingDivisionResponse;
+  render?: (uri: string) => ReactNode;
+}>) {
   const { uri } = useSportingLogo(division, "division");
-  return uri ? <SportingAtmosphere uri={uri} /> : null;
+  if (!uri) {
+    return null;
+  }
+  return render ? render(uri) : <SportingAtmosphere uri={uri} />;
+}
+
+function renderIdentityAtmosphere(uri: string) {
+  return (
+    <IdentityAtmosphere key={uri} uri={uri} testID="sporting-logo-atmosphere" />
+  );
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
@@ -129,77 +143,75 @@ export function SportingIdentity({
     gender,
   ].filter(Boolean);
 
-  function renderCard(artwork: ReactNode, surfaceArtwork: ReactNode) {
-    return (
-      <IdentityCard
-        artwork={artwork}
-        surfaceArtwork={surfaceArtwork}
-        railBackgroundColor="transparent"
-        borderColor={
-          division ? `${division.color}${colors.contextBorderAlpha}` : undefined
-        }
-      >
-        <View style={styles.heading}>
-          <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-            {division?.name ?? identityKindLabel()}
-          </Text>
-          <Text
-            accessibilityRole="header"
-            accessibilityLabel={identity.name}
-            numberOfLines={kind === "pool" ? 2 : undefined}
-            ellipsizeMode="tail"
-            style={[
-              kind === "club" ? styles.clubName : styles.name,
-              { color: colors.text },
-            ]}
-          >
-            {identity.name}
-          </Text>
-        </View>
-        {subtitle && (
-          <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-            {subtitle}
-          </Text>
-        )}
-        {(metadata.length > 0 || !!clubId) && (
-          <View style={styles.metadata}>
-            {metadata.map((label) => (
-              <Text
-                key={label}
-                style={[
-                  styles.badge,
-                  { color: colors.secondaryText, borderColor: colors.border },
-                ]}
-              >
-                {label}
-              </Text>
-            ))}
-            {clubId && <ClubBadge key={clubId} clubId={clubId} />}
-          </View>
-        )}
-        {children}
-      </IdentityCard>
-    );
-  }
+  const atmosphere =
+    kind === "team"
+      ? division && (
+          <SportingDivisionAtmosphere
+            division={division}
+            render={renderIdentityAtmosphere}
+          />
+        )
+      : logo.uri && !logo.error && renderIdentityAtmosphere(logo.uri);
 
-  const media = (
-    <SportingMedia
-      identity={logoIdentity}
-      kind={logoKind}
-      uri={logo.uri}
-      loading={logo.loading}
-      error={logo.error}
-      size={tokens.size.media.profile}
-      presentation="identity"
-      renderWithAtmosphere={kind === "team" ? undefined : renderCard}
-    />
+  return (
+    <IdentityCard
+      artwork={
+        <SportingMedia
+          identity={logoIdentity}
+          kind={logoKind}
+          uri={logo.uri}
+          loading={logo.loading}
+          error={logo.error}
+          size={tokens.size.media.profile}
+          presentation="identity"
+        />
+      }
+      atmosphere={atmosphere}
+      borderColor={
+        division ? `${division.color}${colors.contextBorderAlpha}` : undefined
+      }
+    >
+      <View style={styles.heading}>
+        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+          {division?.name ?? identityKindLabel()}
+        </Text>
+        <Text
+          accessibilityRole="header"
+          accessibilityLabel={identity.name}
+          numberOfLines={kind === "pool" ? 2 : undefined}
+          ellipsizeMode="tail"
+          style={[
+            kind === "club" ? styles.clubName : styles.name,
+            { color: colors.text },
+          ]}
+        >
+          {identity.name}
+        </Text>
+      </View>
+      {subtitle && (
+        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+          {subtitle}
+        </Text>
+      )}
+      {(metadata.length > 0 || !!clubId) && (
+        <View style={[styles.metadata, clubId && styles.metadataWithClub]}>
+          {metadata.map((label) => (
+            <Text
+              key={label}
+              style={[
+                styles.badge,
+                { color: colors.secondaryText, borderColor: colors.border },
+              ]}
+            >
+              {label}
+            </Text>
+          ))}
+          {clubId && <ClubBadge key={clubId} clubId={clubId} />}
+        </View>
+      )}
+      {children}
+    </IdentityCard>
   );
-  return kind === "team"
-    ? renderCard(
-        media,
-        division && <SportingDivisionAtmosphere division={division} />,
-      )
-    : media;
 }
 
 /** Keeps the club chip visually equal to its metadata peers inside a native minimum-size touch target. */
@@ -294,6 +306,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
+  metadataWithClub: { rowGap: tokens.spacing.xs },
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,

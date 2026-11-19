@@ -7,7 +7,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 export interface IdentityCardProps {
   artwork: ReactNode;
   atmosphere?: ReactNode;
-  surfaceArtwork?: ReactNode;
   borderColor?: string;
   artworkBackgroundColor?: string;
   railBackgroundColor?: string;
@@ -18,7 +17,6 @@ export interface IdentityCardProps {
 export function IdentityCard({
   artwork,
   atmosphere,
-  surfaceArtwork,
   borderColor,
   artworkBackgroundColor,
   railBackgroundColor,
@@ -36,22 +34,17 @@ export function IdentityCard({
         },
       ]}
     >
-      {surfaceArtwork}
-      <View
-        style={[
-          styles.rail,
-          { backgroundColor: railBackgroundColor ?? colors.subtle },
-        ]}
-      >
-        {atmosphere && (
-          <View
-            pointerEvents="none"
-            accessible={false}
-            style={styles.atmosphere}
-          >
-            {atmosphere}
-          </View>
-        )}
+      {railBackgroundColor && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.railBackground,
+            { backgroundColor: railBackgroundColor },
+          ]}
+        />
+      )}
+      {atmosphere}
+      <View style={styles.rail}>
         <View
           style={[
             styles.artwork,
@@ -80,12 +73,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  atmosphere: {
+  railBackground: {
     position: "absolute",
-    top: -tokens.media.identityAtmosphere.blur,
-    right: -tokens.media.identityAtmosphere.blur,
-    bottom: -tokens.media.identityAtmosphere.blur,
-    left: -tokens.media.identityAtmosphere.blur,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: tokens.layout.identity.railWidth,
   },
   artwork: {
     width: tokens.size.media.profile,

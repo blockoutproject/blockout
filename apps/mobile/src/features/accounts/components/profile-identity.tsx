@@ -28,7 +28,7 @@ export function ProfileIdentity({
     <IdentityCard
       artworkBackgroundColor={colors.mediaPlaceholder}
       borderColor={proAccent ? membership.border : undefined}
-      railBackgroundColor={proAccent && uri ? membership.fill : undefined}
+      railBackgroundColor={proAccent && uri ? membership.fill : colors.subtle}
       atmosphere={
         uri ? (
           <IdentityAtmosphere

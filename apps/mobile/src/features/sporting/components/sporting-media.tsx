@@ -1,10 +1,8 @@
 import { Image } from "expo-image";
-import NativeMaskedView, {
-  type MaskedViewProps,
-} from "@react-native-masked-view/masked-view";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
-import { useId, useState, type ComponentType, type ReactNode } from "react";
+import { MaskedView } from "@/shared/components/masked-view";
+import { useId, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, {
   Defs,
@@ -21,10 +19,6 @@ import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecy
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { mediaRadius } from "@/shared/theme/media-radius";
-
-// The 0.3.2 declarations use a legacy native-method mixin; its runtime remains an ordinary React component.
-const MaskedView =
-  NativeMaskedView as unknown as ComponentType<MaskedViewProps>;
 
 type AtmosphereLayout = "horizontal" | "podium" | "crest";
 

@@ -2267,16 +2267,10 @@ const teamDivision = {
 };
 
 it("keeps the team's own division artwork when its foreground team logo fails", async () => {
-  // Given: the team and its participation have different division artwork.
+  // Given: the team and its pool belong to the same division, with separate crest and division images.
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   team.team.classification.division = teamDivision;
-  const participationDivisionId = "00000000-0000-4000-8000-000000000014";
-  team.participations[0].classification.division = {
-    ...teamDivision,
-    id: participationDivisionId,
-    name: "Division du Littoral",
-    logoUrl: `/divisions/${participationDivisionId}/logo`,
-  };
+  team.participations[0].classification.division = teamDivision;
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });

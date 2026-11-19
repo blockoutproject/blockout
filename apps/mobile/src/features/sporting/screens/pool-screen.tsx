@@ -115,7 +115,8 @@ function PoolPage({
                 />
               ) : value === "standings" ? (
                 <PoolStandings
-                  pool={data.pool}
+                  poolId={data.pool.pool.id}
+                  divisionColor={divisionColor}
                   active={tab === value}
                   refreshEmpty={false}
                 />

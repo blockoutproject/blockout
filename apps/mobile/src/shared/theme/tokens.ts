@@ -239,7 +239,13 @@ export const tokens = {
       profile: radius.panelInset,
     },
     // Product identity patterns repeat the same accepted image behind the foreground slot.
-    identityAtmosphere: { blur: 40, opacity: 0.23 },
+    identityAtmosphere: {
+      width: 150,
+      height: 168,
+      blur: 14,
+      scale: 3,
+      opacity: { light: 0.34, dark: 0.42 },
+    },
   },
   size: {
     brandMark: 28,

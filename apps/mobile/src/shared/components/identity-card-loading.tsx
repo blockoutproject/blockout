@@ -16,7 +16,6 @@ export function IdentityCardSkeleton({
     2 * (tokens.spacing.xs + tokens.border.thin);
   return (
     <IdentityCard
-      railBackgroundColor="transparent"
       artworkBackgroundColor={colors.skeleton}
       artwork={
         <Skeleton
