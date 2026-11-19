@@ -19,6 +19,7 @@ import { AdvertisingProviders } from "@/features/advertising/test-support/advert
 import { NotificationItem } from "../components/notification-item";
 import { notificationResponse } from "../test-support/notification-data";
 
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
