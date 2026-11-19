@@ -52,6 +52,7 @@ function EditableImage({
   }
 >) {
   const selection = useImageSelection({
+    mode: "crop",
     canSelect: () => !props.disabled,
     onSelect,
   });

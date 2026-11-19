@@ -388,7 +388,7 @@ it("starts a fresh draft and releases its logo when the business account changes
   ).toBe(true);
 });
 
-it("saves independent names and a nonsquare logo in one generated multipart PATCH", async () => {
+it("saves independent names and the rectangular logo returned by the picker in one PATCH", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -684,7 +684,9 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
     manualName: "Current name",
     manualShortName: "Custom short",
   });
-  expect(screen.queryByText("Photo ou logo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Ajouter un logo|Modifier le logo/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Adresse e-mail")).not.toBeOnTheScreen();
 });
 
@@ -733,7 +735,7 @@ it("saves club presentation without a short-name field", async () => {
   ).not.toBeOnTheScreen();
 });
 
-it("validates and saves division colors, gradient and name without touching activity", async () => {
+it("validates and saves division edits after cancelling logo selection", async () => {
   // Given
   stored = {
     id: resourceId,
@@ -764,6 +766,20 @@ it("validates and saves division colors, gradient and name without touching acti
     }
     return respond(url, options);
   });
+
+  // When: the picker returns its default cancellation.
+  await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+  await act(nativeImageChoiceAction("Choisir un logo"));
+
+  // Then
+  expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
+    expect.objectContaining({
+      allowsEditing: true,
+      aspect: [1, 1],
+      allowsMultipleSelection: false,
+    }),
+  );
+  expect(screen.getByLabelText("Couleur HEX")).toHaveDisplayValue("invalid");
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -1526,7 +1542,7 @@ it("shows accepted division bytes after releasing the submitted creation logo", 
   });
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
-    assets: [{ uri: "file:///picker.png", width: 120, height: 60 }],
+    assets: [{ uri: "file:///picker.png", width: 120, height: 120 }],
   });
   try {
     const user = userEvent.setup();
@@ -1538,6 +1554,16 @@ it("shows accepted division bytes after releasing the submitted creation logo", 
     await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
     await act(nativeImageChoiceAction("Choisir un logo"));
     await screen.findByRole("image", { name: "Miniature : Logo" });
+    expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowsEditing: true,
+        aspect: [1, 1],
+        allowsMultipleSelection: false,
+      }),
+    );
+    expect(
+      mockFetch.mock.calls.some(([, request]) => request?.method === "POST"),
+    ).toBe(false);
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));

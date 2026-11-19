@@ -85,12 +85,10 @@ it("prepares five images without square crop and rejects a sixth without losing 
   ).toHaveLength(5);
   expect(picker.launchImageLibraryAsync).toHaveBeenCalledWith(
     expect.objectContaining({
+      allowsEditing: false,
       allowsMultipleSelection: true,
       selectionLimit: 5,
     }),
-  );
-  expect(picker.launchImageLibraryAsync).not.toHaveBeenCalledWith(
-    expect.objectContaining({ allowsEditing: true }),
   );
   expect(manipulator.ImageManipulator.manipulate).toHaveBeenCalledTimes(5);
   expect(manipulator.ImageManipulator.manipulate).toHaveBeenCalledWith(
@@ -207,11 +205,9 @@ it.each([5242881, 0])(
     ).toHaveLength(2);
     expect(picker.launchImageLibraryAsync).toHaveBeenLastCalledWith(
       expect.objectContaining({
+        allowsEditing: false,
         allowsMultipleSelection: false,
       }),
-    );
-    expect(picker.launchImageLibraryAsync).not.toHaveBeenLastCalledWith(
-      expect.objectContaining({ allowsEditing: true }),
     );
     expect(manipulator.ImageManipulator.manipulate).toHaveBeenLastCalledWith(
       pickedImage(3).uri,
