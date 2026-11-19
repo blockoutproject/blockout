@@ -35,7 +35,7 @@ export function IdentityAtmosphere({ uri, testID }: IdentityAtmosphereProps) {
         maskElement={
           <Svg width="100%" height="100%">
             <Defs>
-              <RadialGradient id={gradient} cx="30%" cy="50%" rx="78%" ry="70%">
+              <RadialGradient id={gradient} cx="30%" cy="50%" rx="78%" ry="60%">
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
                 <Stop offset={0.8} stopColor="white" stopOpacity={0} />
               </RadialGradient>
