@@ -24,6 +24,8 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+const supportsNavigationBlur =
+  Platform.OS !== "android" || Number(Platform.Version) >= 31;
 
 /** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
 export const NavigationInsetContext = createContext(0);
@@ -57,7 +59,7 @@ export function NavigationScrollMarker({
   );
 }
 
-/** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
+/** Reveals one shared material with scroll and uses the semantic tint on older Android. */
 export function NavigationBackdrop({
   target,
   scrollOffset,
@@ -65,17 +67,18 @@ export function NavigationBackdrop({
 }: Readonly<{
   target: RefObject<ViewInstance | null>;
   scrollOffset: SharedValue<number>;
-  /** Pagers size their material to the library's visible header and tab rail. */
+  /** Pagers size their material to the visible header and tab rail. */
   style?: ComponentProps<typeof Animated.View>["style"];
 }>) {
   const { scheme } = useTheme();
   const progress = useDerivedValue(() =>
     Math.min(1, Math.max(0, scrollOffset.get()) / tokens.layout.header),
   );
-  // UIKit visual effects require full ancestor alpha; animate the supported intensity instead.
-  const reveal = useAnimatedStyle(() => ({
-    opacity: progress.get() > 0 ? 1 : 0,
-  }));
+  // UIKit visual effects require full ancestor alpha. Only the fallback fades as a view.
+  const reveal = useAnimatedStyle(() => {
+    const amount = progress.get();
+    return { opacity: supportsNavigationBlur ? Number(amount > 0) : amount };
+  });
   const material = useAnimatedProps(() => ({
     intensity: Math.max(
       1,
@@ -85,16 +88,25 @@ export function NavigationBackdrop({
   return (
     <Animated.View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, style, reveal]}
+      style={[
+        StyleSheet.absoluteFill,
+        !supportsNavigationBlur && {
+          backgroundColor: tokens.blur.navigation.headerVeil[scheme],
+        },
+        style,
+        reveal,
+      ]}
     >
-      <AnimatedBlurView
-        blurTarget={target}
-        blurMethod="dimezisBlurView"
-        tint={tokens.blur.navigation.tint[scheme]}
-        animatedProps={material}
-        blurReductionFactor={tokens.blur.navigation.androidReduction}
-        style={StyleSheet.absoluteFill}
-      />
+      {supportsNavigationBlur && (
+        <AnimatedBlurView
+          blurTarget={target}
+          blurMethod="dimezisBlurViewSdk31Plus"
+          tint={tokens.blur.navigation.headerTint[scheme]}
+          animatedProps={material}
+          blurReductionFactor={tokens.blur.navigation.androidReduction}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
     </Animated.View>
   );
 }

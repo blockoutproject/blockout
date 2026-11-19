@@ -1,4 +1,7 @@
-import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
 import {
   onlineManager,
   QueryClientProvider,
@@ -237,18 +240,6 @@ async function mount(extra?: ReactNode) {
       ),
     },
   );
-}
-
-/** Completes a native horizontal page gesture through the existing pager I/O double. */
-async function swipeHomePage(position: number) {
-  const pager = screen.getByTestId("native-tabs-pager");
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position } });
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position, offset: 0 },
-  });
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
 }
 
 /** Synthetic current-owner HTTP responses go through the actual generated validation. */
@@ -1146,13 +1137,13 @@ it("keeps initial account recovery local and active only for its explicit Retry 
     ).toBe(false);
 
     // When: the retained pager shows another dependent scene and then returns to the initiating one.
-    await swipeHomePage(1);
+    await scrollNativeTabs(1, true);
 
     // Then
     expect(
       screen.getByRole("button", { name: "Réessayer", busy: false }),
     ).toBeOnTheScreen();
-    await swipeHomePage(0);
+    await scrollNativeTabs(0, true);
     expect(
       screen.getByRole("button", { name: "Réessayer", busy: true }),
     ).toBeOnTheScreen();
@@ -1211,7 +1202,7 @@ it("keeps all Home pages during the first common read, failure and active Retry 
     // When
     await act(() => initial.resolve(new Response(null, { status: 503 })));
     await screen.findByRole("button", { name: "Réessayer", busy: false });
-    await swipeHomePage(1);
+    await scrollNativeTabs(1, true);
 
     // Then
     expect(pager).toBeOnTheScreen();
@@ -1243,7 +1234,7 @@ it("keeps all Home pages during the first common read, failure and active Retry 
     );
     await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
     await screen.findByRole("button", { name: "Réessayer", busy: true });
-    await swipeHomePage(0);
+    await scrollNativeTabs(0, true);
 
     // Then: the shared request does not animate another scene's idle action or start a collection.
     expect(
@@ -1330,7 +1321,7 @@ it("keeps the Home season and selected page through suspended Retry, repeated co
       screen.getByRole("button", { name: "Réessayer", busy: false }),
     ).toBeOnTheScreen();
     expect(mockFetch).not.toHaveBeenCalled();
-    await swipeHomePage(1);
+    await scrollNativeTabs(1, true);
     expect(
       screen.getByRole("button", { name: "Réessayer", busy: false }),
     ).toBeOnTheScreen();
@@ -1366,7 +1357,7 @@ it("keeps the Home season and selected page through suspended Retry, repeated co
     );
     await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
     await screen.findByRole("button", { name: "Réessayer", busy: true });
-    await swipeHomePage(1);
+    await scrollNativeTabs(1, true);
 
     // Then
     expect(
@@ -1518,19 +1509,7 @@ it("opens each personal encounter through the existing sporting navigation after
 
   // When
   await userEvent.press(match);
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageSelected", {
-    nativeEvent: { position: 1 },
-  });
-  await fireEvent(screen.getByTestId("native-tabs-pager"), "pageScroll", {
-    nativeEvent: { position: 1, offset: 0 },
-  });
-  await fireEvent(
-    screen.getByTestId("native-tabs-pager"),
-    "pageScrollStateChanged",
-    {
-      nativeEvent: { pageScrollState: "idle" },
-    },
-  );
+  await scrollNativeTabs(1, true);
 
   // Then
   expect(mockPush).toHaveBeenCalledWith({

@@ -126,6 +126,7 @@ function PoolPage({
               id: value,
               label,
               content,
+              fullHeight: value === "map",
             };
           })}
         />

@@ -1,7 +1,6 @@
 import {
   PageViewport,
   NavigationScrollMarker,
-  useNavigationInset,
   NavigationSafeAreaContext,
   NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
@@ -15,8 +14,7 @@ import {
   type Ref,
   type ReactNode,
 } from "react";
-import { TabScrollView } from "react-native-collapsible-tab";
-import { PagedTabContext } from "./paged-tab-context";
+import { usePageScrollBinding } from "./page-scroll-binding";
 import {
   StyleSheet,
   View,
@@ -174,42 +172,23 @@ export function PageScrollView({
   ref,
   ...props
 }: Readonly<PageScrollViewProps>) {
-  const inset = useNavigationInset();
-  const tab = useContext(PagedTabContext);
-  const offset = useContext(NavigationScrollOffsetContext);
+  const { offset, contentInset, clearance } = usePageScrollBinding(
+    contentContainerStyle,
+  );
   const scroll = useAnimatedRef<ScrollViewInstance>();
-  // Observe native events without replacing the caller's onScroll or RNCT's adapter handler.
-  useScrollOffset(!tab && offset ? scroll : null, offset ?? undefined);
+  useScrollOffset(offset ? scroll : null, offset ?? undefined);
   useImperativeHandle<ScrollViewInstance | null, ScrollViewInstance | null>(
-    tab ? undefined : ref,
+    ref,
     () => scroll.current,
     [scroll],
   );
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
   const refreshControl = props.refreshControl
     ? cloneElement(props.refreshControl, {
         progressViewOffset:
-          props.refreshControl.props.progressViewOffset ??
-          tab?.contentInset ??
-          inset,
+          props.refreshControl.props.progressViewOffset ?? contentInset,
       })
     : undefined;
-  if (tab) {
-    return (
-      <TabScrollView
-        {...props}
-        ref={ref}
-        {...hiddenScrollIndicators}
-        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-        refreshControl={refreshControl}
-      >
-        {children}
-        <BottomContentSpacer />
-      </TabScrollView>
-    );
-  }
+
   return (
     <NavigationScrollMarker>
       <Animated.ScrollView
@@ -222,9 +201,7 @@ export function PageScrollView({
         contentContainerStyle={[
           styles.scrollContent,
           contentContainerStyle,
-          {
-            paddingTop: inset + (typeof padding === "number" ? padding : 0),
-          },
+          clearance,
         ]}
       >
         {children}

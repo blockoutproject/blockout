@@ -3,97 +3,99 @@ import type {
   FlatList,
   FlatListProps,
   LayoutRectangle,
-  ViewInstance,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollViewInstance,
+  ScrollViewProps,
 } from "react-native";
 import { fireEvent, screen } from "@testing-library/react-native";
-import type { PagerViewProps } from "react-native-pager-view";
 
-// Native handlers and animation keep their supported upstream Jest boundaries.
-import "react-native-gesture-handler/jestSetup";
+const mockViewport: LayoutRectangle = { x: 0, y: 0, width: 390, height: 844 };
 
-/** Observes only the native animation commands; the real RNCT owner still selects and retains scenes. */
+/** Observes native horizontal commands; selection and content remain production-owned. */
 export const mockPagerCommands = {
-  animated: jest.fn<void, [index: number]>(),
-  immediate: jest.fn<void, [index: number]>(),
+  animated: jest.fn<boolean | undefined, [index: number]>(),
+  immediate: jest.fn<boolean | undefined, [index: number]>(),
 };
+
+function mockScrollOffset(x: number) {
+  return {
+    nativeEvent: { contentOffset: { x, y: 0 } },
+  } as NativeSyntheticEvent<NativeScrollEvent>;
+}
 
 jest.mock("react-native-reanimated", () => {
   const upstream = jest.requireMock<typeof import("react-native-reanimated")>(
     "react-native-reanimated/mock",
   );
-  // The upstream imperative mutable stub is a scalar; RNCT needs the same writable value contract as useSharedValue.
-  return { ...upstream, makeMutable: upstream.useSharedValue };
-});
-
-jest.mock("react-native-pager-view", () => {
   const React = jest.requireActual<typeof import("react")>("react");
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
-  /** Native commands settle a page; tests may also dispatch the same public onPageSelected event. */
+  type MockScrollProps = ScrollViewProps & {
+    ref?: Ref<Pick<ScrollViewInstance, "scrollTo">>;
+  };
+
+  type MockAnimatedScrollProps = ScrollViewProps & {
+    ref?: Ref<ScrollViewInstance>;
+  };
+
+  /** Projects only native event delivery and completed commands, without simulating gesture geometry. */
   function NativePager({
     ref,
-    children,
-    onPageSelected,
+    onScroll,
+    onMomentumScrollEnd,
     ...props
-  }: Readonly<
-    PagerViewProps & {
-      ref?: Ref<{
-        setPage: (index: number) => void;
-        setPageWithoutAnimation: (index: number) => void;
-      }>;
-    }
-  >) {
-    const host = React.useRef<ViewInstance>(null);
-
-    /** Projects a completed animated command; tests can separately dispatch early native events. */
-    function settle(position: number, animated: boolean) {
-      onPageSelected?.({ nativeEvent: { position } } as Parameters<
-        NonNullable<PagerViewProps["onPageSelected"]>
-      >[0]);
-      if (animated) {
-        props.onPageScroll?.({
-          nativeEvent: { position, offset: 0 },
-        } as Parameters<NonNullable<PagerViewProps["onPageScroll"]>>[0]);
-        props.onPageScrollStateChanged?.({
-          nativeEvent: { pageScrollState: "idle" },
-        } as Parameters<
-          NonNullable<PagerViewProps["onPageScrollStateChanged"]>
-        >[0]);
-      }
-    }
-
+  }: MockScrollProps) {
     React.useImperativeHandle(ref, () => ({
-      getScrollableNode: () => host.current,
-      setPage: (position) => {
-        mockPagerCommands.animated(position);
-        settle(position, true);
-      },
-      setPageWithoutAnimation: (position) => {
-        mockPagerCommands.immediate(position);
-        settle(position, false);
+      scrollTo(options = {}) {
+        const { x = 0, animated = true } =
+          typeof options === "number" ? {} : options;
+        const record = animated
+          ? mockPagerCommands.animated
+          : mockPagerCommands.immediate;
+        if (record(Math.round(x / mockViewport.width)) === false) {
+          return;
+        }
+        const event = mockScrollOffset(x);
+        onScroll?.(event);
+        if (animated) {
+          onMomentumScrollEnd?.(event);
+        }
       },
     }));
-    // Production Scene owns inactive accessibility and first mounting, not the native double.
-    return (
-      <View
-        ref={host}
-        testID="native-tabs-pager"
-        {...{ ...props, onPageSelected }}
-      >
-        {children}
-      </View>
+    return <View {...{ ...props, onScroll, onMomentumScrollEnd }} />;
+  }
+
+  function AnimatedScrollView(props: MockAnimatedScrollProps) {
+    const Scroll = upstream.default.ScrollView;
+    return props.testID === "native-tabs-pager" ? (
+      <NativePager {...props} />
+    ) : (
+      <Scroll {...props} />
     );
   }
 
-  return { __esModule: true, default: NativePager };
+  return {
+    ...upstream,
+    default: { ...upstream.default, ScrollView: AnimatedScrollView },
+    clamp: (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value)),
+    makeMutable: upstream.useSharedValue,
+    useSharedValue: <Value,>(initial: Value) =>
+      React.useState(() => upstream.useSharedValue(initial))[0],
+    useAnimatedScrollHandler:
+      (handlers: { onScroll: (event: NativeScrollEvent) => void }) =>
+      (event: NativeSyntheticEvent<NativeScrollEvent>) =>
+        handlers.onScroll(event.nativeEvent),
+  };
 });
 
 jest.mock("@legendapp/list/react-native", () => {
   const { FlatList } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
-  /** Keeps rows, list states, refresh and continuation public; recycling, spans and sticky geometry stay native evidence. */
+  /** Preserves list content, refresh and continuation at the JavaScript boundary. */
   function NativeLegendViewport({
     ref,
     ...props
@@ -116,15 +118,22 @@ jest.mock("@legendapp/list/reanimated", () => ({
     .LegendList,
 }));
 
-/** Supplies absent native layout events to the real collapsing container; these uniform bounds prove no geometry. */
+/** Supplies the layout absent from the native test renderer; these bounds prove no geometry. */
 export async function layoutNativeTabs() {
-  const layout: LayoutRectangle = { x: 0, y: 0, width: 390, height: 844 };
-  for (let pass = 0; pass < 2; pass += 1) {
-    const nodes = screen.container.queryAll(
-      (node) => typeof node.props.onLayout === "function",
-    );
-    for (const node of nodes) {
-      await fireEvent(node, "layout", { nativeEvent: { layout } });
-    }
+  const nodes = screen.container.queryAll(
+    (node) => typeof node.props.onLayout === "function",
+  );
+  for (const node of nodes) {
+    await fireEvent(node, "layout", { nativeEvent: { layout: mockViewport } });
+  }
+}
+
+/** Dispatches native horizontal progress and, when requested, its final settled event. */
+export async function scrollNativeTabs(position: number, settled = false) {
+  const pager = screen.getByTestId("native-tabs-pager");
+  const event = mockScrollOffset(position * mockViewport.width);
+  await fireEvent.scroll(pager, event);
+  if (settled) {
+    await fireEvent(pager, "momentumScrollEnd", event);
   }
 }

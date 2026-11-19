@@ -1,7 +1,13 @@
-import { PageScrollView, PageContent } from "@/shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { ChevronRight, Minus, Plus, RefreshCw, X } from "lucide-react-native";
+import {
+  ChevronRight,
+  Minus,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  X,
+} from "lucide-react-native";
 import {
   useEffect,
   useEffectEvent,
@@ -9,7 +15,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import {
   Platform,
@@ -30,7 +35,10 @@ import type {
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import {
+  BottomContentSpacer,
+  useBottomContentInset,
+} from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { IconButton } from "@/shared/components/icon-button";
 
@@ -53,26 +61,20 @@ import { WinLossBar } from "./standing-performance-bar";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 
-/** The bounded native map and its pending participant read reserve the same content height. */
-const mapHeight = 440;
+/** Before this much clear height, a single row keeps more of the map and team card reachable. */
+const compactControlsHeight = 340;
 
 /** One exact pool's participant map; active permits its retained pane's explicit actions. */
 export interface PoolMapProps {
   pool: PoolSummaryResponse;
   active?: boolean;
-  /** Ordinary scene identity scrolls before the bounded map or its read state. */
-  children?: ReactNode;
 }
 
 /**
- * Keeps participant failures in this pane and its authorized native map mounted; optional standings never block navigation.
- * Its refresh host and map geometry stay attached while failed content disables its pull and covers the retained map.
+ * Keeps authorized camera and team selection mounted through a participant read failure.
+ * The basemap owns gestures while the overlay offers one explicit refresh for both resources.
  */
-export function PoolMap({
-  pool,
-  active = true,
-  children,
-}: Readonly<PoolMapProps>) {
+export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
   const queries = useConsultationQueries();
   const participants = useQuery({
     ...queries.participants(pool.pool.id),
@@ -89,6 +91,8 @@ export function PoolMap({
   const failed = hasReadError(participants);
   const recordUnavailable =
     hasReadError(standings) || standings.data?.availability === "unavailable";
+  const refreshLoading =
+    refreshing && (participants.isFetching || standings.isFetching);
 
   /** Refetches both existing resources; optional statistics never condition map identity or navigation. */
   async function refresh() {
@@ -107,95 +111,61 @@ export function PoolMap({
   }
 
   return (
-    <PageScrollView
-      alwaysBounceVertical={hasLocations && !failed}
-      refreshControl={
-        <DataRefreshControl
-          onRefresh={refresh}
-          enabled={active && hasLocations && !failed}
-          fetching={participants.isFetching || standings.isFetching}
-        />
-      }
-    >
-      {/* Anchor the overlay after the pager's scroll inset, retaining the map's normal-flow bounds. */}
-      <View style={styles.content} collapsable={false}>
-        {data && hasLocations && (
-          <PageContent
-            style={failed ? styles.hidden : undefined}
-            pointerEvents={failed ? "none" : "auto"}
-            accessibilityElementsHidden={failed}
-            importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
-          >
-            {children}
-            <ParticipantMap
-              items={data.items}
-              standings={standings.data}
-              recordUnavailable={recordUnavailable}
-              active={active && !failed}
-            />
-          </PageContent>
-        )}
-        {failed ? (
-          <ScreenState
-            style={hasLocations ? StyleSheet.absoluteFill : undefined}
-          >
-            <ReadFeedback
-              key={pool.pool.id}
-              query={participants}
-              onRetry={async () => {
-                if (active) {
-                  await participants.refetch({ cancelRefetch: false });
-                }
-              }}
-              loadingContent={null}
-            />
+    <View style={styles.fill}>
+      {data && hasLocations && (
+        <View
+          style={[StyleSheet.absoluteFill, failed && styles.hidden]}
+          pointerEvents={failed ? "none" : "auto"}
+          accessibilityElementsHidden={failed}
+          importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
+        >
+          <ParticipantMap
+            items={data.items}
+            standings={standings.data}
+            recordUnavailable={recordUnavailable}
+            active={active && !failed}
+            onRefresh={() => void refresh()}
+            refreshing={refreshLoading}
+          />
+        </View>
+      )}
+      {failed || (data && !hasLocations) ? (
+        <ScrollView {...hiddenScrollIndicators} style={styles.fill}>
+          <ScreenState>
+            {failed ? (
+              <ReadFeedback
+                key={pool.pool.id}
+                query={participants}
+                onRetry={async () => {
+                  if (active) {
+                    await participants.refetch({ cancelRefetch: false });
+                  }
+                }}
+                loadingContent={null}
+              />
+            ) : (
+              <EmptyState
+                title="Aucune localisation disponible"
+                description="La localisation des équipes n’est pas renseignée."
+              >
+                <Button
+                  label="Actualiser"
+                  leadingIcon={RefreshCw}
+                  onPress={() => void refresh()}
+                  loading={refreshLoading}
+                  disabled={!active}
+                />
+              </EmptyState>
+            )}
           </ScreenState>
-        ) : !hasLocations ? (
-          participants.isLoading ? (
-            <PageContent>
-              {children}
-              <MapLoading />
-            </PageContent>
-          ) : (
-            <>
-              {children && (
-                <PageContent style={styles.stateControls}>
-                  {children}
-                </PageContent>
-              )}
-              <ScreenState>
-                {data && (
-                  <EmptyState
-                    title="Aucune localisation disponible"
-                    description="La localisation des équipes n’est pas renseignée."
-                  >
-                    <Button
-                      label="Actualiser"
-                      leadingIcon={RefreshCw}
-                      onPress={() => void refresh()}
-                      loading={
-                        refreshing &&
-                        (participants.isFetching || standings.isFetching)
-                      }
-                      disabled={!active}
-                    />
-                  </EmptyState>
-                )}
-              </ScreenState>
-            </>
-          )
-        ) : null}
-      </View>
-    </PageScrollView>
-  );
-}
-
-/** A local participant read reserves the bounded map slot without mounting a native basemap prematurely. */
-function MapLoading() {
-  return (
-    <LoadingGroup label="Chargement des participants">
-      <Skeleton height={mapHeight} shape="rectangle" />
-    </LoadingGroup>
+          <BottomContentSpacer />
+        </ScrollView>
+      ) : participants.isLoading ? (
+        <LoadingGroup label="Chargement des participants" style={styles.fill}>
+          <Skeleton height="100%" shape="rectangle" radius={0} />
+        </LoadingGroup>
+      ) : null}
+    </View>
   );
 }
 
@@ -237,13 +207,18 @@ function ParticipantMap({
   standings,
   recordUnavailable,
   active,
+  onRefresh,
+  refreshing,
 }: Readonly<{
   active: boolean;
   recordUnavailable: boolean;
   items: PoolParticipantResponse[];
   standings: PoolStandingsResponse | undefined;
+  onRefresh: () => void;
+  refreshing: boolean;
 }>) {
   const { colors, scheme } = useTheme();
+  const bottomInset = useBottomContentInset();
   const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
   const currentActive = useRef(active);
@@ -252,8 +227,23 @@ function ParticipantMap({
   }, [active]);
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
-  const [laidOut, setLaidOut] = useState(false);
-  const cameraAvailable = ready && laidOut;
+  const [mapHeight, setMapHeight] = useState(0);
+  const cameraAvailable = ready && mapHeight > 0;
+  const cameraActionsDisabled = !active || !cameraAvailable;
+  const compactControls =
+    mapHeight > 0 && mapHeight - bottomInset <= compactControlsHeight;
+  const controlSurface = [
+    styles.surfaceControl,
+    { backgroundColor: colors.surface, borderColor: colors.border },
+  ];
+  const bottomAttribution = { left: 0, top: 0, right: 0, bottom: bottomInset };
+  const mapAttribution =
+    Platform.OS === "android"
+      ? { mapPadding: bottomAttribution }
+      : {
+          legalLabelInsets: { ...bottomAttribution, right: tokens.spacing.md },
+          appleLogoInsets: { ...bottomAttribution, left: tokens.spacing.md },
+        };
   const [selectedId, setSelectedId] = useState<string>();
   const points = useMemo(() => participantPoints(items), [items]);
   const point = points.find((group) =>
@@ -285,9 +275,11 @@ function ParticipantMap({
         : points.map((group) => group.coordinate);
     map.current.fitToCoordinates(viewport, {
       edgePadding: {
-        top: 64,
-        right: 64,
-        bottom: 64,
+        top: tokens.spacing.md + 1.5 * tokens.touch.minimum + tokens.spacing.xs,
+        // Keep the marker's full touch target clear of the right-hand control column.
+        right: tokens.spacing["2xl"] + 1.5 * tokens.touch.minimum,
+        // Google Maps already adds mapPadding to this command; MapKit's attribution insets do not affect it.
+        bottom: 64 + (Platform.OS === "ios" ? bottomInset : 0),
         left: 40,
       },
       animated: false,
@@ -334,7 +326,7 @@ function ParticipantMap({
   }
 
   return (
-    <View style={[styles.map, { borderColor: colors.border }]}>
+    <View style={styles.fill}>
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
@@ -343,6 +335,7 @@ function ParticipantMap({
         showsUserLocation={false}
         showsMyLocationButton={false}
         showsPointsOfInterests={false}
+        {...mapAttribution}
         toolbarEnabled={false}
         zoomControlEnabled={false}
         rotateEnabled={false}
@@ -351,7 +344,7 @@ function ParticipantMap({
         onLayout={({ nativeEvent }) => {
           const { width, height } = nativeEvent.layout;
           if (width > 0 && height > 0) {
-            setLaidOut(true);
+            setMapHeight(height);
           }
         }}
         onPress={() => setSelectedId(undefined)}
@@ -387,57 +380,64 @@ function ParticipantMap({
           );
         })}
       </MapView>
-      <View pointerEvents="box-none" style={styles.overlay}>
-        <View pointerEvents="box-none" style={styles.controls}>
-          <View
-            style={[
-              styles.surfaceControl,
-              styles.fitControl,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.overlay,
+          { paddingBottom: bottomInset + tokens.spacing["2xl"] },
+        ]}
+      >
+        <View pointerEvents="box-none" style={styles.mapActions}>
+          <View style={controlSurface}>
             <IconButton
-              label="Afficher toutes les équipes"
-              disabled={!cameraAvailable}
-              onPress={() => {
-                setSelectedId(undefined);
-                fit();
-              }}
+              label="Actualiser la carte"
+              onPress={onRefresh}
+              loading={refreshing}
+              disabled={!active}
             >
-              <Image
-                source={require("../../../../assets/sporting/map-fit.svg")}
-                tintColor={colors.icon}
-                style={styles.glyph}
-              />
+              <RotateCcw color={colors.icon} size={tokens.size.icon.lg} />
             </IconButton>
           </View>
           <View
-            style={[
-              styles.surfaceControl,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
+            pointerEvents="box-none"
+            style={[styles.controls, compactControls && styles.compactControls]}
           >
-            <IconButton
-              label="Zoomer"
-              disabled={!cameraAvailable}
-              onPress={() => void zoom(1)}
+            <View
+              style={[controlSurface, !compactControls && styles.fitControl]}
             >
-              <Plus color={colors.icon} size={tokens.size.icon.lg} />
-            </IconButton>
-          </View>
-          <View
-            style={[
-              styles.surfaceControl,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <IconButton
-              label="Dézoomer"
-              disabled={!cameraAvailable}
-              onPress={() => void zoom(-1)}
-            >
-              <Minus color={colors.icon} size={tokens.size.icon.lg} />
-            </IconButton>
+              <IconButton
+                label="Afficher toutes les équipes"
+                disabled={cameraActionsDisabled}
+                onPress={() => {
+                  setSelectedId(undefined);
+                  fit();
+                }}
+              >
+                <Image
+                  source={require("../../../../assets/sporting/map-fit.svg")}
+                  tintColor={colors.icon}
+                  style={styles.glyph}
+                />
+              </IconButton>
+            </View>
+            <View style={controlSurface}>
+              <IconButton
+                label="Zoomer"
+                disabled={cameraActionsDisabled}
+                onPress={() => void zoom(1)}
+              >
+                <Plus color={colors.icon} size={tokens.size.icon.lg} />
+              </IconButton>
+            </View>
+            <View style={controlSurface}>
+              <IconButton
+                label="Dézoomer"
+                disabled={cameraActionsDisabled}
+                onPress={() => void zoom(-1)}
+              >
+                <Minus color={colors.icon} size={tokens.size.icon.lg} />
+              </IconButton>
+            </View>
           </View>
         </View>
         {selected && point && (
@@ -608,20 +608,12 @@ function ParticipantSummary({
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1 },
+  fill: { flex: 1 },
   hidden: { opacity: 0 },
-  stateControls: { paddingBottom: 0 },
-  map: {
-    height: mapHeight,
-    borderRadius: tokens.radius.panel,
-    borderWidth: tokens.border.thin,
-    overflow: "hidden",
-  },
   overlay: {
     ...StyleSheet.absoluteFill,
     paddingTop: tokens.spacing.md,
     paddingHorizontal: tokens.spacing.md,
-    paddingBottom: tokens.spacing["2xl"],
     gap: tokens.spacing.sm,
   },
   marker: {
@@ -630,11 +622,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  controls: {
+  mapActions: {
     flexShrink: 0,
-    alignSelf: "flex-end",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  controls: {
     gap: tokens.spacing.xs,
   },
+  compactControls: { flexDirection: "row" },
   surfaceControl: {
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
