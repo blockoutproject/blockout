@@ -312,12 +312,17 @@ it("keeps a nominal calendar logo without inventing a missing division or readin
 
 it("keeps the current Pool heading readable without linking back to the same destination", async () => {
   // Given
-  const { pool } = calendar.days[0].pools[0].matches[0].pool;
+  const group = calendar.days[0].pools[0];
+  const { pool } = group.matches[0].pool;
+  pool.id = "00000000-0000-4000-8000-abcdefabcdef";
+  group.poolId = pool.id;
 
   // When
   await render(
     <CalendarTab>
-      <SportingCalendar selection={{ poolId: pool.id, category: "upcoming" }} />
+      <SportingCalendar
+        selection={{ poolId: pool.id.toUpperCase(), category: "upcoming" }}
+      />
     </CalendarTab>,
     { wrapper: Providers },
   );
@@ -332,6 +337,55 @@ it("keeps the current Pool heading readable without linking back to the same des
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).toBeOnTheScreen();
 });
+
+it.each(["upcoming", "completed"] as const)(
+  "keeps the current Team contextual in its %s calendar with links for the opponent, pool and match",
+  async (category) => {
+    // Given
+    const match = calendar.days[0].pools[0].matches[0];
+    match.home.id = "00000000-0000-4000-8000-abcdefabcdef";
+    calendar.category = category;
+    match.category = category;
+    match.pool.classification = {
+      gender: "male",
+      division: {
+        id: sportingId,
+        name: "Prénationale",
+        color: "#C74750",
+        gradient: null,
+      },
+    };
+
+    // When
+    await render(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: match.home.id.toUpperCase(), category }}
+        />
+      </CalendarTab>,
+      { wrapper: Providers },
+    );
+    await layoutNativeTabs();
+
+    // Then
+    expect(await screen.findByText("Home")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("image", { name: "Logo absent : Home" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Ouvrir l’équipe Home" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", { name: "Ouvrir l’équipe Away" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", { name: "Pool · Prénationale Masculin" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).toBeOnTheScreen();
+  },
+);
 
 it("retains loaded calendar data and its active context through native font-size changes without a reread", async () => {
   // Given: native metrics and the real calendar owner; Legend's geometry remains native evidence.

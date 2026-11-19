@@ -112,11 +112,12 @@ function MatchScoreTeam({
   side: "home" | "away";
 }>) {
   const { colors } = useTheme();
+  const sideLabel = side === "home" ? "Domicile" : "Extérieur";
   return (
     <SportingLink
       kind="team"
       id={identity.id}
-      label={`Ouvrir l’équipe ${identity.name}`}
+      label={`Ouvrir l’équipe ${identity.name} · ${sideLabel}`}
       style={styles.team}
     >
       <SportingLogo
@@ -142,7 +143,7 @@ function MatchScoreTeam({
         {identity.name}
       </Text>
       <Text style={[styles.side, { color: colors.secondaryText }]}>
-        {side === "home" ? "Domicile" : "Extérieur"}
+        {sideLabel}
       </Text>
     </SportingLink>
   );

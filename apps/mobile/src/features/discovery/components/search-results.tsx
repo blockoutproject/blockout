@@ -16,14 +16,13 @@ export interface SearchResultsProps {
   resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
-  active: boolean;
   examples?: boolean;
   heading?: ReactElement;
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
   /** Routes a selected identity through the scene's existing sporting-opening owner. */
-  onOpen(item: SearchResult): void;
+  onOpen(kind: SearchResult["kind"], id: string): void;
 }
 
 /** Keeps results and their structural feedback in the same list viewport. */
@@ -31,7 +30,6 @@ export function SearchResults({
   resource,
   items,
   loading,
-  active,
   examples = false,
   heading,
   emptyComponent,
@@ -82,11 +80,7 @@ export function SearchResults({
       contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
-        <SportingEntityCard
-          {...item}
-          active={active}
-          onPress={() => onOpen(item)}
-        />
+        <SportingEntityCard {...item} onOpen={onOpen} />
       )}
     />
   );

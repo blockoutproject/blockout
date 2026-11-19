@@ -2057,7 +2057,7 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
   });
   await userEvent.press(
     screen.getByRole("link", {
-      name: `Ouvrir l’équipe ${match.match.home.name}`,
+      name: `Ouvrir l’équipe ${match.match.home.name} · Domicile`,
     }),
   );
 
@@ -2069,6 +2069,11 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
     pathname: "/teams/[teamId]",
     params: { teamId: match.match.home.id },
   });
+  expect(
+    screen.getByRole("link", {
+      name: `Ouvrir l’équipe ${match.match.away.name} · Extérieur`,
+    }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("image", {
       name: `Logo : ${match.match.home.name}`,
@@ -2573,7 +2578,7 @@ it.each([
         classification={
           kind === "club" ? undefined : { division: teamDivision }
         }
-        onPress={jest.fn()}
+        onOpen={jest.fn()}
       />,
     );
 

@@ -118,10 +118,9 @@ export function SearchScene({
   return (
     <SearchResults
       resource={resource}
-      active={active}
-      onOpen={({ kind, identity }) => {
+      onOpen={(kind, id) => {
         Keyboard.dismiss();
-        void sportingNavigation.navigate(kind, identity.id);
+        void sportingNavigation.navigate(kind, id);
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}

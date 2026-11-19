@@ -78,6 +78,7 @@ export function SportingCalendar({
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
+      currentTeamId={selection.teamId}
       active={active}
       onRefresh={refresh}
     >
@@ -108,6 +109,8 @@ export interface SportingCalendarViewProps {
   category: CalendarSelection["category"];
   /** The open Pool's own calendar already represents this destination. */
   currentPoolId?: string;
+  /** The open Team's own identity remains contextual in its calendar. */
+  currentTeamId?: string;
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
@@ -120,6 +123,7 @@ export function SportingCalendarView({
   calendar,
   category,
   currentPoolId,
+  currentTeamId,
   active = true,
   onRefresh,
   emptyState,
@@ -311,6 +315,7 @@ export function SportingCalendarView({
                 key={item.match.id}
                 match={item.match}
                 displayTimeZone={displayZone}
+                currentTeamId={currentTeamId}
                 active={active}
               />
             </View>
@@ -320,7 +325,10 @@ export function SportingCalendarView({
           <View>
             <CalendarPoolHeader
               pool={item.match.pool}
-              linked={item.match.pool.pool.id !== currentPoolId}
+              linked={
+                item.match.pool.pool.id.toLowerCase() !==
+                currentPoolId?.toLowerCase()
+              }
               active={active}
             />
             {match}
@@ -442,6 +450,9 @@ function CalendarPoolHeader({
 }>) {
   const { colors } = useTheme();
   const division = pool.classification.division;
+  const metadata = [division?.name, genderLabel(pool.classification.gender)]
+    .filter(Boolean)
+    .join(" ");
   const content = (
     <>
       {division ? (
@@ -460,9 +471,7 @@ function CalendarPoolHeader({
           {pool.pool.name}
         </Text>
         <Text style={[styles.metadata, { color: colors.secondaryText }]}>
-          {[division?.name, genderLabel(pool.classification.gender)]
-            .filter(Boolean)
-            .join(" ")}
+          {metadata}
         </Text>
       </View>
     </>
@@ -473,7 +482,7 @@ function CalendarPoolHeader({
         <SportingLink
           kind="pool"
           id={pool.pool.id}
-          label={pool.pool.name}
+          label={metadata ? `${pool.pool.name} · ${metadata}` : pool.pool.name}
           active={active}
           style={calendarStyles.poolHeading}
         >

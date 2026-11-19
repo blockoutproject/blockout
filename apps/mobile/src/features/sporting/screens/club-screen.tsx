@@ -378,7 +378,7 @@ function ClubTeams({
           layout="club-team"
           identity={item.team}
           classification={item.classification}
-          onPress={() => void sporting.navigate("team", item.team.id)}
+          onOpen={(kind, id) => void sporting.navigate(kind, id)}
         />
       )}
       ListHeaderComponent={<View style={styles.seasonHeader}>{children}</View>}

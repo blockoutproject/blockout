@@ -97,7 +97,7 @@ Return the next exclusive day boundary only when further eligible days exist. Th
 
 ## Mobile state and navigation
 
-Use separate native press targets for the pool heading, team identities and calendar fixture action. `SportingLink` delegates the exact resource ID to `useSportingNavigation`, which preserves ordinary stack history and releases the route through F11’s existing admission and advertising owner. A pool’s own calendar heading remains contextual. Match context inside contribution forms remains informational.
+Use separate native press targets for the pool heading, team identities and calendar fixture action. `SportingLink` delegates the exact resource ID to `useSportingNavigation`, which preserves ordinary stack history and releases the route through F11’s existing admission and advertising owner. The current Pool or Team identity is contextual on its own calendar. Match context inside contribution forms remains informational.
 
 Native pool-name headings follow FR-004’s two-line limit and trailing ellipsis with the full accessible name. Use existing intrinsic text and measured native header geometry; Team/Club titles, fully wrapping participation entries and the prototype/Figma title baseline retain their current scope. The pool-title adjustment is explicitly native-only.
 

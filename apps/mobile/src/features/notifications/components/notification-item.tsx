@@ -74,7 +74,6 @@ export function NotificationItem({
           kind="pool"
           id={pool.id}
           label={`Voir la poule ${pool.name}`}
-          active={!pending}
           style={styles.pool}
         >
           <SportingLogo kind="division" identity={division} />
@@ -157,7 +156,6 @@ export function NotificationItem({
                     kind="team"
                     id={identity.id}
                     label={`Voir l’équipe ${name}`}
-                    active={!pending}
                     style={styles.teamLink}
                   >
                     {title}

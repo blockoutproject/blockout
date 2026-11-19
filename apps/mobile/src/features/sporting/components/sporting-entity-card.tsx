@@ -21,7 +21,6 @@ import { tokens } from "@/shared/theme/tokens";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
-import { SportingLink } from "../link";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 const entityBadgeSize = 24;
@@ -36,10 +35,8 @@ export interface SportingEntityCardProps {
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;
   layout?: "discovery" | "club-team";
-  /** A retained scene owns continued navigation from its club link. */
-  active?: boolean;
-  /** Opens the card's primary identity. A separately linked club owns only its own row. */
-  onPress?: () => void;
+  /** The screen receives the exact primary or associated club destination. */
+  onOpen?(kind: SportingEntityCardProps["kind"], id: string): void;
 }
 
 /** Product Design Entity Card 354:565 groups current identity, admitted artwork and distinguishing metadata. */
@@ -51,14 +48,13 @@ export function SportingEntityCard({
   club,
   classification,
   season,
-  onPress,
+  onOpen,
   layout = "discovery",
-  active = true,
 }: Readonly<SportingEntityCardProps>) {
   const { colors } = useTheme();
   const clubTeam = layout === "club-team";
   const linkedClub =
-    onPress && !clubTeam && club?.name.trim() ? club : undefined;
+    onOpen && !clubTeam && club?.name.trim() ? club : undefined;
   const supportingText = club?.name ?? subtitle;
   const division = classification?.division;
   const divisionContent = division
@@ -130,7 +126,7 @@ export function SportingEntityCard({
       ))}
     </View>
   );
-  const disclosure = onPress && (
+  const disclosure = onOpen && (
     <ChevronRight
       accessible={false}
       size={tokens.size.icon.sm}
@@ -205,19 +201,21 @@ export function SportingEntityCard({
       accessible: true,
       accessibilityRole: "link" as const,
       accessibilityLabel: label,
-      onPress,
+      onPress: () => onOpen?.(kind, identity.id),
     };
     if (linkedClub) {
       return (
         <View style={style}>
           {atmosphere}
           <Pressable {...primary}>{content}</Pressable>
-          <SportingLink
-            kind="club"
-            id={linkedClub.id}
-            label={`Voir le club ${linkedClub.name}`}
-            active={active}
-            style={styles.relatedClub}
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`Voir le club ${linkedClub.name}`}
+            onPress={() => onOpen?.("club", linkedClub.id)}
+            style={({ pressed }) => [
+              styles.relatedClub,
+              pressed && { opacity: tokens.opacity.pressed },
+            ]}
           >
             <Text
               style={[styles.relatedClubName, { color: colors.secondaryText }]}
@@ -229,12 +227,12 @@ export function SportingEntityCard({
               size={tokens.size.icon.sm}
               color={colors.icon}
             />
-          </SportingLink>
+          </Pressable>
           {border}
         </View>
       );
     }
-    return onPress ? (
+    return onOpen ? (
       <Pressable {...primary} style={style}>
         {atmosphere}
         {content}
