@@ -21,16 +21,10 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import {
-  AppState,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import type {
   MatchCalendarResponse,
-  MatchPoolGroupResponse,
+  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
@@ -281,7 +275,9 @@ export function SportingCalendarView({
         layout.span = singleSpan ? 1 : columns - 1;
       }}
       recycleItems
-      getItemType={(item) => item.kind}
+      getItemType={(item) =>
+        item.kind === "match" && item.first ? "matchWithPool" : item.kind
+      }
       getFixedItemSize={(item) => (item.kind === "space" ? 0 : undefined)}
       keyExtractor={(item) => item.key}
       stickyHeaderIndices={stickyHeaderIndices}
@@ -291,22 +287,14 @@ export function SportingCalendarView({
         ) : undefined
       }
       refreshControl={refreshControl}
-      renderItem={({ item, index }) => {
+      renderItem={({ item }) => {
         if (item.kind === "space") {
           return null;
         }
         if (item.kind === "date") {
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
-        if (item.kind === "pool") {
-          return (
-            <CalendarPoolHeader
-              group={item.group}
-              besideDate={!stacked && rows[index - 1]?.kind === "date"}
-            />
-          );
-        }
-        return (
+        const match = (
           <CalendarGroupPart
             divisionColor={item.match.pool.classification.division?.color}
             last={item.last}
@@ -326,6 +314,14 @@ export function SportingCalendarView({
               />
             </View>
           </CalendarGroupPart>
+        );
+        return item.first ? (
+          <View>
+            <CalendarPoolHeader pool={item.match.pool} />
+            {match}
+          </View>
+        ) : (
+          match
         );
       }}
       onEndReached={() => {
@@ -392,7 +388,10 @@ function CalendarGroupPart({
 >) {
   const { colors } = useTheme();
   const tint =
-    divisionColor && `${divisionColor}${colors.sportingSurfaceAlpha}`;
+    divisionColor && `${divisionColor}${colors.calendarPoolSurfaceAlpha}`;
+  const startAlpha = first
+    ? colors.calendarPoolHeaderAlpha
+    : colors.calendarPoolSurfaceAlpha;
   return (
     <View
       style={[
@@ -409,7 +408,7 @@ function CalendarGroupPart({
           {
             backgroundColor: colors.surface,
             backgroundImage: tint
-              ? `linear-gradient(${tint}, ${tint})`
+              ? `linear-gradient(${divisionColor}${startAlpha}, ${tint} 60%)`
               : undefined,
             borderColor: divisionColor
               ? `${divisionColor}${colors.contextBorderAlpha}`
@@ -426,47 +425,33 @@ function CalendarGroupPart({
 
 /** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
-  group,
-  besideDate,
-}: Readonly<{ group: MatchPoolGroupResponse; besideDate: boolean }>) {
+  pool,
+}: Readonly<{ pool: MatchSummaryResponse["pool"] }>) {
   const { colors } = useTheme();
-  const { fontScale, scale } = useWindowDimensions();
-  const pool = group.matches[0].pool;
   const division = pool.classification.division;
-  // The heading fills the row reserved by the date so each pool keeps the same match insets.
-  const dateHeight =
-    styles.dateHeading.paddingTop +
-    styles.dateHeading.gap +
-    (Math.ceil(styles.date.lineHeight * fontScale * scale) +
-      2 * Math.ceil(styles.dateMeta.lineHeight * fontScale * scale)) /
-      scale;
   return (
     <CalendarGroupPart divisionColor={division?.color} first>
-      <View
-        style={[styles.groupInset, besideDate && { minHeight: dateHeight }]}
-      >
-        <View style={styles.pool}>
-          {division ? (
-            <SportingLogo identity={division} kind="division" size={40} />
-          ) : (
-            <SportingMedia identity={pool.pool} kind="division" size={40} />
-          )}
-          <View style={styles.identity}>
-            <Text
-              accessibilityRole="header"
-              accessibilityLabel={pool.pool.name}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-              style={[styles.poolName, { color: colors.text }]}
-            >
-              {pool.pool.name}
-            </Text>
-            <Text style={[styles.metadata, { color: colors.secondaryText }]}>
-              {[division?.name, genderLabel(pool.classification.gender)]
-                .filter(Boolean)
-                .join(" ")}
-            </Text>
-          </View>
+      <View style={styles.pool}>
+        {division ? (
+          <SportingLogo identity={division} kind="division" size={40} />
+        ) : (
+          <SportingMedia identity={pool.pool} kind="division" size={40} />
+        )}
+        <View style={styles.identity}>
+          <Text
+            accessibilityRole="header"
+            accessibilityLabel={pool.pool.name}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            style={[styles.poolName, { color: colors.text }]}
+          >
+            {pool.pool.name}
+          </Text>
+          <Text style={[styles.metadata, { color: colors.secondaryText }]}>
+            {[division?.name, genderLabel(pool.classification.gender)]
+              .filter(Boolean)
+              .join(" ")}
+          </Text>
         </View>
       </View>
     </CalendarGroupPart>
@@ -538,13 +523,12 @@ const styles = StyleSheet.create({
     marginBottom: -groupShadowOverlap,
     paddingBottom: groupShadowOverlap,
   },
-  groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   pool: {
-    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    padding: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.lg,
   },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   poolName: { ...tokens.typography.strong },

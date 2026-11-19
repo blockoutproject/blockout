@@ -120,17 +120,15 @@ function PoolGroupSkeleton({
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      <View style={styles.headingInset}>
-        <View style={styles.heading}>
-          <Skeleton
-            width={tokens.size.media.row}
-            height={tokens.size.media.row}
-            radius={tokens.media.radius.tile}
-          />
-          <View style={styles.headingCopy}>
-            <TextSkeleton width="85%" />
-            <TextSkeleton role="metadata" width="84%" />
-          </View>
+      <View style={styles.heading}>
+        <Skeleton
+          width={tokens.size.media.row}
+          height={tokens.size.media.row}
+          radius={tokens.media.radius.tile}
+        />
+        <View style={styles.headingCopy}>
+          <TextSkeleton width="85%" />
+          <TextSkeleton role="metadata" width="84%" />
         </View>
       </View>
       <View style={styles.fixtureInset}>
@@ -233,12 +231,12 @@ const styles = StyleSheet.create({
   },
   fillColumn: { flex: 1 },
   fullWidth: { width: "100%" },
-  headingInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   heading: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    padding: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.lg,
   },
   headingCopy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   fixtureInset: { padding: tokens.spacing.lg },
