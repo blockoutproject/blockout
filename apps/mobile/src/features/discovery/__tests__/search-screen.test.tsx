@@ -26,6 +26,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
 import { createDiscoveryContext } from "../api/discovery-context";
@@ -371,11 +372,13 @@ it("selects the search resource through native page settlement and retains its s
     },
   );
 
-  // Then: business selection, accessible content and the common input agree with that page.
+  // Then: selection, the scrolling heading and the shared input agree with the settled page.
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  const results = within(screen.getByLabelText("Résultats de recherche"));
   expect(
-    screen.getByRole("header", { name: "2 résultats chargés" }),
+    results.getByRole("header", { name: "2 résultats chargés" }),
   ).toBeOnTheScreen();
+  expect(results.getByRole("button", { name: "Effacer" })).toBeEnabled();
   expect(
     screen.getByRole("tab", { name: "Clubs", selected: true }),
   ).toBeOnTheScreen();

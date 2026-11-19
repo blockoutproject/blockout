@@ -1,4 +1,4 @@
-/** A mounted ordinary scroller can opt into the native top edge for its screen. */
+/** Hide the Stack’s automatic top edge behind Blockout’s shared material. */
 export const stackScreenOptions = {
   headerShown: false,
   scrollEdgeEffects: { top: "hidden" },

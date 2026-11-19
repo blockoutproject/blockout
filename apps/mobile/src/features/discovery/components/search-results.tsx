@@ -11,10 +11,10 @@ import { tokens } from "@/shared/theme/tokens";
 import { SportingEntityCard } from "@/features/sporting/entity-card";
 import type { SearchResult } from "../model/search-result";
 
-/** The parent derives accepted cards and the fixed heading from the same Query pages. */
 export interface SearchResultsProps {
   items: readonly SearchResult[];
   examples?: boolean;
+  heading?: ReactElement;
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
@@ -24,11 +24,12 @@ export interface SearchResultsProps {
 
 /**
  * Native rows and feedback share the viewport below Search controls.
- * Restores the last native offset after a scoped card; RNCT owns heading-inset geometry.
+ * Restores the last native offset after a scoped card; RNCT owns the pinned toolbar inset.
  */
 export function SearchResults({
   items,
   examples = false,
+  heading,
   emptyComponent,
   continuation,
   onEndReached,
@@ -38,7 +39,8 @@ export function SearchResults({
   const offset = useRef(0);
   if (items.length === 0) {
     return (
-      <PageScrollView>
+      <PageScrollView keyboardShouldPersistTaps="handled">
+        {heading && <View style={styles.feedbackHeading}>{heading}</View>}
         {emptyComponent}
         {continuation}
       </PageScrollView>
@@ -64,6 +66,8 @@ export function SearchResults({
           });
         }
       }}
+      ListHeaderComponent={heading}
+      ListHeaderComponentStyle={styles.listHeading}
       ListFooterComponent={
         <>
           {continuation}
@@ -76,7 +80,7 @@ export function SearchResults({
       recycleItems
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={pageContentStyle}
+      contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
         <SportingEntityCard {...item} onPress={() => onOpen(item)} />
@@ -139,6 +143,9 @@ export function SearchHeading({
 }
 
 const styles = StyleSheet.create({
+  listContent: { ...pageContentStyle, paddingTop: 0 },
+  listHeading: { paddingBottom: tokens.layout.content.start },
+  feedbackHeading: { paddingHorizontal: tokens.spacing.screen },
   toolbar: {
     flexDirection: "row",
     alignItems: "center",

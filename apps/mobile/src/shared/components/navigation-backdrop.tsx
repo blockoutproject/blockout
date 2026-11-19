@@ -1,11 +1,8 @@
 import type { ViewInstance } from "react-native";
 import { BlurTargetView, BlurView } from "expo-blur";
-import { useNavigation } from "expo-router";
 import {
   createContext,
   useContext,
-  useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type ReactElement,
@@ -13,7 +10,7 @@ import {
   type RefObject,
   type ComponentProps,
 } from "react";
-import { AccessibilityInfo, Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -27,8 +24,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-const softScrollEdge = { top: "soft" } as const;
-const NativeNavigationEdgeContext = createContext(false);
 
 /** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
 export const NavigationInsetContext = createContext(0);
@@ -45,76 +40,21 @@ export function useNavigationInset() {
   return useContext(NavigationInsetContext);
 }
 
-/** Configures new iOS scrollers; Stack applies the same edge policy when reattaching routes. */
+/** Apply the Stack edge policy when an iOS scroller mounts after the screen attaches. */
 export function NavigationScrollMarker({
   children,
 }: Readonly<{ children: ReactElement }>) {
-  const useSoftEdge = useContext(NativeNavigationEdgeContext);
-  if (Platform.OS !== "ios") {
+  if (Platform.OS !== "ios" || Number.parseInt(Platform.Version, 10) < 26) {
     return children;
   }
   return (
     <ScrollViewMarker
       style={styles.fill}
-      scrollEdgeEffects={
-        useSoftEdge ? softScrollEdge : stackScreenOptions.scrollEdgeEffects
-      }
+      scrollEdgeEffects={stackScreenOptions.scrollEdgeEffects}
     >
       {children}
     </ScrollViewMarker>
   );
-}
-
-function SoftNavigationEdgeOptions() {
-  const navigation = useNavigation();
-  useLayoutEffect(() => {
-    // Stack reapplies its option on attachment; keep it aligned with the mounted scroller.
-    navigation.setOptions({ scrollEdgeEffects: softScrollEdge });
-    return () => {
-      navigation.setOptions({
-        scrollEdgeEffects: stackScreenOptions.scrollEdgeEffects,
-      });
-    };
-  }, [navigation]);
-  return null;
-}
-
-function useSoftNavigationEdge(ownsStackScrollEdge: boolean) {
-  const supported =
-    ownsStackScrollEdge &&
-    Platform.OS === "ios" &&
-    Number.parseInt(String(Platform.Version), 10) >= 26;
-  const [reducedTransparency, setReducedTransparency] = useState(true);
-  useEffect(() => {
-    if (!supported) {
-      return;
-    }
-
-    let acceptInitialRead = true;
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceTransparencyChanged",
-      (value) => {
-        acceptInitialRead = false;
-        setReducedTransparency(value);
-      },
-    );
-    void AccessibilityInfo.isReduceTransparencyEnabled().then(
-      (value) => {
-        if (acceptInitialRead) {
-          setReducedTransparency(value);
-        }
-      },
-      () => {
-        // Keep the existing material if the system setting is unavailable.
-      },
-    );
-    return () => {
-      acceptInitialRead = false;
-      subscription.remove();
-    };
-  }, [supported]);
-  // Under Reduce Transparency the native edge can leave the custom controls uncovered.
-  return supported && !reducedTransparency;
 }
 
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
@@ -163,35 +103,26 @@ export function NavigationBackdrop({
 export function PageViewport({
   header,
   children,
-  ownsStackScrollEdge = false,
 }: Readonly<{
   header: ReactNode;
   children: ReactNode;
-  /** Overlays and standalone previews keep their own material without setting route options. */
-  ownsStackScrollEdge?: boolean;
 }>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);
   const [height, setHeight] = useState(0);
-  const useSoftEdge = useSoftNavigationEdge(ownsStackScrollEdge);
   return (
     <View style={styles.fill}>
-      {useSoftEdge && <SoftNavigationEdgeOptions />}
       <NavigationInsetContext value={height}>
         <NavigationScrollOffsetContext value={scrollOffset}>
           <BlurTargetView ref={target} style={styles.fill}>
-            <NativeNavigationEdgeContext value={useSoftEdge}>
-              {children}
-            </NativeNavigationEdgeContext>
+            {children}
           </BlurTargetView>
           <View
             style={[styles.header, { paddingTop: top }]}
             onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
           >
-            {!useSoftEdge && (
-              <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
-            )}
+            <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
             {header}
           </View>
         </NavigationScrollOffsetContext>

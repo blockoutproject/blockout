@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
@@ -46,7 +47,7 @@ export function PageHeader({
     if (reducedMotion) {
       return progress >= 1 ? 1 : 0;
     }
-    return progress;
+    return Easing.quad(progress);
   });
   const center = useAnimatedStyle(() => ({ opacity: visibility.get() }));
   const accessibility = useAnimatedProps(() => {

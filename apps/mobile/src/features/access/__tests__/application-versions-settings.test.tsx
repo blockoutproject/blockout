@@ -5,7 +5,7 @@ import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { AccessibilityInfo, Alert, Linking, Platform } from "react-native";
+import { Alert, Linking } from "react-native";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -833,13 +833,8 @@ it("previews absent optional copy with the same fallback and preserves the draft
   );
 });
 
-it("opens and closes the update preview independently of a Stack screen on iOS 26", async () => {
+it("opens and closes the standalone update preview", async () => {
   // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  jest.spyOn(Platform, "Version", "get").mockReturnValue("26.0");
-  jest
-    .spyOn(AccessibilityInfo, "isReduceTransparencyEnabled")
-    .mockResolvedValue(false);
   const user = userEvent.setup();
   const onClose = jest.fn();
 

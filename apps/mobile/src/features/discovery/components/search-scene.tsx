@@ -8,8 +8,8 @@ import type {
   useDiscoveryQuery,
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
-import { uniqueSearchResults, type SearchResult } from "../model/search-result";
-import { SearchResults } from "./search-results";
+import { uniqueSearchResults } from "../model/search-result";
+import { SearchHeading, SearchResults } from "./search-results";
 import { PageContent } from "@/shared/components/page";
 import { SportingEntityCardLoading } from "@/features/sporting/entity-card";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -26,7 +26,7 @@ export interface SearchSceneProps {
   query: ReturnType<typeof useDiscoveryQuery>;
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
-  items: readonly SearchResult[];
+  onClear?: () => void;
   emptyDescription: string;
   emptyAction: ReactNode;
 }
@@ -40,7 +40,7 @@ export function SearchScene({
   query: textQuery,
   exampleQuery,
   examples,
-  items: textItems,
+  onClear,
   emptyDescription,
   emptyAction,
 }: Readonly<SearchSceneProps>) {
@@ -48,7 +48,7 @@ export function SearchScene({
   const query = examples ? exampleQuery : textQuery;
   const items = examples
     ? uniqueSearchResults(exampleQuery.data ? [exampleQuery.data] : undefined)
-    : textItems;
+    : uniqueSearchResults(textQuery.data?.pages);
   const navigation = useNavigation();
   const sportingNavigation = useSportingNavigation(active);
   const sporting = resource === "club" ? undefined : visit[resource];
@@ -128,6 +128,15 @@ export function SearchScene({
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}
+      heading={
+        failed ? undefined : (
+          <SearchHeading
+            examples={examples}
+            count={searchable && textQuery.data ? items.length : undefined}
+            onClear={onClear}
+          />
+        )
+      }
       onEndReached={() => {
         if (!textQuery.isFetchNextPageError) {
           loadMore();
