@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   type DerivedValue,
+  type WithTimingConfig,
 } from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -13,29 +14,35 @@ interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   /** A shared fill animates paint independently of the indicator bounds. */
-  fill: DerivedValue<string>;
+  fill: string | DerivedValue<string>;
+  radius?: number;
+  timing?: Pick<WithTimingConfig, "duration" | "easing">;
 }
 
-/** Animates measured bounds directly on the UI thread on both platforms; reduced motion settles immediately. */
+/** Animates the supplied bounds on the UI thread; reduced motion settles immediately. */
 export function SelectionIndicator({
   layout,
   reducedMotion,
   fill,
+  radius = tokens.radius.panelInset,
+  timing,
 }: Readonly<SelectionIndicatorProps>) {
   const animated = useAnimatedStyle(() => {
     if (!layout) {
       return {};
     }
-    const timing = {
-      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
-      easing: Easing.out(Easing.cubic),
+    const transition = {
+      duration: reducedMotion
+        ? 0
+        : (timing?.duration ?? tokens.motion.navigation.duration),
+      easing: timing?.easing ?? Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.Never,
     };
     return {
-      left: withTiming(layout.x, timing),
-      top: withTiming(layout.y, timing),
-      width: withTiming(layout.width, timing),
-      height: withTiming(layout.height, timing),
+      left: withTiming(layout.x, transition),
+      top: withTiming(layout.y, transition),
+      width: withTiming(layout.width, transition),
+      height: withTiming(layout.height, transition),
     };
   });
   if (!layout) {
@@ -45,11 +52,15 @@ export function SelectionIndicator({
     <Animated.View
       accessible={false}
       pointerEvents="none"
-      style={[styles.indicator, { backgroundColor: fill }, animated]}
+      style={[
+        styles.indicator,
+        { backgroundColor: fill, borderRadius: radius },
+        animated,
+      ]}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  indicator: { position: "absolute", borderRadius: tokens.radius.panelInset },
+  indicator: { position: "absolute" },
 });

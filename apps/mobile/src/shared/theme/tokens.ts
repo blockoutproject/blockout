@@ -58,8 +58,8 @@ export const appearanceColors = {
     onInverse: "#F7F7F8",
     contextBorderAlpha: "4D",
     sportingSurfaceAlpha: "0C",
-    calendarPoolSurfaceAlpha: "0B",
-    calendarPoolHeaderAlpha: "17",
+    calendarPoolSurfaceAlpha: "0A",
+    calendarPoolHeaderAlpha: "14",
     border: "#20212424",
     cardShadow: `${cardShadowGeometry} #181C2E20`,
     capsuleShadow: "0px 5px 16px #14192426",
@@ -120,8 +120,8 @@ export const appearanceColors = {
     onInverse: reference.neutral900,
     contextBorderAlpha: "6B",
     sportingSurfaceAlpha: "1C",
-    calendarPoolSurfaceAlpha: "18",
-    calendarPoolHeaderAlpha: "24",
+    calendarPoolSurfaceAlpha: "0A",
+    calendarPoolHeaderAlpha: "1A",
     border: "#FFFFFF2E",
     cardShadow: `${cardShadowGeometry} #00000065`,
     capsuleShadow: "0px 5px 16px #00000080",
@@ -275,6 +275,7 @@ export const tokens = {
   },
   elevation: { offsetX: 0, offsetY: 4, blur: 10, cardShadowBlurRadius },
   motion: {
+    compact: 220,
     slow: 480,
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
     navigation: {

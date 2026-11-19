@@ -10,23 +10,33 @@ import { divisionTextColor } from "../presentation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Easing } from "react-native-reanimated";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
-
+import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import { StandingCards } from "./standing-cards";
 import { StandingsLoading } from "./standings-loading";
+
+const layoutSize = tokens.size.control.compact;
+const layoutInset = (tokens.touch.minimum - layoutSize) / 2;
+const layoutStep = tokens.touch.minimum + tokens.spacing.xs;
+const layoutTransition = {
+  duration: tokens.motion.compact,
+  easing: Easing.bezier(0.2, 0.7, 0.2, 1),
+};
 
 /** One exact pool's independently retained table; team emphasis uses identity alone, never rank. */
 export interface PoolStandingsProps {
@@ -51,6 +61,7 @@ export function PoolStandings({
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(pool.pool.id));
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);
@@ -79,6 +90,18 @@ export function PoolStandings({
         accessibilityRole="radiogroup"
         accessibilityLabel="Présentation du classement"
       >
+        <SelectionIndicator
+          layout={{
+            x: layoutInset + (layout === "list" ? layoutStep : 0),
+            y: layoutInset,
+            width: layoutSize,
+            height: layoutSize,
+          }}
+          reducedMotion={reducedMotion}
+          fill={selectedFill}
+          radius={tokens.radius.control}
+          timing={layoutTransition}
+        />
         {(
           [
             ["cards", "Afficher en cartes", Columns3],
@@ -93,19 +116,11 @@ export function PoolStandings({
             onPress={() => setLayout(value)}
             style={styles.layoutAction}
           >
-            <View
-              style={[
-                styles.layoutVisual,
-                {
-                  backgroundColor: layout === value ? selectedFill : undefined,
-                },
-              ]}
-            >
-              <Icon
-                size={tokens.size.icon.md}
-                color={layout === value ? selectedIcon : colors.icon}
-              />
-            </View>
+            <Icon
+              accessible={false}
+              size={tokens.size.icon.md}
+              color={layout === value ? selectedIcon : colors.icon}
+            />
           </Pressable>
         ))}
       </View>
@@ -371,18 +386,10 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.xs,
   },
   layoutAction: {
-    minWidth: tokens.touch.minimum,
-    minHeight: tokens.touch.minimum,
+    width: tokens.touch.minimum,
+    height: tokens.touch.minimum,
     alignItems: "center",
     justifyContent: "center",
-  },
-  layoutVisual: {
-    width: tokens.size.control.compact,
-    height: tokens.size.control.compact,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: tokens.radius.control,
-    overflow: "hidden",
   },
   row: {
     flexDirection: "row",

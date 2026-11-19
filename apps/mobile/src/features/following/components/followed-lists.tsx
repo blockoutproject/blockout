@@ -1,9 +1,18 @@
 import { NoAvailableFollows } from "./no-available-follows";
-import { PageList } from "@/shared/components/page-list";
-import { useState } from "react";
+import { PageFlatList } from "@/shared/components/page-list";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { PageScrollView } from "@/shared/components/page";
 import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -13,6 +22,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import {
   SportingEntityCard,
   SportingEntityCardLoading,
@@ -51,6 +61,94 @@ type FollowedRow =
       resource: FollowingTarget["type"];
       item: FollowedItem;
     };
+
+const disclosureEasing = Easing.bezier(0.2, 0.7, 0.2, 1);
+
+/** Keeps a closing section in the list until its height reaches zero. */
+function useFollowedDisclosure(reducedMotion: boolean) {
+  const [phase, setPhase] = useState<"open" | "closing" | "closed">("open");
+  const progress = useSharedValue(1);
+  const transition = useRef(0);
+  const expanded = phase === "open";
+
+  useEffect(() => {
+    const currentTransition = ++transition.current;
+
+    function finishClosing() {
+      if (transition.current === currentTransition) {
+        setPhase((current) => (current === "closing" ? "closed" : current));
+      }
+    }
+
+    progress.set(
+      withTiming(
+        expanded ? 1 : 0,
+        {
+          duration: reducedMotion ? 0 : tokens.motion.compact,
+          easing: disclosureEasing,
+          reduceMotion: ReduceMotion.Never,
+        },
+        (finished) => {
+          if (finished && phase === "closing") {
+            scheduleOnRN(finishClosing);
+          }
+        },
+      ),
+    );
+
+    return () => {
+      transition.current += 1;
+    };
+  }, [expanded, phase, progress, reducedMotion]);
+
+  return {
+    expanded,
+    visible: expanded || (phase === "closing" && !reducedMotion),
+    progress,
+    toggle: () =>
+      setPhase((current) => {
+        if (current !== "open") {
+          return "open";
+        }
+        return reducedMotion ? "closed" : "closing";
+      }),
+  };
+}
+
+/** The section supplies one progress value while each virtualized row measures its natural height. */
+function FollowedDisclosureRow({
+  children,
+  expanded,
+  progress,
+}: Readonly<{
+  children: ReactNode;
+  expanded: boolean;
+  progress: SharedValue<number>;
+}>) {
+  const height = useSharedValue(0);
+  const layout = useAnimatedStyle(() => {
+    const fraction = progress.get();
+    return {
+      height: height.get() * fraction,
+      overflow: fraction === 1 ? "visible" : "hidden",
+    };
+  });
+  return (
+    <Animated.View
+      accessibilityElementsHidden={!expanded}
+      importantForAccessibility={expanded ? "auto" : "no-hide-descendants"}
+      pointerEvents={expanded ? "auto" : "none"}
+      style={layout}
+    >
+      <View
+        onLayout={(event) => height.set(event.nativeEvent.layout.height)}
+        style={styles.disclosureContent}
+      >
+        {children}
+      </View>
+    </Animated.View>
+  );
+}
 
 /** UUIDs retain their first position and latest current summary after offset movement; homonyms stay distinct. */
 function followedItems(
@@ -138,9 +236,12 @@ function useFollowedList(
 
 /** Home sections share one native list and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: Readonly<FollowedListsProps>) {
-  const [expanded, setExpanded] = useState({ team: true, pool: true });
-  const teams = useFollowedList(props, "team", expanded.team);
-  const pools = useFollowedList(props, "pool", expanded.pool);
+  const reducedMotion = useReducedMotion();
+  const teamDisclosure = useFollowedDisclosure(reducedMotion);
+  const poolDisclosure = useFollowedDisclosure(reducedMotion);
+  const disclosure = { team: teamDisclosure, pool: poolDisclosure };
+  const teams = useFollowedList(props, "team", teamDisclosure.expanded);
+  const pools = useFollowedList(props, "pool", poolDisclosure.expanded);
   const lists = { team: teams, pool: pools };
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
@@ -148,7 +249,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     .filter((type) => {
       const { query, refreshing } = lists[type];
       return (
-        expanded[type] &&
+        disclosure[type].expanded &&
         hasReadError(query) &&
         // A pull retains the previous continuation error until this collection's new read settles.
         (!query.data || (!query.isFetchNextPageError && !refreshing))
@@ -191,7 +292,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
     (resource) => [
       { key: `${resource}-heading`, kind: "heading" as const, resource },
-      ...(expanded[resource]
+      ...(disclosure[resource].visible
         ? [
             ...lists[resource].items.map((item): FollowedRow => ({
               key: `${resource}-${item.identity.id.toLowerCase()}`,
@@ -215,8 +316,8 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       enabled={props.active}
       onRefresh={refresh}
       fetching={
-        (expanded.team && teams.query.isFetching) ||
-        (expanded.pool && pools.query.isFetching)
+        (teamDisclosure.expanded && teams.query.isFetching) ||
+        (poolDisclosure.expanded && pools.query.isFetching)
       }
     />
   ) : undefined;
@@ -239,16 +340,16 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     );
   }
   return (
-    <PageList
+    <PageFlatList
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
       keyExtractor={(row) => row.key}
-      getItemType={(row) => row.kind}
-      recycleItems
+      removeClippedSubviews={false}
       alwaysBounceVertical
       refreshControl={refreshControl}
       contentContainerStyle={styles.content}
+      onEndReachedThreshold={0.5}
       onEndReached={() => {
         if (!teams.query.isError) {
           void teams.append();
@@ -260,6 +361,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       ListFooterComponent={<BottomContentSpacer />}
       renderItem={({ item: row }) => {
         const list = lists[row.resource];
+        const section = disclosure[row.resource];
         if (row.kind === "heading") {
           return (
             <Pressable
@@ -267,13 +369,8 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
               accessibilityLabel={
                 row.resource === "team" ? "Équipes suivies" : "Poules suivies"
               }
-              accessibilityState={{ expanded: expanded[row.resource] }}
-              onPress={() =>
-                setExpanded((value) => ({
-                  ...value,
-                  [row.resource]: !value[row.resource],
-                }))
-              }
+              accessibilityState={{ expanded: section.expanded }}
+              onPress={section.toggle}
               style={styles.heading}
             >
               <Text
@@ -285,12 +382,13 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
               >
                 {row.resource === "team" ? "Équipes suivies" : "Poules suivies"}
               </Text>
-              <DisclosureChevron expanded={expanded[row.resource]} />
+              <DisclosureChevron expanded={section.expanded} />
             </Pressable>
           );
         }
+        let content: ReactNode;
         if (row.kind === "item") {
-          return (
+          content = (
             <View style={styles.card}>
               <SportingEntityCard
                 {...row.item}
@@ -300,39 +398,46 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
               />
             </View>
           );
-        }
-
-        if (!list.query.data) {
-          return list.query.isEnabled &&
+        } else if (!list.query.data) {
+          content =
+            (list.query.isEnabled || !section.expanded) &&
             list.query.isPending &&
             list.query.isFetching ? (
-            <View style={styles.feedback}>
-              <View style={styles.card}>
-                <SportingEntityCardLoading
-                  label={
-                    row.resource === "team"
-                      ? "Chargement des équipes suivies"
-                      : "Chargement des poules suivies"
-                  }
-                />
+              <View style={styles.feedback}>
+                <View style={styles.card}>
+                  <SportingEntityCardLoading
+                    label={
+                      row.resource === "team"
+                        ? "Chargement des équipes suivies"
+                        : "Chargement des poules suivies"
+                    }
+                  />
+                </View>
               </View>
-            </View>
-          ) : null;
-        }
-        if (!list.items.length && !list.query.hasNextPage) {
-          return (
+            ) : null;
+        } else if (!list.items.length && !list.query.hasNextPage) {
+          content = (
             <View style={styles.feedback}>
               <NoAvailableFollows />
             </View>
           );
+        } else {
+          content = (
+            <ListContinuation
+              loading={list.query.isFetchingNextPage}
+              failed={list.query.hasNextPage && list.query.isFetchNextPageError}
+              disabled={!props.active || list.query.isFetching}
+              onRetry={() => void list.append()}
+            />
+          );
         }
         return (
-          <ListContinuation
-            loading={list.query.isFetchingNextPage}
-            failed={list.query.hasNextPage && list.query.isFetchNextPageError}
-            disabled={!props.active || list.query.isFetching}
-            onRetry={() => void list.append()}
-          />
+          <FollowedDisclosureRow
+            expanded={section.expanded}
+            progress={section.progress}
+          >
+            {content}
+          </FollowedDisclosureRow>
         );
       }}
     />
@@ -348,6 +453,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   title: { flex: 1, minWidth: 0 },
+  disclosureContent: { position: "absolute", top: 0, left: 0, right: 0 },
   card: { paddingBottom: tokens.spacing.md },
   feedback: { paddingBottom: tokens.spacing.xl },
 });

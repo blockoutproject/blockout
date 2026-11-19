@@ -171,26 +171,26 @@ export function SportingMedia({
   const halo = available ? (
     <SportingAtmosphere
       key={image.attemptKey}
-      testID={atmosphere?.testID ?? "sporting-logo-atmosphere"}
+      testID={atmosphere?.testID}
       uri={uri}
-      layout={atmosphere?.layout ?? "horizontal"}
+      layout={atmosphere?.layout}
       onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
     />
   ) : null;
   return renderWithAtmosphere(logo, halo);
 }
 
-/** Optional same-crest light; decoration has its own native decoding unless the consumer shares failure ownership. */
-function SportingAtmosphere({
+/** Optional crest light owns native decoding unless the caller couples failure to the foreground. */
+export function SportingAtmosphere({
   uri,
   onError,
-  testID,
-  layout,
+  testID = "sporting-logo-atmosphere",
+  layout = "horizontal",
 }: Readonly<{
   uri: string;
   onError?: () => void;
   testID?: string;
-  layout: AtmosphereLayout;
+  layout?: AtmosphereLayout;
 }>) {
   const image = useNativeImageLifecycle(uri);
   const id = useId();
