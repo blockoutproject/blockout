@@ -43,12 +43,11 @@ export function useStandingsCalendarPreview(
 
   return {
     onStandingsReady: commonReady && !prepared ? prepare : undefined,
-    preview:
-      commonReady && prepared ? (
-        <PageContent>
-          <CalendarSkeleton category={category} />
-        </PageContent>
-      ) : undefined,
+    preview: prepared ? (
+      <PageContent>
+        <CalendarSkeleton category={category} />
+      </PageContent>
+    ) : undefined,
   };
 }
 

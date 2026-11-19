@@ -41,20 +41,26 @@ export function StandingTable({
     displayRank: index + 1,
   }));
   const hasPodium = rows.length >= 3;
-  const podium = layout === "cards" && hasPodium;
+  const cards = layout === "cards";
+  const tableStyle = cards && styles.cards;
+  const podium = cards && hasPodium;
   const top = podium
     ? [rankedRows[1], rankedRows[0], rankedRows[2]]
     : rankedRows.slice(0, 3);
 
-  function renderRows(group: typeof rankedRows, canPlaceOnPodium: boolean) {
+  function renderRows(
+    group: typeof rankedRows,
+    variant: StandingRowProps["variant"],
+    nativeLogoSize?: number,
+  ) {
     return group.map(({ row, displayRank }) => (
       <StandingRow
         key={`${displayRank}:${row.team?.id ?? "unlinked"}`}
         row={row}
         displayRank={displayRank}
         columns={columns}
-        variant={canPlaceOnPodium && podium ? "podium" : layout}
-        canPlaceOnPodium={canPlaceOnPodium}
+        variant={variant}
+        nativeLogoSize={nativeLogoSize}
         active={active}
         highlighted={row.team !== undefined && row.team.id === highlightTeamId}
         divisionColor={divisionColor}
@@ -64,11 +70,15 @@ export function StandingTable({
   }
 
   return (
-    <View style={layout === "cards" && styles.cards}>
-      <View style={podium ? styles.podium : layout === "cards" && styles.cards}>
-        {renderRows(top, hasPodium)}
+    <View style={tableStyle}>
+      <View style={podium ? styles.podium : tableStyle}>
+        {renderRows(
+          top,
+          podium ? "podium" : layout,
+          hasPodium ? tokens.size.media.row : undefined,
+        )}
       </View>
-      {renderRows(rankedRows.slice(3), false)}
+      {renderRows(rankedRows.slice(3), layout)}
     </View>
   );
 }
@@ -78,7 +88,7 @@ interface StandingRowProps {
   displayRank: number;
   columns: readonly string[];
   variant: StandingLayout | "podium";
-  canPlaceOnPodium: boolean;
+  nativeLogoSize?: number;
   active: boolean;
   highlighted: boolean;
   divisionColor?: string;
@@ -91,7 +101,7 @@ function StandingRow({
   displayRank,
   columns,
   variant,
-  canPlaceOnPodium,
+  nativeLogoSize,
   active,
   highlighted,
   divisionColor,
@@ -305,7 +315,7 @@ function StandingRow({
       identity={row.team}
       kind="team"
       size={size}
-      nativeSize={canPlaceOnPodium ? tokens.size.media.row : undefined}
+      nativeSize={nativeLogoSize}
       atmosphere={
         !list && {
           layout: podium ? "podium" : "horizontal",

@@ -33,10 +33,7 @@ export interface ButtonProps {
   /** Caller-resolved black/white contrast against contextColor, independent of system appearance. */
   contextForeground?: string;
   /** Source-owned paints, including flat destructive confirmation from UI Library 7000:4103. */
-  variant?:
-    "primary" | "solid" | "success" | "destructive" | "secondary" | "inverse";
-  /** Set false for a solid action without a stroke; other callers retain their variant's border. */
-  bordered?: boolean;
+  variant?: "primary" | "solid" | "success" | "destructive" | "secondary";
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
   trailingIcon?: LucideIcon;
   /** Compact actions use this leading slot; when supplied it takes precedence over trailingIcon. */
@@ -58,13 +55,12 @@ export function Button({
   contextGradient,
   contextForeground,
   variant = "primary",
-  bordered = true,
   trailingIcon: TrailingIcon,
   leadingIcon: LeadingIcon,
 }: Readonly<ButtonProps>) {
   const { context, colors, scheme } = useTheme();
   const contextualPrimary = variant === "primary" && contextColor !== undefined;
-  const outlinedAccent = variant === "secondary" ? contextColor : undefined;
+  const outlined = variant === "secondary";
   const actionContext: ContextColors = contextualPrimary
     ? {
         primary: contextColor,
@@ -74,18 +70,13 @@ export function Button({
         shadow: scheme === "dark" ? "#00000033" : `${contextColor}1A`,
       }
     : context;
-  let { foreground, backgroundColor } = buttonPaints(
+  const { foreground, backgroundColor } = buttonPaints(
     variant,
     actionContext,
     colors,
+    contextColor,
+    contextForeground,
   );
-  if (variant === "solid" && contextColor) {
-    foreground = contextForeground ?? solidForeground(contextColor);
-    backgroundColor = contextColor;
-  } else if (outlinedAccent) {
-    foreground = outlinedAccent;
-    backgroundColor = "transparent";
-  }
   const Icon = LeadingIcon ?? TrailingIcon;
   const icon =
     Icon &&
@@ -123,21 +114,17 @@ export function Button({
             styles.action,
             fullWidth ? styles.container : styles.content,
             size === "compact" && styles.compact,
-            size === "compact" && !bordered && styles.compactBorderless,
+            size === "compact" && outlined && styles.compactOutline,
             {
               backgroundColor,
               backgroundImage:
                 variant === "primary"
                   ? `linear-gradient(120deg, ${stops.join(", ")})`
                   : undefined,
-              borderWidth:
-                bordered && (variant === "secondary" || variant === "inverse")
-                  ? tokens.border.thin
-                  : 0,
-              borderColor:
-                variant === "inverse" && contextColor
-                  ? `${contextColor}${colors.contextBorderAlpha}`
-                  : (outlinedAccent ?? colors.border),
+              borderWidth: outlined ? tokens.border.thin : 0,
+              borderColor: outlined
+                ? (contextColor ?? colors.border)
+                : undefined,
               opacity: controlOpacity(disabled, pressed),
               boxShadow:
                 disabled || pressed || variant !== "primary"
@@ -179,9 +166,11 @@ export function Button({
 
 /** Resolves the paired foreground/background roles for one approved action variant. */
 function buttonPaints(
-  variant: ButtonProps["variant"],
+  variant: NonNullable<ButtonProps["variant"]>,
   context: ContextColors,
   colors: Theme["colors"],
+  contextColor?: string,
+  contextForeground?: string,
 ) {
   switch (variant) {
     case "primary":
@@ -197,10 +186,16 @@ function buttonPaints(
         backgroundColor: colors.dangerAction,
       };
     case "solid":
-    case "inverse":
-      return { foreground: colors.onInverse, backgroundColor: colors.inverse };
-    default:
-      return { foreground: colors.text, backgroundColor: colors.raised };
+      return contextColor
+        ? {
+            foreground: contextForeground ?? solidForeground(contextColor),
+            backgroundColor: contextColor,
+          }
+        : { foreground: colors.onInverse, backgroundColor: colors.inverse };
+    case "secondary":
+      return contextColor
+        ? { foreground: contextColor, backgroundColor: "transparent" }
+        : { foreground: colors.text, backgroundColor: colors.raised };
   }
 }
 
@@ -222,14 +217,14 @@ const styles = StyleSheet.create({
   },
   compact: {
     minHeight: tokens.size.control.compact,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    borderRadius: tokens.radius.full,
+  },
+  compactOutline: {
     // Figma strokes are inset; native padding excludes the border to preserve the 36-point visual.
     paddingHorizontal: tokens.spacing.md - tokens.border.thin,
     paddingVertical: tokens.spacing.sm - tokens.border.thin,
-    borderRadius: tokens.radius.full,
-  },
-  compactBorderless: {
-    paddingHorizontal: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
   },
   action: {
     minHeight: tokens.size.control.default,

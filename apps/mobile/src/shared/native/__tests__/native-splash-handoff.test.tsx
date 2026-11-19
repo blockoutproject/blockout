@@ -12,6 +12,7 @@ import { AccessibilityInfo, Text, View } from "react-native";
 import {
   NativeSplashHandoff,
   useNativeSplashLayout,
+  useNativeSplashPending,
 } from "../native-splash-handoff";
 import { useStackScreenOptions } from "../stack-screen-options";
 
@@ -47,7 +48,8 @@ function Surface({ title }: Readonly<{ title: string }>) {
 }
 
 function PageTransition() {
-  const { animation } = useStackScreenOptions();
+  const splashPending = useNativeSplashPending();
+  const { animation } = useStackScreenOptions(splashPending);
   return <Surface title={animation} />;
 }
 

@@ -22,42 +22,26 @@ import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
 import { IdentityCard } from "@/shared/components/identity-card";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
-export interface SportingLogoProps {
+export type SportingLogoProps = Pick<
+  SportingMediaProps,
+  | "kind"
+  | "size"
+  | "nativeSize"
+  | "presentation"
+  | "renderWithAtmosphere"
+  | "atmosphere"
+> & {
   identity: SportingIdentityResponse;
-  kind: "club" | "team" | "division";
-  size?: number;
-  nativeSize?: SportingMediaProps["nativeSize"];
-  presentation?: SportingMediaProps["presentation"];
-  /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
-  renderWithAtmosphere?: SportingMediaProps["renderWithAtmosphere"];
-  atmosphere?: SportingMediaProps["atmosphere"];
-}
+};
 
 /** Native image failure keeps a readable identity; known resource restriction withdraws foreground and atmosphere. */
 export function SportingLogo({
   identity,
-  kind,
-  size = tokens.size.media.row,
-  nativeSize,
-  presentation,
-  renderWithAtmosphere,
-  atmosphere,
+  ...media
 }: Readonly<SportingLogoProps>) {
-  const logo = useSportingLogo(identity, kind);
+  const logo = useSportingLogo(identity, media.kind);
   return (
-    <SportingMedia
-      key={`${identity.id}:${identity.logoUrl ?? ""}`}
-      identity={identity}
-      kind={kind}
-      size={size}
-      nativeSize={nativeSize}
-      presentation={presentation}
-      uri={logo.uri}
-      loading={logo.loading}
-      error={logo.error}
-      renderWithAtmosphere={renderWithAtmosphere}
-      atmosphere={atmosphere}
-    />
+    <SportingMedia key={identity.id} identity={identity} {...media} {...logo} />
   );
 }
 

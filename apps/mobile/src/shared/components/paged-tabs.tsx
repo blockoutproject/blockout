@@ -558,7 +558,13 @@ function TabScene({
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
     >
       {(visited || preview != null) && (
-        <Animated.View style={[StyleSheet.absoluteFill, frame]}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            frame,
+            !visited && { paddingTop: contentInset },
+          ]}
+        >
           {visited ? (
             <PageScrollContext
               value={
@@ -575,7 +581,7 @@ function TabScene({
               {children}
             </PageScrollContext>
           ) : (
-            <View style={{ paddingTop: contentInset }}>{preview}</View>
+            preview
           )}
         </Animated.View>
       )}

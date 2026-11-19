@@ -75,7 +75,7 @@ function FollowAction({
     query.isPending &&
     query.isFetching;
   const unavailable = !guest && following === undefined && !initialLoading;
-  const ready = !unavailable && !initialLoading;
+  const followColor = unavailable || initialLoading ? undefined : contextColor;
   const followIcon = following ? Check : Plus;
   let label = "Suivre";
   if (unavailable) {
@@ -88,9 +88,8 @@ function FollowAction({
     <Button
       label={label}
       size="compact"
-      variant={ready ? (following ? "secondary" : "solid") : "inverse"}
-      contextColor={following ? colors.onSuccessSubtle : contextColor}
-      bordered={following === true}
+      variant={following ? "secondary" : "solid"}
+      contextColor={following ? colors.onSuccessSubtle : followColor}
       leadingIcon={unavailable ? undefined : followIcon}
       selected={following}
       accessibilityHint={

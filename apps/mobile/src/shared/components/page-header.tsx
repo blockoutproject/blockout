@@ -1,6 +1,6 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -21,7 +21,7 @@ export interface PageHeaderProps {
   title?: string;
   /** A composed compact identity may replace the plain title between the navigation rails. */
   children?: ReactNode;
-  /** An owner-supplied action remains available independently of the detail read. */
+  /** Trailing controls remain available independently of the detail read. Centered headers reserve one control. */
   action?: ReactNode;
   back?: boolean;
   /** Single-entity details can start beside Back; plain titles without Back start at the page inset. */
@@ -44,7 +44,6 @@ export function PageHeader({
   const router = useRouter();
   const { colors } = useTheme();
   const centered = titleAlignment === "center";
-  const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
   const reducedMotion = useReducedMotion();
   const visibility = useDerivedValue(() => {
     if (revealOffset === undefined) {
@@ -69,7 +68,7 @@ export function PageHeader({
         : ("auto" as const),
     };
   });
-  let identity = <View style={styles.title} />;
+  let identity = <View style={styles.identity} />;
   if (children) {
     identity = (
       <Animated.View
@@ -101,38 +100,31 @@ export function PageHeader({
       </Animated.Text>
     );
   }
+  const backButton = back ? (
+    <IconButton
+      label="Retour"
+      onPress={
+        onBack ??
+        (() => (router.canGoBack() ? router.back() : router.replace(homeHref)))
+      }
+    >
+      <ChevronLeft
+        accessible={false}
+        color={colors.icon}
+        size={tokens.size.icon.lg}
+      />
+    </IconButton>
+  ) : null;
   return (
     <View style={[styles.header, !centered && styles.startHeader]}>
-      {(back || centered) && (
-        <View style={[styles.rail, centered && { width: actionWidth }]}>
-          {back && (
-            <IconButton
-              label="Retour"
-              onPress={
-                onBack ??
-                (() =>
-                  router.canGoBack() ? router.back() : router.replace(homeHref))
-              }
-            >
-              <ChevronLeft
-                accessible={false}
-                color={colors.icon}
-                size={tokens.size.icon.lg}
-              />
-            </IconButton>
-          )}
-        </View>
+      {centered ? (
+        <View style={[styles.centeredRail, styles.backRail]}>{backButton}</View>
+      ) : (
+        backButton
       )}
       {identity}
       {(action || centered) && (
-        <View
-          style={[styles.actions, centered && styles.centeredActions]}
-          onLayout={
-            centered
-              ? ({ nativeEvent }) => setActionWidth(nativeEvent.layout.width)
-              : undefined
-          }
-        >
+        <View style={[styles.actions, centered && styles.centeredRail]}>
           {action}
         </View>
       )}
@@ -148,16 +140,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   startHeader: { gap: tokens.spacing.sm },
-  rail: { alignItems: "flex-start" },
+  backRail: { alignItems: "flex-start" },
   actions: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
   },
-  // Matching side rails keep a centered score or title independent of the number of actions.
-  centeredActions: { minWidth: tokens.size.control.default },
+  centeredRail: { width: tokens.size.control.default },
   identity: { flex: 1, minWidth: 0 },
   centeredIdentity: { alignItems: "center" },
-  title: { ...tokens.typography.navigation, flex: 1 },
+  title: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   centeredTitle: { textAlign: "center" },
 });

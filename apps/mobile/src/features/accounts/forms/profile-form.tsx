@@ -75,17 +75,15 @@ export function ProfileForm({
         if (!active.current) {
           return;
         }
-        if (error instanceof ImageValidationError) {
-          if (error.reason === "too-large") {
-            clearErrors("photo");
-            feedback.error(PHOTO_TOO_LARGE);
-          } else {
-            setError("photo", {
-              message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
-            });
-          }
-        } else {
+        if (!(error instanceof ImageValidationError)) {
           throw error;
+        }
+        if (error.reason === "too-large") {
+          showPhotoSizeError();
+        } else {
+          setError("photo", {
+            message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
+          });
         }
       }
     },
@@ -170,6 +168,11 @@ export function ProfileForm({
     }
   }
 
+  function showPhotoSizeError() {
+    clearErrors("photo");
+    feedback.error(PHOTO_TOO_LARGE);
+  }
+
   /** Submits the captured profile intent without automatic write retries. */
   async function submit(values: ProfileValues) {
     if (disabled || selection.isPending() || !active.current) {
@@ -194,30 +197,22 @@ export function ProfileForm({
       if (!active.current) {
         return;
       }
-      if (
-        error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:username-unavailable"
-      ) {
-        setError("username", { message: "Ce pseudo est déjà utilisé." });
-      } else if (
-        error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:payload-too-large"
-      ) {
-        clearErrors("photo");
-        feedback.error(PHOTO_TOO_LARGE);
-      } else if (
-        error instanceof ApiError &&
-        [
-          "urn:blockout:problem:invalid-image",
-          "urn:blockout:problem:unsupported-media-type",
-        ].includes(error.problem?.type ?? "")
-      ) {
-        setError("photo", {
-          message:
-            "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
-        });
-      } else {
-        feedback.error();
+      switch (error instanceof ApiError ? error.problem?.type : undefined) {
+        case "urn:blockout:problem:username-unavailable":
+          setError("username", { message: "Ce pseudo est déjà utilisé." });
+          break;
+        case "urn:blockout:problem:payload-too-large":
+          showPhotoSizeError();
+          break;
+        case "urn:blockout:problem:invalid-image":
+        case "urn:blockout:problem:unsupported-media-type":
+          setError("photo", {
+            message:
+              "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
+          });
+          break;
+        default:
+          feedback.error();
       }
     } finally {
       uploading.current = undefined;

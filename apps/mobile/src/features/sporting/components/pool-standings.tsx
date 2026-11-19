@@ -45,7 +45,7 @@ export interface PoolStandingsProps {
   children?: ReactNode;
   /** Team participation Empty retains its refresh action; the approved Pool pane has no such action. */
   refreshEmpty?: boolean;
-  /** A useful active table or confirmed absence allows the Pool page to prepare its next pane. */
+  /** A useful active table or confirmed absence lets the enclosing page prepare its calendar preview. */
   onReady?: () => void;
 }
 
@@ -92,11 +92,12 @@ export function PoolStandings({
   const hasRows = data?.availability === "available" && data.rows.length > 0;
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
+  const ready = active && data !== undefined && !failed;
   useEffect(() => {
-    if (active && data && !failed) {
+    if (ready) {
       onReady?.();
     }
-  }, [active, data, failed, onReady]);
+  }, [ready, onReady]);
 
   const headerRow = (
     <View style={styles.headerRow}>

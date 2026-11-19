@@ -3,7 +3,10 @@ import { createInstallationAdvertisingPrivacy } from "@/features/advertising/adv
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { SplashScreen, Stack } from "expo-router";
-import { NativeSplashHandoff } from "@/shared/native/native-splash-handoff";
+import {
+  NativeSplashHandoff,
+  useNativeSplashPending,
+} from "@/shared/native/native-splash-handoff";
 import { homeHref } from "@/shared/native/home-href";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
@@ -48,7 +51,8 @@ SplashScreen.preventAutoHideAsync();
 function Navigation({
   registration,
 }: Readonly<{ registration: PushRegistration }>) {
-  const screenOptions = useStackScreenOptions();
+  const splashPending = useNativeSplashPending();
+  const screenOptions = useStackScreenOptions(splashPending);
   const theme = useTheme();
   const access = useAccessAdmission();
   const discovery = useDiscovery();

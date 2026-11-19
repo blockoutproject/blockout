@@ -525,6 +525,35 @@ it("keeps the displayed podium logo through cards and back to the list", async (
   expect(screen.queryByTestId("sporting-logo-atmosphere")).toBeNull();
 });
 
+it("loads a replacement logo without remounting its team link", async () => {
+  // Given
+  const team = {
+    id: sportingId,
+    name: "Effective Z",
+    logoUrl: `/teams/${sportingId}/logo`,
+  };
+  table.rows[0] = { ...table.rows[0], team };
+  await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  const link = await screen.findByRole("link", { name: /Official Z\. Rang 1/ });
+  const name = `Logo : ${team.name}`;
+  await fireEvent(screen.getByRole("image", { name, busy: true }), "display");
+
+  // When
+  table.rows[0] = {
+    ...table.rows[0],
+    team: { ...team, logoUrl: `${team.logoUrl}?revision=2` },
+  };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  const replacement = await screen.findByRole("image", { name, busy: true });
+  expect(link).toBeOnTheScreen();
+  await fireEvent(replacement, "display");
+  expect(screen.getByRole("image", { name, busy: false })).toBeOnTheScreen();
+});
+
 it("keeps Pool row numbers through the 2–1–3 card layout even with irregular printed ranks", async () => {
   // Given: two rows share a printed rank and points, and the unlinked row has the most points.
   const user = userEvent.setup();
