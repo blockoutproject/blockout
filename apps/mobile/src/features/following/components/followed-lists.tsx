@@ -1,6 +1,6 @@
 import { NoAvailableFollows } from "./no-available-follows";
 import { PageFlatList } from "@/shared/components/page-list";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -68,14 +68,13 @@ const disclosureEasing = Easing.bezier(0.2, 0.7, 0.2, 1);
 function useFollowedDisclosure(reducedMotion: boolean) {
   const [phase, setPhase] = useState<"open" | "closing" | "closed">("open");
   const progress = useSharedValue(1);
-  const transition = useRef(0);
   const expanded = phase === "open";
 
   useEffect(() => {
-    const currentTransition = ++transition.current;
+    let active = true;
 
     function finishClosing() {
-      if (transition.current === currentTransition) {
+      if (active) {
         setPhase((current) => (current === "closing" ? "closed" : current));
       }
     }
@@ -89,7 +88,7 @@ function useFollowedDisclosure(reducedMotion: boolean) {
           reduceMotion: ReduceMotion.Never,
         },
         (finished) => {
-          if (finished && phase === "closing") {
+          if (finished && !expanded) {
             scheduleOnRN(finishClosing);
           }
         },
@@ -97,9 +96,9 @@ function useFollowedDisclosure(reducedMotion: boolean) {
     );
 
     return () => {
-      transition.current += 1;
+      active = false;
     };
-  }, [expanded, phase, progress, reducedMotion]);
+  }, [expanded, progress, reducedMotion]);
 
   return {
     expanded,
