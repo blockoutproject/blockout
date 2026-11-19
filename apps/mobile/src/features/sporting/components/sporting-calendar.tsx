@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   dateHeading: {
     gap: tokens.spacing.xs,
-    paddingTop: tokens.spacing.lg,
+    paddingTop: tokens.spacing.md,
     paddingRight: tokens.spacing.xs,
   },
   stackedDate: {
