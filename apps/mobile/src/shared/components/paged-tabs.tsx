@@ -35,7 +35,7 @@ import {
 } from "./navigation-backdrop";
 import { NavigationTabBar } from "./navigation-tab-bar";
 import { PageScrollContext } from "./page-scroll-binding";
-import { PagedTabCollapseContext } from "./paged-tab-context";
+import { PagedTabHeaderOffsetContext } from "./paged-tab-context";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
@@ -73,7 +73,7 @@ interface SceneOffset {
 interface TabCommand {
   target: number;
   instant: boolean;
-  jump?: { start: number; collapse: number; material: number };
+  jump?: { start: number; collapse: number; material: number; header: number };
 }
 
 /** A visit admits feature content once; the native pager can reset reading geometry independently. */
@@ -142,6 +142,10 @@ function NativePagedTabs({
   const command = useSharedValue<TabCommand | null>(null);
   const lastIndex = Math.max(0, tabs.length - 1);
   const headerHeight = collapsibleHeader ? brandHeight : 0;
+  const minScrollDistance =
+    header && collapsibleHeader
+      ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
+      : headerHeight;
   const inset = topInset + (header ? pinnedHeight : 0);
   const stickyInset = inset + railHeight;
   const contentInset = stickyInset + headerHeight;
@@ -181,6 +185,18 @@ function NativePagedTabs({
           jumpProgress(page, request.jump.start, request.target),
         )
       : visibleOffset(scenes, page, headerHeight);
+  });
+  const headerOffset = useDerivedValue(() => {
+    const page = position.get();
+    const request = command.get();
+    const limit = tokens.motion.navigation.headerRevealDistance;
+    return request?.jump
+      ? mix(
+          request.jump.header,
+          sceneOffset(scenes[request.target], limit),
+          jumpProgress(page, request.jump.start, request.target),
+        )
+      : visibleOffset(scenes, page, limit);
   });
   const materialOffset = useDerivedValue(() => {
     const page = position.get();
@@ -285,6 +301,7 @@ function NativePagedTabs({
                 start: from,
                 collapse: chromeOffset.get(),
                 material: materialOffset.get(),
+                header: headerOffset.get(),
               }
             : undefined,
       });
@@ -302,6 +319,7 @@ function NativePagedTabs({
       position,
       chromeOffset,
       materialOffset,
+      headerOffset,
       commit,
     ],
   );
@@ -438,6 +456,7 @@ function NativePagedTabs({
                 contentInset={contentInset}
                 stickyInset={stickyInset}
                 headerHeight={headerHeight}
+                minContentHeight={height ? height + minScrollDistance : 0}
               >
                 {tab.content}
               </TabScene>
@@ -489,9 +508,9 @@ function NativePagedTabs({
               setPinnedHeight(nativeEvent.layout.height)
             }
           >
-            <PagedTabCollapseContext value={collapseProgress}>
+            <PagedTabHeaderOffsetContext value={headerOffset}>
               {header}
-            </PagedTabCollapseContext>
+            </PagedTabHeaderOffsetContext>
           </View>
         </View>
       )}
@@ -511,6 +530,7 @@ function TabScene({
   contentInset,
   stickyInset,
   headerHeight,
+  minContentHeight,
   children,
 }: Readonly<{
   scene: SceneOffset;
@@ -524,6 +544,7 @@ function TabScene({
   contentInset: number;
   stickyInset: number;
   headerHeight: number;
+  minContentHeight: number;
   children: ReactNode;
 }>) {
   const frame = useAnimatedStyle(() => {
@@ -560,7 +581,7 @@ function TabScene({
                     offset: scene.offset,
                     contentInset,
                     stickyInset,
-                    minContentHeight: height ? height + headerHeight : 0,
+                    minContentHeight,
                   }
             }
           >

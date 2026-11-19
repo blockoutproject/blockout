@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  clamp,
   Easing,
   useAnimatedProps,
   useAnimatedStyle,
@@ -25,8 +26,8 @@ export interface PageHeaderProps {
   back?: boolean;
   /** A nested destination can leave through its own stack instead of the global tab history. */
   onBack?: () => void;
-  /** Native normalized reveal affects only the center; navigation and actions remain available. */
-  revealProgress?: SharedValue<number>;
+  /** Native scroll distance reveals only the center; null keeps it hidden until a scroller is available. */
+  revealOffset?: SharedValue<number> | null;
 }
 
 /** Native action layout reserves equal side rails so the one-line identity stays centered without overlapping actions. */
@@ -36,14 +37,22 @@ export function PageHeader({
   action,
   back = true,
   onBack,
-  revealProgress,
+  revealOffset,
 }: Readonly<PageHeaderProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
   const reducedMotion = useReducedMotion();
   const visibility = useDerivedValue(() => {
-    const progress = revealProgress?.get() ?? 1;
+    const progress =
+      revealOffset === undefined
+        ? 1
+        : clamp(
+            (revealOffset?.get() ?? 0) /
+              tokens.motion.navigation.headerRevealDistance,
+            0,
+            1,
+          );
     if (reducedMotion) {
       return progress >= 1 ? 1 : 0;
     }

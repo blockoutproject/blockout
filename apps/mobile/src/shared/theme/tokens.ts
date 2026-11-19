@@ -279,6 +279,7 @@ export const tokens = {
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
     navigation: {
       duration: 280,
+      headerRevealDistance: 240,
       iconScale: 1.04,
       iconLift: 1,
       accentEntryDuration: 330,
