@@ -352,7 +352,7 @@ it("retains loaded calendar data and its active context through native font-size
 });
 
 it("reloads an empty calendar through its card and restores native refresh only with matches", async () => {
-  // Given: the same selected calendar is successfully empty, with no native refresh control.
+  // Given: the selected calendar is successfully empty and uses its card action.
   const populated = calendar;
   calendar = { ...calendar, days: [] };
   await render(
@@ -365,7 +365,7 @@ it("reloads an empty calendar through its card and restores native refresh only 
   );
   await layoutNativeTabs();
   await screen.findByText("Aucun match pour cette sélection");
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   const background = Promise.withResolvers<Response>();
   mockFetch.mockImplementationOnce(() => background.promise);
 
@@ -407,10 +407,10 @@ it("reloads an empty calendar through its card and restores native refresh only 
   expect(request.pathname).toBe("/matches");
   expect(request.searchParams.get("teamId")).toBe(sportingId);
   expect(request.searchParams.get("category")).toBe("upcoming");
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   await act(async () => pending.resolve(Response.json(populated)));
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
 });
 
@@ -842,7 +842,7 @@ it("selects normal new-zone loading and error before an explicit retry", async (
       busy: true,
     }),
   ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   await act(async () => pending.resolve(Response.json({}, { status: 500 })));

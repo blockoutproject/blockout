@@ -283,7 +283,7 @@ function collectionCalls(collection: string) {
   );
 }
 
-it("keeps one Exemples heading while initial sporting choices and example cards load", async () => {
+it("retains the Exemples heading while initial sporting choices and example cards load", async () => {
   // Given: real visit and Query owners wait independently on the two HTTP responses.
   const options = Promise.withResolvers<Response>();
   const examples = Promise.withResolvers<Response>();
@@ -304,7 +304,7 @@ it("keeps one Exemples heading while initial sporting choices and example cards 
   await renderSearch();
 
   // Then
-  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  const heading = screen.getByRole("header", { name: "Exemples" });
   expect(
     screen.getByRole("progressbar", { name: "Chargement des résultats" }),
   ).toBeOnTheScreen();
@@ -321,7 +321,7 @@ it("keeps one Exemples heading while initial sporting choices and example cards 
   await waitFor(() => expect(collectionCalls("teams")).toHaveLength(1));
 
   // Then
-  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  expect(screen.getByRole("header", { name: "Exemples" })).toBe(heading);
   expect(
     screen.getByRole("progressbar", { name: "Chargement des résultats" }),
   ).toBeOnTheScreen();
@@ -333,7 +333,7 @@ it("keeps one Exemples heading while initial sporting choices and example cards 
 
   // Then
   expect(await screen.findByText("Club public")).toBeOnTheScreen();
-  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  expect(screen.getByRole("header", { name: "Exemples" })).toBe(heading);
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 

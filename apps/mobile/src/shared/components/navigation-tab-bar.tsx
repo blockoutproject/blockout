@@ -108,6 +108,8 @@ export function NavigationTabBar({
           }}
           style={({ pressed }) => [
             styles.tab,
+            selected === index &&
+              !target && { backgroundColor: selection.fill },
             { opacity: pressed ? tokens.opacity.pressed : 1 },
           ]}
         >
@@ -173,6 +175,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     minHeight: tokens.touch.minimum,
+    borderRadius: tokens.radius.control,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.xs,
     justifyContent: "center",

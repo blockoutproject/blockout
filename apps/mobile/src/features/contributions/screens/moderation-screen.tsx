@@ -19,11 +19,7 @@ import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { ListSeparator } from "@/shared/components/list-separator";
-import {
-  Page,
-  PageScrollView,
-  pageContentStyle,
-} from "@/shared/components/page";
+import { Page, pageContentStyle } from "@/shared/components/page";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PageHeader } from "@/shared/components/page-header";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -98,6 +94,12 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
             />
           ),
         }))}
+        tabBarMinHeight={
+          tokens.touch.minimum +
+          tokens.size.control.default +
+          tokens.spacing.sm +
+          tokens.layout.content.start
+        }
         renderTabBar={(tabBar) => (
           <>
             {tabBar}
@@ -159,7 +161,6 @@ function QueueScene({
   const { query } = queue;
   const { colors } = useTheme();
   const navigation = useNavigation();
-  const criteria = hashKey([filters]);
   const current =
     queue.canRetain && !isAccessDenied(query.error)
       ? query.data?.pages[0]
@@ -209,122 +210,99 @@ function QueueScene({
   const failed =
     hasReadError(queue.account) ||
     (hasReadError(query) && !query.isFetchNextPageError);
-  const refreshControl =
-    current && rows.length > 0 ? (
-      <DataRefreshControl enabled={active && !failed} onRefresh={refresh} />
-    ) : undefined;
-  if (
+  const hasRows = rows.length > 0 && !failed;
+  const authenticated = queue.session.status === "authenticated";
+  const denied = authenticated && !queue.canRetain && queue.account.isSuccess;
+  const loading =
     !current &&
     !failed &&
     (queue.session.status === "restoring" ||
       !!queue.session.operation ||
-      (queue.session.status === "authenticated" &&
-        (queue.account.isLoading || (queue.canRetain && query.isLoading))))
-  ) {
-    return (
-      <PageScrollView
-        key={criteria}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <View style={pageContentStyle}>
-          <ModerationQueueLoading />
-        </View>
-      </PageScrollView>
-    );
-  }
-  if (rows.length === 0 || failed) {
-    /** Recovers private queue admission before showing its empty state. */
-    function renderEmptyState() {
-      if (queue.session.status !== "authenticated") {
-        return (
-          <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
-        );
-      }
-      if (!queue.canRetain && queue.account.isSuccess) {
-        return (
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
-            La modération des liens vidéo n’est pas autorisée.
-          </Text>
-        );
-      }
-      if (!current || failed) {
-        const read =
-          queue.account.isError || queue.account.isPending
-            ? queue.account
-            : query;
-        return (
-          <ReadFeedback
-            loadingContent={<ModerationQueueLoading />}
-            query={read}
-            onRetry={
-              active ? () => read.refetch({ cancelRefetch: false }) : undefined
-            }
-          />
-        );
-      }
+      (authenticated &&
+        (queue.account.isLoading || (queue.canRetain && query.isLoading))));
+
+  function renderFeedback() {
+    if (!authenticated) {
       return (
-        <EmptyState
-          title="Aucun lien à traiter"
-          description="Aucun match ne correspond à cette sélection."
-        >
-          <Button
-            label="Actualiser"
-            leadingIcon={RefreshCw}
-            onPress={() => void refresh()}
-            loading={refreshing}
-          />
-        </EmptyState>
+        <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
       );
     }
-
-    return (
-      <PageScrollView
-        key={criteria}
-        refreshControl={refreshControl}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <ScreenState
-          style={
-            queue.session.status === "authenticated" &&
-            !queue.canRetain &&
-            queue.account.isSuccess
-              ? styles.centered
-              : undefined
+    if (denied) {
+      return (
+        <Text style={[tokens.typography.body, { color: colors.text }]}>
+          La modération des liens vidéo n’est pas autorisée.
+        </Text>
+      );
+    }
+    if (!current || failed) {
+      const read =
+        queue.account.isError || queue.account.isPending
+          ? queue.account
+          : query;
+      return (
+        <ReadFeedback
+          loadingContent={<ModerationQueueLoading />}
+          query={read}
+          onRetry={
+            active ? () => read.refetch({ cancelRefetch: false }) : undefined
           }
-        >
-          {renderEmptyState()}
-        </ScreenState>
-      </PageScrollView>
+        />
+      );
+    }
+    return (
+      <EmptyState
+        title="Aucun lien à traiter"
+        description="Aucun match ne correspond à cette sélection."
+      >
+        <Button
+          label="Actualiser"
+          leadingIcon={RefreshCw}
+          onPress={() => void refresh()}
+          loading={refreshing}
+        />
+      </EmptyState>
     );
   }
+
   return (
     <PageList
-      key={criteria}
       recycleItems
+      alwaysBounceVertical={hasRows}
+      bounces={hasRows}
       accessibilityLabel="File de modération des liens"
-      data={rows}
+      data={hasRows ? rows : []}
       keyExtractor={(item) => item.match.id}
       contentContainerStyle={pageContentStyle}
+      loadingFeedback={{ active: loading, content: <ModerationQueueLoading /> }}
+      ListEmptyComponent={
+        hasRows || loading ? undefined : (
+          <ScreenState style={[styles.feedback, denied && styles.centered]}>
+            {renderFeedback()}
+          </ScreenState>
+        )
+      }
       ItemSeparatorComponent={ListSeparator}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      refreshControl={refreshControl}
+      refreshControl={
+        <DataRefreshControl enabled={active && hasRows} onRefresh={refresh} />
+      }
       onEndReached={() => {
-        if (!query.isError) {
+        if (hasRows && !query.isError) {
           void more();
         }
       }}
       renderItem={({ item }) => <ModerationQueueRow item={item} />}
       ListFooterComponent={
         <>
-          <ListContinuation
-            loading={query.isFetchingNextPage}
-            failed={query.isFetchNextPageError}
-            disabled={!active || query.isFetching}
-            onRetry={() => void more()}
-          />
+          {hasRows && (
+            <ListContinuation
+              loading={query.isFetchingNextPage}
+              failed={query.isFetchNextPageError}
+              disabled={!active || query.isFetching}
+              onRetry={() => void more()}
+            />
+          )}
           <BottomContentSpacer />
         </>
       }
@@ -384,6 +362,7 @@ function ModerationQueueRow({
 
 const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
+  feedback: { paddingHorizontal: 0, paddingTop: tokens.spacing.sm },
   toolbar: {
     flexDirection: "row",
     alignItems: "flex-start",

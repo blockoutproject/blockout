@@ -8,9 +8,9 @@ import {
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
 import { ImageFallback } from "@/shared/components/image-fallback";
-import { SplashScreen, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
@@ -54,12 +54,6 @@ function GateView({
   const { colors } = useTheme();
   const readFailed = Boolean(query && hasReadError(query));
   const visible = gate !== "checking" || readFailed;
-  useEffect(() => {
-    // Public restrictions and read failure remain visible even before Auth0 can mount.
-    if (visible) {
-      SplashScreen.hide();
-    }
-  }, [visible]);
   if (!visible) {
     return null;
   }
@@ -192,7 +186,7 @@ function GateView({
   // The startup gate and the native preview can render outside the route's scroll host.
   return (
     <Page fullBleed>
-      <PageViewport header={header}>
+      <PageViewport header={header} headerMinHeight={tokens.layout.brandHeader}>
         <PageScrollView
           refreshControl={
             !onClose && onRefresh && !simple ? (

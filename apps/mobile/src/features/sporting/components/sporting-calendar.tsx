@@ -1,7 +1,6 @@
 import { PageList } from "@/shared/components/page-list";
 import {
   PageScrollView,
-  PageContent,
   pageContentStyle,
   usePageCanvasBacking,
 } from "@/shared/components/page";
@@ -198,62 +197,43 @@ export function SportingCalendarView({
     );
   }
 
-  const refreshControl =
-    rows.length > 0 ? (
-      <DataRefreshControl
-        onRefresh={refresh}
-        enabled={active}
-        fetching={calendar.isFetching}
-      />
-    ) : undefined;
-  if (rows.length === 0 && !calendar.hasNextPage) {
-    return (
-      <PageScrollView refreshControl={refreshControl}>
-        {calendar.isPending &&
-        calendar.isFetching &&
-        calendar.isEnabled !== false ? (
-          <PageContent>
-            {children}
-            <CalendarLoading
-              category={category}
-              columns={columns}
-              stacked={stacked}
+  const showRows = rows.length > 0 || calendar.hasNextPage;
+  const loading =
+    !showRows &&
+    calendar.isPending &&
+    calendar.isFetching &&
+    calendar.isEnabled !== false;
+  const emptyContent =
+    !showRows && !calendar.isPending ? (
+      <ScreenState
+        style={[styles.listState, !!children && styles.stateAfterHeader]}
+      >
+        {emptyState ?? (
+          <EmptyState title="Aucun match pour cette sélection">
+            <Button
+              label="Actualiser"
+              leadingIcon={RefreshCw}
+              onPress={() => void refresh()}
+              loading={refreshing && calendar.isFetching}
+              disabled={!active}
             />
-          </PageContent>
-        ) : (
-          <>
-            {children && (
-              <PageContent style={styles.stateControls}>{children}</PageContent>
-            )}
-            <ScreenState>
-              {!calendar.isPending &&
-                (emptyState ?? (
-                  <EmptyState title="Aucun match pour cette sélection">
-                    <Button
-                      label="Actualiser"
-                      leadingIcon={RefreshCw}
-                      onPress={() => void refresh()}
-                      loading={refreshing && calendar.isFetching}
-                      disabled={!active}
-                    />
-                  </EmptyState>
-                ))}
-            </ScreenState>
-          </>
+          </EmptyState>
         )}
-      </PageScrollView>
-    );
-  }
+      </ScreenState>
+    ) : null;
   return (
     <PageList<CalendarRow>
       // Replace the native grid when its column count changes; Query retains the traversal.
       key={columns}
       ref={list}
-      alwaysBounceVertical
+      alwaysBounceVertical={showRows}
+      bounces={rows.length > 0}
       contentContainerStyle={pageContentStyle}
       data={rows}
       onScroll={({ nativeEvent }) => {
-        offset.current = nativeEvent.contentOffset.y;
+        if (showRows) {
+          offset.current = nativeEvent.contentOffset.y;
+        }
       }}
       onLoad={() => {
         if (offset.current > 0) {
@@ -284,7 +264,24 @@ export function SportingCalendarView({
           <View style={styles.sceneHeader}>{children}</View>
         ) : undefined
       }
-      refreshControl={refreshControl}
+      ListEmptyComponent={emptyContent}
+      loadingFeedback={{
+        active: loading,
+        content: (
+          <CalendarLoading
+            category={category}
+            columns={columns}
+            stacked={stacked}
+          />
+        ),
+      }}
+      refreshControl={
+        <DataRefreshControl
+          onRefresh={refresh}
+          enabled={active && rows.length > 0}
+          fetching={calendar.isFetching}
+        />
+      }
       renderItem={({ item }) => {
         if (item.kind === "space") {
           return null;
@@ -329,12 +326,14 @@ export function SportingCalendarView({
       }}
       ListFooterComponent={
         <>
-          <ListContinuation
-            loading={calendar.isFetchingNextPage}
-            failed={calendar.hasNextPage && calendar.isFetchNextPageError}
-            disabled={!active || refreshing || calendar.isFetching}
-            onRetry={() => void loadMore()}
-          />
+          {showRows && (
+            <ListContinuation
+              loading={calendar.isFetchingNextPage}
+              failed={calendar.hasNextPage && calendar.isFetchNextPageError}
+              disabled={!active || refreshing || calendar.isFetching}
+              onRetry={() => void loadMore()}
+            />
+          )}
           <BottomContentSpacer />
         </>
       }
@@ -473,7 +472,8 @@ const groupShadowGutter = tokens.elevation.cardShadowBlurRadius;
 const groupShadowOverlap = 2 * groupShadowGutter;
 
 const styles = StyleSheet.create({
-  stateControls: { paddingBottom: 0 },
+  listState: { padding: 0, paddingTop: tokens.spacing.sm },
+  stateAfterHeader: { paddingTop: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   dateHeading: {
     gap: tokens.spacing.xs,

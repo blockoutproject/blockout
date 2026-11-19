@@ -104,23 +104,32 @@ export function NavigationBackdrop({
 export function PageViewport({
   header,
   children,
+  headerMinHeight = tokens.layout.header,
 }: Readonly<{
   header: ReactNode;
   children: ReactNode;
+  headerMinHeight?: number;
 }>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);
-  const [height, setHeight] = useState(0);
+  const [height, setHeight] = useState(headerMinHeight);
   return (
     <View style={styles.fill}>
-      <PageScrollContext value={{ offset: scrollOffset, contentInset: height }}>
+      <PageScrollContext
+        value={{ offset: scrollOffset, contentInset: top + height }}
+      >
         <BlurTargetView ref={target} style={styles.fill}>
           {children}
         </BlurTargetView>
         <View
-          style={[styles.header, { paddingTop: top }]}
-          onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
+          style={[
+            styles.header,
+            { paddingTop: top, minHeight: top + headerMinHeight },
+          ]}
+          onLayout={({ nativeEvent }) =>
+            setHeight(nativeEvent.layout.height - top)
+          }
         >
           <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
           {header}

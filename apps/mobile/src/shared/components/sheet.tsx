@@ -1,4 +1,5 @@
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useNativeSplashLayout } from "@/shared/native/native-splash-handoff";
 import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import {
@@ -47,6 +48,7 @@ export function Sheet({
   children,
 }: Readonly<SheetProps>) {
   const { colors } = useTheme();
+  const onLayout = useNativeSplashLayout();
   const frame = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
   const content = (
@@ -83,6 +85,7 @@ export function Sheet({
   return (
     <ScrollView
       {...hiddenScrollIndicators}
+      onLayout={onLayout}
       style={[
         styles.screen,
         { backgroundColor: colors.surface },

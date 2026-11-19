@@ -61,6 +61,7 @@ interface SelectionInk {
   light: string;
   dark: string;
   lightMix: DerivedValue<number>;
+  initialFill?: string;
 }
 
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
@@ -115,6 +116,7 @@ export default function TabsLayout() {
     light: lightTarget ? content : "#FFFFFF",
     dark: lightTarget ? "#000000" : content,
     lightMix,
+    initialFill: selectionLayout ? undefined : fill,
   };
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
@@ -295,7 +297,7 @@ function TabButton({
   style,
   onLayout,
   reducedMotion,
-  selectionInk: { light, dark, lightMix },
+  selectionInk: { light, dark, lightMix, initialFill },
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
@@ -363,6 +365,7 @@ function TabButton({
         typeof style === "function" ? style(state) : style,
         // Router sizing survives; this composition owns vertical icon/label alignment.
         styles.button,
+        isFocused && initialFill && { backgroundColor: initialFill },
         {
           opacity: state.pressed ? tokens.opacity.pressed : 1,
         },

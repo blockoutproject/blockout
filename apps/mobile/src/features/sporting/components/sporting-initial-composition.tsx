@@ -7,6 +7,13 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
+import { tokens } from "@/shared/theme/tokens";
+
+/** Minimum of the shared identity card in the standard PageContent insets. */
+export const sportingIdentityHeaderMinHeight =
+  tokens.layout.identity.minHeight +
+  tokens.layout.content.start +
+  tokens.layout.content.end;
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<

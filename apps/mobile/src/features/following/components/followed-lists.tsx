@@ -114,7 +114,7 @@ function useFollowedDisclosure(reducedMotion: boolean) {
   };
 }
 
-/** The section supplies one progress value while each virtualized row measures its natural height. */
+/** Open rows participate in native layout immediately. Disclosure measures unclipped content during motion. */
 function FollowedDisclosureRow({
   children,
   expanded,
@@ -128,10 +128,13 @@ function FollowedDisclosureRow({
   const layout = useAnimatedStyle(() => {
     const fraction = progress.get();
     return {
-      height: height.get() * fraction,
+      height: fraction === 1 ? "auto" : height.get() * fraction,
       overflow: fraction === 1 ? "visible" : "hidden",
     };
   });
+  const contentLayout = useAnimatedStyle(() => ({
+    position: progress.get() === 1 ? "relative" : "absolute",
+  }));
   return (
     <Animated.View
       accessibilityElementsHidden={!expanded}
@@ -139,12 +142,12 @@ function FollowedDisclosureRow({
       pointerEvents={expanded ? "auto" : "none"}
       style={layout}
     >
-      <View
+      <Animated.View
         onLayout={(event) => height.set(event.nativeEvent.layout.height)}
-        style={styles.disclosureContent}
+        style={[styles.disclosureContent, contentLayout]}
       >
         {children}
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -452,7 +455,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   title: { flex: 1, minWidth: 0 },
-  disclosureContent: { position: "absolute", top: 0, left: 0, right: 0 },
+  disclosureContent: { top: 0, left: 0, right: 0 },
   card: { paddingBottom: tokens.spacing.md },
   feedback: { paddingBottom: tokens.spacing.xl },
 });

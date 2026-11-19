@@ -2165,7 +2165,7 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   await user.press(screen.getByRole("button", { name: "Actualiser" }));
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
@@ -2608,7 +2608,7 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   expect(screen.getByRole("button", { name: "Actualiser" })).toBeOnTheScreen();
   const request = mockFetch.mock.calls
     .map(([url]) => new URL(url))

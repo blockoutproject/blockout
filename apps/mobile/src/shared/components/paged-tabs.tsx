@@ -54,10 +54,11 @@ export interface PagedTabsProps {
   selected: string;
   onSelect: (id: string) => void;
   contextColor?: string;
-  /** A changed shared reading scope resets all offsets while preserving visited admission. */
-  resetKey?: string;
   header?: ReactNode;
   collapsibleHeader?: ReactNode;
+  /** The minimum that the existing header and rail reserve before native layout reports their size. */
+  collapsibleHeaderMinHeight?: number;
+  tabBarMinHeight?: number;
   /** The Home brand fades while it folds; sporting cards clip below fixed navigation. */
   fadeHeaderOnScroll?: boolean;
   renderTabBar?: (tabBar: ReactNode) => ReactNode;
@@ -76,41 +77,19 @@ interface TabCommand {
   jump?: { start: number; collapse: number; material: number; header: number };
 }
 
-/** A visit admits feature content once; the native pager can reset reading geometry independently. */
-export function PagedTabs({ resetKey, ...props }: Readonly<PagedTabsProps>) {
-  const [visited, setVisited] = useState(() => new Set([props.selected]));
-  const visit = useCallback((id: string) => {
-    setVisited((current) =>
-      current.has(id) ? current : new Set([...current, id]),
-    );
-  }, []);
-  return (
-    <NativePagedTabs
-      key={resetKey}
-      {...props}
-      visited={visited}
-      onVisit={visit}
-    />
-  );
-}
-
-function NativePagedTabs({
+/** A visit admits feature content once; each scene owns its reading position. */
+export function PagedTabs({
   tabs,
   selected,
   onSelect,
-  visited,
-  onVisit,
   contextColor,
   header,
   collapsibleHeader,
+  collapsibleHeaderMinHeight = tokens.layout.header,
+  tabBarMinHeight = tokens.touch.minimum,
   fadeHeaderOnScroll = false,
   renderTabBar,
-}: Readonly<
-  Omit<PagedTabsProps, "resetKey"> & {
-    visited: ReadonlySet<string>;
-    onVisit: (id: string) => void;
-  }
->) {
+}: Readonly<PagedTabsProps>) {
   const horizontal = useRef<ScrollViewInstance>(null);
   const blurTarget = useRef<ViewInstance>(null);
   const reducedMotion = useReducedMotion();
@@ -123,12 +102,19 @@ function NativePagedTabs({
   const [pinnedHeight, setPinnedHeight] = useState(
     header ? tokens.layout.header : 0,
   );
-  const [brandHeight, setBrandHeight] = useState(0);
-  const [railHeight, setRailHeight] = useState(0);
+  const [brandHeight, setBrandHeight] = useState(collapsibleHeaderMinHeight);
+  const [railHeight, setRailHeight] = useState(tabBarMinHeight);
   const [settled, setSettled] = useState(selected);
+  const [visited, setVisited] = useState(() => new Set([selected]));
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
-  useEffect(() => onVisit(settled), [onVisit, settled]);
+  const settleScene = useCallback((id: string) => {
+    settledTab.current = id;
+    setSettled(id);
+    setVisited((current) =>
+      current.has(id) ? current : new Set([...current, id]),
+    );
+  }, []);
   const retainedIndex = tabs.findIndex(({ id }) => id === settled);
   const selectedIndex =
     retainedIndex >= 0
@@ -241,11 +227,10 @@ function NativePagedTabs({
       if (id === undefined || id === settledTab.current) {
         return;
       }
-      settledTab.current = id;
-      setSettled(id);
+      settleScene(id);
       onSelect(id);
     },
-    [onSelect],
+    [onSelect, settleScene],
   );
   const scrollHandler = useAnimatedScrollHandler({
     onBeginDrag: () => command.set(null),
@@ -335,10 +320,9 @@ function NativePagedTabs({
     });
     const id = scenes[selectedIndex]?.id ?? selected;
     if (id !== settledTab.current) {
-      settledTab.current = id;
-      setSettled(id);
+      settleScene(id);
     }
-  }, [width, scenes, command, position, selected, selectedIndex]);
+  }, [width, scenes, command, position, selected, selectedIndex, settleScene]);
 
   useEffect(() => {
     if (controlledTab.current === selected) {
@@ -476,13 +460,18 @@ function NativePagedTabs({
               onLayout={({ nativeEvent }) =>
                 setBrandHeight(nativeEvent.layout.height)
               }
-              style={[!fadeHeaderOnScroll && styles.top, brandStyle]}
+              style={[
+                !fadeHeaderOnScroll && styles.top,
+                { minHeight: collapsibleHeaderMinHeight },
+                brandStyle,
+              ]}
             >
               {collapsibleHeader}
             </Animated.View>
           </Animated.View>
         )}
         <View
+          style={{ minHeight: tabBarMinHeight }}
           onLayout={({ nativeEvent }) =>
             setRailHeight(nativeEvent.layout.height)
           }

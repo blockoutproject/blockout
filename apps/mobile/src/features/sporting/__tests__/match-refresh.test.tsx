@@ -419,7 +419,7 @@ it("refreshes only the active club tab while preserving common information and s
   await screen.findByText("Aucun match pour cette sélection");
   await waitFor(() => expect(client.isFetching()).toBe(0));
   mockFetch.mockClear();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When: the empty active calendar owns refresh on its card, not through a native gesture.
   await user.press(screen.getByRole("button", { name: "Actualiser" }));

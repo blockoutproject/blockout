@@ -3,7 +3,10 @@ import { useSportingNavigation } from "../navigation";
 import { SportingClubLoading } from "../components/sporting-loading";
 import { ClubLocation } from "../components/club-location";
 import { PageList } from "@/shared/components/page-list";
-import { SportingInitialComposition } from "../components/sporting-initial-composition";
+import {
+  sportingIdentityHeaderMinHeight,
+  SportingInitialComposition,
+} from "../components/sporting-initial-composition";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
@@ -220,6 +223,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
             )
           }
           collapsibleHeader={<PageContent>{identity}</PageContent>}
+          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map(({ id: value, label }) => {
             /** Chooses the retained Info, season-owned Teams or calendar scene without joining their read lifetimes. */
             function renderTabContent() {
@@ -296,6 +300,8 @@ function ClubTeams({
     !isAccessDenied(teams.error) && teams.data?.seasonId === seasonId
       ? teams.data
       : undefined;
+  const items = data?.items ?? [];
+  const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
 
@@ -315,42 +321,26 @@ function ClubTeams({
       </PageScrollView>
     );
   }
-  if (!data?.items.length) {
-    return (
-      <PageScrollView>
-        {teams.isLoading ? (
-          <PageContent>
-            {children}
-            <SportingEntityCardLoading
-              layout="club-team"
-              label="Chargement des équipes du club"
-            />
-          </PageContent>
-        ) : (
-          <>
-            <PageContent style={styles.stateControls}>{children}</PageContent>
-            <ScreenState>
-              {data && (
-                <ClubEmptyState
-                  title="Aucune équipe pour cette saison"
-                  onRefresh={refresh}
-                  fetching={teams.isFetching}
-                  active={active}
-                />
-              )}
-            </ScreenState>
-          </>
-        )}
-      </PageScrollView>
-    );
-  }
+  const emptyContent = data && (
+    <ScreenState style={styles.listState}>
+      <ClubEmptyState
+        title="Aucune équipe pour cette saison"
+        onRefresh={refresh}
+        fetching={teams.isFetching}
+        active={active}
+      />
+    </ScreenState>
+  );
   return (
     <PageList
       ref={list}
-      alwaysBounceVertical
+      alwaysBounceVertical={hasItems}
+      bounces={hasItems}
       recycleItems
       onScroll={({ nativeEvent }) => {
-        offset.current = nativeEvent.contentOffset.y;
+        if (hasItems) {
+          offset.current = nativeEvent.contentOffset.y;
+        }
       }}
       onLoad={() => {
         if (offset.current > 0) {
@@ -363,14 +353,24 @@ function ClubTeams({
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}
-          enabled={active}
+          enabled={active && hasItems}
           fetching={teams.isFetching}
         />
       }
       contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       ListFooterComponent={BottomContentSpacer}
-      data={data.items}
+      ListEmptyComponent={emptyContent}
+      loadingFeedback={{
+        active: teams.isLoading,
+        content: (
+          <SportingEntityCardLoading
+            layout="club-team"
+            label="Chargement des équipes du club"
+          />
+        ),
+      }}
+      data={items}
       keyExtractor={(item) => item.team.id}
       renderItem={({ item }) => (
         <SportingEntityCard
@@ -381,9 +381,7 @@ function ClubTeams({
           onPress={() => void sporting.navigate("team", item.team.id)}
         />
       )}
-      ListHeaderComponent={
-        <View style={[styles.header, styles.seasonHeader]}>{children}</View>
-      }
+      ListHeaderComponent={<View style={styles.seasonHeader}>{children}</View>}
     />
   );
 }
@@ -436,9 +434,8 @@ const styles = StyleSheet.create({
   informationSection: { gap: tokens.spacing.md },
   contactGroup: { padding: 0, gap: 0 },
   contactDivider: { marginHorizontal: tokens.spacing.md },
-  stateControls: { paddingBottom: 0 },
-  header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
-  seasonHeader: { marginBottom: tokens.spacing.lg },
+  listState: { padding: 0 },
+  seasonHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   season: {
     gap: tokens.spacing.lg,
     paddingTop: tokens.spacing.sm,

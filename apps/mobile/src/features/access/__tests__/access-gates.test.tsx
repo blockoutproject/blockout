@@ -9,7 +9,7 @@ import {
   waitFor,
   userEvent,
 } from "@testing-library/react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { SplashScreen, Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { AppState, Text, Pressable, type AppStateStatus } from "react-native";
 import type { ComponentType } from "react";
@@ -89,6 +89,14 @@ const mockFetch = jest.fn<
 >();
 const environment = { ...process.env };
 
+jest.mock("expo-router", () => {
+  const actual = jest.requireActual("expo-router");
+  return {
+    ...actual,
+    SplashScreen: { ...actual.SplashScreen, hide: jest.fn() },
+  };
+});
+
 // Most route scenarios start after common discovery has been explicitly completed.
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -114,6 +122,7 @@ beforeEach(async () => {
   mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockAuth0.saveCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset();
+  jest.mocked(SplashScreen.hide).mockClear();
 });
 afterEach(async () => {
   await cleanup();
@@ -689,6 +698,24 @@ it("opens ordinary Login without a session and reaches Home only after explicit 
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).endsWith("/accounts/me")),
   ).toBe(false);
+});
+
+it("releases the native splash when the first visible Login surface lays out", async () => {
+  // Given
+  mockFetch.mockResolvedValue(json(applicationAccessResponse()));
+  await openRoute("/", SignInRoute);
+  expect(
+    await screen.findByRole("button", { name: "Se connecter" }),
+  ).toBeOnTheScreen();
+  expect(SplashScreen.hide).not.toHaveBeenCalled();
+
+  // When
+  await fireEvent(screen.getByTestId("sign-in-screen"), "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 393, height: 852 } },
+  });
+
+  // Then
+  await waitFor(() => expect(SplashScreen.hide).toHaveBeenCalledTimes(1));
 });
 
 it("opens Home before the first restored-account response", async () => {

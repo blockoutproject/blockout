@@ -410,7 +410,7 @@ it("loads team participation standings lazily and preserves them through calenda
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByText("Aucun match pour cette sélection");
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   await user.press(screen.getByRole("button", { name: "Actualiser" }));
   await user.press(screen.getByRole("tab", { name: pool.pool.name }));
 

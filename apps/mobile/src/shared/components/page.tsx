@@ -4,6 +4,7 @@ import {
   NavigationSafeAreaContext,
 } from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useNativeSplashLayout } from "@/shared/native/native-splash-handoff";
 import {
   createContext,
   useContext,
@@ -53,6 +54,8 @@ export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
   /** Pinned shared chrome overlays the scrolling viewport. */
   header?: ReactNode;
+  /** Initial height of the pinned chrome before its native layout is reported. */
+  headerMinHeight?: number;
   /** Validated six-digit hex accent blended into the page canvas. */
   canvasTint?: string;
   /** The child composition supplies its own header and consumes the shared top safe area. */
@@ -67,10 +70,12 @@ export function Page({
   edges,
   accessibilityViewIsModal,
   header,
+  headerMinHeight,
   canvasTint,
   fullBleed = false,
 }: Readonly<PageProps>) {
   const { colors } = useTheme();
+  const onLayout = useNativeSplashLayout();
   const highlight = canvasTint ?? colors.canvasHighlight;
   const startTint = canvasTint
     ? colors.canvasTintStart
@@ -110,6 +115,7 @@ export function Page({
         bottom: "off",
       }}
       accessibilityViewIsModal={accessibilityViewIsModal}
+      onLayout={onLayout}
       style={[
         styles.page,
         {
@@ -128,7 +134,9 @@ export function Page({
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
-                <PageViewport header={header}>{children}</PageViewport>
+                <PageViewport header={header} headerMinHeight={headerMinHeight}>
+                  {children}
+                </PageViewport>
               ) : (
                 children
               )}
