@@ -35,7 +35,7 @@ export function IdentityAtmosphere({ uri, testID }: IdentityAtmosphereProps) {
         maskElement={
           <Svg width="100%" height="100%">
             <Defs>
-              <RadialGradient id={gradient} cx="30%" cy="38%" rx="78%" ry="70%">
+              <RadialGradient id={gradient} cx="30%" cy="50%" rx="78%" ry="70%">
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
                 <Stop offset={0.8} stopColor="white" stopOpacity={0} />
               </RadialGradient>
@@ -60,7 +60,8 @@ export function IdentityAtmosphere({ uri, testID }: IdentityAtmosphereProps) {
 const styles = StyleSheet.create({
   atmosphere: {
     position: "absolute",
-    top: 0,
+    top: "50%",
+    marginTop: -tokens.media.identityAtmosphere.height / 2,
     left: 0,
     width: tokens.media.identityAtmosphere.width,
     height: tokens.media.identityAtmosphere.height,

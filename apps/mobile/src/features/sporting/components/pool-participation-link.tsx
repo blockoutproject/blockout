@@ -14,7 +14,7 @@ export interface PoolParticipationLinkProps {
   active: boolean;
 }
 
-/** A neutral link wraps the full title and uses the pool division for its outline. */
+/** The full title wraps on the compact neutral surface. */
 export function PoolParticipationLink({
   pool,
   active,
@@ -35,15 +35,7 @@ export function PoolParticipationLink({
         },
       ]}
     >
-      <View
-        style={[
-          styles.entry,
-          {
-            backgroundColor: colors.surface,
-            borderColor: division?.color ?? colors.border,
-          },
-        ]}
-      >
+      <View style={[styles.entry, { backgroundColor: colors.subtle }]}>
         {division ? (
           <SportingLogo
             identity={division}
@@ -63,7 +55,8 @@ export function PoolParticipationLink({
         <ChevronRight
           accessible={false}
           size={tokens.size.icon.sm}
-          color={colors.icon}
+          color={colors.secondaryText}
+          strokeWidth={1.5}
         />
       </View>
     </Pressable>
@@ -81,6 +74,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md,
     paddingVertical: tokens.spacing.xs,
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.border.thin,
   },
 });
