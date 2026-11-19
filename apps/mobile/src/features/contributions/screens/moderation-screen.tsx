@@ -211,30 +211,27 @@ function QueueScene({
     hasReadError(queue.account) ||
     (hasReadError(query) && !query.isFetchNextPageError);
   const hasRows = rows.length > 0 && !failed;
+  const authenticated = queue.session.status === "authenticated";
+  const denied = authenticated && !queue.canRetain && queue.account.isSuccess;
   const loading =
     !current &&
     !failed &&
     (queue.session.status === "restoring" ||
       !!queue.session.operation ||
-      (queue.session.status === "authenticated" &&
+      (authenticated &&
         (queue.account.isLoading || (queue.canRetain && query.isLoading))));
 
-  /** Keeps the account prerequisite and its recovery in the same queue viewport. */
   function renderFeedback() {
-    if (queue.session.status !== "authenticated") {
+    if (!authenticated) {
       return (
-        <ScreenState style={styles.feedback}>
-          <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
-        </ScreenState>
+        <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
       );
     }
-    if (!queue.canRetain && queue.account.isSuccess) {
+    if (denied) {
       return (
-        <ScreenState style={[styles.feedback, styles.centered]}>
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
-            La modération des liens vidéo n’est pas autorisée.
-          </Text>
-        </ScreenState>
+        <Text style={[tokens.typography.body, { color: colors.text }]}>
+          La modération des liens vidéo n’est pas autorisée.
+        </Text>
       );
     }
     if (!current || failed) {
@@ -243,31 +240,27 @@ function QueueScene({
           ? queue.account
           : query;
       return (
-        <ScreenState style={styles.feedback}>
-          <ReadFeedback
-            loadingContent={<ModerationQueueLoading />}
-            query={read}
-            onRetry={
-              active ? () => read.refetch({ cancelRefetch: false }) : undefined
-            }
-          />
-        </ScreenState>
+        <ReadFeedback
+          loadingContent={<ModerationQueueLoading />}
+          query={read}
+          onRetry={
+            active ? () => read.refetch({ cancelRefetch: false }) : undefined
+          }
+        />
       );
     }
     return (
-      <ScreenState style={styles.feedback}>
-        <EmptyState
-          title="Aucun lien à traiter"
-          description="Aucun match ne correspond à cette sélection."
-        >
-          <Button
-            label="Actualiser"
-            leadingIcon={RefreshCw}
-            onPress={() => void refresh()}
-            loading={refreshing}
-          />
-        </EmptyState>
-      </ScreenState>
+      <EmptyState
+        title="Aucun lien à traiter"
+        description="Aucun match ne correspond à cette sélection."
+      >
+        <Button
+          label="Actualiser"
+          leadingIcon={RefreshCw}
+          onPress={() => void refresh()}
+          loading={refreshing}
+        />
+      </EmptyState>
     );
   }
 
@@ -281,7 +274,13 @@ function QueueScene({
       keyExtractor={(item) => item.match.id}
       contentContainerStyle={pageContentStyle}
       loadingFeedback={{ active: loading, content: <ModerationQueueLoading /> }}
-      ListEmptyComponent={hasRows || loading ? undefined : renderFeedback()}
+      ListEmptyComponent={
+        hasRows || loading ? undefined : (
+          <ScreenState style={[styles.feedback, denied && styles.centered]}>
+            {renderFeedback()}
+          </ScreenState>
+        )
+      }
       ItemSeparatorComponent={ListSeparator}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"

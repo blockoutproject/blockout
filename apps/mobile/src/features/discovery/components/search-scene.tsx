@@ -18,7 +18,6 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 /** One tab's current queries and criteria; the parent retains the shared text, filters and empty-state actions. */
 export interface SearchSceneProps {
   resource: DiscoveryResource;
-  criteria: string;
   active: boolean;
   searchable: boolean;
   query: ReturnType<typeof useDiscoveryQuery>;
@@ -31,7 +30,6 @@ export interface SearchSceneProps {
 /** Keeps accepted pages visible when only their continuation fails. */
 export function SearchScene({
   resource,
-  criteria,
   active,
   searchable,
   query: textQuery,
@@ -85,7 +83,7 @@ export function SearchScene({
       emptyContent = (
         <ScreenState style={styles.listState}>
           <ReadFeedback
-            key={filtersMissing ? "options" : criteria}
+            key={filtersMissing ? "options" : "results"}
             query={read}
             loadingContent={null}
             onRetry={

@@ -177,7 +177,6 @@ export function SearchScreen() {
             content: (
               <SearchScene
                 resource={id}
-                criteria={criteria}
                 active={resource === id}
                 searchable={searchable}
                 query={queries[id]}
