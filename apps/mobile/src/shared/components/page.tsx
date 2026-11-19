@@ -131,9 +131,7 @@ export function Page({
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
-                <PageViewport header={header} ownsStackScrollEdge>
-                  {children}
-                </PageViewport>
+                <PageViewport header={header}>{children}</PageViewport>
               ) : (
                 children
               )}

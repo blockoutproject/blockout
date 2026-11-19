@@ -460,7 +460,6 @@ it.each(["network", "schema", "http"])(
     expect(
       screen.getByRole("header", { name: "2 résultats chargés" }),
     ).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: /^Effacer$/ })).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Effacer la recherche" }),

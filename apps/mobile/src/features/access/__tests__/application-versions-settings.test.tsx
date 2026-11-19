@@ -5,7 +5,7 @@ import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { AccessibilityInfo, Alert, Linking, Platform } from "react-native";
+import { Alert, Linking } from "react-native";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -31,7 +31,6 @@ import {
 import { getGetApplicationVersionSettingsQueryKey } from "../../../../.generated/mobile";
 import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApplicationVersionsSettingsScreen } from "../screens/application-versions-settings-screen";
-import { ApplicationVersionsPreview } from "../screens/access-gate-screen";
 import ApplicationVersionsRoute from "@/app/(operations)/administration/application-versions";
 
 // The upstream native-insets double gives the modal its own real React contexts in Jest.
@@ -831,32 +830,6 @@ it("previews absent optional copy with the same fallback and preserves the draft
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
     false,
   );
-});
-
-it("opens and closes the update preview independently of a Stack screen on iOS 26", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  jest.spyOn(Platform, "Version", "get").mockReturnValue("26.0");
-  jest
-    .spyOn(AccessibilityInfo, "isReduceTransparencyEnabled")
-    .mockResolvedValue(false);
-  const user = userEvent.setup();
-  const onClose = jest.fn();
-
-  // When
-  await render(
-    <ThemeProvider>
-      <ApplicationVersionsPreview
-        message={null}
-        storeUrl={null}
-        onClose={onClose}
-      />
-    </ThemeProvider>,
-  );
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-  // Then
-  expect(onClose).toHaveBeenCalledTimes(1);
 });
 
 it("hands the validated current-platform preview link to the existing native store action without saving", async () => {

@@ -897,9 +897,7 @@ it.each([
     // Then
     await screen.findByRole("alert");
     expect(screen.queryByText(content)).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: /^(Filtres.*|Effacer)$/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Filtres/ })).toBeNull();
     expect(
       screen.queryByRole("header", { name: /Exemples|Résultats|chargé/ }),
     ).toBeNull();

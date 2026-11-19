@@ -3,7 +3,7 @@ import { PageScrollView, pageContentStyle } from "@/shared/components/page";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRef, type ReactElement, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -11,10 +11,10 @@ import { tokens } from "@/shared/theme/tokens";
 import { SportingEntityCard } from "@/features/sporting/entity-card";
 import type { SearchResult } from "../model/search-result";
 
-/** The parent derives accepted cards and the fixed heading from the same Query pages. */
 export interface SearchResultsProps {
   items: readonly SearchResult[];
   examples?: boolean;
+  heading?: ReactElement;
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
@@ -24,11 +24,12 @@ export interface SearchResultsProps {
 
 /**
  * Native rows and feedback share the viewport below Search controls.
- * Restores the last native offset after a scoped card; RNCT owns heading-inset geometry.
+ * Restores the last native offset after a scoped card; RNCT owns the pinned toolbar inset.
  */
 export function SearchResults({
   items,
   examples = false,
+  heading,
   emptyComponent,
   continuation,
   onEndReached,
@@ -39,6 +40,7 @@ export function SearchResults({
   if (items.length === 0) {
     return (
       <PageScrollView>
+        {heading && <View style={styles.feedbackHeading}>{heading}</View>}
         {emptyComponent}
         {continuation}
       </PageScrollView>
@@ -64,6 +66,8 @@ export function SearchResults({
           });
         }
       }}
+      ListHeaderComponent={heading}
+      ListHeaderComponentStyle={styles.listHeading}
       ListFooterComponent={
         <>
           {continuation}
@@ -76,7 +80,7 @@ export function SearchResults({
       recycleItems
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={pageContentStyle}
+      contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
         <SportingEntityCard {...item} onPress={() => onOpen(item)} />
@@ -89,17 +93,12 @@ export function SearchResults({
 export interface SearchHeadingProps {
   count?: number;
   examples?: boolean;
-  onClear?: () => void;
 }
 
-/**
- * Product Design Search Heading 7130:19183; clearing preserves the selected resource tab.
- * The title and clear label stay vertically centered while wrapping preserves the action's native target.
- */
+/** Product Design Search Heading 7130:19183 keeps the existing compact vertical clearance. */
 export function SearchHeading({
   count,
   examples = false,
-  onClear,
 }: Readonly<SearchHeadingProps>) {
   const { colors } = useTheme();
   let title = "Résultats";
@@ -110,45 +109,25 @@ export function SearchHeading({
     title = `${count} résultat${plural} chargé${plural}`;
   }
   return (
-    <View style={styles.toolbar}>
+    <View style={styles.heading}>
       <Text
         accessibilityRole="header"
         accessibilityLabel={title}
         accessibilityLiveRegion="polite"
-        style={[styles.heading, { color: colors.text }]}
+        style={[tokens.typography.navigation, { color: colors.text }]}
       >
         {title}
       </Text>
-      {onClear && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Effacer"
-          onPress={onClear}
-          style={({ pressed }) => [
-            styles.clear,
-            { opacity: pressed ? tokens.opacity.pressed : 1 },
-          ]}
-        >
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Effacer
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
+  listContent: { ...pageContentStyle, paddingTop: 0 },
+  listHeading: { paddingBottom: tokens.layout.content.start },
+  feedbackHeading: { paddingHorizontal: tokens.spacing.screen },
+  heading: {
     minHeight: tokens.layout.collection.toolbarMinHeight,
-    gap: tokens.spacing.sm,
-  },
-  heading: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
-  clear: {
-    minHeight: tokens.touch.minimum,
-    minWidth: tokens.touch.minimum,
     justifyContent: "center",
   },
 });

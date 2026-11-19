@@ -26,6 +26,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
 import { createDiscoveryContext } from "../api/discovery-context";
@@ -371,11 +372,13 @@ it("selects the search resource through native page settlement and retains its s
     },
   );
 
-  // Then: business selection, accessible content and the common input agree with that page.
+  // Then: selection, the scrolling heading and the shared input agree with the settled page.
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  const results = within(screen.getByLabelText("Résultats de recherche"));
   expect(
-    screen.getByRole("header", { name: "2 résultats chargés" }),
+    results.getByRole("header", { name: "2 résultats chargés" }),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
   expect(
     screen.getByRole("tab", { name: "Clubs", selected: true }),
   ).toBeOnTheScreen();
@@ -609,7 +612,7 @@ it("clears empty search criteria from the card and keeps its focus action free o
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps common search clearing available while masking failed Clubs controls", async () => {
+it("keeps the search field clearable while a failed Clubs read masks its heading", async () => {
   // Given: replacement text is pasted directly, without unmounting results through an empty draft.
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
@@ -643,7 +646,6 @@ it("keeps common search clearing available while masking failed Clubs controls",
   expect(
     await screen.findByRole("header", { name: "Résultats" }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -657,7 +659,9 @@ it("keeps common search clearing available while masking failed Clubs controls",
   expect(
     screen.getByText("Aucun résultat pour ces critères"),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Effacer les critères" }),
+  ).toBeEnabled();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -666,7 +670,6 @@ it("keeps common search clearing available while masking failed Clubs controls",
   // Then
   await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByRole("header", { name: "Résultats" })).toBeNull();
-  expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
   expect(
     screen.getByRole("button", { name: "Effacer la recherche" }),
   ).toBeEnabled();
@@ -677,20 +680,9 @@ it("keeps common search clearing available while masking failed Clubs controls",
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   // Then
-  await screen.findByRole("header", { name: "2 résultats chargés" });
-  mockFetch.mockClear();
-  // When
-  await user.press(screen.getByRole("button", { name: "Effacer" }));
-  // Then
-  expect(input).toHaveDisplayValue("");
   expect(
-    screen.getByRole("tab", { name: "Clubs", selected: true }),
+    await screen.findByRole("header", { name: "2 résultats chargés" }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Effacer" }),
-  ).not.toBeOnTheScreen();
-  expect(new URL(mockFetch.mock.calls.at(-1)?.[0]).search).toBe("");
 });
 
 it("cancels superseded text and tab requests and never shows an older result as the new search", async () => {
@@ -1010,7 +1002,6 @@ it.each([
     expect(
       screen.getByRole("header", { name: "1 résultat chargé" }),
     ).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: /^Effacer$/ })).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Effacer la recherche" }),

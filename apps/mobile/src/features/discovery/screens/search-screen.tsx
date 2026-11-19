@@ -30,9 +30,7 @@ import {
   useDiscoveryQuery,
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
-import { SearchHeading } from "../components/search-results";
 import { SearchScene } from "../components/search-scene";
-import { uniqueSearchResults } from "../model/search-result";
 
 const searchTabs = [
   { id: "team", label: "Équipes" },
@@ -43,7 +41,6 @@ const searchTabs = [
 /**
  * Public discovery with shared text and current examples cached per tab/filter context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
- * The fixed heading follows that text intent while initial options and result cards are pending.
  * Native end events continue the selected focused context. Initial/complete read failures use the scoped card;
  * next-page failures retain rows and controls with footer Retry. Query retains accepted pages; an old empty response
  * cannot establish current absence. There is no refresh gesture or additional background read trigger.
@@ -66,16 +63,9 @@ export function SearchScreen() {
   });
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
-  const changed =
-    !!filters &&
-    (filters.seasonId !== sporting?.query.data?.seasons[0]?.id ||
-      !!filters.divisionId ||
-      !!filters.format ||
-      !!filters.gender);
   const text = useWatch({ control, name: "q" });
-  const valid = searchSchema.safeParse({ q: text }).success;
-  const textual = /[^\p{White_Space}]/u.test(text);
-  const searchable = valid && textual;
+  const examples = !/[^\p{White_Space}]/u.test(text);
+  const searchable = !examples && searchSchema.safeParse({ q: text }).success;
   // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
   const queryText = searchable ? text : "";
   const textKey = hashKey(
@@ -96,7 +86,6 @@ export function SearchScreen() {
     { q: queryText },
     resource === "club" && searchable,
   );
-  const examples = text.replace(/\p{White_Space}/gu, "") === "";
   const teamExamples = useSearchExamplesQuery(
     "team",
     { ...visit.team.filters },
@@ -124,29 +113,32 @@ export function SearchScreen() {
       : hasReadError(queries[resource]) &&
         !queries[resource].isFetchNextPageError) ||
     (!!sporting && !filters && hasReadError(sporting.query));
-  let emptyDescription = "Essayez un autre nom.";
-  if (examples) {
-    emptyDescription = changed
-      ? "Effacez les critères pour élargir la recherche."
-      : "Saisissez un nom pour lancer une recherche.";
-  }
   const placeholder = {
     club: "Rechercher un club…",
     team: "Rechercher une équipe…",
     pool: "Rechercher une poule…",
   }[resource];
-  const items = {
-    team: uniqueSearchResults(teamQuery.data?.pages),
-    pool: uniqueSearchResults(poolQuery.data?.pages),
-    club: uniqueSearchResults(clubQuery.data?.pages),
-  };
+
+  function hasChangedFilters(target: DiscoveryResource) {
+    if (target === "club") {
+      return false;
+    }
+    const { filters: applied, query } = visit[target];
+    return (
+      !!applied &&
+      (applied.seasonId !== query.data?.seasons[0]?.id ||
+        !!applied.divisionId ||
+        !!applied.format ||
+        !!applied.gender)
+    );
+  }
 
   /** Clearing resets the editable query and validation without altering the selected resource tab. */
   function clearSearch() {
     reset(searchValues());
   }
 
-  /** The results heading clears this resource's criteria; the input clear action retains sporting filters. */
+  /** The empty-state action resets the shared text and this resource's sporting filters. */
   function clearCriteria(target: DiscoveryResource) {
     clearSearch();
     const selection = target === "club" ? undefined : visit[target];
@@ -173,6 +165,13 @@ export function SearchScreen() {
                   textKey,
                   id === "club" ? undefined : visit[id].filters,
                 ]);
+          const canClear = !examples || hasChangedFilters(id);
+          let emptyDescription = "Essayez un autre nom.";
+          if (examples) {
+            emptyDescription = canClear
+              ? "Effacez les critères pour élargir la recherche."
+              : "Saisissez un nom pour lancer une recherche.";
+          }
           return {
             id,
             label,
@@ -186,10 +185,9 @@ export function SearchScreen() {
                 query={queries[id]}
                 exampleQuery={exampleQueries[id]}
                 examples={examples}
-                items={items[id]}
                 emptyDescription={emptyDescription}
                 emptyAction={
-                  !examples || changed ? (
+                  canClear ? (
                     <Button
                       label="Effacer les critères"
                       leadingIcon={Eraser}
@@ -225,58 +223,41 @@ export function SearchScreen() {
                 />
               </IconButton>
             </View>
-            <View style={styles.controls}>
-              <View style={styles.toolbar}>
-                <View style={styles.search}>
-                  <Controller
-                    control={control}
-                    name="q"
-                    render={({ field, fieldState }) => (
-                      <SearchField
-                        ref={field.ref}
-                        label="Rechercher"
-                        value={field.value}
-                        onChangeText={field.onChange}
-                        onBlur={field.onBlur}
-                        onClear={clearSearch}
-                        placeholder={placeholder}
-                        error={
-                          fieldState.invalid
-                            ? "La recherche est limitée à 200 caractères."
-                            : undefined
-                        }
-                        returnKeyType="search"
-                        autoCorrect={false}
-                      />
-                    )}
-                  />
-                </View>
-                {resource !== "club" && !failed && (
-                  <FilterButton
-                    active={changed}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      visit.setEditing(resource);
-                      visit.draft.reset(visit[resource].filters ?? {});
-                      void visit[resource].query.refetch();
-                      router.push("/search/filters");
-                    }}
-                  />
-                )}
+            <View style={styles.toolbar}>
+              <View style={styles.search}>
+                <Controller
+                  control={control}
+                  name="q"
+                  render={({ field, fieldState }) => (
+                    <SearchField
+                      ref={field.ref}
+                      label="Rechercher"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      onBlur={field.onBlur}
+                      onClear={clearSearch}
+                      placeholder={placeholder}
+                      error={
+                        fieldState.invalid
+                          ? "La recherche est limitée à 200 caractères."
+                          : undefined
+                      }
+                      returnKeyType="search"
+                      autoCorrect={false}
+                    />
+                  )}
+                />
               </View>
-              {!failed && (
-                <SearchHeading
-                  examples={examples}
-                  count={
-                    searchable && queries[resource].data
-                      ? items[resource].length
-                      : undefined
-                  }
-                  onClear={
-                    examples && !changed
-                      ? undefined
-                      : () => clearCriteria(resource)
-                  }
+              {resource !== "club" && !failed && (
+                <FilterButton
+                  active={hasChangedFilters(resource)}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    visit.setEditing(resource);
+                    visit.draft.reset(visit[resource].filters ?? {});
+                    void visit[resource].query.refetch();
+                    router.push("/search/filters");
+                  }}
                 />
               )}
             </View>
@@ -301,11 +282,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: tokens.spacing.sm,
     alignItems: "flex-start",
-  },
-  search: { flex: 1, minWidth: 0 },
-  // SearchHeading owns the same compact row and touch clearance in every state.
-  controls: {
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,
   },
+  search: { flex: 1, minWidth: 0 },
 });
