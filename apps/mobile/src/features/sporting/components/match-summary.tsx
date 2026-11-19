@@ -1,10 +1,13 @@
 import { divisionTextColor } from "../presentation";
 import { useSportingNavigation } from "../navigation";
-import type { PropsWithChildren } from "react";
+import { Fragment, type PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
@@ -79,7 +82,8 @@ export function MatchSummary({
           numberOfLines={2}
           ellipsizeMode="tail"
           style={[
-            styles.poolName,
+            styles.copy,
+            tokens.typography.strong,
             { color: contextual ? onAccent : colors.text },
           ]}
         >
@@ -131,7 +135,13 @@ export function MatchSummary({
           const content = (
             <>
               <SportingLogo kind="team" identity={team} />
-              <Text style={[styles.teamName, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.copy,
+                  tokens.typography.navigation,
+                  { color: colors.text },
+                ]}
+              >
                 {team.name}
               </Text>
               {(!contextual || score !== undefined) && (
@@ -192,6 +202,54 @@ export function MatchSummary({
   );
 }
 
+/** Reserves the public summary bands and both team rows with one loading announcement. */
+export function MatchSummaryLoading() {
+  const { colors } = useTheme();
+  const media = (
+    <Skeleton
+      width={tokens.size.media.row}
+      height={tokens.size.media.row}
+      radius={tokens.media.radius.tile}
+    />
+  );
+  return (
+    <LoadingGroup label="Chargement du match">
+      <MatchSurface>
+        <View style={styles.pool}>
+          {media}
+          <View style={styles.copy}>
+            <TextSkeleton width="85%" />
+          </View>
+        </View>
+        <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
+          <TextSkeleton role="metadata" width="24%" />
+          <View style={[styles.copy, styles.date]}>
+            <TextSkeleton role="metadata" width="65%" />
+          </View>
+        </View>
+        {(["home", "away"] as const).map((side) => (
+          <Fragment key={side}>
+            {side === "away" && (
+              <View
+                style={[styles.separator, { backgroundColor: colors.border }]}
+              />
+            )}
+            <View style={styles.team}>
+              {media}
+              <View style={styles.copy}>
+                <TextSkeleton role="navigation" width="80%" />
+              </View>
+              <View style={styles.scoreCell}>
+                <TextSkeleton role="heading" width={tokens.spacing.md} />
+              </View>
+            </View>
+          </Fragment>
+        ))}
+      </MatchSurface>
+    </LoadingGroup>
+  );
+}
+
 /** Only the full consultation's actual team action consumes sporting navigation; informational context stays independent. */
 function TeamScoreLink({
   teamId,
@@ -232,7 +290,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.xs,
     gap: tokens.spacing.sm,
   },
-  poolName: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
+  copy: { flex: 1, minWidth: 0 },
   metadata: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -267,7 +325,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.md,
   },
-  teamName: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   scoreCell: {
     minWidth: tokens.sporting.scoreSize,
     minHeight: tokens.sporting.scoreSize,

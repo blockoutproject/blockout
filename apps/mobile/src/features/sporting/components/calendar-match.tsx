@@ -13,6 +13,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { divisionTextColor } from "../presentation";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { SportingLogo } from "./sporting-identity";
+import { calendarStyles } from "./calendar-styles";
 
 /** Compact calendar row retains server classification and opens the exact encounter. */
 export interface CalendarMatchProps {
@@ -65,7 +66,7 @@ export function CalendarMatch({
       accessibilityLabel={`Ouvrir le match ${match.home.name} — ${match.away.name}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`}
       onPress={() => void sporting.navigate("match", match.id)}
       style={({ pressed }) => [
-        styles.card,
+        calendarStyles.matchCard,
         {
           borderColor,
           backgroundColor: colors.raised,
@@ -85,8 +86,8 @@ export function CalendarMatch({
           </Text>
         </View>
       )}
-      <View style={styles.content}>
-        <View style={styles.teams}>
+      <View style={calendarStyles.matchContent}>
+        <View style={calendarStyles.matchTeams}>
           {[
             { team: match.home, score: result?.homeSets },
             { team: match.away, score: result?.awaySets },
@@ -94,14 +95,18 @@ export function CalendarMatch({
             <View
               key={team.id}
               style={[
-                styles.team,
+                calendarStyles.matchTeam,
                 index > 0 && {
                   borderTopWidth: tokens.border.thin,
                   borderColor,
                 },
               ]}
             >
-              <SportingLogo identity={team} kind="team" size={32} />
+              <SportingLogo
+                identity={team}
+                kind="team"
+                size={tokens.size.media.match}
+              />
               <Text style={[styles.name, { color: colors.text }]}>
                 {team.name}
               </Text>
@@ -118,7 +123,7 @@ export function CalendarMatch({
         {!hasScore && (
           <View
             style={[
-              styles.time,
+              calendarStyles.matchTime,
               {
                 backgroundColor: accent,
                 width: tokens.sporting.calendarMatch.timeWidth * fontScale,
@@ -141,11 +146,6 @@ export function CalendarMatch({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
-    overflow: "hidden",
-  },
   status: {
     flexDirection: "row",
     gap: tokens.spacing.tight,
@@ -154,15 +154,6 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.tight,
   },
   note: { ...tokens.typography.metadata, flex: 1 },
-  content: { flexDirection: "row", alignItems: "stretch" },
-  teams: { flex: 1, minWidth: 0 },
-  team: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    minHeight: tokens.sporting.calendarMatch.teamMinHeight,
-    padding: tokens.spacing.sm,
-  },
   name: {
     ...tokens.typography.strong,
     flex: 1,
@@ -178,7 +169,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   score: { ...tokens.typography.navigation, textAlign: "center" },
-  time: { padding: tokens.spacing.xs, justifyContent: "center" },
   timeText: { ...tokens.typography.strong, textAlign: "center" },
   special: { ...tokens.typography.metadata, padding: tokens.spacing.sm },
 });

@@ -42,7 +42,7 @@ export function StandingTable({
   }));
   const hasPodium = rows.length >= 3;
   const cards = layout === "cards";
-  const tableStyle = cards && styles.cards;
+  const tableStyle = cards && standingsLayout.cards;
   const podium = cards && hasPodium;
   const top = podium
     ? [rankedRows[1], rankedRows[0], rankedRows[2]]
@@ -71,7 +71,7 @@ export function StandingTable({
 
   return (
     <View style={tableStyle}>
-      <View style={podium ? styles.podium : tableStyle}>
+      <View style={podium ? standingsLayout.podium : tableStyle}>
         {renderRows(
           top,
           podium ? "podium" : layout,
@@ -170,7 +170,9 @@ function StandingRow({
     </View>
   );
   const pointsRail = points && (
-    <View style={[styles.points, podium && styles.podiumPoints]}>
+    <View
+      style={[standingsLayout.points, podium && standingsLayout.podiumPoints]}
+    >
       <Text
         style={[
           podium ? tokens.typography.headingXl : tokens.typography.headingLg,
@@ -189,15 +191,15 @@ function StandingRow({
   const nameStyle = [tokens.typography.strong, { color: colors.text }];
   const style = list
     ? [
-        styles.listRow,
+        standingsLayout.listRow,
         {
           borderBottomColor: colors.border,
           borderBottomWidth: last ? 0 : tokens.border.thin,
         },
       ]
     : [
-        styles.card,
-        podium ? styles.podiumCard : styles.rowCard,
+        standingsLayout.card,
+        podium ? standingsLayout.podiumCard : standingsLayout.rowCard,
         {
           minHeight:
             podium && medal ? card[`${medal}MinHeight`] : card.rowMinHeight,
@@ -230,7 +232,12 @@ function StandingRow({
             ]}
           />
         )}
-        <View style={[styles.rowIdentity, podium && styles.podiumIdentity]}>
+        <View
+          style={[
+            standingsLayout.rowIdentity,
+            podium && standingsLayout.podiumIdentity,
+          ]}
+        >
           <View
             style={[
               styles.rank,
@@ -277,7 +284,7 @@ function StandingRow({
         )}
         {podium && pointsRail}
         {!list && (
-          <View style={styles.performance}>
+          <View style={standingsLayout.performance}>
             <StandingPerformanceBar row={row} columns={columns} />
             {statisticItems}
           </View>
@@ -378,7 +385,8 @@ function RankTint({ color }: Readonly<{ color: string }>) {
   );
 }
 
-const styles = StyleSheet.create({
+/** Structural styles shared by the ready table and its neutral first-read placeholder. */
+export const standingsLayout = StyleSheet.create({
   cards: { gap: tokens.layout.list.gap },
   podium: {
     flexDirection: "row",
@@ -389,14 +397,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: tokens.spacing.compact,
     minHeight: tokens.sporting.standingsRowMinHeight,
-  },
-  marker: {
-    position: "absolute",
-    left: -tokens.spacing.sm,
-    alignSelf: "flex-start",
-    height: tokens.sporting.standingsMarkerHeight,
-    width: tokens.sporting.standingsMarkerWidth,
-    borderRadius: tokens.sporting.standingsMarkerWidth / 2,
   },
   card: {
     borderWidth: tokens.border.thin,
@@ -421,6 +421,23 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: card.podiumIdentityMinHeight,
     justifyContent: "space-between",
+  },
+  points: {
+    minWidth: tokens.sporting.standingsPointsWidth,
+    alignItems: "flex-end",
+  },
+  podiumPoints: { alignItems: "center" },
+  performance: { gap: tokens.spacing.sm, width: "100%" },
+});
+
+const styles = StyleSheet.create({
+  marker: {
+    position: "absolute",
+    left: -tokens.spacing.sm,
+    alignSelf: "flex-start",
+    height: tokens.sporting.standingsMarkerHeight,
+    width: tokens.sporting.standingsMarkerWidth,
+    borderRadius: tokens.sporting.standingsMarkerWidth / 2,
   },
   identity: {
     minWidth: 0,
@@ -453,12 +470,6 @@ const styles = StyleSheet.create({
   },
   copy: { flex: 1, minWidth: 0 },
   listCopy: { gap: tokens.spacing.xs },
-  points: {
-    minWidth: tokens.sporting.standingsPointsWidth,
-    alignItems: "flex-end",
-  },
-  podiumPoints: { alignItems: "center" },
-  performance: { gap: tokens.spacing.sm, width: "100%" },
   listStatistics: {
     flexDirection: "row",
     flexWrap: "wrap",

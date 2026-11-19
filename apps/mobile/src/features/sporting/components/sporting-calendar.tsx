@@ -30,6 +30,7 @@ import { Button } from "@/shared/components/button";
 import { EmptyState } from "@/shared/components/state-card";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { CalendarLoading } from "./calendar-loading";
+import { calendarStyles } from "./calendar-styles";
 import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "@/shared/components/screen-state";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -296,9 +297,9 @@ export function SportingCalendarView({
           >
             <View
               style={[
-                styles.match,
-                item.first && styles.firstMatch,
-                item.last && styles.lastMatch,
+                calendarStyles.matchInset,
+                item.first && calendarStyles.firstMatch,
+                item.last && calendarStyles.lastMatch,
               ]}
             >
               <CalendarMatch
@@ -355,9 +356,9 @@ function CalendarDate({
       accessibilityRole="header"
       accessibilityLabel={formatSportingDay(date)}
       style={[
-        styles.dateHeading,
+        calendarStyles.dateHeading,
         { backgroundColor },
-        stacked && styles.stackedDate,
+        stacked && calendarStyles.stackedDate,
       ]}
     >
       <Text style={[styles.date, { color: colors.text }]}>
@@ -428,13 +429,13 @@ function CalendarPoolHeader({
   const division = pool.classification.division;
   return (
     <CalendarGroupPart divisionColor={division?.color} first>
-      <View style={styles.pool}>
+      <View style={calendarStyles.poolHeading}>
         {division ? (
-          <SportingLogo identity={division} kind="division" size={40} />
+          <SportingLogo identity={division} kind="division" />
         ) : (
-          <SportingMedia identity={pool.pool} kind="division" size={40} />
+          <SportingMedia identity={pool.pool} kind="division" />
         )}
-        <View style={styles.identity}>
+        <View style={calendarStyles.poolCopy}>
           <Text
             accessibilityRole="header"
             accessibilityLabel={pool.pool.name}
@@ -475,17 +476,6 @@ const styles = StyleSheet.create({
   listState: { padding: 0, paddingTop: tokens.spacing.sm },
   stateAfterHeader: { paddingTop: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
-  dateHeading: {
-    gap: tokens.spacing.xs,
-    paddingTop: tokens.spacing.sm,
-    paddingRight: tokens.spacing.xs,
-  },
-  stackedDate: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    paddingBottom: tokens.spacing.sm,
-  },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
   groupClip: {
@@ -521,20 +511,6 @@ const styles = StyleSheet.create({
     marginBottom: -groupShadowOverlap,
     paddingBottom: groupShadowOverlap,
   },
-  pool: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.md,
-    paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.lg,
-  },
-  identity: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   poolName: { ...tokens.typography.strong },
   metadata: { ...tokens.typography.metadata },
-  match: {
-    paddingHorizontal: tokens.spacing.lg,
-    paddingVertical: tokens.spacing.sm,
-  },
-  firstMatch: { paddingTop: tokens.spacing.lg },
-  lastMatch: { paddingBottom: tokens.spacing.lg },
 });

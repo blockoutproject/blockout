@@ -13,6 +13,7 @@ import {
 import type { SearchResult } from "../model/search-result";
 
 export interface SearchResultsProps {
+  resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
   examples?: boolean;
@@ -26,6 +27,7 @@ export interface SearchResultsProps {
 
 /** Keeps results and their structural feedback in the same list viewport. */
 export function SearchResults({
+  resource,
   items,
   loading,
   examples = false,
@@ -55,7 +57,12 @@ export function SearchResults({
       }
       loadingFeedback={{
         active: loading,
-        content: <SportingEntityCardLoading label="Chargement des résultats" />,
+        content: (
+          <SportingEntityCardLoading
+            kind={resource}
+            label="Chargement des résultats"
+          />
+        ),
       }}
       ListEmptyComponent={emptyComponent}
       ListFooterComponent={

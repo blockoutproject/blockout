@@ -1,5 +1,6 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "@/shared/components/loading-group";
+import { FieldSkeleton } from "@/shared/components/form-loading";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { EntryGroupSeparator } from "@/shared/components/entry-group";
@@ -41,6 +42,9 @@ export function ModerationMatchLoading({
 export function ModerationReportsLoading() {
   return (
     <LoadingGroup label="Chargement des signalements">
+      <View style={styles.reportHeading}>
+        <TextSkeleton width="42%" role="navigation" />
+      </View>
       {Array.from({ length: 3 }, (_, index) => (
         <Fragment key={index}>
           {index > 0 && <EntryGroupSeparator />}
@@ -57,14 +61,14 @@ export function ModerationReportsLoading() {
 /** Canonical filter metadata loads with the field/action shape used by the existing search filter sheet. */
 export function ModerationFiltersLoading() {
   return (
-    <LoadingGroup label="Chargement des filtres des liens" style={styles.stack}>
+    <LoadingGroup label="Chargement des filtres des liens" style={styles.form}>
       {["season", "platform", "state"].map((field) => (
-        <View key={field} style={styles.stack}>
-          <TextSkeleton width="30%" role="metadata" />
-          <Skeleton height={tokens.size.control.default} shape="rectangle" />
-        </View>
+        <FieldSkeleton key={field} labelWidth="30%" />
       ))}
-      <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      <View style={styles.actions}>
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      </View>
     </LoadingGroup>
   );
 }
@@ -150,6 +154,8 @@ function VersionPlaceholder({
 
 const styles = StyleSheet.create({
   stack: { gap: tokens.spacing.md },
+  form: { gap: tokens.layout.form.gap },
+  actions: { gap: tokens.layout.actions.gap },
   card: {
     padding: tokens.layout.surface.inset,
     borderRadius: tokens.radius.control,
@@ -171,5 +177,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: tokens.spacing.sm,
   },
+  reportHeading: { paddingBottom: tokens.spacing.lg },
   report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.md },
 });

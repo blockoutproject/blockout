@@ -386,3 +386,13 @@ const styles = StyleSheet.create({
     borderWidth: tokens.border.thin,
   },
 });
+
+/** Keeps the first-read platform and action widths aligned with the closed editor. */
+export const applicationVersionsLayout = {
+  platforms: styles.platforms,
+  platformCard: styles.platformCard,
+  expandedCard: styles.expandedCard,
+  disclosure: styles.disclosure,
+  actions: styles.actions,
+  action: styles.action,
+};

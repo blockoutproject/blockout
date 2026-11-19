@@ -1,4 +1,3 @@
-import { SportingMatchLoading } from "../components/sporting-loading";
 import { ContributionReportEntry } from "@/features/contributions/entry";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -16,7 +15,7 @@ import {
   SportingSupportAction,
   useMatchContributionAction,
 } from "../components/sporting-actions";
-import { MatchSummary } from "../components/match-summary";
+import { MatchSummary, MatchSummaryLoading } from "../components/match-summary";
 import { MatchPageHeader } from "../components/match-page-header";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
@@ -150,7 +149,7 @@ export function MatchScreen({
       <ReadFeedback
         key={matchId}
         query={match}
-        loadingContent={<SportingMatchLoading />}
+        loadingContent={<MatchSummaryLoading />}
       />
     ) : ownership && hasReadError(ownership) ? (
       <ReadFeedback

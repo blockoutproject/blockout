@@ -2,6 +2,7 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { Skeleton } from "@/shared/components/skeleton";
+import { MatchSurface } from "@/features/sporting/notification-presentation";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -16,13 +17,7 @@ export function NotificationLoading() {
   return (
     <LoadingGroup label="Chargement des notifications" style={styles.items}>
       {Array.from({ length: 3 }, (_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.card,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
+        <MatchSurface key={index}>
           <View
             style={[styles.header, { backgroundColor: colors.skeletonHeader }]}
           >
@@ -35,33 +30,20 @@ export function NotificationLoading() {
               <TextSkeleton width={198} />
               <TextSkeleton width={128} role="metadata" />
             </View>
+            <View style={styles.status} />
           </View>
           <View style={styles.body}>
-            <View style={styles.event}>
-              <TextSkeleton width={260} />
-            </View>
-            <View style={styles.participant}>
-              <View style={styles.teamCopy}>
-                <TextSkeleton width={188} />
+            <TextSkeleton width={260} />
+            {[188, 164].map((width) => (
+              <View key={width} style={styles.participant}>
+                <View style={styles.teamCopy}>
+                  <TextSkeleton width={width} />
+                </View>
+                <Skeleton width={scoreSize} height={scoreSize} />
               </View>
-              <Skeleton
-                width={scoreSize}
-                height={scoreSize}
-                shape="rectangle"
-              />
-            </View>
-            <View style={styles.participant}>
-              <View style={styles.teamCopy}>
-                <TextSkeleton width={164} />
-              </View>
-              <Skeleton
-                width={scoreSize}
-                height={scoreSize}
-                shape="rectangle"
-              />
-            </View>
+            ))}
           </View>
-        </View>
+        </MatchSurface>
       ))}
     </LoadingGroup>
   );
@@ -69,11 +51,6 @@ export function NotificationLoading() {
 
 const styles = StyleSheet.create({
   items: { gap: tokens.layout.list.gap },
-  card: {
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.panel,
-    overflow: "hidden",
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -81,14 +58,10 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.md,
   },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.optical },
+  status: { width: tokens.size.icon.md },
   body: { gap: tokens.spacing.sm, padding: tokens.spacing.md },
-  event: {
-    minHeight: tokens.typography.body.lineHeight,
-    justifyContent: "center",
-  },
   teamCopy: { flex: 1, minWidth: 0 },
   participant: {
-    minHeight: tokens.size.control.compact,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,

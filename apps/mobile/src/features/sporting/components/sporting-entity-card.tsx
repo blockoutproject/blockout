@@ -3,7 +3,13 @@ import { divisionTextColor } from "../presentation";
 import { SportingDivisionAtmosphere, SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import type {
   SportingIdentityResponse,
@@ -14,6 +20,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 const entityBadgeSize = 24;
@@ -246,20 +253,39 @@ export function SportingEntityCard({
 /** Neutral copies of the requested card reserve a first read without admitting identities. */
 export function SportingEntityCardLoading({
   label,
+  kind,
   layout = "discovery",
-}: Readonly<{ label: string; layout?: SportingEntityCardProps["layout"] }>) {
+}: Readonly<{
+  label: string;
+  kind?: SportingEntityCardProps["kind"];
+  layout?: SportingEntityCardProps["layout"];
+}>) {
   return (
     <LoadingGroup label={label} style={styles.loadingCards}>
       {Array.from({ length: 3 }, (_, index) => (
-        <EntityCardSkeleton key={index} clubTeam={layout === "club-team"} />
+        <EntityCardSkeleton
+          key={index}
+          kind={kind}
+          clubTeam={layout === "club-team"}
+        />
       ))}
     </LoadingGroup>
   );
 }
 
 /** Uses that card's ready media, badges and overlay border without painting division color or logos. */
-function EntityCardSkeleton({ clubTeam }: Readonly<{ clubTeam: boolean }>) {
+function EntityCardSkeleton({
+  clubTeam,
+  kind,
+}: Readonly<{ clubTeam: boolean; kind?: SportingEntityCardProps["kind"] }>) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const badgeHeight = Math.max(
+    entityBadgeSize,
+    tokens.typography.metadata.lineHeight * fontScale + 2 * tokens.spacing.xs,
+  );
+  const badgeWidths =
+    kind === "club" ? [80] : kind ? [92, 72, 46, 60] : [96, 76, 52];
   return (
     <View
       style={[
@@ -299,8 +325,8 @@ function EntityCardSkeleton({ clubTeam }: Readonly<{ clubTeam: boolean }>) {
               radius={tokens.media.radius.tile}
             />
             <View style={styles.name}>
-              <Skeleton />
-              <Skeleton width="75%" height={12} />
+              <TextSkeleton role="navigation" />
+              {kind !== "club" && <TextSkeleton role="metadata" width="75%" />}
             </View>
             <Skeleton
               width={tokens.size.icon.sm}
@@ -308,9 +334,9 @@ function EntityCardSkeleton({ clubTeam }: Readonly<{ clubTeam: boolean }>) {
             />
           </View>
           <View style={styles.metadata}>
-            <Skeleton width={96} height={entityBadgeSize} />
-            <Skeleton width={76} height={entityBadgeSize} />
-            <Skeleton width={52} height={entityBadgeSize} />
+            {badgeWidths.map((width) => (
+              <Skeleton key={width} width={width} height={badgeHeight} />
+            ))}
           </View>
         </>
       )}

@@ -1,4 +1,4 @@
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { IdentityCard } from "./identity-card";
 import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
@@ -10,58 +10,25 @@ export function IdentityCardSkeleton({
   club = false,
 }: Readonly<{ club?: boolean }>) {
   const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  const badgeHeight =
-    tokens.typography.metadata.lineHeight * fontScale +
-    2 * (tokens.spacing.xs + tokens.border.thin);
   return (
-    <IdentityCard
-      artworkBackgroundColor={colors.skeleton}
-      artwork={
-        <Skeleton
-          width={tokens.size.media.profile}
-          height={tokens.size.media.profile}
-          shape="rectangle"
-          radius={tokens.media.radius.profile}
-        />
-      }
-    >
+    <IdentityCard artwork={null} artworkBackgroundColor={colors.skeleton}>
       <View style={styles.heading}>
-        <TextSkeleton role="metadata" width={86} />
+        <TextSkeleton role="metadata" width="40%" />
         <TextSkeleton role={club ? "navigation" : "heading"} width="80%" />
       </View>
       {club ? (
         <TextSkeleton role="metadata" width="70%" />
       ) : (
         <>
-          <View style={styles.badges}>
-            <Skeleton
-              width={60 * fontScale + 18}
-              height={badgeHeight}
-              shape="rectangle"
-            />
-            <Skeleton
-              width={24 * fontScale + 18}
-              height={badgeHeight}
-              shape="rectangle"
-            />
+          <View style={styles.metadata}>
+            <TextSkeleton role="metadata" width="60%" />
           </View>
-          <View style={[styles.follow, { borderColor: colors.border }]}>
+          <View style={styles.action}>
             <Skeleton
-              width={
-                40 * fontScale +
-                tokens.spacing.md * 2 +
-                tokens.size.icon.md +
-                tokens.spacing.sm
-              }
-              height={Math.max(
-                tokens.size.control.compact,
-                tokens.typography.body.lineHeight * fontScale +
-                  tokens.spacing.sm * 2,
-              )}
+              width={tokens.layout.identity.railWidth}
+              height={tokens.size.control.compact}
               shape="rectangle"
             />
-            <TextSkeleton width={25} />
           </View>
         </>
       )}
@@ -71,13 +38,6 @@ export function IdentityCardSkeleton({
 
 const styles = StyleSheet.create({
   heading: { gap: tokens.spacing.xs },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
-  follow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: tokens.spacing.md,
-    paddingTop: tokens.spacing.md,
-    borderTopWidth: tokens.border.thin,
-  },
+  metadata: { paddingVertical: tokens.spacing.xs + tokens.border.thin },
+  action: { paddingTop: tokens.spacing.md + tokens.border.thin },
 });
