@@ -10,27 +10,42 @@ import { divisionTextColor } from "../presentation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import type {
-  PoolSummaryResponse,
-  StandingRowResponse,
-} from "../../../../.generated/schemas/index.zod";
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming,
+} from "react-native-reanimated";
+import type { StandingRowResponse } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
-
+import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import { StandingCards } from "./standing-cards";
 import { StandingsLoading } from "./standings-loading";
 
+const layoutSize = tokens.size.control.compact;
+const layoutInset = (tokens.touch.minimum - layoutSize) / 2;
+const layoutStep = tokens.touch.minimum + tokens.spacing.xs;
+const layoutTransition = {
+  duration: tokens.motion.compact.duration,
+  easing: Easing.bezier(...tokens.motion.compact.easing),
+  reduceMotion: ReduceMotion.Never,
+};
+
 /** One exact pool's independently retained table; team emphasis uses identity alone, never rank. */
 export interface PoolStandingsProps {
-  pool: PoolSummaryResponse;
+  poolId: string;
+  divisionColor: string | undefined;
   highlightTeamId?: string;
   /** Retained inactive panels cannot refresh or release an old sporting opening. */
   active?: boolean;
@@ -42,23 +57,35 @@ export interface PoolStandingsProps {
 
 /** Retains each table's layout and Query data while failures replace only its dependent pane. */
 export function PoolStandings({
-  pool,
+  poolId,
+  divisionColor,
   highlightTeamId,
   active = true,
   children,
   refreshEmpty = true,
 }: Readonly<PoolStandingsProps>) {
   const queries = useConsultationQueries();
-  const standings = useQuery(queries.standings(pool.pool.id));
+  const standings = useQuery(queries.standings(poolId));
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);
-  const divisionColor = pool.classification.division?.color;
   const selectedFill = divisionColor ?? colors.subtle;
   const selectedIcon = divisionColor
     ? divisionTextColor(divisionColor)
     : colors.icon;
+  const layoutTarget = layout === "list" ? 1 : 0;
+  const layoutProgress = useDerivedValue(() =>
+    reducedMotion ? layoutTarget : withTiming(layoutTarget, layoutTransition),
+  );
+  const indicatorPosition = useAnimatedStyle(() => ({
+    left: layoutInset + layoutProgress.value * layoutStep,
+  }));
+  const cardsInk = useAnimatedStyle(() => ({
+    opacity: 1 - layoutProgress.value,
+  }));
+  const listInk = useAnimatedStyle(() => ({ opacity: layoutProgress.value }));
 
   /** Joins or starts this table's safe read; Query owns retries, suspension and its result. */
   async function refresh() {
@@ -79,6 +106,11 @@ export function PoolStandings({
         accessibilityRole="radiogroup"
         accessibilityLabel="Présentation du classement"
       >
+        <SelectionIndicator
+          style={[styles.layoutIndicator, indicatorPosition]}
+          fill={selectedFill}
+          radius={tokens.radius.control}
+        />
         {(
           [
             ["cards", "Afficher en cartes", Columns3],
@@ -93,19 +125,26 @@ export function PoolStandings({
             onPress={() => setLayout(value)}
             style={styles.layoutAction}
           >
-            <View
-              style={[
-                styles.layoutVisual,
-                {
-                  backgroundColor: layout === value ? selectedFill : undefined,
-                },
-              ]}
-            >
-              <Icon
-                size={tokens.size.icon.md}
-                color={layout === value ? selectedIcon : colors.icon}
-              />
-            </View>
+            <Icon
+              accessible={false}
+              size={tokens.size.icon.md}
+              color={colors.icon}
+            />
+            {selectedIcon !== colors.icon && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.layoutInk,
+                  value === "cards" ? cardsInk : listInk,
+                ]}
+              >
+                <Icon
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={selectedIcon}
+                />
+              </Animated.View>
+            )}
           </Pressable>
         ))}
       </View>
@@ -371,19 +410,17 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.xs,
   },
   layoutAction: {
-    minWidth: tokens.touch.minimum,
-    minHeight: tokens.touch.minimum,
+    width: tokens.touch.minimum,
+    height: tokens.touch.minimum,
     alignItems: "center",
     justifyContent: "center",
   },
-  layoutVisual: {
-    width: tokens.size.control.compact,
-    height: tokens.size.control.compact,
+  layoutInk: {
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: tokens.radius.control,
-    overflow: "hidden",
   },
+  layoutIndicator: { top: layoutInset, width: layoutSize, height: layoutSize },
   row: {
     flexDirection: "row",
     alignItems: "center",

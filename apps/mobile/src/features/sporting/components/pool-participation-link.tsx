@@ -5,7 +5,6 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSportingNavigation } from "../navigation";
 import { poolLabel } from "../model/resource-sections";
-import { divisionTextColor } from "../presentation";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 
@@ -15,7 +14,7 @@ export interface PoolParticipationLinkProps {
   active: boolean;
 }
 
-/** Division-colored entry wraps its complete title while retaining exact active-scene navigation. */
+/** The full title wraps on the compact neutral surface. */
 export function PoolParticipationLink({
   pool,
   active,
@@ -23,9 +22,6 @@ export function PoolParticipationLink({
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   const division = pool.classification.division;
-  const foreground = division?.color
-    ? divisionTextColor(division.color)
-    : colors.text;
   const label = poolLabel(pool);
   return (
     <Pressable
@@ -39,12 +35,7 @@ export function PoolParticipationLink({
         },
       ]}
     >
-      <View
-        style={[
-          styles.entry,
-          { backgroundColor: division?.color ?? colors.subtle },
-        ]}
-      >
+      <View style={[styles.entry, { backgroundColor: colors.subtle }]}>
         {division ? (
           <SportingLogo
             identity={division}
@@ -58,13 +49,14 @@ export function PoolParticipationLink({
             size={tokens.size.icon.md}
           />
         )}
-        <Text accessible={false} style={[styles.label, { color: foreground }]}>
+        <Text accessible={false} style={[styles.label, { color: colors.text }]}>
           {label}
         </Text>
         <ChevronRight
           accessible={false}
           size={tokens.size.icon.sm}
-          color={foreground}
+          color={colors.secondaryText}
+          strokeWidth={1.5}
         />
       </View>
     </Pressable>

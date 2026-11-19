@@ -1,6 +1,6 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
 import { divisionTextColor } from "../presentation";
-import { SportingLogo } from "./sporting-identity";
+import { SportingDivisionAtmosphere, SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -122,13 +122,12 @@ export function SportingEntityCard({
     />
   );
 
-  /** The same admitted foreground URI supplies the passive left halo and the sharp card artwork. */
   function renderCard(logo: ReactNode, atmosphere: ReactNode) {
     const content = (
       <>
+        {atmosphere}
         {clubTeam ? (
           <>
-            {atmosphere}
             <View style={styles.clubRail}>{logo}</View>
             <View style={styles.clubCopy}>
               {division && (
@@ -153,10 +152,7 @@ export function SportingEntityCard({
           </>
         ) : (
           <>
-            <View
-              style={[styles.identity, { backgroundColor: colors.surface }]}
-            >
-              {atmosphere}
+            <View style={styles.identity}>
               {logo}
               <View style={styles.name}>
                 <Text
@@ -213,16 +209,8 @@ export function SportingEntityCard({
   const logoSize = clubTeam
     ? tokens.sporting.clubTeam.logoSize
     : tokens.size.media.entity;
-  return logoIdentity ? (
-    <SportingLogo
-      identity={logoIdentity}
-      kind={kind === "pool" ? "division" : kind}
-      size={logoSize}
-      presentation="entity"
-      renderWithAtmosphere={renderCard}
-    />
-  ) : (
-    renderCard(
+  if (!logoIdentity) {
+    return renderCard(
       <SportingMedia
         identity={identity}
         kind="division"
@@ -230,8 +218,29 @@ export function SportingEntityCard({
         presentation="entity"
       />,
       null,
-    )
+    );
+  }
+  const usesDivisionAtmosphere = kind === "team" && !clubTeam;
+  const logo = (
+    <SportingLogo
+      identity={logoIdentity}
+      kind={kind === "pool" ? "division" : kind}
+      size={logoSize}
+      presentation="entity"
+      renderWithAtmosphere={usesDivisionAtmosphere ? undefined : renderCard}
+    />
   );
+  return usesDivisionAtmosphere
+    ? renderCard(
+        logo,
+        division && (
+          <SportingDivisionAtmosphere
+            division={division}
+            presentation="entity"
+          />
+        ),
+      )
+    : logo;
 }
 
 /** Neutral copies of the requested card reserve a first read without admitting identities. */
@@ -356,7 +365,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.md,
     gap: tokens.spacing.md,
-    overflow: "hidden",
   },
   name: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   metadata: {

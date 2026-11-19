@@ -74,6 +74,7 @@ import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
 import { MatchSummary } from "../components/match-summary";
 import { MatchSetScores } from "../components/match-set-scores";
+import { SportingEntityCard } from "../entity-card";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("react-native-keyboard-controller", () =>
@@ -2256,17 +2257,26 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
-it("keeps a team readable when its native public logo fails", async () => {
-  // Given
+const teamDivisionId = "00000000-0000-4000-8000-000000000013";
+const teamDivision = {
+  id: teamDivisionId,
+  name: "Division des Deux Rives",
+  color: "#168C8C",
+  gradient: null,
+  logoUrl: `/divisions/${teamDivisionId}/logo`,
+};
+
+it("keeps the team's own division artwork when its foreground team logo fails", async () => {
+  // Given: the team and its pool belong to the same division, with separate crest and division images.
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+  team.team.classification.division = teamDivision;
+  team.participations[0].classification.division = teamDivision;
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
-
-  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
 
   // When
   await fireEvent(image, "error", {
@@ -2277,9 +2287,10 @@ it("keeps a team readable when its native public logo fails", async () => {
   await screen.findByRole("image", {
     name: `Logo indisponible : ${team.team.team.name}`,
   });
-  expect(
-    screen.queryByTestId("sporting-logo-atmosphere"),
-  ).not.toBeOnTheScreen();
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toHaveProp("source", {
+    uri: `https://api.example.invalid${teamDivision.logoUrl}`,
+    cache: "reload",
+  });
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
@@ -2291,12 +2302,7 @@ it("keeps sharp artwork, classification and the follow action usable when the de
   const follow = jest.fn();
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   team.team.classification = {
-    division: {
-      id: "00000000-0000-4000-8000-000000000013",
-      name: "Division des Deux Rives",
-      color: "#168C8C",
-      gradient: null,
-    },
+    division: teamDivision,
     format: "6x6",
     gender: "female",
   };
@@ -2345,9 +2351,10 @@ it("keeps sharp artwork, classification and the follow action usable when the de
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
   ).toHaveLength(0);
 });
-it("loads a public logo directly without native caching and unmounts it after its resource is refused", async () => {
+it("loads public artwork directly and withdraws both layers after the team is refused", async () => {
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+  team.team.classification.division = teamDivision;
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
@@ -2434,6 +2441,41 @@ it("shows a new native logo source after the previously published source failed"
     }),
   ).not.toBeOnTheScreen();
 });
+it.each([
+  { kind: "team", resource: "teams", background: teamDivision.logoUrl },
+  { kind: "pool", resource: "pools", background: teamDivision.logoUrl },
+  { kind: "club", resource: "clubs", background: `/clubs/${sportingId}/logo` },
+] as const)(
+  "draws the admitted background behind a $kind result",
+  async ({ kind, resource, background }) => {
+    // Given: the foreground entity and its division have distinguishable sources.
+    const identity = {
+      id: sportingId,
+      name: "Volley des Rives",
+      logoUrl: `/${resource}/${sportingId}/logo`,
+    };
+
+    // When
+    await renderPage(
+      <SportingEntityCard
+        identity={identity}
+        kind={kind}
+        classification={
+          kind === "club" ? undefined : { division: teamDivision }
+        }
+        onPress={jest.fn()}
+      />,
+    );
+
+    // Then
+    const link = screen.getByRole("link", { name: /Volley des Rives/ });
+    expect(within(link).getByTestId("sporting-logo-atmosphere")).toHaveProp(
+      "source",
+      { uri: `https://api.example.invalid${background}`, cache: "reload" },
+    );
+  },
+);
+
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {
   // Given
   const user = userEvent.setup();

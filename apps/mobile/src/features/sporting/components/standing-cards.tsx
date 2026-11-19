@@ -117,7 +117,7 @@ function StandingCard({
           <View
             pointerEvents="none"
             accessible={false}
-            style={styles.atmosphere}
+            style={styles.podiumAtmosphere}
           >
             {atmosphere}
           </View>
@@ -399,15 +399,19 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: tokens.spacing.xs,
   },
-  atmosphere: {
+  podiumAtmosphere: {
     position: "absolute",
     top:
       tokens.spacing.sm +
       (tokens.sporting.standingsCard.podiumIdentityMinHeight -
         tokens.sporting.standingsCard.atmosphereHeight) /
         2,
-    left: tokens.sporting.standingsCard.atmosphereLeft,
+    end:
+      tokens.spacing.sm +
+      (tokens.size.media.row - tokens.sporting.standingsCard.atmosphereWidth) /
+        2,
     width: tokens.sporting.standingsCard.atmosphereWidth,
     height: tokens.sporting.standingsCard.atmosphereHeight,
+    opacity: tokens.sporting.standingsCard.atmosphereOpacity,
   },
 });

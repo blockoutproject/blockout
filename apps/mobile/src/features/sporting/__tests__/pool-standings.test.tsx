@@ -79,6 +79,7 @@ const mockFetch = jest.fn();
 const mockPush = jest.fn();
 const environment = { ...process.env };
 const pool = matchDetail().match.pool;
+const divisionColor = pool.classification.division?.color;
 const otherTeam = "00000000-0000-4000-8000-000000002092";
 let client: QueryClient;
 let publicClient = createQueryClient();
@@ -181,7 +182,13 @@ afterEach(async () => {
 
 /** Real cache, generated decoder, theme, session and admission; only native/HTTP boundaries are controlled. */
 function open(
-  content = <PoolStandings pool={pool} highlightTeamId={sportingId} />,
+  content = (
+    <PoolStandings
+      poolId={pool.pool.id}
+      divisionColor={divisionColor}
+      highlightTeamId={sportingId}
+    />
+  ),
 ) {
   return render(content, {
     wrapper: ({ children }: Readonly<QueryFixtureProps>) => (
@@ -223,7 +230,8 @@ function panel(refreshEmpty = true) {
           label: "Classement",
           content: (
             <PoolStandings
-              pool={pool}
+              poolId={pool.pool.id}
+              divisionColor={divisionColor}
               highlightTeamId={sportingId}
               refreshEmpty={refreshEmpty}
             />

@@ -1,14 +1,14 @@
 import { createContext, useContext } from "react";
 import type { DerivedValue } from "react-native-reanimated";
 
-export const PagedTabCollapseContext =
+export const PagedTabHeaderOffsetContext =
   createContext<DerivedValue<number> | null>(null);
 
-/** Reads the shared identity progress from expanded (0) to fully folded (1). */
-export function usePagedTabCollapseProgress() {
-  const progress = useContext(PagedTabCollapseContext);
-  if (!progress) {
+/** Reads the vertical offset presented by the pager's fixed header. */
+export function usePagedTabHeaderOffset() {
+  const offset = useContext(PagedTabHeaderOffsetContext);
+  if (!offset) {
     throw new Error("A collapsible page header requires PagedTabs");
   }
-  return progress;
+  return offset;
 }

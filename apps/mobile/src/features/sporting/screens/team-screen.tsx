@@ -125,7 +125,8 @@ function TeamPage({
               />
             ) : participation ? (
               <PoolStandings
-                pool={participation}
+                poolId={participation.pool.id}
+                divisionColor={divisionColor}
                 highlightTeamId={teamId}
                 active={tab === item.id}
               >
