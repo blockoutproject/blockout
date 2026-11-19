@@ -44,19 +44,16 @@ export function PageHeader({
   const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
   const reducedMotion = useReducedMotion();
   const visibility = useDerivedValue(() => {
-    const progress =
-      revealOffset === undefined
-        ? 1
-        : clamp(
-            (revealOffset?.get() ?? 0) /
-              tokens.motion.navigation.headerRevealDistance,
-            0,
-            1,
-          );
-    if (reducedMotion) {
-      return progress >= 1 ? 1 : 0;
+    if (revealOffset === undefined) {
+      return 1;
     }
-    return Easing.quad(progress);
+    const progress = clamp(
+      (revealOffset?.get() ?? 0) /
+        tokens.motion.navigation.headerRevealDistance,
+      0,
+      1,
+    );
+    return reducedMotion ? Number(progress >= 1) : Easing.quad(progress);
   });
   const center = useAnimatedStyle(() => ({ opacity: visibility.get() }));
   const accessibility = useAnimatedProps(() => {

@@ -146,6 +146,7 @@ function NativePagedTabs({
     header && collapsibleHeader
       ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
       : headerHeight;
+  const minContentHeight = height ? height + minScrollDistance : 0;
   const inset = topInset + (header ? pinnedHeight : 0);
   const stickyInset = inset + railHeight;
   const contentInset = stickyInset + headerHeight;
@@ -175,29 +176,24 @@ function NativePagedTabs({
     );
   }
 
-  const chromeOffset = useDerivedValue(() => {
-    const page = position.get();
-    const request = command.get();
-    return request?.jump
-      ? mix(
-          request.jump.collapse,
-          sceneOffset(scenes[request.target], headerHeight),
-          jumpProgress(page, request.jump.start, request.target),
-        )
-      : visibleOffset(scenes, page, headerHeight);
-  });
-  const headerOffset = useDerivedValue(() => {
-    const page = position.get();
-    const request = command.get();
-    const limit = tokens.motion.navigation.headerRevealDistance;
-    return request?.jump
-      ? mix(
-          request.jump.header,
-          sceneOffset(scenes[request.target], limit),
-          jumpProgress(page, request.jump.start, request.target),
-        )
-      : visibleOffset(scenes, page, limit);
-  });
+  const chromeOffset = useDerivedValue(() =>
+    projectedOffset(
+      scenes,
+      position.get(),
+      command.get(),
+      headerHeight,
+      "collapse",
+    ),
+  );
+  const headerOffset = useDerivedValue(() =>
+    projectedOffset(
+      scenes,
+      position.get(),
+      command.get(),
+      tokens.motion.navigation.headerRevealDistance,
+      "header",
+    ),
+  );
   const materialOffset = useDerivedValue(() => {
     const page = position.get();
     const request = command.get();
@@ -209,11 +205,7 @@ function NativePagedTabs({
     // A passing scrolled page still needs material behind the fixed identity.
     return Math.max(
       visible,
-      mix(
-        request.jump.material,
-        sceneOffset(scenes[request.target], limit),
-        jumpProgress(page, request.jump.start, request.target),
-      ),
+      projectedOffset(scenes, page, request, limit, "material"),
     );
   });
   const collapseProgress = useDerivedValue(() =>
@@ -456,7 +448,7 @@ function NativePagedTabs({
                 contentInset={contentInset}
                 stickyInset={stickyInset}
                 headerHeight={headerHeight}
-                minContentHeight={height ? height + minScrollDistance : 0}
+                minContentHeight={minContentHeight}
               >
                 {tab.content}
               </TabScene>
@@ -628,6 +620,25 @@ function visibleOffset(
     sceneOffset(scenes[index], limit),
     sceneOffset(scenes[Math.ceil(position)], limit),
     position - index,
+  );
+}
+
+/** Non-adjacent presses project directly from the captured source to the destination. */
+function projectedOffset(
+  scenes: readonly SceneOffset[],
+  page: number,
+  command: TabCommand | null,
+  limit: number,
+  source: "collapse" | "header" | "material",
+) {
+  "worklet";
+  if (!command?.jump) {
+    return visibleOffset(scenes, page, limit);
+  }
+  return mix(
+    command.jump[source],
+    sceneOffset(scenes[command.target], limit),
+    jumpProgress(page, command.jump.start, command.target),
   );
 }
 
