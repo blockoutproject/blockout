@@ -1453,7 +1453,7 @@ it.each(["empty", "populated"] as const)(
 );
 
 it("keeps the selected participation and permits selecting its former index after a team refetch inserts a phase", async () => {
-  // Given: the page uses real Query and RNCT; only HTTP/native layout and pager I/O are controlled.
+  // Given: the page uses real Query and PagedTabs with controlled HTTP and native events.
   const user = userEvent.setup();
   team.participations = team.participations.map((entry, index) => ({
     ...entry,

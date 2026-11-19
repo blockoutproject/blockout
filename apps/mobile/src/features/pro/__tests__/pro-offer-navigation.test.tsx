@@ -76,8 +76,8 @@ jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@/shared/components/selection-indicator", () => {
   const { Text } = jest.requireActual("react-native");
   return {
-    SelectionIndicator: ({ fill }: { fill: string | { value: string } }) => (
-      <Text>{`Selected capsule fill: ${typeof fill === "string" ? fill : fill.value}`}</Text>
+    SelectionIndicator: ({ fill }: { fill: { value: string } }) => (
+      <Text>{`Selected capsule fill: ${fill.value}`}</Text>
     ),
   };
 });

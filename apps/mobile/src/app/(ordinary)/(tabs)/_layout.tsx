@@ -250,7 +250,6 @@ function NavigationCapsule({
           <SelectionIndicator
             layout={layout}
             reducedMotion={reducedMotion}
-            radius={tokens.radius.panelInset}
             fill={selectedFill}
           />
           {children}

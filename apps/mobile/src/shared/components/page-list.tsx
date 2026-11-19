@@ -1,9 +1,6 @@
 import { useImperativeHandle, useMemo, type Ref } from "react";
 import { FlatList, type FlatListProps } from "react-native";
-import {
-  type LegendListProps,
-  type LegendListRef,
-} from "@legendapp/list/react-native";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import {
   AnimatedLegendList,
   type AnimatedLegendListProps,
@@ -13,11 +10,10 @@ import { NavigationScrollMarker } from "./navigation-backdrop";
 import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 
-/** Keeps LegendList's public callbacks while correcting its legacy ScrollView component-ref type. */
-type PageListProps<T> = Omit<LegendListProps<T>, "refScrollView"> &
-  Pick<AnimatedLegendListProps<T>, "refScrollView"> & {
-    ref?: Ref<LegendListRef>;
-  };
+/** The page owns the offset published to pinned chrome. */
+type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
+  ref?: Ref<LegendListRef>;
+};
 
 /** Native virtualized content scrolls behind the shared pinned chrome. */
 export function PageList<T>({

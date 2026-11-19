@@ -9,7 +9,7 @@ jest.mock("react-native-reanimated", () =>
   jest.requireMock("react-native-reanimated/mock"),
 );
 
-jest.mock("@legendapp/list/react-native", () => {
+jest.mock("@legendapp/list/reanimated", () => {
   const { FlatList } =
     jest.requireActual<typeof import("react-native")>("react-native");
 
@@ -28,13 +28,8 @@ jest.mock("@legendapp/list/react-native", () => {
     );
   }
 
-  return { LegendList: NativeLegendViewport };
+  return { AnimatedLegendList: NativeLegendViewport };
 });
-
-jest.mock("@legendapp/list/reanimated", () => ({
-  AnimatedLegendList: jest.requireMock("@legendapp/list/react-native")
-    .LegendList,
-}));
 
 /** Supplies the layout absent from the native test renderer; these bounds prove no geometry. */
 export async function layoutNativeTabs() {
