@@ -96,14 +96,15 @@ let publicClient = createQueryClient();
 
 /** Controls HTTP only; generation, response validation, Query, session and admission stay real. */
 function publicReads(url: string): Promise<Response> {
-  const path = new URL(url).pathname;
+  const { pathname: path, searchParams } = new URL(url);
+  const changedSearch = searchParams.get("q") === "Nouveau";
   if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
   }
   if (path.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
-        resourceType: new URL(url).searchParams.get("resourceType"),
+        resourceType: searchParams.get("resourceType"),
         seasons: [season],
         divisions: [],
         formats: ["6x6", "4x4", "2x2"],
@@ -114,10 +115,12 @@ function publicReads(url: string): Promise<Response> {
   if (path.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
-        clubs: [
-          { club: { id: firstId, name: "Volley" }, city: "Lyon" },
-          { club: { id: secondId, name: "Volley" }, city: "Niort" },
-        ],
+        clubs: changedSearch
+          ? [{ club: { id: firstId, name: "Nouveau club" } }]
+          : [
+              { club: { id: firstId, name: "Volley" }, city: "Lyon" },
+              { club: { id: secondId, name: "Volley" }, city: "Niort" },
+            ],
       }),
     );
   }
@@ -126,7 +129,10 @@ function publicReads(url: string): Promise<Response> {
       Response.json({
         teams: [
           {
-            team: { id: firstId, name: "Volley professionnel" },
+            team: {
+              id: firstId,
+              name: changedSearch ? "Nouvelle équipe" : "Volley professionnel",
+            },
             season,
             classification: { format: "6x6", gender: "female" },
             professional: true,
@@ -403,9 +409,27 @@ it("selects the search resource through native page settlement and retains its s
   ).toBe(true);
 });
 
-it("reads changed text only for the selected resource and preserves equivalent normalized criteria", async () => {
+it("keeps changed-text neighbours on previews until their own settlement", async () => {
   // Given: all three scene contexts exist, with their accepted result pages.
   const user = userEvent.setup();
+  const previews = {
+    name: "Chargement des résultats",
+    includeHiddenElements: true,
+  };
+
+  function pendingPreviewCount() {
+    // The native double does not report ready layout to release each result list's decorative handoff.
+    const handoffs = screen
+      .getAllByLabelText("Résultats de recherche", {
+        includeHiddenElements: true,
+      })
+      .flatMap((list) => within(list).queryAllByRole("progressbar", previews));
+
+    return (
+      screen.queryAllByRole("progressbar", previews).length - handoffs.length
+    );
+  }
+
   await renderSearch();
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByText("Volley professionnel");
@@ -416,16 +440,27 @@ it("reads changed text only for the selected resource and preserves equivalent n
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Volley professionnel");
   mockFetch.mockClear();
-  // Equivalent normalized criteria retain the accepted scenes without another read.
+
+  // When: the text changes without changing the normalized criteria.
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
+
+  // Then: the accepted scenes remain present without another read.
   expect(mockFetch).not.toHaveBeenCalled();
   expect(screen.getByText("Volley professionnel")).toBeOnTheScreen();
+  expect(
+    screen.getByText("Championnat public · Phase finale", {
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText("Niort", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
 
   // When: the common RHF text changes while Teams is selected.
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Nouveau");
-  await screen.findByText("Volley professionnel");
+  await screen.findByText("Nouvelle équipe");
 
-  // Then: retained neighbour contexts perform no read for that new text.
+  // Then: new neighbour contexts only render a passive preview.
   const reads = mockFetch.mock.calls
     .map(([url]) => new URL(String(url)))
     .filter((url) => /\/(clubs|teams|pools)$/.test(url.pathname));
@@ -435,8 +470,37 @@ it("reads changed text only for the selected resource and preserves equivalent n
   expect(
     screen.getByRole("header", { name: "1 résultat chargé" }),
   ).toBeOnTheScreen();
+  expect(pendingPreviewCount()).toBe(2);
 
-  // When: the user returns to earlier criteria while Teams stays selected.
+  // When: the user approaches Pools and returns to Teams before selection changes.
+  mockFetch.mockClear();
+  await scrollNativeTabs(0.5);
+  await scrollNativeTabs(0, true);
+
+  // Then
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  expect(pendingPreviewCount()).toBe(2);
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: the pager crosses Pools and settles on Clubs.
+  await scrollNativeTabs(1);
+  await scrollNativeTabs(2, true);
+
+  // Then: Clubs shows its current result while the passed page keeps its preview.
+  expect(await screen.findByText("Nouveau club")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Niort", { includeHiddenElements: true }),
+  ).toBeNull();
+  expect(pendingPreviewCount()).toBe(1);
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  const clubRead = new URL(String(mockFetch.mock.calls[0][0]));
+  expect(clubRead.pathname).toBe("/clubs");
+  expect(clubRead.searchParams.get("q")).toBe("Nouveau");
+
+  // When: the user returns to Teams and enters the earlier criteria again.
+  await scrollNativeTabs(0, true);
   mockFetch.mockClear();
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByText("Volley professionnel");

@@ -43,7 +43,7 @@ export interface PagedTab {
   id: string;
   label: string;
   content: ReactNode;
-  /** Passive loading shape shown until the page settles for the first time. */
+  /** Passive loading shape shown until this scene context first settles. */
   preview?: ReactNode;
   /** A changed reading context replaces only this scene and its native scroll position. */
   resetKey?: string;
@@ -81,7 +81,7 @@ interface TabCommand {
   jump?: { start: number; collapse: number; material: number; header: number };
 }
 
-/** Settling a visit admits feature content once; each scene owns its reading position. */
+/** Settled selection admits each scene context, which owns its reading position. */
 export function PagedTabs({
   tabs,
   selected,
@@ -109,15 +109,11 @@ export function PagedTabs({
   const [brandHeight, setBrandHeight] = useState(collapsibleHeaderMinHeight);
   const [railHeight, setRailHeight] = useState(tabBarMinHeight);
   const [settled, setSettled] = useState(selected);
-  const [visited, setVisited] = useState(() => new Set([selected]));
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
   const settleScene = useCallback((id: string) => {
     settledTab.current = id;
     setSettled(id);
-    setVisited((current) =>
-      current.has(id) ? current : new Set([...current, id]),
-    );
   }, []);
   const retainedIndex = tabs.findIndex(({ id }) => id === settled);
   const selectedIndex =
@@ -429,7 +425,6 @@ export function PagedTabs({
                 command={command}
                 collapse={chromeOffset}
                 active={index === selectedIndex}
-                visited={index === selectedIndex || visited.has(tab.id)}
                 preview={tab.preview}
                 width={width}
                 height={height}
@@ -509,7 +504,6 @@ function TabScene({
   command,
   collapse,
   active,
-  visited,
   preview,
   width,
   height,
@@ -524,7 +518,6 @@ function TabScene({
   command: SharedValue<TabCommand | null>;
   collapse: Pick<SharedValue<number>, "get">;
   active: boolean;
-  visited: boolean;
   preview?: ReactNode;
   width: number;
   height: number;
@@ -534,6 +527,11 @@ function TabScene({
   minContentHeight: number;
   children: ReactNode;
 }>) {
+  // Keep content mounted after first selection for the lifetime of this scene key.
+  const [admitted, setAdmitted] = useState(active);
+  if (active && !admitted) {
+    setAdmitted(true);
+  }
   const frame = useAnimatedStyle(() => {
     if (scene.fullHeight) {
       return { top: contentInset - collapse.get() };
@@ -558,15 +556,15 @@ function TabScene({
       accessibilityElementsHidden={!active}
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
     >
-      {(visited || preview != null) && (
+      {(admitted || preview != null) && (
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
             frame,
-            !visited && !scene.fullHeight && { paddingTop: contentInset },
+            !admitted && !scene.fullHeight && { paddingTop: contentInset },
           ]}
         >
-          {visited ? (
+          {admitted ? (
             <PageScrollContext
               value={
                 scene.fullHeight
