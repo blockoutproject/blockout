@@ -1,6 +1,5 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -12,13 +11,6 @@ export function useGuestNavigation() {
   const session = useAccountSession();
   const router = useRouter();
   const feedback = useActionFeedback();
-  const mounted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   /** Uses native local clearing; a failed action remains visible and retryable. */
   async function continueAsGuest() {
@@ -31,9 +23,7 @@ export function useGuestNavigation() {
       await clearing;
       router.replace(homeHref);
     } catch {
-      if (mounted.current) {
-        feedback.error();
-      }
+      feedback.error();
     }
   }
 

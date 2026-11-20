@@ -139,13 +139,9 @@ export function ModerationMatchScreen({
           body: { actorAccountId, revision, action },
         });
       }
-      if (mounted.current) {
-        setConfirmed(true);
-      }
+      setConfirmed(true);
     } catch {
-      if (mounted.current) {
-        feedback.error();
-      }
+      feedback.error();
     }
   }
 

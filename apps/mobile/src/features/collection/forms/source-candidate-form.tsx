@@ -8,7 +8,6 @@ import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
-import { useEffect, useRef } from "react";
 import { Controller, useFormState } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -46,7 +45,6 @@ export function SourceCandidateForm({
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const router = useRouter();
-  const mounted = useRef(false);
   const editor = useSourceCandidateDraft(source);
   const state = editor.state;
   const { editingUrl, feedback } = state;
@@ -73,12 +71,6 @@ export function SourceCandidateForm({
     editing.candidate.isPending ||
     editing.validation.isPending ||
     editing.confirmation.isPending;
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   if (!state.baseline || !displayed) {
     return null;
@@ -92,15 +84,11 @@ export function SourceCandidateForm({
       return;
     }
     const accepted = await confirmDiscard(() => {
-      if (mounted.current && !editing.candidate.isPending) {
-        reset(sourceCandidateValues(baseline), {
-          keepDirtyValues: false,
-          keepDirty: false,
-          keepErrors: false,
-        });
+      if (!editing.candidate.isPending) {
+        editor.discard();
       }
     });
-    if (!accepted || !mounted.current || editing.candidate.isPending) {
+    if (!accepted || editing.candidate.isPending) {
       return;
     }
     editor.update({ ...editor.state, editingUrl: false });

@@ -87,10 +87,7 @@ export function ModerationPublicationForm({
     /** A successful user-requested read starts a new intentional revision; background reads keep the dirty baseline. */
     async refresh() {
       const [read] = await editing.refresh();
-      if (mounted.current) {
-        const latest = read.pages[0];
-        revision.current = latest.revision;
-      }
+      revision.current = read.pages[0].revision;
     },
   }));
   const busy =
@@ -124,14 +121,12 @@ export function ModerationPublicationForm({
         onSuccess();
       }
     } catch (error) {
-      if (mounted.current) {
-        if (error instanceof ApiError && error.status === 422) {
-          setError("url", {
-            message: "Le lien a été refusé. Votre saisie est conservée.",
-          });
-        } else {
-          feedback.error();
-        }
+      if (error instanceof ApiError && error.status === 422) {
+        setError("url", {
+          message: "Le lien a été refusé. Votre saisie est conservée.",
+        });
+      } else {
+        feedback.error();
       }
     }
   }

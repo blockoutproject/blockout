@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { CircleCheck } from "lucide-react-native";
-import { useEffect, useRef } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { z } from "zod";
@@ -137,19 +136,12 @@ function ReportForm({
   const router = useRouter();
   const feedback = useActionFeedback();
   const { command, query } = reporting;
-  const mounted = useRef(true);
   const { control, handleSubmit, reset, setError } =
     useForm<CreateStreamReportRequest>({
       resolver: zodResolver(reasonSchema),
       defaultValues: { reason: "" },
     });
   const { isDirty } = useFormState({ control });
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const matchAvailable =
     match.data !== undefined && !isOwnContributionAccessDenied(match.error);
   const currentVersionUrl =
@@ -187,9 +179,6 @@ function ReportForm({
       await attempt;
       reset({ reason: "" });
     } catch (error) {
-      if (!mounted.current) {
-        return;
-      }
       if (error instanceof ApiError && error.status === 422) {
         setError("reason", {
           message: "Le signalement a été refusé. Votre saisie est conservée.",
