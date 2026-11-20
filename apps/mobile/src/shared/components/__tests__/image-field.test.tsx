@@ -65,11 +65,13 @@ function ImageField({
   multiple,
   selectionLimit,
   ...props
-}: Readonly<Omit<ImageFieldProps, "selection"> & ImageSelectionOptions>) {
+}: Readonly<
+  Omit<ImageFieldProps, "selection"> & Omit<ImageSelectionOptions, "mode">
+>) {
   const selection = useImageSelection({
+    mode: multiple ? "multiple" : "single",
     onSelect,
     canSelect,
-    multiple,
     selectionLimit,
   });
   return (
@@ -79,7 +81,8 @@ function ImageField({
 
 /** Mounts only the image control's required providers; each scenario supplies its native results and callbacks. */
 function renderField(
-  props: Partial<Omit<ImageFieldProps, "selection">> & ImageSelectionOptions,
+  props: Partial<Omit<ImageFieldProps, "selection">> &
+    Omit<ImageSelectionOptions, "mode">,
 ) {
   return render(
     <MediaProviders>
@@ -110,6 +113,7 @@ it("loans native image copies without imposing cropping and releases them after 
       mediaTypes: ["images"],
       preferredAssetRepresentationMode:
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+      allowsEditing: false,
       allowsMultipleSelection: false,
     }),
   );
@@ -125,9 +129,10 @@ it("opens one native picker when selection is requested twice before a render", 
   const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
   launch.mockReturnValue(picker.promise);
   const onSelect = jest.fn();
-  const { result } = await renderHook(() => useImageSelection({ onSelect }), {
-    wrapper: MediaProviders,
-  });
+  const { result } = await renderHook(
+    () => useImageSelection({ mode: "single", onSelect }),
+    { wrapper: MediaProviders },
+  );
 
   // When
   await act(async () => {
@@ -154,7 +159,11 @@ it("respects the caller's selection admission and allows a later explicit attemp
   const onSelect = jest.fn();
   const view = await renderHook(
     ({ admitted }: { admitted: boolean }) =>
-      useImageSelection({ canSelect: () => admitted, onSelect }),
+      useImageSelection({
+        mode: "single",
+        canSelect: () => admitted,
+        onSelect,
+      }),
     { wrapper: MediaProviders, initialProps: { admitted: false } },
   );
 
@@ -322,7 +331,6 @@ it("selects multiple additions and only one image for a replacement", async () =
   expect(launch).toHaveBeenLastCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: false,
-      selectionLimit: 1,
     }),
   );
 });

@@ -21,7 +21,7 @@ export function ImageFieldExamplesScreen() {
   const [fail, setFail] = useState(false);
   const [error, setError] = useState<string>();
   const selection = useImageSelection({
-    multiple,
+    mode: multiple ? "multiple" : "single",
     selectionLimit: 5,
     onSelect: async (assets, replaceId) => {
       if (fail) {

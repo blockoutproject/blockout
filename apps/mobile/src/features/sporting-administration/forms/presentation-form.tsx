@@ -66,13 +66,10 @@ export function PresentationForm({
   const feedback = state.feedback;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
+    mode: "crop",
     canSelect: () =>
       !disabled && !editing.save.isPending && !activity.save.isPending,
-    onSelect: async (assets) => {
-      const asset = assets[0];
-      if (!asset) {
-        return;
-      }
+    onSelect: async ([asset]) => {
       try {
         const prepared = await copySelectedImage(asset);
         if (mounted.current) {
