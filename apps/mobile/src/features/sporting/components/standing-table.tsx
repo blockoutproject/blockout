@@ -1,5 +1,6 @@
-import { useId, type ReactNode } from "react";
+import { useId, type ComponentProps, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { StandingRowResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
@@ -22,6 +23,7 @@ interface StandingTableProps {
   active: boolean;
   highlightTeamId?: string;
   divisionColor?: string;
+  style?: ComponentProps<typeof Animated.View>["style"];
 }
 
 const medals = ["first", "second", "third"] as const;
@@ -35,6 +37,7 @@ export function StandingTable({
   active,
   highlightTeamId,
   divisionColor,
+  style,
 }: Readonly<StandingTableProps>) {
   const rankedRows = rows.map((row, index) => ({
     row,
@@ -70,7 +73,7 @@ export function StandingTable({
   }
 
   return (
-    <View style={tableStyle}>
+    <Animated.View style={[tableStyle, style]}>
       <View style={podium ? standingsLayout.podium : tableStyle}>
         {renderRows(
           top,
@@ -79,7 +82,7 @@ export function StandingTable({
         )}
       </View>
       {renderRows(rankedRows.slice(3), layout)}
-    </View>
+    </Animated.View>
   );
 }
 

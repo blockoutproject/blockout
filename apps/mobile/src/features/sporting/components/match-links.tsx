@@ -37,7 +37,10 @@ export function MatchLinks({
   }
   const target = `${detail.match.id}:${detail.streamContributionId ?? "professional"}:${url}`;
   return (
-    <MatchSurface division={detail.match.pool.classification.division}>
+    <MatchSurface
+      division={detail.match.pool.classification.division}
+      revealBlock="links"
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <Text

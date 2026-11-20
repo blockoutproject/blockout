@@ -1,5 +1,12 @@
-import { startTransition, useCallback, useState, type ReactNode } from "react";
+import {
+  createContext,
+  startTransition,
+  useCallback,
+  useState,
+  type ReactNode,
+} from "react";
 import { StyleSheet, View } from "react-native";
+import { useIsFocused } from "expo-router";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { PageViewport } from "@/shared/components/navigation-backdrop";
@@ -7,6 +14,10 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
+import {
+  ContentRevealReadyContext,
+  useSingleContentReveal,
+} from "@/shared/components/content-reveal";
 import { tokens } from "@/shared/theme/tokens";
 import { CalendarSkeleton } from "./calendar-loading";
 import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
@@ -16,6 +27,11 @@ export const sportingIdentityHeaderMinHeight =
   tokens.layout.identity.minHeight +
   tokens.layout.content.start +
   tokens.layout.content.end;
+
+/** A season can replace the pager while the common card remains presented within the detail visit. */
+export const SportingIdentityRevealContext = createContext<
+  ReturnType<typeof useSingleContentReveal> | undefined
+>(undefined);
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<
@@ -74,6 +90,8 @@ export function SportingInitialComposition({
   const unresolved = reads.filter((read) => !isSportingInitialReadReady(read));
   const [retrying, setRetrying] = useState(false);
   const blocked = unresolved.length > 0;
+  const canPresent = useIsFocused() && !blocked;
+  const identityReveal = useSingleContentReveal(canPresent);
   const fetching = unresolved.some((read) => read.isFetching);
   const failed = unresolved.some(hasReadError);
 
@@ -98,7 +116,11 @@ export function SportingInitialComposition({
         accessibilityElementsHidden={blocked}
         importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
       >
-        {children}
+        <ContentRevealReadyContext value={canPresent}>
+          <SportingIdentityRevealContext value={identityReveal}>
+            {children}
+          </SportingIdentityRevealContext>
+        </ContentRevealReadyContext>
       </View>
       {blocked && (
         <View style={StyleSheet.absoluteFill}>

@@ -91,7 +91,11 @@ export function MatchSummary({
     </>
   );
   return (
-    <MatchSurface division={division} raised={!contextual}>
+    <MatchSurface
+      division={division}
+      raised={!contextual}
+      revealBlock="summary"
+    >
       {contextual ? (
         <View
           style={[styles.pool, styles.contextPool, { backgroundColor: accent }]}

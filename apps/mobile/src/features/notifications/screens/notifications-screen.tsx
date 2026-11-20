@@ -2,6 +2,12 @@ import { Flag, RefreshCw } from "lucide-react-native";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
 import {
+  useContentReveal,
+  useContentRevealStyle,
+  type ContentRevealStyle,
+} from "@/shared/components/content-reveal";
+import { useFlatListReveal } from "@/shared/components/use-flat-list-reveal";
+import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
@@ -9,6 +15,7 @@ import {
 import { useNavigation, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
 import { StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
 
 import {
   Page,
@@ -34,7 +41,10 @@ import { useInboxQueries } from "../api/use-inbox-queries";
 import type { InboxOwner, InboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
-import { NotificationItem } from "../components/notification-item";
+import {
+  NotificationItem,
+  type NotificationItemProps,
+} from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
 import {
   AccountRecovery,
@@ -106,6 +116,22 @@ function NotificationsHeader() {
   );
 }
 
+function notificationKey(item: NotificationItemProps["notification"]) {
+  return item.id;
+}
+
+function InboxRow({
+  revealStyle,
+  ...props
+}: Readonly<NotificationItemProps & { revealStyle: ContentRevealStyle }>) {
+  const fade = useContentRevealStyle(revealStyle, props.notification.id);
+  return (
+    <Animated.View style={fade}>
+      <NotificationItem {...props} />
+    </Animated.View>
+  );
+}
+
 /** Native growing list with a fully named, one-line page title; read and match navigation settle independently in their existing owners. */
 function Inbox({
   owner,
@@ -135,6 +161,12 @@ function Inbox({
       : (query.data?.pages ?? [])
           .flatMap((page) => page.notifications)
           .filter((row) => notificationExpiry(row) > openedAt);
+  const { start, style: revealStyle } = useContentReveal();
+  const revealVisibleRows = useFlatListReveal(
+    focused && rows.length > 0,
+    start,
+    notificationKey,
+  );
   /** Opening filters retained ages; the enabled infinite query owns current list reads. */
   const open = useEffectEvent(() => {
     expireInbox(client, queries);
@@ -234,12 +266,13 @@ function Inbox({
       <PageFlatList
         alwaysBounceVertical={rows.length > 0}
         data={rows}
+        {...revealVisibleRows}
         onEndReached={() => {
           if (!query.isError) {
             void loadMore();
           }
         }}
-        keyExtractor={(item) => item.id}
+        keyExtractor={notificationKey}
         ItemSeparatorComponent={ListSeparator}
         contentContainerStyle={
           rows.length || continuationFailed || query.isFetchingNextPage
@@ -267,8 +300,9 @@ function Inbox({
           </>
         }
         renderItem={({ item }) => (
-          <NotificationItem
+          <InboxRow
             notification={item}
+            revealStyle={revealStyle}
             pending={command.isPending && command.variables === item.id}
             onPress={() => openNotification(item.id, item.match.id)}
           />

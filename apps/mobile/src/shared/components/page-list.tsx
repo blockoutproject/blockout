@@ -1,14 +1,21 @@
 import {
   createElement,
   isValidElement,
+  useCallback,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type Ref,
+  type RefObject,
 } from "react";
 import { FlatList, StyleSheet, View, type FlatListProps } from "react-native";
-import type { LegendListRef } from "@legendapp/list/react-native";
+import type {
+  LegendListMetrics,
+  LegendListRef,
+} from "@legendapp/list/react-native";
 import {
   AnimatedLegendList,
   type AnimatedLegendListProps,
@@ -17,6 +24,7 @@ import { useAnimatedRef, useScrollOffset } from "react-native-reanimated";
 import { NavigationScrollMarker } from "./navigation-backdrop";
 import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useBottomContentInset } from "./bottom-content-inset";
 
 /** The page owns the offset published to pinned chrome. */
 type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
@@ -105,6 +113,81 @@ export function PageList<T>({
       />
     </NavigationScrollMarker>
   );
+}
+
+/** Samples LegendList's visible range after layout, including content first shown after the scene settles. */
+export function useLegendListReveal<T>({
+  list,
+  items,
+  keyForItem,
+  start,
+  active,
+  contentContainerStyle,
+}: Readonly<{
+  list: RefObject<LegendListRef | null>;
+  items: readonly T[];
+  keyForItem: (item: T) => string | undefined;
+  start: (keys: readonly string[]) => void;
+  active: boolean;
+  contentContainerStyle: PageListProps<T>["contentContainerStyle"];
+}>) {
+  const laidOut = useRef(false);
+  const headerHeight = useRef(0);
+  const { clearance } = usePageScrollBinding(contentContainerStyle);
+  const bottomInset = useBottomContentInset();
+  const reveal = useCallback(() => {
+    if (!active || !laidOut.current) {
+      return;
+    }
+    const viewport = list.current?.getState();
+    if (
+      !viewport ||
+      viewport.start == null ||
+      viewport.start < 0 ||
+      viewport.end == null
+    ) {
+      return;
+    }
+    // LegendList's item coordinates exclude the list's header and its content padding.
+    const visibleEnd =
+      viewport.scroll +
+      viewport.scrollLength -
+      headerHeight.current -
+      clearance.paddingTop -
+      bottomInset;
+    const keys = new Set<string>();
+    const visibleItems = items.slice(viewport.start, viewport.end + 1);
+    for (const [index, item] of visibleItems.entries()) {
+      const top = viewport.positionAtIndex(viewport.start + index);
+      if (top === undefined || top >= visibleEnd) {
+        continue;
+      }
+      const key = keyForItem(item);
+      if (key !== undefined) {
+        keys.add(key);
+      }
+    }
+    start([...keys]);
+  }, [
+    active,
+    bottomInset,
+    clearance.paddingTop,
+    items,
+    keyForItem,
+    list,
+    start,
+  ]);
+
+  useLayoutEffect(reveal, [reveal]);
+  return {
+    onReady() {
+      laidOut.current = true;
+      reveal();
+    },
+    onMetricsChange(metrics: LegendListMetrics) {
+      headerHeight.current = metrics.headerSize;
+    },
+  };
 }
 
 const styles = StyleSheet.create({

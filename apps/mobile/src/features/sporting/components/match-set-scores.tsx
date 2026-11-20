@@ -23,7 +23,10 @@ export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
     return null;
   }
   return (
-    <MatchSurface division={match.pool.classification.division}>
+    <MatchSurface
+      division={match.pool.classification.division}
+      revealBlock="scores"
+    >
       <View style={styles.content}>
         <Text
           accessibilityRole="header"

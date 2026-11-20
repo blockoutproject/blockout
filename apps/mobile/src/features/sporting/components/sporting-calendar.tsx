@@ -1,4 +1,4 @@
-import { PageList } from "@/shared/components/page-list";
+import { PageList, useLegendListReveal } from "@/shared/components/page-list";
 import {
   PageScrollView,
   pageContentStyle,
@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import type {
   MatchCalendarResponse,
   MatchSummaryResponse,
@@ -35,6 +36,11 @@ import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "@/shared/components/screen-state";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
+import {
+  useContentReveal,
+  useContentRevealStyle,
+  type ContentRevealStyle,
+} from "@/shared/components/content-reveal";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { calendarDays, type CalendarSelection } from "../api/sporting-calendar";
@@ -74,7 +80,7 @@ export function SportingCalendar({
   );
   return (
     <SportingCalendarView
-      key={hashKey(queryKey)}
+      traversalKey={hashKey(queryKey)}
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
@@ -89,6 +95,7 @@ export function SportingCalendar({
 
 /** Native calendar read state; validated DTOs and their query lifecycle remain with the caller. */
 export interface SportingCalendarViewProps {
+  traversalKey: string;
   calendar: Pick<
     UseInfiniteQueryResult<InfiniteData<MatchCalendarResponse>, Error>,
     | "data"
@@ -118,8 +125,20 @@ export interface SportingCalendarViewProps {
   children?: ReactNode;
 }
 
+function calendarRevealKey(row: CalendarRow) {
+  return row.kind === "match" ? row.groupKey : undefined;
+}
+
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
 export function SportingCalendarView({
+  traversalKey,
+  ...props
+}: Readonly<SportingCalendarViewProps>) {
+  const reveal = useContentReveal();
+  return <CalendarViewport key={traversalKey} {...props} reveal={reveal} />;
+}
+
+function CalendarViewport({
   calendar,
   category,
   currentPoolId,
@@ -128,7 +147,12 @@ export function SportingCalendarView({
   onRefresh,
   emptyState,
   children,
-}: Readonly<SportingCalendarViewProps>) {
+  reveal: { start, style: revealStyle },
+}: Readonly<
+  Omit<SportingCalendarViewProps, "traversalKey"> & {
+    reveal: ReturnType<typeof useContentReveal>;
+  }
+>) {
   const navigation = useNavigation();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
@@ -138,6 +162,14 @@ export function SportingCalendarView({
   const { stacked, columns } = useCalendarLayout(listWidth);
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
+  const listReveal = useLegendListReveal({
+    list,
+    items: rows,
+    keyForItem: calendarRevealKey,
+    start,
+    active,
+    contentContainerStyle: pageContentStyle,
+  });
   const stickyHeaderIndices = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
     [rows],
@@ -159,8 +191,6 @@ export function SportingCalendarView({
     setRefreshing(true);
     try {
       await onRefresh(currentSportingTimeZone());
-      offset.current = 0;
-      list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch {
       // The existing Query result renders the final read failure in this pane.
     } finally {
@@ -240,6 +270,7 @@ export function SportingCalendarView({
       bounces={rows.length > 0}
       contentContainerStyle={pageContentStyle}
       data={rows}
+      maintainVisibleContentPosition
       onScroll={({ nativeEvent }) => {
         if (showRows) {
           offset.current = nativeEvent.contentOffset.y;
@@ -253,6 +284,7 @@ export function SportingCalendarView({
           });
         }
       }}
+      {...listReveal}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}
@@ -299,6 +331,7 @@ export function SportingCalendarView({
         if (item.kind === "date") {
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
+        const reveal = { groupKey: item.groupKey, style: revealStyle };
         const match = (
           <View
             style={[
@@ -325,6 +358,7 @@ export function SportingCalendarView({
             }
             active={active}
             last={item.last}
+            reveal={reveal}
           >
             {match}
           </CalendarPoolGroupStart>
@@ -332,6 +366,7 @@ export function SportingCalendarView({
           <CalendarGroupPart
             divisionColor={item.match.pool.classification.division?.color}
             last={item.last}
+            reveal={reveal}
           >
             {match}
           </CalendarGroupPart>
@@ -388,31 +423,40 @@ function CalendarDate({
   );
 }
 
-/** Extends the shadow past each interior join, where the cell clips it to a continuous side edge. */
+interface CalendarGroupReveal {
+  groupKey: string;
+  style: ContentRevealStyle;
+}
+
+/** Clips the shadow across joins and fades every visible part of the same card together. */
 function CalendarGroupPart({
   divisionColor,
   first,
   last,
+  reveal,
   children,
 }: Readonly<
   PropsWithChildren<{
     divisionColor?: string;
     first?: boolean;
     last?: boolean;
+    reveal: CalendarGroupReveal;
   }>
 >) {
   const { colors } = useTheme();
+  const fade = useContentRevealStyle(reveal.style, reveal.groupKey);
   const tint =
     divisionColor && `${divisionColor}${colors.calendarPoolSurfaceAlpha}`;
   const startAlpha = first
     ? colors.calendarPoolHeaderAlpha
     : colors.calendarPoolSurfaceAlpha;
   return (
-    <View
+    <Animated.View
       style={[
         styles.groupClip,
         first && styles.groupClipStart,
         last && styles.groupClipEnd,
+        fade,
       ]}
     >
       <View
@@ -434,7 +478,7 @@ function CalendarGroupPart({
       >
         {children}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -444,6 +488,7 @@ function CalendarPoolGroupStart({
   linked,
   active,
   last,
+  reveal,
   children,
 }: Readonly<
   PropsWithChildren<{
@@ -451,6 +496,7 @@ function CalendarPoolGroupStart({
     linked: boolean;
     active: boolean;
     last: boolean;
+    reveal: CalendarGroupReveal;
   }>
 >) {
   const { colors } = useTheme();
@@ -480,7 +526,12 @@ function CalendarPoolGroupStart({
       </>
     );
     return (
-      <CalendarGroupPart divisionColor={division?.color} first last={last}>
+      <CalendarGroupPart
+        divisionColor={division?.color}
+        first
+        last={last}
+        reveal={reveal}
+      >
         {atmosphere}
         {linked ? (
           <SportingLink

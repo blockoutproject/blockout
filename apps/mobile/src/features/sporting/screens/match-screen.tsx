@@ -24,6 +24,8 @@ import { MatchDocumentReader } from "../components/match-document-reader";
 import { MatchLinks } from "../components/match-links";
 import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
+import { MatchContentReveal } from "../components/match-surface";
+import { useSectionContentReveal } from "@/shared/components/content-reveal";
 
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
@@ -46,7 +48,7 @@ export function MatchScreen({
       return <ScreenState>{blockingState}</ScreenState>;
     }
     return (
-      <PageContent>
+      <PageContent onLayout={reveal.onContentLayout}>
         {data && (
           <>
             <MatchSummary
@@ -159,6 +161,7 @@ export function MatchScreen({
         loadingContent={null}
       />
     ) : undefined;
+  const reveal = useSectionContentReveal(focused && !!data && !blockingState);
   return (
     <Page
       canvasTint={failed ? undefined : division?.color}
@@ -182,6 +185,7 @@ export function MatchScreen({
     >
       <NavigationAccent color={failed ? undefined : division?.color} />
       <PageScrollView
+        onLayout={reveal.onViewportLayout}
         refreshControl={
           data && !failed ? (
             <DataRefreshControl
@@ -193,7 +197,9 @@ export function MatchScreen({
           ) : undefined
         }
       >
-        {renderMatchContent()}
+        <MatchContentReveal value={reveal}>
+          {renderMatchContent()}
+        </MatchContentReveal>
       </PageScrollView>
       {focused && documentAvailable && document && (
         <MatchDocumentReader

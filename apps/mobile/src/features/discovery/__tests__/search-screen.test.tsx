@@ -76,6 +76,7 @@ jest.mock("expo/fetch", () => ({
 }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  useIsFocused: () => mockIsFocused(),
   useNavigation: () => ({ isFocused: mockIsFocused }),
 }));
 jest.mock("@/shared/api/binary-image-preview", () => ({

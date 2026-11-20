@@ -72,7 +72,7 @@ export function PersonalCalendar({
 
   return (
     <SportingCalendarView
-      key={hashKey(options.queryKey)}
+      traversalKey={hashKey(options.queryKey)}
       calendar={calendar}
       category={category}
       active={active}

@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { useSingleContentReveal } from "@/shared/components/content-reveal";
 import { Button } from "@/shared/components/button";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -93,6 +94,7 @@ export function PoolStandings({
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
   const ready = active && data !== undefined && !failed;
+  const revealStyle = useSingleContentReveal(ready);
   useEffect(() => {
     if (ready) {
       onReady?.();
@@ -182,23 +184,25 @@ export function PoolStandings({
             )}
             <ScreenState>
               {data ? (
-                <EmptyState
-                  title={
-                    data.availability === "not-published"
-                      ? "Pas de classement pour cette phase"
-                      : "Aucune équipe dans ce classement"
-                  }
-                >
-                  {refreshEmpty && (
-                    <Button
-                      label="Actualiser"
-                      leadingIcon={RefreshCw}
-                      onPress={() => void refresh()}
-                      loading={standings.isFetching}
-                      disabled={!active}
-                    />
-                  )}
-                </EmptyState>
+                <Animated.View style={[styles.emptyBlock, revealStyle]}>
+                  <EmptyState
+                    title={
+                      data.availability === "not-published"
+                        ? "Pas de classement pour cette phase"
+                        : "Aucune équipe dans ce classement"
+                    }
+                  >
+                    {refreshEmpty && (
+                      <Button
+                        label="Actualiser"
+                        leadingIcon={RefreshCw}
+                        onPress={() => void refresh()}
+                        loading={standings.isFetching}
+                        disabled={!active}
+                      />
+                    )}
+                  </EmptyState>
+                </Animated.View>
               ) : null}
             </ScreenState>
           </>
@@ -221,6 +225,7 @@ export function PoolStandings({
         <View style={styles.standings}>
           {headerRow}
           <StandingTable
+            style={revealStyle}
             rows={data.rows}
             columns={columns}
             layout={layout}
@@ -235,6 +240,7 @@ export function PoolStandings({
 }
 
 const styles = StyleSheet.create({
+  emptyBlock: { width: "100%" },
   stateControls: { paddingBottom: 0 },
   content: { paddingTop: tokens.spacing.lg },
   standings: { gap: tokens.spacing.lg },

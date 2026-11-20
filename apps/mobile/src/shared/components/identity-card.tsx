@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 
@@ -9,6 +10,7 @@ export interface IdentityCardProps {
   atmosphere?: ReactNode;
   borderColor?: string;
   artworkBackgroundColor?: string;
+  style?: ComponentProps<typeof Animated.View>["style"];
   children: ReactNode;
 }
 
@@ -18,11 +20,12 @@ export function IdentityCard({
   atmosphere,
   borderColor,
   artworkBackgroundColor,
+  style,
   children,
 }: Readonly<IdentityCardProps>) {
   const { colors } = useTheme();
   return (
-    <View
+    <Animated.View
       style={[
         styles.card,
         {
@@ -30,6 +33,7 @@ export function IdentityCard({
           borderColor: borderColor ?? colors.border,
           boxShadow: colors.cardShadow,
         },
+        style,
       ]}
     >
       {atmosphere}
@@ -44,7 +48,7 @@ export function IdentityCard({
         </View>
       </View>
       <View style={styles.content}>{children}</View>
-    </View>
+    </Animated.View>
   );
 }
 

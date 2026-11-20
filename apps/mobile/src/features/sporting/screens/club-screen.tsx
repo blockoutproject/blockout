@@ -2,7 +2,8 @@ import { SportingEntityCard, SportingEntityCardLoading } from "../entity-card";
 import { useSportingNavigation } from "../navigation";
 import { SportingClubLoading } from "../components/sporting-loading";
 import { ClubLocation } from "../components/club-location";
-import { PageList } from "@/shared/components/page-list";
+import { PageList, useLegendListReveal } from "@/shared/components/page-list";
+import type { ClubTeamsResponse } from "../../../../.generated/schemas/index.zod";
 import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
@@ -11,6 +12,11 @@ import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
+import {
+  useContentReveal,
+  useContentRevealStyle,
+  useSectionContentReveal,
+} from "@/shared/components/content-reveal";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -25,10 +31,12 @@ import { isAccessDenied } from "@/shared/api/access-denied";
 import { EmptyState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
+import { useIsFocused } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, Phone, RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -68,6 +76,7 @@ export function ClubScreen(props: Readonly<ClubScreenProps>) {
 function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
   const { colors } = useTheme();
+  const focused = useIsFocused();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
@@ -128,8 +137,20 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
+  const informationReveal = useSectionContentReveal(
+    focused && tab === "info" && !!data && !hasReadError(club),
+  );
+  const contactsStyle = useContentRevealStyle(
+    informationReveal.style,
+    "contacts",
+  );
+  const locationStyle = useContentRevealStyle(
+    informationReveal.style,
+    "location",
+  );
   const information = data ? (
     <PageScrollView
+      onLayout={informationReveal.onViewportLayout}
       alwaysBounceVertical
       refreshControl={
         <DataRefreshControl
@@ -139,8 +160,16 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       }
     >
-      <PageContent style={styles.information}>
-        <View style={styles.informationSection}>
+      <PageContent
+        style={styles.information}
+        onLayout={informationReveal.onContentLayout}
+      >
+        <Animated.View
+          style={[styles.informationSection, contactsStyle]}
+          onLayout={(event) =>
+            informationReveal.onBlockLayout("contacts", event)
+          }
+        >
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -177,8 +206,13 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               icon={Phone}
             />
           </Surface>
-        </View>
-        <View style={styles.informationSection}>
+        </Animated.View>
+        <Animated.View
+          style={[styles.informationSection, locationStyle]}
+          onLayout={(event) =>
+            informationReveal.onBlockLayout("location", event)
+          }
+        >
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -186,7 +220,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
             Localisation
           </Text>
           <ClubLocation detail={data} />
-        </View>
+        </Animated.View>
       </PageContent>
     </PageScrollView>
   ) : undefined;
@@ -277,6 +311,10 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   );
 }
 
+function clubTeamCardKey(item: ClubTeamsResponse["items"][number]) {
+  return item.team.id.toLowerCase();
+}
+
 /** One exact Club season owns its teams read, scoped feedback and native list position; the parent supplies season controls. */
 function ClubTeams({
   clubId,
@@ -304,6 +342,15 @@ function ClubTeams({
   const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
+  const { start, style: revealStyle } = useContentReveal();
+  const listReveal = useLegendListReveal({
+    list,
+    items,
+    keyForItem: clubTeamCardKey,
+    start,
+    active,
+    contentContainerStyle: pageContentStyle,
+  });
 
   /** Explicitly rereads only this season, including a failed observer awaiting its card action. */
   async function refresh() {
@@ -350,6 +397,7 @@ function ClubTeams({
           });
         }
       }}
+      {...listReveal}
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}
@@ -378,6 +426,7 @@ function ClubTeams({
           layout="club-team"
           identity={item.team}
           classification={item.classification}
+          revealStyle={revealStyle}
           onOpen={(kind, id) => void sporting.navigate(kind, id)}
         />
       )}

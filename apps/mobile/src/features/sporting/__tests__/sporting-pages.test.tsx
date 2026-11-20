@@ -113,6 +113,8 @@ jest.mock("expo-router", () => ({
     mockRouting
       ? jest.requireActual("expo-router").useRouter()
       : { back: mockBack, push: mockPush, canGoBack: () => true },
+  useIsFocused: () =>
+    mockRouting ? jest.requireActual("expo-router").useIsFocused() : true,
   useNavigation: () =>
     mockRouting
       ? jest.requireActual("expo-router").useNavigation()

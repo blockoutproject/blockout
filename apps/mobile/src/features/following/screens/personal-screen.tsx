@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { createLucideIcon, Flag } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import {
   useAccountSession,
   useCurrentAccount,
@@ -9,6 +10,7 @@ import {
   AccountRecovery,
 } from "@/features/accounts/current-account";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { useSingleContentReveal } from "@/shared/components/content-reveal";
 import { BrandMark } from "@/shared/components/brand-mark";
 import { IconButton } from "@/shared/components/icon-button";
 import { supportHref } from "@/features/support";
@@ -57,6 +59,10 @@ const Instagram = createLucideIcon({
  */
 export function PersonalScreen() {
   const session = useAccountSession();
+  const focused = useIsFocused();
+  const guestRevealStyle = useSingleContentReveal(
+    focused && session.status === "guest",
+  );
   const profile = useCurrentAccount();
   const router = useRouter();
   const scope = usePersonalSeasonScope();
@@ -71,15 +77,17 @@ export function PersonalScreen() {
       <Page header={<PersonalHeader />}>
         <PageScrollView>
           <ScreenState style={styles.guest}>
-            <Button
-              label="Se connecter"
-              onPress={() =>
-                router.push({
-                  pathname: "/sign-in-invitation",
-                  params: { reason: "follow" },
-                })
-              }
-            />
+            <Animated.View style={guestRevealStyle}>
+              <Button
+                label="Se connecter"
+                onPress={() =>
+                  router.push({
+                    pathname: "/sign-in-invitation",
+                    params: { reason: "follow" },
+                  })
+                }
+              />
+            </Animated.View>
           </ScreenState>
         </PageScrollView>
       </Page>

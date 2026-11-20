@@ -10,6 +10,8 @@ export type CalendarRow =
   | {
       kind: "match";
       key: string;
+      /** The date-local card may span several independently recycled match cells. */
+      groupKey: string;
       match: MatchSummaryResponse;
       first: boolean;
       last: boolean;
@@ -28,6 +30,7 @@ export function calendarRows(
   for (const day of days) {
     rows.push({ kind: "date", key: `date:${day.date}`, date: day.date });
     day.pools.forEach((group, poolIndex) => {
+      const groupKey = `${day.date}:${group.poolId.toLowerCase()}`;
       group.matches.forEach((match, index) => {
         if (!stacked && (poolIndex > 0 || index > 0)) {
           rows.push({ kind: "space", key: `space:${match.id}` });
@@ -35,6 +38,7 @@ export function calendarRows(
         rows.push({
           kind: "match",
           key: `match:${match.id}`,
+          groupKey,
           match,
           first: index === 0,
           last: index === group.matches.length - 1,

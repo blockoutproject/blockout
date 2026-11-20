@@ -1,5 +1,7 @@
 import { NoAvailableFollows } from "./no-available-follows";
 import { PageFlatList } from "@/shared/components/page-list";
+import { useContentReveal } from "@/shared/components/content-reveal";
+import { useFlatListReveal } from "@/shared/components/use-flat-list-reveal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
@@ -258,6 +260,15 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       );
     })
     .map((type) => lists[type].query);
+  const { start, style: revealStyle } = useContentReveal();
+  const revealVisibleCards = useFlatListReveal(
+    props.active &&
+      failed.length === 0 &&
+      ((teamDisclosure.visible && teams.items.length > 0) ||
+        (poolDisclosure.visible && pools.items.length > 0)),
+    start,
+    (row: FollowedRow) => (row.kind === "item" ? row.key : undefined),
+  );
 
   /** One pull refetches the open collections; their existing queries own both outcomes. */
   async function refresh() {
@@ -346,6 +357,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
+      {...revealVisibleCards}
       keyExtractor={(row) => row.key}
       removeClippedSubviews={false}
       alwaysBounceVertical
@@ -394,6 +406,8 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
             <View style={styles.card}>
               <SportingEntityCard
                 {...row.item}
+                revealStyle={revealStyle}
+                revealKey={row.key}
                 onOpen={(kind, id) => void sporting.navigate(kind, id)}
               />
             </View>

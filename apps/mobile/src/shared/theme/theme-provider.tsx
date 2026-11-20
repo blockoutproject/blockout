@@ -5,6 +5,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { Platform, useColorScheme } from "react-native";
+import { useReducedMotion as useStartupReducedMotion } from "react-native-reanimated";
 import * as SystemUI from "expo-system-ui";
 import {
   DarkTheme,
@@ -17,6 +18,7 @@ import {
   neutralContext,
   type ContextColors,
 } from "./tokens";
+import { useReducedMotion } from "./use-reduced-motion";
 
 /** Current presentation only: no stored preference, membership authority or sporting-color derivation. */
 export interface Theme {
@@ -25,6 +27,7 @@ export interface Theme {
   context: ContextColors;
   membership: typeof membershipColors.light;
   proAccent: boolean;
+  reducedMotion: boolean;
 }
 
 /** Owners supply current presentation inputs; unknown/inactive Pro is represented by the default false. */
@@ -44,6 +47,7 @@ export function ThemeProvider({
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = appearanceColors[scheme];
   const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
+  const reducedMotion = useReducedMotion(useStartupReducedMotion());
   useEffect(() => {
     // Expo Blur samples this native background behind transparent target content.
     if (Platform.OS === "android") {
@@ -57,6 +61,7 @@ export function ThemeProvider({
         colors,
         context: context[scheme],
         proAccent,
+        reducedMotion,
         membership: proAccent
           ? membershipColors.pro[scheme]
           : membershipColors[scheme],

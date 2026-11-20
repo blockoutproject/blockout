@@ -1,9 +1,12 @@
-import { PageList } from "@/shared/components/page-list";
+import { PageList, useLegendListReveal } from "@/shared/components/page-list";
 import { pageContentStyle } from "@/shared/components/page";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { StyleSheet, Text, View } from "react-native";
-import type { ReactElement, ReactNode } from "react";
+import { useRef, type ReactElement, type ReactNode } from "react";
+import { useIsFocused } from "expo-router";
+import type { LegendListRef } from "@legendapp/list/react-native";
+import type { useContentReveal } from "@/shared/components/content-reveal";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -16,6 +19,8 @@ export interface SearchResultsProps {
   resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
+  active: boolean;
+  reveal: ReturnType<typeof useContentReveal>;
   examples?: boolean;
   heading?: ReactElement;
   emptyComponent?: ReactElement | null;
@@ -25,11 +30,17 @@ export interface SearchResultsProps {
   onOpen(kind: SearchResult["kind"], id: string): void;
 }
 
+function searchResultKey(item: SearchResult) {
+  return item.identity.id.toLowerCase();
+}
+
 /** Keeps results and their structural feedback in the same list viewport. */
 export function SearchResults({
   resource,
   items,
   loading,
+  active,
+  reveal: { start, style: revealStyle },
   examples = false,
   heading,
   emptyComponent,
@@ -38,8 +49,20 @@ export function SearchResults({
   onOpen,
 }: Readonly<SearchResultsProps>) {
   const hasItems = items.length > 0;
+  const focused = useIsFocused();
+  const list = useRef<LegendListRef>(null);
+  const listReveal = useLegendListReveal({
+    list,
+    items,
+    keyForItem: searchResultKey,
+    start,
+    active: active && focused,
+    contentContainerStyle: styles.listContent,
+  });
   return (
     <PageList
+      ref={list}
+      {...listReveal}
       maintainVisibleContentPosition={{ size: false, data: true }}
       accessibilityRole={hasItems ? "list" : undefined}
       accessibilityLabel={
@@ -72,7 +95,7 @@ export function SearchResults({
         </>
       }
       data={items}
-      keyExtractor={(item) => item.identity.id.toLowerCase()}
+      keyExtractor={searchResultKey}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"
@@ -80,7 +103,11 @@ export function SearchResults({
       contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
-        <SportingEntityCard {...item} onOpen={onOpen} />
+        <SportingEntityCard
+          {...item}
+          onOpen={onOpen}
+          revealStyle={revealStyle}
+        />
       )}
     />
   );
