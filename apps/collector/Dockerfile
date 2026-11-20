@@ -12,8 +12,10 @@ RUN npm run bundle:contracts
 
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble AS build
 # The wrapper verifies its ZIP checksum, so it needs unzip instead of its tar.gz fallback.
+# The wrapper prefers wget, which can retry transient HTTP responses for the pinned ZIP.
 RUN apt-get update \
-  && apt-get install --yes --no-install-recommends unzip \
+  && apt-get install --yes --no-install-recommends unzip wget \
+  && printf '%s\n' 'tries = 3' 'retry_on_http_error = 404,410,429' >> /etc/wgetrc \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace
 COPY .mvn .mvn
