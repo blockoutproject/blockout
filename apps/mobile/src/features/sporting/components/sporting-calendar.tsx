@@ -1,4 +1,4 @@
-import { PageList, useLegendListReveal } from "@/shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import {
   PageScrollView,
   pageContentStyle,
@@ -21,7 +21,6 @@ import {
   type ReactNode,
 } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
 import type {
   MatchCalendarResponse,
   MatchSummaryResponse,
@@ -38,8 +37,7 @@ import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import {
   useContentReveal,
-  useContentRevealStyle,
-  type ContentRevealStyle,
+  type ContentReveal,
 } from "@/shared/components/content-reveal";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -147,10 +145,10 @@ function CalendarViewport({
   onRefresh,
   emptyState,
   children,
-  reveal: { start, style: revealStyle },
+  reveal,
 }: Readonly<
   Omit<SportingCalendarViewProps, "traversalKey"> & {
-    reveal: ReturnType<typeof useContentReveal>;
+    reveal: ContentReveal;
   }
 >) {
   const navigation = useNavigation();
@@ -162,14 +160,6 @@ function CalendarViewport({
   const { stacked, columns } = useCalendarLayout(listWidth);
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
-  const listReveal = useLegendListReveal({
-    list,
-    items: rows,
-    keyForItem: calendarRevealKey,
-    start,
-    active,
-    contentContainerStyle: pageContentStyle,
-  });
   const stickyHeaderIndices = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "date" ? [index] : [])),
     [rows],
@@ -284,7 +274,7 @@ function CalendarViewport({
           });
         }
       }}
-      {...listReveal}
+      reveal={{ active, blockKey: calendarRevealKey, presentation: reveal }}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}
@@ -331,7 +321,6 @@ function CalendarViewport({
         if (item.kind === "date") {
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
-        const reveal = { groupKey: item.groupKey, style: revealStyle };
         const match = (
           <View
             style={[
@@ -358,7 +347,6 @@ function CalendarViewport({
             }
             active={active}
             last={item.last}
-            reveal={reveal}
           >
             {match}
           </CalendarPoolGroupStart>
@@ -366,7 +354,6 @@ function CalendarViewport({
           <CalendarGroupPart
             divisionColor={item.match.pool.classification.division?.color}
             last={item.last}
-            reveal={reveal}
           >
             {match}
           </CalendarGroupPart>
@@ -423,40 +410,31 @@ function CalendarDate({
   );
 }
 
-interface CalendarGroupReveal {
-  groupKey: string;
-  style: ContentRevealStyle;
-}
-
-/** Clips the shadow across joins and fades every visible part of the same card together. */
+/** Extends the shadow past each interior join, where the cell clips it to a continuous side edge. */
 function CalendarGroupPart({
   divisionColor,
   first,
   last,
-  reveal,
   children,
 }: Readonly<
   PropsWithChildren<{
     divisionColor?: string;
     first?: boolean;
     last?: boolean;
-    reveal: CalendarGroupReveal;
   }>
 >) {
   const { colors } = useTheme();
-  const fade = useContentRevealStyle(reveal.style, reveal.groupKey);
   const tint =
     divisionColor && `${divisionColor}${colors.calendarPoolSurfaceAlpha}`;
   const startAlpha = first
     ? colors.calendarPoolHeaderAlpha
     : colors.calendarPoolSurfaceAlpha;
   return (
-    <Animated.View
+    <View
       style={[
         styles.groupClip,
         first && styles.groupClipStart,
         last && styles.groupClipEnd,
-        fade,
       ]}
     >
       <View
@@ -478,7 +456,7 @@ function CalendarGroupPart({
       >
         {children}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -488,7 +466,6 @@ function CalendarPoolGroupStart({
   linked,
   active,
   last,
-  reveal,
   children,
 }: Readonly<
   PropsWithChildren<{
@@ -496,7 +473,6 @@ function CalendarPoolGroupStart({
     linked: boolean;
     active: boolean;
     last: boolean;
-    reveal: CalendarGroupReveal;
   }>
 >) {
   const { colors } = useTheme();
@@ -526,12 +502,7 @@ function CalendarPoolGroupStart({
       </>
     );
     return (
-      <CalendarGroupPart
-        divisionColor={division?.color}
-        first
-        last={last}
-        reveal={reveal}
-      >
+      <CalendarGroupPart divisionColor={division?.color} first last={last}>
         {atmosphere}
         {linked ? (
           <SportingLink

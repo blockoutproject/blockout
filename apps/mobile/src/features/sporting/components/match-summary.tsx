@@ -94,7 +94,7 @@ export function MatchSummary({
     <MatchSurface
       division={division}
       raised={!contextual}
-      revealBlock="summary"
+      revealBlock={contextual ? undefined : "summary"}
     >
       {contextual ? (
         <View

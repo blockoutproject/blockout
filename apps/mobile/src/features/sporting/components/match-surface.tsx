@@ -1,18 +1,9 @@
-import { createContext, useContext, type PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated from "react-native-reanimated";
 import type { SportingDivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import {
-  useContentRevealStyle,
-  type useSectionContentReveal,
-} from "@/shared/components/content-reveal";
-
-export const MatchContentReveal = createContext<Pick<
-  ReturnType<typeof useSectionContentReveal>,
-  "style" | "onBlockLayout"
-> | null>(null);
+import { RevealSection } from "@/shared/components/section-content-reveal";
 
 /** Figma's match surfaces share the current division border; content owns its internal insets. */
 export interface MatchSurfaceProps extends PropsWithChildren {
@@ -30,24 +21,15 @@ export function MatchSurface({
   children,
 }: Readonly<MatchSurfaceProps>) {
   const { colors } = useTheme();
-  const reveal = useContext(MatchContentReveal);
-  const revealStyle = useContentRevealStyle(reveal?.style, revealBlock);
-  return (
-    <Animated.View
-      onLayout={
-        reveal && revealBlock
-          ? (event) => reveal.onBlockLayout(revealBlock, event)
-          : undefined
-      }
-      style={[
-        styles.surface,
-        {
-          backgroundColor: colors.surface,
-          boxShadow: raised ? colors.cardShadow : undefined,
-        },
-        revealStyle,
-      ]}
-    >
+  const style = [
+    styles.surface,
+    {
+      backgroundColor: colors.surface,
+      boxShadow: raised ? colors.cardShadow : undefined,
+    },
+  ];
+  const content = (
+    <>
       {children}
       <View
         pointerEvents="none"
@@ -61,7 +43,14 @@ export function MatchSurface({
           },
         ]}
       />
-    </Animated.View>
+    </>
+  );
+  return revealBlock ? (
+    <RevealSection sectionKey={revealBlock} style={style}>
+      {content}
+    </RevealSection>
+  ) : (
+    <View style={style}>{content}</View>
   );
 }
 

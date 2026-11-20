@@ -10,11 +10,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated from "react-native-reanimated";
-import {
-  useContentRevealStyle,
-  type ContentRevealStyle,
-} from "@/shared/components/content-reveal";
 import { ChevronRight } from "lucide-react-native";
 import type {
   SportingIdentityResponse,
@@ -29,7 +24,6 @@ import { TextSkeleton } from "@/shared/components/text-skeleton";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 const entityBadgeSize = 24;
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** Current public sporting summary slots; omitted facts remain absent and opening belongs to the caller. */
 export interface SportingEntityCardProps {
@@ -41,10 +35,6 @@ export interface SportingEntityCardProps {
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;
   layout?: "discovery" | "club-team";
-  /** The owning list supplies the shared initial opacity for this card's identity. */
-  revealStyle?: ContentRevealStyle;
-  /** Mixed lists distinguish their entity families with the existing row key. */
-  revealKey?: string;
   /** The screen receives the exact primary or associated club destination. */
   onOpen?(kind: SportingEntityCardProps["kind"], id: string): void;
 }
@@ -60,8 +50,6 @@ export function SportingEntityCard({
   season,
   onOpen,
   layout = "discovery",
-  revealStyle,
-  revealKey = identity.id.toLowerCase(),
 }: Readonly<SportingEntityCardProps>) {
   const { colors } = useTheme();
   const clubTeam = layout === "club-team";
@@ -99,12 +87,10 @@ export function SportingEntityCard({
     division && !clubTeam
       ? `${division.color}${colors.contextBorderAlpha}`
       : colors.border;
-  const fade = useContentRevealStyle(revealStyle, revealKey);
   const style = [
     styles.card,
     clubTeam && styles.clubTeam,
     { backgroundColor: colors.surface, boxShadow: colors.cardShadow },
-    fade,
   ];
   const badges = metadata.length > 0 && (
     <View style={clubTeam ? styles.clubBadges : styles.metadata}>
@@ -219,7 +205,7 @@ export function SportingEntityCard({
     };
     if (linkedClub) {
       return (
-        <Animated.View style={style}>
+        <View style={style}>
           {atmosphere}
           <Pressable {...primary}>{content}</Pressable>
           <Pressable
@@ -243,21 +229,21 @@ export function SportingEntityCard({
             />
           </Pressable>
           {border}
-        </Animated.View>
+        </View>
       );
     }
     return onOpen ? (
-      <AnimatedPressable {...primary} style={style}>
+      <Pressable {...primary} style={style}>
         {atmosphere}
         {content}
         {border}
-      </AnimatedPressable>
+      </Pressable>
     ) : (
-      <Animated.View accessible accessibilityLabel={label} style={style}>
+      <View accessible accessibilityLabel={label} style={style}>
         {atmosphere}
         {content}
         {border}
-      </Animated.View>
+      </View>
     );
   }
 

@@ -2,8 +2,7 @@ import { SportingEntityCard, SportingEntityCardLoading } from "../entity-card";
 import { useSportingNavigation } from "../navigation";
 import { SportingClubLoading } from "../components/sporting-loading";
 import { ClubLocation } from "../components/club-location";
-import { PageList, useLegendListReveal } from "@/shared/components/page-list";
-import type { ClubTeamsResponse } from "../../../../.generated/schemas/index.zod";
+import { PageList } from "@/shared/components/page-list";
 import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
@@ -12,11 +11,12 @@ import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
+import { useContentReveal } from "@/shared/components/content-reveal";
 import {
-  useContentReveal,
-  useContentRevealStyle,
+  RevealSection,
+  SectionContentReveal,
   useSectionContentReveal,
-} from "@/shared/components/content-reveal";
+} from "@/shared/components/section-content-reveal";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -36,7 +36,6 @@ import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, Phone, RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -137,16 +136,9 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
+  // The season can replace the pager while the club's information stays presented.
   const informationReveal = useSectionContentReveal(
     focused && tab === "info" && !!data && !hasReadError(club),
-  );
-  const contactsStyle = useContentRevealStyle(
-    informationReveal.style,
-    "contacts",
-  );
-  const locationStyle = useContentRevealStyle(
-    informationReveal.style,
-    "location",
   );
   const information = data ? (
     <PageScrollView
@@ -160,16 +152,11 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       }
     >
-      <PageContent
+      <SectionContentReveal
         style={styles.information}
-        onLayout={informationReveal.onContentLayout}
+        reveal={informationReveal}
       >
-        <Animated.View
-          style={[styles.informationSection, contactsStyle]}
-          onLayout={(event) =>
-            informationReveal.onBlockLayout("contacts", event)
-          }
-        >
+        <RevealSection sectionKey="contacts" style={styles.informationSection}>
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -206,13 +193,8 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               icon={Phone}
             />
           </Surface>
-        </Animated.View>
-        <Animated.View
-          style={[styles.informationSection, locationStyle]}
-          onLayout={(event) =>
-            informationReveal.onBlockLayout("location", event)
-          }
-        >
+        </RevealSection>
+        <RevealSection sectionKey="location" style={styles.informationSection}>
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -220,8 +202,8 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
             Localisation
           </Text>
           <ClubLocation detail={data} />
-        </Animated.View>
-      </PageContent>
+        </RevealSection>
+      </SectionContentReveal>
     </PageScrollView>
   ) : undefined;
 
@@ -311,10 +293,6 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   );
 }
 
-function clubTeamCardKey(item: ClubTeamsResponse["items"][number]) {
-  return item.team.id.toLowerCase();
-}
-
 /** One exact Club season owns its teams read, scoped feedback and native list position; the parent supplies season controls. */
 function ClubTeams({
   clubId,
@@ -342,15 +320,7 @@ function ClubTeams({
   const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
-  const { start, style: revealStyle } = useContentReveal();
-  const listReveal = useLegendListReveal({
-    list,
-    items,
-    keyForItem: clubTeamCardKey,
-    start,
-    active,
-    contentContainerStyle: pageContentStyle,
-  });
+  const presentation = useContentReveal();
 
   /** Explicitly rereads only this season, including a failed observer awaiting its card action. */
   async function refresh() {
@@ -397,7 +367,7 @@ function ClubTeams({
           });
         }
       }}
-      {...listReveal}
+      reveal={{ active, presentation }}
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}
@@ -426,7 +396,6 @@ function ClubTeams({
           layout="club-team"
           identity={item.team}
           classification={item.classification}
-          revealStyle={revealStyle}
           onOpen={(kind, id) => void sporting.navigate(kind, id)}
         />
       )}

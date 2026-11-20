@@ -14,13 +14,13 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { EmptyState } from "@/shared/components/state-card";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import type { useContentReveal } from "@/shared/components/content-reveal";
+import type { ContentReveal } from "@/shared/components/content-reveal";
 
 /** One tab's current queries and criteria; the parent retains the shared text, filters and empty-state actions. */
 export interface SearchSceneProps {
   resource: DiscoveryResource;
   active: boolean;
-  reveal: ReturnType<typeof useContentReveal>;
+  reveal: ContentReveal;
   searchable: boolean;
   query: ReturnType<typeof useDiscoveryQuery>;
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;

@@ -5,6 +5,10 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import {
+  SectionContentReveal,
+  useSectionContentReveal,
+} from "@/shared/components/section-content-reveal";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
@@ -24,8 +28,6 @@ import { MatchDocumentReader } from "../components/match-document-reader";
 import { MatchLinks } from "../components/match-links";
 import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
-import { MatchContentReveal } from "../components/match-surface";
-import { useSectionContentReveal } from "@/shared/components/content-reveal";
 
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
 export interface MatchScreenProps {
@@ -48,7 +50,7 @@ export function MatchScreen({
       return <ScreenState>{blockingState}</ScreenState>;
     }
     return (
-      <PageContent onLayout={reveal.onContentLayout}>
+      <SectionContentReveal reveal={reveal}>
         {data && (
           <>
             <MatchSummary
@@ -86,7 +88,7 @@ export function MatchScreen({
             />
           </>
         )}
-      </PageContent>
+      </SectionContentReveal>
     );
   }
 
@@ -197,9 +199,7 @@ export function MatchScreen({
           ) : undefined
         }
       >
-        <MatchContentReveal value={reveal}>
-          {renderMatchContent()}
-        </MatchContentReveal>
+        {renderMatchContent()}
       </PageScrollView>
       {focused && documentAvailable && document && (
         <MatchDocumentReader

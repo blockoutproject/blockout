@@ -2,11 +2,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useRef,
+  type ComponentProps,
 } from "react";
-import {
+import Animated, {
   Easing,
   ReduceMotion,
   useAnimatedStyle,
@@ -15,8 +15,6 @@ import {
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnUI } from "react-native-worklets";
-import type { LayoutChangeEvent } from "react-native";
-import { useBottomContentInset } from "./bottom-content-inset";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 
@@ -31,7 +29,7 @@ const easeOut = Easing.bezierFn(...easing);
 /** Common detail admission can hide mounted scenes until their first presentation is possible. */
 export const ContentRevealReadyContext = createContext(true);
 
-export interface ContentRevealStyle {
+interface ContentRevealStyle {
   order: SharedValue<readonly string[] | null>;
   elapsed: SharedValue<number>;
   reducedMotion: boolean;
@@ -86,14 +84,8 @@ export function useContentReveal() {
 }
 
 /** Captures shared values directly so each mounted portion observes its owner's progress. */
-export function useContentRevealStyle(
-  style?: ContentRevealStyle,
-  key?: string,
-) {
+function useContentRevealStyle(style: ContentRevealStyle, key: string) {
   return useAnimatedStyle(() => {
-    if (!style || !key) {
-      return {};
-    }
     if (style.reducedMotion) {
       return { opacity: 1 };
     }
@@ -101,18 +93,40 @@ export function useContentRevealStyle(
     if (keys === null) {
       return { opacity: initialOpacity };
     }
+    const elapsed = style.elapsed.get();
+    if (elapsed >= fadeDuration + (keys.length - 1) * stagger) {
+      return { opacity: 1 };
+    }
     const index = keys.indexOf(key);
     if (index === -1) {
       return { opacity: 1 };
     }
     const progress = Math.min(
       1,
-      Math.max(0, (style.elapsed.get() - index * stagger) / fadeDuration),
+      Math.max(0, (elapsed - index * stagger) / fadeDuration),
     );
     return {
       opacity: initialOpacity + (1 - initialOpacity) * easeOut(progress),
     };
   });
+}
+
+export type ContentReveal = ReturnType<typeof useContentReveal>;
+
+/** Applies opacity to one block without owning its layout or input. */
+export function ContentRevealBlock({
+  reveal,
+  blockKey,
+  style,
+  ...props
+}: Readonly<
+  ComponentProps<typeof Animated.View> & {
+    reveal: ContentReveal;
+    blockKey: string;
+  }
+>) {
+  const fade = useContentRevealStyle(reveal.style, blockKey);
+  return <Animated.View {...props} style={[style, fade]} />;
 }
 
 /** Uses the same reveal for one existing content block once its owner presents it. */
@@ -125,66 +139,4 @@ export function useSingleContentReveal(visible: boolean) {
   }, [start, visible]);
 
   return useContentRevealStyle(style, "content");
-}
-
-/** Samples the mounted sections against the first usable scroll viewport. */
-export function useSectionContentReveal(ready: boolean) {
-  const { style, start } = useContentReveal();
-  const bottomInset = useBottomContentInset();
-  const viewportHeight = useRef(0);
-  const contentTop = useRef<number | null>(null);
-  const positions = useRef(new Map<string, number>());
-  const measured = useRef(false);
-  const frame = useRef<number | null>(null);
-
-  function present() {
-    if (!ready || measured.current || frame.current !== null) {
-      return;
-    }
-    // Native layout delivers the sibling geometry together before the next frame.
-    frame.current = requestAnimationFrame(() => {
-      frame.current = null;
-      if (contentTop.current === null || !viewportHeight.current) {
-        return;
-      }
-      const contentBottom =
-        viewportHeight.current - bottomInset - contentTop.current;
-      const visible = [...positions.current]
-        .filter(([, top]) => top < contentBottom)
-        .sort(([, first], [, second]) => first - second)
-        .map(([key]) => key);
-      if (positions.current.size && start(visible)) {
-        measured.current = true;
-        positions.current.clear();
-      }
-    });
-  }
-
-  useEffect(() => {
-    present();
-    return () => {
-      if (frame.current !== null) {
-        cancelAnimationFrame(frame.current);
-        frame.current = null;
-      }
-    };
-  });
-
-  return {
-    style,
-    onViewportLayout(event: LayoutChangeEvent) {
-      viewportHeight.current = event.nativeEvent.layout.height;
-      present();
-    },
-    onContentLayout(event: LayoutChangeEvent) {
-      contentTop.current = event.nativeEvent.layout.y;
-      present();
-    },
-    onBlockLayout(block: string, event: LayoutChangeEvent) {
-      if (!measured.current) {
-        positions.current.set(block, event.nativeEvent.layout.y);
-        present();
-      }
-    },
-  };
 }
