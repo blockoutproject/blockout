@@ -1,10 +1,4 @@
-import {
-  createContext,
-  startTransition,
-  useCallback,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { useIsFocused } from "expo-router";
 import type { UseQueryResult } from "@tanstack/react-query";
@@ -19,8 +13,6 @@ import {
   useSingleContentReveal,
 } from "@/shared/components/content-reveal";
 import { tokens } from "@/shared/theme/tokens";
-import { CalendarSkeleton } from "./calendar-loading";
-import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 
 /** Minimum of the shared identity card in the standard PageContent insets. */
 export const sportingIdentityHeaderMinHeight =
@@ -41,30 +33,6 @@ export type SportingInitialRead = Pick<
 
 function isSportingInitialReadReady(read: SportingInitialRead) {
   return read.data !== undefined && !hasReadError(read);
-}
-
-/** Prepares one decorative neighbor after standings and common admission, without mounting a calendar reader. */
-export function useStandingsCalendarPreview(
-  category: CalendarCategoryEnum,
-  detail: SportingInitialRead,
-  follow?: SportingInitialRead,
-) {
-  const [prepared, setPrepared] = useState(false);
-  const prepare = useCallback(() => {
-    startTransition(() => setPrepared(true));
-  }, []);
-  const commonReady =
-    isSportingInitialReadReady(detail) &&
-    (!follow || isSportingInitialReadReady(follow));
-
-  return {
-    onStandingsReady: commonReady && !prepared ? prepare : undefined,
-    preview: prepared ? (
-      <PageContent>
-        <CalendarSkeleton category={category} />
-      </PageContent>
-    ) : undefined,
-  };
 }
 
 /** The public page retains its real measured scenes while one initial presentation owns unresolved inputs. */

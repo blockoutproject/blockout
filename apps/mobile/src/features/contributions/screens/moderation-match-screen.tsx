@@ -15,6 +15,7 @@ import { ListSeparator } from "@/shared/components/list-separator";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import {
   Page,
+  PageContent,
   PageScrollView,
   pageContentStyle,
 } from "@/shared/components/page";
@@ -85,6 +86,12 @@ export function ModerationMatchScreen({
     editing.canRetain && !isAccessDenied(editing.query.error)
       ? editing.query.data?.pages[0]
       : undefined;
+  const canPreview = selected.canRetain && !hasReadError(selected.account);
+  const versionsPreview = canPreview ? (
+    <PageContent>
+      <ModerationMatchLoading />
+    </PageContent>
+  ) : undefined;
   const feedback = useActionFeedback();
   const confirmation = useActionConfirmation();
   const mounted = useRef(true);
@@ -155,6 +162,11 @@ export function ModerationMatchScreen({
           {
             id: "active",
             label: "Actif",
+            preview: canPreview ? (
+              <PageContent>
+                <ModerationMatchLoading editor />
+              </PageContent>
+            ) : undefined,
             content: (
               <ActiveScene
                 matchId={matchId}
@@ -173,6 +185,7 @@ export function ModerationMatchScreen({
             label: current
               ? `Propositions (${current.counts.pending})`
               : "Propositions",
+            preview: versionsPreview,
             content: (
               <VersionScene
                 matchId={matchId}
@@ -189,6 +202,7 @@ export function ModerationMatchScreen({
           {
             id: "historical",
             label: "Historique",
+            preview: versionsPreview,
             content: (
               <VersionScene
                 matchId={matchId}

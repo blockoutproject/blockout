@@ -1,15 +1,20 @@
 import { SportingPoolLoading } from "../components/sporting-loading";
 import { SportingSupportAction } from "../components/sporting-actions";
-import { PoolMap, usePoolMapParticipants } from "../components/pool-map";
+import {
+  PoolMap,
+  PoolMapLoading,
+  usePoolMapParticipants,
+} from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
+import { CalendarLoading } from "../components/calendar-loading";
+import { StandingsLoading } from "../components/standings-loading";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
-  useStandingsCalendarPreview,
 } from "../components/sporting-initial-composition";
 import { PageHeader } from "@/shared/components/page-header";
 import { PageContent } from "@/shared/components/page";
@@ -61,11 +66,6 @@ function PoolPage({
       mapVisited: visit.mapVisited || id === "map",
     }));
   }, []);
-  const { onStandingsReady, preview } = useStandingsCalendarPreview(
-    "upcoming",
-    pool,
-    initialFollow,
-  );
   const data = pool.data;
   // Retain the participant observer after the Map's first settled visit.
   const participantRead = usePoolMapParticipants(
@@ -129,32 +129,43 @@ function PoolPage({
           collapsibleHeader={<PageContent>{identity}</PageContent>}
           collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map(({ id: value, label }) => {
-            const content =
-              value === "upcoming" || value === "completed" ? (
-                <SportingCalendar
-                  selection={{ poolId, category: value }}
-                  active={tab === value}
-                />
-              ) : value === "standings" ? (
-                <PoolStandings
-                  poolId={data.pool.pool.id}
-                  divisionColor={divisionColor}
-                  active={tab === value}
-                  refreshEmpty={false}
-                  onReady={onStandingsReady}
-                />
-              ) : (
-                <PoolMap
-                  pool={data.pool}
-                  active={tab === value}
-                  participantRead={participantRead}
-                />
-              );
+            const category =
+              value === "upcoming" || value === "completed" ? value : undefined;
+            const content = category ? (
+              <SportingCalendar
+                selection={{ poolId, category }}
+                active={tab === value}
+              />
+            ) : value === "standings" ? (
+              <PoolStandings
+                poolId={data.pool.pool.id}
+                divisionColor={divisionColor}
+                active={tab === value}
+                refreshEmpty={false}
+              />
+            ) : (
+              <PoolMap
+                pool={data.pool}
+                active={tab === value}
+                participantRead={participantRead}
+              />
+            );
             return {
               id: value,
               label,
               content,
-              preview: value === "upcoming" ? preview : undefined,
+              preview:
+                value === "map" ? (
+                  <PoolMapLoading />
+                ) : (
+                  <PageContent>
+                    {category ? (
+                      <CalendarLoading category={category} />
+                    ) : (
+                      <StandingsLoading />
+                    )}
+                  </PageContent>
+                ),
               fullHeight: value === "map",
               swipeDisabled: value === "map" && participantRead.interactive,
             };

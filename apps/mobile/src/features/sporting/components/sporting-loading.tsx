@@ -36,21 +36,27 @@ export function SportingClubLoading() {
   return (
     <LoadingGroup label="Chargement du club" style={styles.body}>
       <IdentityCardSkeleton club />
-      <View style={styles.information}>
-        <TextSkeleton role="navigation" width="40%" />
-        <Surface style={styles.contacts}>
-          <ContactLinkSkeleton />
-          <View style={styles.divider}>
-            <EntryGroupSeparator />
-          </View>
-          <ContactLinkSkeleton />
-          <View style={styles.divider}>
-            <EntryGroupSeparator />
-          </View>
-          <ContactLinkSkeleton />
-        </Surface>
-      </View>
+      <ClubInformationSkeleton />
     </LoadingGroup>
+  );
+}
+
+export function ClubInformationSkeleton() {
+  return (
+    <View style={styles.information}>
+      <TextSkeleton role="navigation" width="40%" />
+      <Surface style={styles.contacts}>
+        <ContactLinkSkeleton />
+        <View style={styles.divider}>
+          <EntryGroupSeparator />
+        </View>
+        <ContactLinkSkeleton />
+        <View style={styles.divider}>
+          <EntryGroupSeparator />
+        </View>
+        <ContactLinkSkeleton />
+      </Surface>
+    </View>
   );
 }
 

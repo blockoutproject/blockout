@@ -3,7 +3,7 @@ import { standingVisibleColumns } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { divisionTextColor } from "../presentation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
@@ -46,8 +46,6 @@ export interface PoolStandingsProps {
   children?: ReactNode;
   /** Team participation Empty retains its refresh action; the approved Pool pane has no such action. */
   refreshEmpty?: boolean;
-  /** A useful active table or confirmed absence lets the enclosing page prepare its calendar preview. */
-  onReady?: () => void;
 }
 
 /** Retains each table's layout and Query data while failures replace only its dependent pane. */
@@ -58,7 +56,6 @@ export function PoolStandings({
   active = true,
   children,
   refreshEmpty = true,
-  onReady,
 }: Readonly<PoolStandingsProps>) {
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(poolId));
@@ -93,13 +90,9 @@ export function PoolStandings({
   const hasRows = data?.availability === "available" && data.rows.length > 0;
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
-  const ready = active && data !== undefined && !failed;
-  const revealStyle = useSingleContentReveal(ready);
-  useEffect(() => {
-    if (ready) {
-      onReady?.();
-    }
-  }, [ready, onReady]);
+  const revealStyle = useSingleContentReveal(
+    active && data !== undefined && !failed,
+  );
 
   const headerRow = (
     <View style={styles.headerRow}>

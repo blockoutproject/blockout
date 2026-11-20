@@ -32,6 +32,7 @@ import {
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
 import { SearchScene } from "../components/search-scene";
+import { SearchResultsPreview } from "../components/search-results";
 
 const searchTabs = [
   { id: "team", label: "Équipes" },
@@ -181,6 +182,10 @@ export function SearchScreen() {
             id,
             label,
             resetKey: criteria,
+            preview:
+              searchable || examples ? (
+                <SearchResultsPreview resource={id} examples={examples} />
+              ) : undefined,
             content: (
               <SearchScene
                 resource={id}

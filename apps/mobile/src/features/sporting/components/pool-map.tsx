@@ -82,6 +82,14 @@ export interface PoolMapProps {
   participantRead: ReturnType<typeof usePoolMapParticipants>;
 }
 
+export function PoolMapLoading() {
+  return (
+    <LoadingGroup label="Chargement des participants" style={styles.fill}>
+      <Skeleton height="100%" shape="rectangle" radius={0} />
+    </LoadingGroup>
+  );
+}
+
 /**
  * Keeps authorized camera and team selection mounted through a participant read failure.
  * The basemap owns gestures while the overlay offers one explicit refresh for both resources.
@@ -179,9 +187,7 @@ export function PoolMap({
           </ScreenState>
         </PageScrollView>
       ) : participants.isLoading ? (
-        <LoadingGroup label="Chargement des participants" style={styles.fill}>
-          <Skeleton height="100%" shape="rectangle" radius={0} />
-        </LoadingGroup>
+        <PoolMapLoading />
       ) : null}
     </View>
   );

@@ -69,12 +69,7 @@ export function SearchResults({
       }
       loadingFeedback={{
         active: loading,
-        content: (
-          <SportingEntityCardLoading
-            kind={resource}
-            label="Chargement des résultats"
-          />
-        ),
+        content: <SearchResultsLoading resource={resource} />,
       }}
       ListEmptyComponent={emptyComponent}
       ListFooterComponent={
@@ -95,6 +90,32 @@ export function SearchResults({
         <SportingEntityCard {...item} onOpen={onOpen} />
       )}
     />
+  );
+}
+
+function SearchResultsLoading({
+  resource,
+}: Readonly<{ resource: SearchResult["kind"] }>) {
+  return (
+    <SportingEntityCardLoading
+      kind={resource}
+      label="Chargement des résultats"
+    />
+  );
+}
+
+/** Reserves the same heading and card geometry before the selected scene starts its read. */
+export function SearchResultsPreview({
+  resource,
+  examples,
+}: Readonly<{ resource: SearchResult["kind"]; examples: boolean }>) {
+  return (
+    <View style={styles.listContent}>
+      <View style={styles.listHeading}>
+        <SearchHeading examples={examples} />
+      </View>
+      <SearchResultsLoading resource={resource} />
+    </View>
   );
 }
 

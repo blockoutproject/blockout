@@ -460,6 +460,13 @@ it.each([
     expect(
       screen.queryByRole("progressbar", { name: "Chargement des matchs" }),
     ).toBeNull();
+    expect(
+      screen.getAllByRole("progressbar", {
+        name: "Chargement des matchs",
+        includeHiddenElements: true,
+      }),
+    ).toHaveLength(2);
+    expect(listRequests()).toHaveLength(0);
 
     // When: the current table confirms ordinary absence, and a first swipe is canceled.
     await act(async () =>
@@ -1702,6 +1709,32 @@ it("keeps the pool season and phase independent of later standings and map conte
   await renderPage(<PoolScreen poolId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "Carte" });
+
+  // When: the adjacent map enters a swipe that returns to the completed calendar.
+  await user.press(screen.getByRole("tab", { name: "Terminés" }));
+  await scrollNativeTabs(2.5);
+
+  // Then: only the decorative loading surface mounts before the map is selected.
+  expect(
+    screen.getByRole("progressbar", {
+      name: "Chargement des participants",
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement des participants" }),
+  ).toBeNull();
+  expect(
+    screen.queryByTestId("native-map-boundary", {
+      includeHiddenElements: true,
+    }),
+  ).toBeNull();
+  await scrollNativeTabs(2, true);
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(url).pathname.endsWith("/participants"),
+    ),
+  ).toBe(false);
 
   // When
   await user.press(screen.getByRole("tab", { name: "Carte" }));

@@ -19,7 +19,7 @@ import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { ListSeparator } from "@/shared/components/list-separator";
-import { Page, pageContentStyle } from "@/shared/components/page";
+import { Page, PageContent, pageContentStyle } from "@/shared/components/page";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PageHeader } from "@/shared/components/page-header";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -78,6 +78,11 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
         tabs={queueTabs.map(({ id, label }) => ({
           id,
           label,
+          preview: (
+            <PageContent>
+              <ModerationQueueLoading />
+            </PageContent>
+          ),
           resetKey: hashKey([
             {
               ...filters,

@@ -3,6 +3,7 @@ import { PageFlatList } from "@/shared/components/page-list";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { ChevronUp } from "lucide-react-native";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -64,6 +65,8 @@ type FollowedRow =
     };
 
 const disclosureEasing = Easing.bezier(...tokens.motion.compact.easing);
+const followedResources = ["team", "pool"] as const;
+const followedLabels = { team: "Équipes suivies", pool: "Poules suivies" };
 
 /** Keeps a closing section in the list until its height reaches zero. */
 function useFollowedDisclosure(reducedMotion: boolean) {
@@ -246,9 +249,8 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const teams = useFollowedList(props, "team", teamDisclosure.expanded);
   const pools = useFollowedList(props, "pool", poolDisclosure.expanded);
   const lists = { team: teams, pool: pools };
-  const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
-  const failed = (["team", "pool"] as const)
+  const failed = followedResources
     .filter((type) => {
       const { query, refreshing } = lists[type];
       return (
@@ -296,26 +298,24 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     );
   }
 
-  const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
-    (resource) => [
-      { key: `${resource}-heading`, kind: "heading" as const, resource },
-      ...(disclosure[resource].visible
-        ? [
-            ...lists[resource].items.map((item): FollowedRow => ({
-              key: `${resource}-${item.identity.id.toLowerCase()}`,
-              kind: "item",
-              resource,
-              item,
-            })),
-            {
-              key: `${resource}-feedback`,
-              kind: "feedback" as const,
-              resource,
-            },
-          ]
-        : []),
-    ],
-  );
+  const rows: FollowedRow[] = followedResources.flatMap((resource) => [
+    { key: `${resource}-heading`, kind: "heading" as const, resource },
+    ...(disclosure[resource].visible
+      ? [
+          ...lists[resource].items.map((item): FollowedRow => ({
+            key: `${resource}-${item.identity.id.toLowerCase()}`,
+            kind: "item",
+            resource,
+            item,
+          })),
+          {
+            key: `${resource}-feedback`,
+            kind: "feedback" as const,
+            resource,
+          },
+        ]
+      : []),
+  ]);
   const refreshControl = [teams, pools].some(
     (list) => list.items.length > 0,
   ) ? (
@@ -375,26 +375,18 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         const list = lists[row.resource];
         const section = disclosure[row.resource];
         if (row.kind === "heading") {
-          const label =
-            row.resource === "team" ? "Équipes suivies" : "Poules suivies";
           return (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={label}
+              accessibilityLabel={followedLabels[row.resource]}
               accessibilityState={{ expanded: section.expanded }}
               onPress={section.toggle}
               style={styles.heading}
             >
-              <Text
-                style={[
-                  tokens.typography.navigation,
-                  styles.title,
-                  { color: colors.text },
-                ]}
-              >
-                {label}
-              </Text>
-              <DisclosureChevron expanded={section.expanded} />
+              <FollowedHeading
+                resource={row.resource}
+                expanded={section.expanded}
+              />
             </Pressable>
           );
         }
@@ -410,18 +402,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
             (list.query.isEnabled || !section.expanded) &&
             list.query.isPending &&
             list.query.isFetching ? (
-              <View style={styles.feedback}>
-                <View style={styles.card}>
-                  <SportingEntityCardLoading
-                    kind={row.resource}
-                    label={
-                      row.resource === "team"
-                        ? "Chargement des équipes suivies"
-                        : "Chargement des poules suivies"
-                    }
-                  />
-                </View>
-              </View>
+              <FollowedCardsLoading resource={row.resource} />
             ) : null;
         } else if (!list.items.length && !list.query.hasNextPage) {
           content = (
@@ -449,6 +430,70 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         );
       }}
     />
+  );
+}
+
+/** The first visit opens both sections; the preview reserves their usual loading geometry. */
+export function FollowedListsPreview() {
+  return (
+    <View style={styles.content}>
+      {followedResources.map((resource) => (
+        <View key={resource}>
+          <View style={styles.heading}>
+            <FollowedHeading resource={resource} />
+          </View>
+          <FollowedCardsLoading resource={resource} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function FollowedHeading({
+  resource,
+  expanded,
+}: Readonly<{ resource: FollowingTarget["type"]; expanded?: boolean }>) {
+  const { colors } = useTheme();
+  return (
+    <>
+      <Text
+        style={[
+          tokens.typography.navigation,
+          styles.title,
+          { color: colors.text },
+        ]}
+      >
+        {followedLabels[resource]}
+      </Text>
+      {expanded === undefined ? (
+        <ChevronUp
+          accessible={false}
+          size={tokens.size.icon.md}
+          color={colors.icon}
+        />
+      ) : (
+        <DisclosureChevron expanded={expanded} />
+      )}
+    </>
+  );
+}
+
+function FollowedCardsLoading({
+  resource,
+}: Readonly<{ resource: FollowingTarget["type"] }>) {
+  return (
+    <View style={styles.feedback}>
+      <View style={styles.card}>
+        <SportingEntityCardLoading
+          kind={resource}
+          label={
+            resource === "team"
+              ? "Chargement des équipes suivies"
+              : "Chargement des poules suivies"
+          }
+        />
+      </View>
+    </View>
   );
 }
 
