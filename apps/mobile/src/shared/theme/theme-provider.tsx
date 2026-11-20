@@ -2,9 +2,10 @@ import {
   createContext,
   useContext,
   useEffect,
+  useState,
   type PropsWithChildren,
 } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { AccessibilityInfo, Platform, useColorScheme } from "react-native";
 import { useReducedMotion as useStartupReducedMotion } from "react-native-reanimated";
 import * as SystemUI from "expo-system-ui";
 import {
@@ -18,7 +19,6 @@ import {
   neutralContext,
   type ContextColors,
 } from "./tokens";
-import { useReducedMotion } from "./use-reduced-motion";
 
 /** Current presentation only: no stored preference, membership authority or sporting-color derivation. */
 export interface Theme {
@@ -47,7 +47,33 @@ export function ThemeProvider({
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = appearanceColors[scheme];
   const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
-  const reducedMotion = useReducedMotion(useStartupReducedMotion());
+  const startupReducedMotion = useStartupReducedMotion();
+  const [reducedMotion, setReducedMotion] = useState(startupReducedMotion);
+  useEffect(() => {
+    // A live event takes precedence over the initial read, which may finish later.
+    let acceptInitialRead = true;
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (enabled) => {
+        acceptInitialRead = false;
+        setReducedMotion(enabled);
+      },
+    );
+    void AccessibilityInfo.isReduceMotionEnabled().then(
+      (enabled) => {
+        if (acceptInitialRead) {
+          setReducedMotion(enabled);
+        }
+      },
+      () => {
+        // Keep the current preference if the initial read fails.
+      },
+    );
+    return () => {
+      acceptInitialRead = false;
+      subscription.remove();
+    };
+  }, []);
   useEffect(() => {
     // Expo Blur samples this native background behind transparent target content.
     if (Platform.OS === "android") {

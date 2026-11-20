@@ -47,7 +47,6 @@ import {
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import {
   NavigationAccentContext,
@@ -67,11 +66,9 @@ interface SelectionInk {
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
   const session = useAccountSession();
-  const { colors, membership } = useTheme();
+  const { colors, membership, reducedMotion } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
-  // Read the live setting instead of Reanimated's system preference captured at startup.
-  const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
   const [accent, setAccent] = useState<NavigationAccentSelection>();

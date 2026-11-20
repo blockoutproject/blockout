@@ -24,7 +24,6 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import {
   SportingEntityCard,
   SportingEntityCardLoading,
@@ -242,7 +241,7 @@ function useFollowedList(
 
 /** Home sections share one native list and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: Readonly<FollowedListsProps>) {
-  const reducedMotion = useReducedMotion();
+  const { reducedMotion } = useTheme();
   const teamDisclosure = useFollowedDisclosure(reducedMotion);
   const poolDisclosure = useFollowedDisclosure(reducedMotion);
   const disclosure = { team: teamDisclosure, pool: poolDisclosure };

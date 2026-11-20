@@ -8,7 +8,9 @@ import {
 } from "@testing-library/react-native";
 import { SplashScreen, Stack } from "expo-router";
 import { renderRouter, testRouter } from "expo-router/testing-library";
+import { useState } from "react";
 import { AccessibilityInfo, Text, View } from "react-native";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   NativeSplashHandoff,
   useNativeSplashLayout,
@@ -64,9 +66,11 @@ it.each([
       .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
       .mockResolvedValue(reducedMotion);
     await render(
-      <NativeSplashHandoff>
-        <PageTransition />
-      </NativeSplashHandoff>,
+      <ThemeProvider>
+        <NativeSplashHandoff>
+          <PageTransition />
+        </NativeSplashHandoff>
+      </ThemeProvider>,
     );
     expect(screen.getByText("none")).toBeOnTheScreen();
 
@@ -77,6 +81,38 @@ it.each([
     // Then
     expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
     expect(screen.getByText(warmAnimation)).toBeOnTheScreen();
+  },
+);
+
+/** Retains the initial screen option supplied to a stack at mount. */
+function NewlyMountedStack() {
+  const { animation } = useStackScreenOptions();
+  const [initialAnimation] = useState(animation);
+  return <Text>{initialAnimation}</Text>;
+}
+
+it.each([
+  { reducedMotion: false, firstAnimation: "ios_from_right" },
+  { reducedMotion: true, firstAnimation: "none" },
+])(
+  "uses $firstAnimation on the first render of a stack opened after motion resolves",
+  async ({ reducedMotion, firstAnimation }) => {
+    // Given
+    const read = jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    const view = await render(<ThemeProvider />);
+
+    // When
+    await view.rerender(
+      <ThemeProvider>
+        <NewlyMountedStack />
+      </ThemeProvider>,
+    );
+
+    // Then
+    expect(screen.getByText(firstAnimation)).toBeOnTheScreen();
+    expect(read).toHaveBeenCalledTimes(1);
   },
 );
 

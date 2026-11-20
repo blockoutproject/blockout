@@ -6,7 +6,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { tokens } from "@/shared/theme/tokens";
 
 /** Decorative disclosure direction; the enclosing control owns the accessible expanded state. */
@@ -18,8 +17,7 @@ export interface DisclosureChevronProps {
 export function DisclosureChevron({
   expanded,
 }: Readonly<DisclosureChevronProps>) {
-  const { colors } = useTheme();
-  const reducedMotion = useReducedMotion();
+  const { colors, reducedMotion } = useTheme();
   const animated = useAnimatedStyle(() => ({
     transform: [
       {

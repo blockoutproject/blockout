@@ -5,14 +5,68 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { Pressable, Text } from "react-native";
+import {
+  AccessibilityInfo,
+  Pressable,
+  Text,
+  type ViewProps,
+} from "react-native";
+import {
+  ReduceMotion,
+  withTiming,
+  type EntryAnimationsValues,
+} from "react-native-reanimated";
 import { ActionFeedbackProvider, useActionFeedback } from "../action-feedback";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TECHNICAL_ERROR } from "../error-copy";
 
+jest.mock("react-native-reanimated", () => {
+  const actual = jest.requireActual("react-native-reanimated");
+  const { useLayoutEffect, useState } =
+    jest.requireActual<typeof import("react")>("react");
+  const { View } = jest.requireActual("react-native");
+  const layout: EntryAnimationsValues = {
+    targetOriginX: 0,
+    targetOriginY: 0,
+    targetGlobalOriginX: 0,
+    targetGlobalOriginY: 0,
+    targetWidth: 360,
+    targetHeight: 64,
+    targetBorderRadius: 0,
+    windowWidth: 393,
+    windowHeight: 852,
+  };
+
+  /** Jest does not run native layout animations. Deliver the initial entry request at mount. */
+  function LayoutAnimationView({
+    entering,
+    exiting: _exiting,
+    ...props
+  }: Readonly<
+    ViewProps & {
+      entering?: (values: EntryAnimationsValues) => unknown;
+      exiting?: unknown;
+    }
+  >) {
+    const [enterOnMount] = useState(() => entering);
+    useLayoutEffect(() => {
+      enterOnMount?.(layout);
+    }, [enterOnMount]);
+    return <View {...props} />;
+  }
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: { ...actual.default, View: LayoutAnimationView },
+    withTiming: jest.fn(),
+  };
+});
+
 beforeEach(() => jest.useFakeTimers());
 afterEach(async () => {
   await cleanup();
+  jest.restoreAllMocks();
   jest.useRealTimers();
 });
 
@@ -73,6 +127,40 @@ function Surface({
     </ThemeProvider>
   );
 }
+
+it.each([
+  {
+    reducedMotion: false,
+    entryTimings: [
+      expect.objectContaining({
+        duration: 240,
+        reduceMotion: ReduceMotion.Never,
+      }),
+    ],
+  },
+  { reducedMotion: true, entryTimings: [] },
+])(
+  "applies resolved reduced motion ($reducedMotion) when the error toast first mounts",
+  async ({ reducedMotion, entryTimings }) => {
+    // Given
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    const user = userEvent.setup();
+    await render(<Surface />);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Technical failure" }));
+
+    // Then
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+    ).toBeOnTheScreen();
+    expect(
+      jest.mocked(withTiming).mock.calls.map(([, config]) => config),
+    ).toEqual(entryTimings);
+  },
+);
 
 it("keeps page actions accessible while transient errors replace and expire", async () => {
   // Given
