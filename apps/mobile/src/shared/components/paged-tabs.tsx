@@ -383,7 +383,6 @@ export function PagedTabs({
       selected={selectedIndex}
       position={position}
       onTabPress={goTo}
-      reducedMotion={reducedMotion}
       contextColor={contextColor}
     />
   );

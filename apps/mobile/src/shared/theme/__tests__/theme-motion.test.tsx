@@ -23,7 +23,7 @@ function motionListener(
   )?.[1];
 }
 
-beforeEach(() => jest.mocked(useStartupReducedMotion).mockReturnValue(true));
+beforeEach(() => jest.mocked(useStartupReducedMotion).mockReturnValue(false));
 
 afterEach(async () => {
   await cleanup();
@@ -70,7 +70,6 @@ it.each([
 
 it("keeps a live native change when the initial preference read finishes late", async () => {
   // Given
-  jest.mocked(useStartupReducedMotion).mockReturnValue(false);
   const initial = Promise.withResolvers<boolean>();
   jest
     .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
@@ -141,5 +140,5 @@ it("keeps the startup preference when the native read fails", async () => {
   );
 
   // Then
-  expect(screen.getByText("Static")).toBeOnTheScreen();
+  expect(screen.getByText("Animated")).toBeOnTheScreen();
 });

@@ -55,17 +55,24 @@ function PageTransition() {
   return <Surface title={animation} />;
 }
 
+/** Retains the initial screen option supplied to a stack at mount. */
+function NewlyMountedStack() {
+  const { animation } = useStackScreenOptions();
+  const [initialAnimation] = useState(animation);
+  return <Text>{initialAnimation}</Text>;
+}
+
 it.each([
   { reducedMotion: false, warmAnimation: "ios_from_right" },
   { reducedMotion: true, warmAnimation: "none" },
 ])(
-  "applies the native motion setting after cold entry (reduced motion: $reducedMotion)",
+  "applies $warmAnimation after the splash and on a newly mounted stack",
   async ({ reducedMotion, warmAnimation }) => {
     // Given
-    jest
+    const read = jest
       .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
       .mockResolvedValue(reducedMotion);
-    await render(
+    const view = await render(
       <ThemeProvider>
         <NativeSplashHandoff>
           <PageTransition />
@@ -81,27 +88,6 @@ it.each([
     // Then
     expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
     expect(screen.getByText(warmAnimation)).toBeOnTheScreen();
-  },
-);
-
-/** Retains the initial screen option supplied to a stack at mount. */
-function NewlyMountedStack() {
-  const { animation } = useStackScreenOptions();
-  const [initialAnimation] = useState(animation);
-  return <Text>{initialAnimation}</Text>;
-}
-
-it.each([
-  { reducedMotion: false, firstAnimation: "ios_from_right" },
-  { reducedMotion: true, firstAnimation: "none" },
-])(
-  "uses $firstAnimation on the first render of a stack opened after motion resolves",
-  async ({ reducedMotion, firstAnimation }) => {
-    // Given
-    const read = jest
-      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
-      .mockResolvedValue(reducedMotion);
-    const view = await render(<ThemeProvider />);
 
     // When
     await view.rerender(
@@ -111,7 +97,7 @@ it.each([
     );
 
     // Then
-    expect(screen.getByText(firstAnimation)).toBeOnTheScreen();
+    expect(screen.getByText(warmAnimation)).toBeOnTheScreen();
     expect(read).toHaveBeenCalledTimes(1);
   },
 );
