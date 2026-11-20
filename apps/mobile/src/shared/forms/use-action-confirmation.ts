@@ -44,7 +44,7 @@ export function useActionConfirmation() {
           return;
         }
         dismiss.current = undefined;
-        resolve(accepted && mounted.current);
+        resolve(accepted);
       }
 
       /** Treats native dismissal and owner disposal as an explicit non-confirmation. */

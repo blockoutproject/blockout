@@ -6,7 +6,6 @@ import { useFormState } from "react-hook-form";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe, RefreshCw, Trophy } from "lucide-react-native";
-import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CollectionProviderEnum,
@@ -19,7 +18,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
 import { CreateSourceForm } from "./create-source-form";
 import { useProviderPreparationDraft } from "./use-provider-preparation-draft";
-import { createSourceValues } from "./create-source-values";
 
 /** Shares the original season target and selection with the mounted manual-source form. */
 export interface ProviderPreparationFormProps {
@@ -39,18 +37,11 @@ export function ProviderPreparationForm({
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
-  const mounted = useRef(false);
   const editor = useProviderPreparationDraft(season);
   const state = editor.state;
   const { selected, adding, feedback } = state;
   const { isDirty } = useFormState({ control: editor.form.control });
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   if (!state.baseline) {
     return null;
   }
@@ -89,11 +80,11 @@ export function ProviderPreparationForm({
       return;
     }
     const accepted = await confirmDiscard(() => {
-      if (mounted.current && !editing.create.isPending) {
-        editor.form.reset(createSourceValues());
+      if (!editing.create.isPending) {
+        editor.discard();
       }
     });
-    if (!accepted || !mounted.current || editing.create.isPending) {
+    if (!accepted || editing.create.isPending) {
       return;
     }
     editor.update({ ...editor.state, adding: false });

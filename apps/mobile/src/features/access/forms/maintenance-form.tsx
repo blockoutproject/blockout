@@ -7,7 +7,7 @@ import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
@@ -41,19 +41,12 @@ export function MaintenanceForm({
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
-  const mounted = useRef(false);
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
   const { isDirty, dirtyFields } = useFormState({ control });
   useDiscardChanges(isDirty, () => reset());
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.activation.isPending;
@@ -70,9 +63,6 @@ export function MaintenanceForm({
       const accepted = await editing.content.mutateAsync(
         toMaintenanceRequest(draft, dirtyFields),
       );
-      if (!mounted.current) {
-        return;
-      }
       reset(maintenanceValues(accepted));
     } catch {
       actionFeedback.error();
