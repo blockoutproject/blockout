@@ -15,7 +15,11 @@ import {
   useModerationMatch,
   useModerationReports,
 } from "../api/moderation";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -2381,7 +2385,7 @@ it("opens a newly accepted active member's own report destination", async () => 
   ).toHaveLength(0);
 });
 
-it.each(["queue", "active", "pending"] as const)(
+it.each(["queue", "active", "pending", "historical"] as const)(
   "does not animate a pull-to-refresh for a background %s read",
   async (kind) => {
     // Given: a loaded native scene stays visible while its ordinary Query data is reread.
@@ -2404,6 +2408,9 @@ it.each(["queue", "active", "pending"] as const)(
       await user.press(
         await screen.findByRole("tab", { name: "Propositions (1)" }),
       );
+    }
+    if (kind === "historical") {
+      await user.press(await screen.findByRole("tab", { name: "Historique" }));
     }
     await screen.findByLabelText("Actualiser les données");
     if (kind === "active") {
@@ -2452,7 +2459,9 @@ it.each(["queue", "active", "pending"] as const)(
       }
 
       // Then
-      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+      const refreshControl = screen.getByLabelText("Actualiser les données");
+      expect(refreshControl).not.toBeBusy();
+      expect(refreshControl).toHaveProp("refreshing", false);
     } finally {
       await act(async () => {
         finish(response);
@@ -2496,6 +2505,81 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
+});
+
+it("resumes a paused history pull and shows progress until its active context finishes", async () => {
+  // Given: authorized history has loaded, and only the next active-context response is held.
+  detail.items = [
+    version({ state: "rejected", canApprove: false, canReject: false }),
+  ];
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await userEvent.press(await screen.findByRole("tab", { name: "Historique" }));
+  const retainedVersion = await screen.findByRole("button", {
+    name: "Twitch, Refusé",
+  });
+  const historyKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "historical",
+  });
+  const contextKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "active",
+  });
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  const context = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(async (url, init) => {
+    const request = new URL(String(url));
+    if (
+      request.pathname === contextKey[0] &&
+      request.searchParams.get("state") === "active"
+    ) {
+      await context.promise;
+    }
+    return ordinary(url, init);
+  });
+  const refreshControl = () => screen.getByLabelText("Actualiser les données");
+
+  try {
+    // When: userEvent cannot express a native pull.
+    await act(() => onlineManager.setOnline(false));
+    await fireEvent(refreshControl(), "refresh");
+
+    // Then
+    await waitFor(() => {
+      expect(client.getQueryState(historyKey)?.fetchStatus).toBe("paused");
+      expect(client.getQueryState(contextKey)?.fetchStatus).toBe("paused");
+      expect(refreshControl()).not.toBeBusy();
+      expect(refreshControl()).toHaveProp("refreshing", false);
+    });
+    expect(retainedVersion).toBeOnTheScreen();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+
+    // Then: the selected list finishes first, while its pull still owns the active-context reread.
+    await waitFor(() => {
+      expect(client.getQueryState(historyKey)?.fetchStatus).toBe("idle");
+      expect(client.getQueryState(contextKey)?.fetchStatus).toBe("fetching");
+      expect(refreshControl()).toBeBusy();
+      expect(refreshControl()).toHaveProp("refreshing", true);
+    });
+
+    // When
+    await act(() => context.resolve());
+
+    // Then
+    await waitFor(() => {
+      expect(client.getQueryState(contextKey)?.fetchStatus).toBe("idle");
+      expect(refreshControl()).not.toBeBusy();
+      expect(refreshControl()).toHaveProp("refreshing", false);
+    });
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      context.resolve();
+    });
+  }
 });
 
 it("keeps a conflicted draft but adopts the current viewed address/revision after explicit refresh", async () => {

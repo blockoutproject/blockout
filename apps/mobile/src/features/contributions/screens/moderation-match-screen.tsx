@@ -196,6 +196,7 @@ export function ModerationMatchScreen({
                 busy={busy}
                 onAction={decide}
                 refreshContext={editing.refresh}
+                contextFetching={editing.query.isFetching}
               />
             ),
           },
@@ -213,6 +214,7 @@ export function ModerationMatchScreen({
                 busy={busy}
                 onAction={decide}
                 refreshContext={editing.refresh}
+                contextFetching={editing.query.isFetching}
               />
             ),
           },
@@ -369,6 +371,7 @@ function VersionScene({
   busy,
   onAction,
   refreshContext,
+  contextFetching,
 }: Readonly<{
   matchId: string;
   state: "pending" | "historical";
@@ -378,6 +381,7 @@ function VersionScene({
   busy: boolean;
   onAction: Decide;
   refreshContext: () => Promise<unknown>;
+  contextFetching: boolean;
 }>) {
   const [refreshing, setRefreshing] = useState(false);
   const { query } = reading;
@@ -525,7 +529,11 @@ function VersionScene({
         }
       }}
       refreshControl={
-        <DataRefreshControl enabled={active && !busy} onRefresh={refresh} />
+        <DataRefreshControl
+          enabled={active && !busy}
+          onRefresh={refresh}
+          fetching={query.isFetching || contextFetching}
+        />
       }
       ListHeaderComponent={
         <View style={styles.header}>

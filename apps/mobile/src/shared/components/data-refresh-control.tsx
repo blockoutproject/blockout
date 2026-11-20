@@ -9,8 +9,8 @@ export type DataRefreshControlProps = Pick<
 > & {
   /** Completes the explicit read; the feature retains its data, errors and recovery behavior. */
   onRefresh: () => Promise<unknown>;
-  /** Actual native Query fetch activity; a suspended gesture keeps its promise without progress. */
-  fetching?: boolean;
+  /** Whether any read awaited by onRefresh is actively fetching. */
+  fetching: boolean;
 };
 
 /**
@@ -26,7 +26,7 @@ export function DataRefreshControl({
 }: Readonly<DataRefreshControlProps>) {
   const { colors, context } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const progressing = refreshing && (fetching ?? true);
+  const progressing = refreshing && fetching;
 
   /** The callback's promise bounds this gesture; read failures remain with the feature owner. */
   async function refresh() {
