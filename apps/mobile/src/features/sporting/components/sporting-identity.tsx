@@ -76,7 +76,7 @@ export function SportingDivisionAtmosphere({
   return presentation === "identity" ? (
     renderIdentityAtmosphere(uri)
   ) : (
-    <SportingAtmosphere uri={uri} />
+    <SportingAtmosphere uri={uri} layout="card" />
   );
 }
 

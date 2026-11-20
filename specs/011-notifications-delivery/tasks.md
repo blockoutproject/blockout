@@ -212,11 +212,11 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 **Scope**: A38–A43; FR-015–016, FR-036, FR-039–042; SC-006.
 
-**Independent Test**: Verify family wording and missing/special/corrected facts at the backend message owner, then render received text verbatim with local time and actual inbox/push navigation; no fabricated score, active stream or expanded professional-media scope.
+**Independent Test**: Verify family wording and missing/special/corrected facts at the backend message owner. Then verify those facts in the inbox alongside local time and actual inbox/push navigation, retaining the feature’s sporting and broadcast limits.
 
 ### Tests for User Story 6
 
-- [x] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012. Preserve received message text verbatim, read/unread meaning, selected-zone instants and the neutral F03 Stream link destination. T008/T012's backend tests own every family variant and sporting wording; do not rerender their editorial matrix in Jest. Keep full semantic names, read/unread meaning and busy/disabled tap state; native width/text-scale geometry stays with T060. Preserve absence of notification counters and no manual cleanup/settings/campaign affordances.
+- [x] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012. Preserve distinct event information, read/unread meaning, selected-zone instants and the neutral F03 Stream link destination. T008/T012's backend tests own every family variant and sporting wording; do not rerender their editorial matrix in Jest. Keep full semantic names, read/unread meaning and busy/disabled tap state; native width/text-scale geometry stays with T060. Preserve absence of notification counters and no manual cleanup/settings/campaign affordances.
 
   Stream-only qualification does not complete the document/reporting scope of [F03 T047/T052](../007-sporting-consultation/tasks.md). Native layout qualification under F13 FR-030 remains T060.
 
@@ -224,6 +224,9 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 - [x] T059 [US6] Complete `apps/mobile/src/features/notifications/components/notification-item.tsx` and `screens/notifications-screen.tsx` using F03 local-time formatting/F13 UI and actual four-family responses, making T058 pass. Retain backend variant/facts, accessible French content and original creation order; display changes cannot trigger announcements. Reuse [approved inbox/match/guest design](plan.md#design-and-qualification), with no new foreground alert, deletion-progress screen, LNV TV collector or code-to-video inference.
 - [x] T060 [US6] Execute A38–A43 and the shared inbox presentation in A23–A25/A48–A49 via `specs/011-notifications-delivery/quickstart.md#qualification-boundaries` on compatible native iOS/Android builds. Observe all four families across representative inbox/Match/guest compositions, distributing light/dark/system appearance, narrow layout, enlarged text, read/unread distinctions and ordinary names/roles/states under F13 FR-030 without a family × state × appearance × device product. Include initial skeleton, final initial/full-read card with same-card Retry showing only actual active progress, first account failure without data and next-page failure retaining rows with footer Retry, consuming T075/F05 T081 evidence where unchanged. Reuse T008/T012 for stable variants and truthful missing/corrected/delayed facts, T058 for actual message/time rendering, controlled-clock elapsed-age/ordinary-event filtering and unchanged server-purge proofs. An entry crossing 29 days on an unchanged view may stay until the next ordinary read/opening/foreground event; verify exclusion then without a timer. Observe no app-controlled tab/icon badge, one short native displayed-time adapter check and one ordinary guest/changed-account return, reusing applicable F05/F13 evidence and naming controlled I/O/identities. Actual delayed push/receipt and global SDK/provider behavior remain T041; presentation requires no purchase, physical device or signed production binary. Keep Figma/prototype approval distinct from native presentation and provider evidence.
+
+- [x] T080 [US6] Implement the compact FR-018/FR-041 card and skeleton in `apps/mobile/src/features/notifications/components/notification-item.tsx` and `notification-loading.tsx`. Use the shared sporting halo and existing logo fallbacks. Extend `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` to verify score and distinct event information, the Match action without header progress and independent pool/team links. Preserve the read mutation and existing push wording.
+- [ ] T081 [US6] Qualify the changed [inbox presentation](quickstart.md#qualification-boundaries) on compatible iOS and Android clients using representative light/dark, narrow or enlarged-text and initial loading states. Check result/score availability, team artwork, distinct event information and independent navigation while the read acknowledgment is pending. Reuse T060 evidence within its existing scope. T041 retains actual push-delivery qualification.
 
 ---
 
@@ -255,6 +258,8 @@ Setup and foundation block every story. Tests precede associated behavior; share
 | US2        | US1 result/facts/recipients and F08 transition → T053/T054 → T055/T056 → T057.    | May develop once these bounded inputs exist; requires no complete push/native/restore programme.                                                           |
 | US6        | T012 safe variants + actual families/US3 UI → T058 → T059 → T060.                 | Native visual/accessibility proof uses actual builds; backend message safety was implemented in US1.                                                       |
 | Polish     | Required stories/proofs → T061–T063.                                              | Documentary success does not fill unavailable device/provider/restore evidence.                                                                            |
+
+T081 follows T080 for the changed compact inbox presentation.
 
 ### Shared Owner Dependencies
 

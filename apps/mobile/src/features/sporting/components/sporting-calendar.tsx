@@ -300,41 +300,41 @@ export function SportingCalendarView({
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
         const match = (
+          <View
+            style={[
+              calendarStyles.matchInset,
+              item.first && calendarStyles.firstMatch,
+              item.last && calendarStyles.lastMatch,
+            ]}
+          >
+            <CalendarMatch
+              key={item.match.id}
+              match={item.match}
+              displayTimeZone={displayZone}
+              currentTeamId={currentTeamId}
+              active={active}
+            />
+          </View>
+        );
+        return item.first ? (
+          <CalendarPoolGroupStart
+            pool={item.match.pool}
+            linked={
+              item.match.pool.pool.id.toLowerCase() !==
+              currentPoolId?.toLowerCase()
+            }
+            active={active}
+            last={item.last}
+          >
+            {match}
+          </CalendarPoolGroupStart>
+        ) : (
           <CalendarGroupPart
             divisionColor={item.match.pool.classification.division?.color}
             last={item.last}
           >
-            <View
-              style={[
-                calendarStyles.matchInset,
-                item.first && calendarStyles.firstMatch,
-                item.last && calendarStyles.lastMatch,
-              ]}
-            >
-              <CalendarMatch
-                key={item.match.id}
-                match={item.match}
-                displayTimeZone={displayZone}
-                currentTeamId={currentTeamId}
-                active={active}
-              />
-            </View>
-          </CalendarGroupPart>
-        );
-        return item.first ? (
-          <View>
-            <CalendarPoolHeader
-              pool={item.match.pool}
-              linked={
-                item.match.pool.pool.id.toLowerCase() !==
-                currentPoolId?.toLowerCase()
-              }
-              active={active}
-            />
             {match}
-          </View>
-        ) : (
-          match
+          </CalendarGroupPart>
         );
       }}
       onEndReached={() => {
@@ -438,65 +438,84 @@ function CalendarGroupPart({
   );
 }
 
-/** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
-function CalendarPoolHeader({
+/** A group's first virtual cell clips the shared halo behind its heading and first match. */
+function CalendarPoolGroupStart({
   pool,
   linked,
   active,
-}: Readonly<{
-  pool: MatchSummaryResponse["pool"];
-  linked: boolean;
-  active: boolean;
-}>) {
+  last,
+  children,
+}: Readonly<
+  PropsWithChildren<{
+    pool: MatchSummaryResponse["pool"];
+    linked: boolean;
+    active: boolean;
+    last: boolean;
+  }>
+>) {
   const { colors } = useTheme();
   const division = pool.classification.division;
   const metadata = [division?.name, genderLabel(pool.classification.gender)]
     .filter(Boolean)
     .join(" ");
-  const content = (
-    <>
-      {division ? (
-        <SportingLogo identity={division} kind="division" />
-      ) : (
-        <SportingMedia identity={pool.pool} kind="division" />
-      )}
-      <View style={calendarStyles.poolCopy}>
-        <Text
-          accessibilityRole="header"
-          accessibilityLabel={pool.pool.name}
-          numberOfLines={2}
-          ellipsizeMode="tail"
-          style={[styles.poolName, { color: colors.text }]}
-        >
-          {pool.pool.name}
-        </Text>
-        <Text style={[styles.metadata, { color: colors.secondaryText }]}>
-          {metadata}
-        </Text>
-      </View>
-    </>
-  );
-  return (
-    <CalendarGroupPart divisionColor={division?.color} first>
-      {linked ? (
-        <SportingLink
-          kind="pool"
-          id={pool.pool.id}
-          label={metadata ? `${pool.pool.name} · ${metadata}` : pool.pool.name}
-          active={active}
-          style={calendarStyles.poolHeading}
-        >
-          {content}
-          <ChevronRight
-            accessible={false}
-            size={tokens.size.icon.sm}
-            color={colors.icon}
-          />
-        </SportingLink>
-      ) : (
-        <View style={calendarStyles.poolHeading}>{content}</View>
-      )}
-    </CalendarGroupPart>
+
+  function renderGroup(logo: ReactNode, atmosphere?: ReactNode) {
+    const heading = (
+      <>
+        {logo}
+        <View style={calendarStyles.poolCopy}>
+          <Text
+            accessibilityRole="header"
+            accessibilityLabel={pool.pool.name}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            style={[styles.poolName, { color: colors.text }]}
+          >
+            {pool.pool.name}
+          </Text>
+          <Text style={[styles.metadata, { color: colors.secondaryText }]}>
+            {metadata}
+          </Text>
+        </View>
+      </>
+    );
+    return (
+      <CalendarGroupPart divisionColor={division?.color} first last={last}>
+        {atmosphere}
+        {linked ? (
+          <SportingLink
+            kind="pool"
+            id={pool.pool.id}
+            label={
+              metadata ? `${pool.pool.name} · ${metadata}` : pool.pool.name
+            }
+            active={active}
+            style={calendarStyles.poolHeading}
+          >
+            {heading}
+            <ChevronRight
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          </SportingLink>
+        ) : (
+          <View style={calendarStyles.poolHeading}>{heading}</View>
+        )}
+        {children}
+      </CalendarGroupPart>
+    );
+  }
+
+  return division ? (
+    <SportingLogo
+      identity={division}
+      kind="division"
+      atmosphere={{ layout: "card" }}
+      renderWithAtmosphere={renderGroup}
+    />
+  ) : (
+    renderGroup(<SportingMedia identity={pool.pool} kind="division" />)
   );
 }
 

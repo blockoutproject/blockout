@@ -1,48 +1,38 @@
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import { SportingLink } from "@/features/sporting/link";
 import {
-  MatchSurface,
   SportingLogo,
-  SportingArtwork,
-  DivisionPaint,
-  divisionTextColor,
   currentSportingTimeZone,
   formatSportingTime,
 } from "@/features/sporting/notification-presentation";
+import {
+  NotificationCard,
+  notificationCardLayout as layout,
+  notificationScoreSize,
+  notificationTeamLines,
+  useNotificationTeamHeight,
+} from "./notification-card-layout";
 
-/** Validated current entry and exact tap intent; pending blocks repetition without changing its read state. */
+/** Validated current entry and exact tap intent; pending blocks repetition without changing read state. */
 export interface NotificationItemProps {
   notification: NotificationResponse;
   onPress: () => void;
   pending?: boolean;
 }
 
-/** F07 Pattern 512:6869: stable wording, current teams/result, received instant and accessible read state. */
 export function NotificationItem({
   notification: row,
   onPress,
   pending = false,
 }: Readonly<NotificationItemProps>) {
   const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  // Approved normal/large score slots are 36/48 points; text keeps native scaling beyond those minima.
-  const scoreSize =
-    fontScale >= 1.5
-      ? tokens.size.control.default
-      : tokens.size.control.compact;
+  const teamHeight = useNotificationTeamHeight();
   const division = row.division;
-  const foreground = divisionTextColor(division.color);
   const timeZone = currentSportingTimeZone();
   const receivedDay = new Intl.DateTimeFormat("fr-FR", {
     timeZone,
@@ -54,6 +44,11 @@ export function NotificationItem({
   const result =
     row.match.result?.state === "final" ? row.match.result : undefined;
   const score = result?.homeSets !== undefined && result.awaySets !== undefined;
+  // Link availability and special results can carry information beyond the set totals.
+  const event =
+    row.family === "result" && score && !result?.specialLabel
+      ? undefined
+      : row.title;
   const pool = row.match.pool.pool;
   const teams = [
     { identity: row.match.home, value: result?.homeSets, side: "domicile" },
@@ -65,192 +60,158 @@ export function NotificationItem({
         `${identity.name.trim() || "Nom indisponible"}${score ? `, Score ${side} : ${value}` : ""}`,
     )
     .join(". ");
-  return (
-    <MatchSurface division={division}>
-      <View style={[styles.header, { backgroundColor: division.color }]}>
-        <DivisionPaint division={division} />
-        <SportingArtwork division={division} />
-        <SportingLink
-          kind="pool"
-          id={pool.id}
-          label={`Voir la poule ${pool.name}`}
-          style={styles.pool}
-        >
-          <SportingLogo kind="division" identity={division} />
-          <View style={styles.identity}>
-            <Text
-              numberOfLines={1}
-              style={[tokens.typography.strong, { color: foreground }]}
-            >
-              {pool.name}
-            </Text>
-            <Text style={[tokens.typography.metadata, { color: foreground }]}>
-              {date}
-            </Text>
-          </View>
-          <ChevronRight
-            accessible={false}
-            size={tokens.size.icon.sm}
-            color={foreground}
-          />
-        </SportingLink>
-        <View style={styles.status}>
-          {pending ? (
-            <LoadingIndicator color={foreground} />
-          ) : (
-            !row.read && (
-              <View
-                accessible={false}
-                style={[styles.dot, { backgroundColor: colors.secondaryText }]}
-              />
-            )
-          )}
-        </View>
-      </View>
-      <View style={styles.body}>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${row.title} ${pool.name}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`}
-          accessibilityHint="Ouvrir la fiche du match"
-          accessibilityState={{ disabled: pending, busy: pending }}
-          disabled={pending}
-          onPress={onPress}
-          style={({ pressed }) => [
-            styles.match,
-            { opacity: pressed ? tokens.opacity.pressed : 1 },
-          ]}
-        >
-          <Text
-            style={[
-              tokens.typography.body,
-              styles.copy,
-              { color: colors.text },
-            ]}
+  const matchLabel = `${[event, pool.name].filter(Boolean).join(" ")}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`;
+
+  function renderCard(logo: ReactNode, atmosphere: ReactNode) {
+    return (
+      <NotificationCard atmosphere={atmosphere} divisionColor={division.color}>
+        <View style={layout.header}>
+          <SportingLink
+            kind="pool"
+            id={pool.id}
+            label={`Voir la poule ${pool.name}`}
+            style={layout.pool}
           >
-            {row.title}
-          </Text>
-          <ChevronRight
-            accessible={false}
-            size={tokens.size.icon.sm}
-            color={colors.icon}
-          />
-        </Pressable>
-        <View style={styles.teams}>
-          {teams.map(({ identity, value, side }) => {
-            const name = identity.name.trim();
-            const title = (
+            {logo}
+            <View style={layout.identity}>
+              <Text
+                numberOfLines={1}
+                style={[styles.poolName, { color: colors.text }]}
+              >
+                {pool.name}
+              </Text>
               <Text
                 style={[
-                  tokens.typography.strong,
-                  styles.copy,
-                  { color: colors.text },
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
                 ]}
               >
-                {name || "Nom indisponible"}
+                {date}
               </Text>
-            );
-            return (
-              <View key={side} style={styles.team}>
-                {name ? (
-                  <SportingLink
+            </View>
+          </SportingLink>
+          {!row.read && (
+            <View
+              accessible={false}
+              style={[styles.dot, { backgroundColor: colors.secondaryText }]}
+            />
+          )}
+        </View>
+        {!!event && (
+          <Text style={[tokens.typography.label, { color: colors.text }]}>
+            {event}
+          </Text>
+        )}
+        <View style={layout.participants}>
+          <View style={layout.teams}>
+            {teams.map(({ identity, side }) => {
+              const name = identity.name.trim();
+              const team = (
+                <>
+                  <SportingLogo
                     kind="team"
-                    id={identity.id}
-                    label={`Voir l’équipe ${name}`}
-                    style={styles.teamLink}
-                  >
-                    {title}
-                    <ChevronRight
-                      accessible={false}
-                      size={tokens.size.icon.sm}
-                      color={colors.icon}
-                    />
-                  </SportingLink>
-                ) : (
-                  <View style={styles.teamLink}>{title}</View>
-                )}
-                {score && (
-                  <View
+                    identity={identity}
+                    size={tokens.size.icon.lg}
+                  />
+                  <Text
+                    numberOfLines={notificationTeamLines}
                     style={[
-                      styles.score,
-                      {
-                        backgroundColor: colors.subtle,
-                        minWidth: scoreSize,
-                        minHeight: scoreSize,
-                      },
+                      tokens.typography.label,
+                      layout.teamCopy,
+                      { color: colors.text },
                     ]}
                   >
-                    <Text
-                      style={[
-                        tokens.typography.navigation,
-                        { color: colors.text },
-                      ]}
+                    {name || "Nom indisponible"}
+                  </Text>
+                </>
+              );
+              const teamStyle = [layout.team, { minHeight: teamHeight }];
+              return name ? (
+                <SportingLink
+                  key={side}
+                  kind="team"
+                  id={identity.id}
+                  label={`Voir l’équipe ${name}`}
+                  style={teamStyle}
+                >
+                  {team}
+                </SportingLink>
+              ) : (
+                <View key={side} style={teamStyle}>
+                  {team}
+                </View>
+              );
+            })}
+          </View>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={matchLabel}
+            accessibilityHint="Ouvrir la fiche du match"
+            accessibilityState={{ disabled: pending, busy: pending }}
+            disabled={pending}
+            onPress={onPress}
+            style={({ pressed }) => [
+              layout.match,
+              pressed && { opacity: tokens.opacity.pressed },
+            ]}
+          >
+            {score && (
+              <View style={layout.scores}>
+                {teams.map(({ value, side }) => (
+                  <View key={side} style={layout.scoreSlot}>
+                    <View
+                      style={[styles.score, { backgroundColor: colors.subtle }]}
                     >
-                      {value}
-                    </Text>
+                      <Text
+                        style={[
+                          tokens.typography.navigation,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {value}
+                      </Text>
+                    </View>
                   </View>
-                )}
+                ))}
               </View>
-            );
-          })}
+            )}
+            <ChevronRight
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          </Pressable>
         </View>
-      </View>
-    </MatchSurface>
+      </NotificationCard>
+    );
+  }
+
+  return (
+    <SportingLogo
+      kind="division"
+      identity={division}
+      size={tokens.size.control.compact}
+      atmosphere={{ layout: "card" }}
+      renderWithAtmosphere={renderCard}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-    padding: tokens.spacing.md,
-    overflow: "hidden",
-  },
-  identity: { flex: 1, gap: tokens.spacing.optical, minWidth: 0 },
-  pool: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  status: {
-    width: tokens.size.icon.md,
-    height: tokens.size.icon.md,
-    alignItems: "center",
-    justifyContent: "center",
+  poolName: {
+    ...tokens.typography.label,
+    fontFamily: tokens.typography.navigation.fontFamily,
   },
   dot: {
     width: tokens.spacing.sm,
     height: tokens.spacing.sm,
     borderRadius: tokens.radius.full,
   },
-  body: {
-    paddingHorizontal: tokens.spacing.md,
-    paddingBottom: tokens.spacing.md,
-    gap: tokens.spacing.sm,
-  },
-  copy: { flex: 1, minWidth: 0 },
-  match: {
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  teams: { gap: tokens.spacing.sm },
-  team: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
-  teamLink: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
   score: {
+    minWidth: notificationScoreSize.width,
+    minHeight: notificationScoreSize.height,
     borderRadius: tokens.radius.sm,
-    paddingHorizontal: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.xs,
     paddingVertical: tokens.spacing.optical,
     alignItems: "center",
     justifyContent: "center",
