@@ -269,6 +269,7 @@ export function SportingEntityCard({
       kind={kind === "pool" ? "division" : kind}
       size={logoSize}
       presentation="entity"
+      atmosphere={clubTeam ? undefined : { layout: "card" }}
       renderWithAtmosphere={usesDivisionAtmosphere ? undefined : renderCard}
     />
   );

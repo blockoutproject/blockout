@@ -1,6 +1,6 @@
 import { SportingPoolLoading } from "../components/sporting-loading";
 import { SportingSupportAction } from "../components/sporting-actions";
-import { PoolMap } from "../components/pool-map";
+import { PoolMap, usePoolMapParticipants } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
@@ -14,7 +14,7 @@ import {
 import { PageHeader } from "@/shared/components/page-header";
 import { PageContent } from "@/shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import type {
   SportingIdentityResponse,
   SportingSeasonResponse,
@@ -51,13 +51,27 @@ function PoolPage({
 }: Readonly<PoolScreenProps>) {
   const queries = useConsultationQueries();
   const pool = useQuery(queries.pool(poolId));
-  const [tab, setTab] = useState("standings");
+  const [{ tab, mapVisited }, setVisit] = useState({
+    tab: "standings",
+    mapVisited: false,
+  });
+  const selectTab = useCallback((id: string) => {
+    setVisit((visit) => ({
+      tab: id,
+      mapVisited: visit.mapVisited || id === "map",
+    }));
+  }, []);
   const { onStandingsReady, preview } = useStandingsCalendarPreview(
     "upcoming",
     pool,
     initialFollow,
   );
   const data = pool.data;
+  // Retain the participant observer after the Map's first settled visit.
+  const participantRead = usePoolMapParticipants(
+    data?.pool.pool.id ?? poolId,
+    data !== undefined && mapVisited,
+  );
   const divisionColor = data?.pool.classification.division?.color;
   const identity = data ? (
     <SportingIdentity
@@ -96,7 +110,7 @@ function PoolPage({
       {data && (
         <PagedTabs
           selected={tab}
-          onSelect={setTab}
+          onSelect={selectTab}
           contextColor={divisionColor}
           header={
             data && (
@@ -130,7 +144,11 @@ function PoolPage({
                   onReady={onStandingsReady}
                 />
               ) : (
-                <PoolMap pool={data.pool} active={tab === value} />
+                <PoolMap
+                  pool={data.pool}
+                  active={tab === value}
+                  participantRead={participantRead}
+                />
               );
             return {
               id: value,
@@ -138,6 +156,7 @@ function PoolPage({
               content,
               preview: value === "upcoming" ? preview : undefined,
               fullHeight: value === "map",
+              swipeDisabled: value === "map" && participantRead.interactive,
             };
           })}
         />

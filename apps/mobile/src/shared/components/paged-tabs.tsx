@@ -47,8 +47,10 @@ export interface PagedTab {
   preview?: ReactNode;
   /** A changed reading context replaces only this scene and its native scroll position. */
   resetKey?: string;
-  /** Reserves the viewport below pinned controls for content that owns its gestures. */
+  /** Folds the shared header and reserves the viewport below the pinned controls. */
   fullHeight?: boolean;
+  /** The settled scene owns horizontal touch gestures. */
+  swipeDisabled?: boolean;
 }
 
 export interface PagedTabsProps {
@@ -405,7 +407,7 @@ export function PagedTabs({
             testID="native-tabs-pager"
             horizontal
             pagingEnabled
-            scrollEnabled={!scenes[selectedIndex]?.fullHeight}
+            scrollEnabled={!tabs[selectedIndex]?.swipeDisabled}
             removeClippedSubviews={false}
             bounces={false}
             directionalLockEnabled

@@ -99,7 +99,7 @@ function Providers({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
-it("preserves the supplied message without inventing editorial or reading intent", async () => {
+it("presents a numeric final result once without starting a read", async () => {
   // Given
   const title =
     "Le résultat est disponible 🏐, avec le libellé fourni par le serveur.";
@@ -122,9 +122,9 @@ it("preserves the supplied message without inventing editorial or reading intent
   });
 
   // Then
-  expect(screen.getByText(title)).toBeOnTheScreen();
+  expect(screen.queryByText(title)).toBeNull();
   expect(screen.getByRole("link", { name: /non lue$/ })).toHaveAccessibleName(
-    `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue`,
+    "Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue",
   );
   expect(screen.getByText("3")).toBeOnTheScreen();
   expect(screen.getByText("1")).toBeOnTheScreen();
@@ -137,6 +137,30 @@ it("preserves the supplied message without inventing editorial or reading intent
       name: /supprimer|archiver|réglages|campagne/i,
     }),
   ).toBeNull();
+});
+
+it("retains the special notation when the result also has set totals", async () => {
+  // Given
+  const row = notificationResponse();
+  row.title = "Résultat particulier : Forfait.";
+  row.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 0,
+    specialLabel: "Forfait",
+    observedAt: row.createdAt,
+  };
+
+  // When
+  await render(<NotificationItem notification={row} onPress={jest.fn()} />, {
+    wrapper: Providers,
+  });
+
+  // Then
+  expect(screen.getByText(row.title)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Forfait.*3.*0.*non lue/ }),
+  ).toBeOnTheScreen();
 });
 
 it.each([
@@ -202,6 +226,7 @@ it("replaces corrected names, removes a withdrawn score/link and keeps read inte
     />,
     { wrapper: Providers },
   );
+  expect(screen.getByText(row.title)).toBeOnTheScreen();
   expect(
     screen.getByRole("link", {
       name: /Score domicile : 3.*Score extérieur : 0/,

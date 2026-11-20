@@ -41,7 +41,7 @@ import { ApplicationAccessProvider } from "@/features/access/queries/use-applica
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { PoolScreen } from "../screens/pool-screen";
-import { PoolMap } from "../components/pool-map";
+import { PoolMap, usePoolMapParticipants } from "../components/pool-map";
 import { nativeMapCommands } from "../test-support/native-maps";
 import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
 
@@ -232,6 +232,13 @@ function open(content = panel()) {
   });
 }
 
+function TestPoolMap({ active = true }: Readonly<{ active?: boolean }>) {
+  const participantRead = usePoolMapParticipants(pool.pool.id);
+  return (
+    <PoolMap pool={pool} active={active} participantRead={participantRead} />
+  );
+}
+
 /** Supplies the existing native tab owner without replacing the component's read lifecycle. */
 function panel(active = true) {
   return (
@@ -243,7 +250,7 @@ function panel(active = true) {
           id: "map",
           label: "Carte",
           fullHeight: true,
-          content: <PoolMap pool={pool} active={active} />,
+          content: <TestPoolMap active={active} />,
         },
       ]}
     />
@@ -314,6 +321,10 @@ it("opens independent participants lazily after the admitted standings pane fail
       new URL(url).pathname.endsWith("/participants"),
     ),
   ).toHaveLength(1);
+  expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+    "scrollEnabled",
+    false,
+  );
   expect(screen.queryByText("4 équipes, dont 2 localisées")).toBeNull();
   expect(
     screen.getByRole("button", { name: "Niort: Marais" }),
@@ -655,6 +666,65 @@ it("distinguishes no usable locations from no participating teams", async () => 
   await screen.findByRole("button", { name: "Actualiser", busy: false });
   expect(screen.getByText("Aucune localisation disponible")).toBeOnTheScreen();
 });
+
+it.each([
+  { state: "no locations", failure: undefined, action: "Actualiser" },
+  { state: "a failed read", failure: 503, action: "Réessayer" },
+])(
+  "allows paging from Map with $state until locations are shown",
+  async ({ failure, action }) => {
+    // Given: the real Pool screen has no displayed map and retains its scoped recovery action.
+    participants.items = [participant(sportingId, "Rives")];
+    participantsFailure = failure;
+    const user = userEvent.setup();
+    await open(<PoolScreen poolId={pool.pool.id} />);
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await user.press(screen.getByRole("tab", { name: "Carte" }));
+    const recovery = await screen.findByRole("button", { name: action });
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/participants")
+        ? pending.promise
+        : mapResponse(url),
+    );
+
+    // When: explicit recovery is pending and then returns one usable location.
+    await user.press(recovery);
+    await screen.findByRole("button", { name: action, busy: true });
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
+    await act(() =>
+      pending.resolve(
+        Response.json({
+          ...participants,
+          items: [
+            participant(sportingId, "Rives", {
+              latitude: 46.16,
+              longitude: -1.15,
+              label: "La Rochelle",
+            }),
+          ],
+        }),
+      ),
+    );
+
+    // Then: the displayed map takes over horizontal gestures.
+    expect(
+      await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      false,
+    );
+  },
+);
 
 it("matches optional standings by exact team UUID without borrowing a source-name match", async () => {
   // Given: participants own identity/location; only the exact resolved official row owns its record.
@@ -1331,7 +1401,7 @@ it.each([
         : []),
     ];
     const user = userEvent.setup();
-    await open(<PoolMap pool={pool} />);
+    await open(<TestPoolMap />);
     // The controlled native boundary has no semantic action for its lifecycle callbacks.
     const nativeMap = await screen.findByTestId("native-map-boundary");
     const frame = nativeMapCommands.fitToCoordinates;
@@ -1385,7 +1455,7 @@ it.each(["ios", "android"] as const)(
     ];
     await open(
       <BottomContentInsetContext value={80}>
-        <PoolMap pool={pool} />
+        <TestPoolMap />
       </BottomContentInsetContext>,
     );
     const map = await screen.findByTestId("native-map-boundary");

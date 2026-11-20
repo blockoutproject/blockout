@@ -20,7 +20,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { mediaRadius } from "@/shared/theme/media-radius";
 
-type AtmosphereLayout = "horizontal" | "podium" | "crest";
+type AtmosphereLayout = "horizontal" | "card" | "podium" | "crest";
 
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
@@ -199,7 +199,7 @@ export function SportingAtmosphere({
   if (image.status === "failed") {
     return null;
   }
-  const horizontal = layout === "horizontal";
+  const horizontal = layout === "horizontal" || layout === "card";
   const atmosphere = tokens.sporting.atmosphere;
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
@@ -291,6 +291,10 @@ export function SportingAtmosphere({
       pointerEvents="none"
       style={[
         horizontal ? styles.horizontalAtmosphere : StyleSheet.absoluteFill,
+        horizontal &&
+          (layout === "card"
+            ? styles.cardAtmosphere
+            : styles.stretchedAtmosphere),
         {
           opacity: atmosphere.opacity[scheme],
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
@@ -339,9 +343,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    bottom: 0,
     width: tokens.sporting.atmosphere.horizontalWidth,
   },
+  cardAtmosphere: {
+    height: tokens.sporting.atmosphere.cardHeight,
+  },
+  stretchedAtmosphere: { bottom: 0 },
   artwork: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",

@@ -62,22 +62,42 @@ import { Skeleton } from "@/shared/components/skeleton";
 /** Before this much clear height, a single row keeps more of the map and team card reachable. */
 const compactControlsHeight = 340;
 
+/** The visited scene and pager share one read and its current gesture availability. */
+export function usePoolMapParticipants(poolId: string, visited = true) {
+  const queries = useConsultationQueries();
+  const query = useQuery({
+    ...queries.participants(poolId),
+    ...consultationOpeningPolicy,
+    subscribed: visited,
+  });
+  const failed = hasReadError(query);
+  const hasLocations = query.data?.items.some((item) => item.location) ?? false;
+  return { query, failed, hasLocations, interactive: hasLocations && !failed };
+}
+
 /** One exact pool's participant map; active permits its retained pane's explicit actions. */
 export interface PoolMapProps {
   pool: PoolSummaryResponse;
   active?: boolean;
+  participantRead: ReturnType<typeof usePoolMapParticipants>;
 }
 
 /**
  * Keeps authorized camera and team selection mounted through a participant read failure.
  * The basemap owns gestures while the overlay offers one explicit refresh for both resources.
  */
-export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
+export function PoolMap({
+  pool,
+  active = true,
+  participantRead,
+}: Readonly<PoolMapProps>) {
   const queries = useConsultationQueries();
-  const participants = useQuery({
-    ...queries.participants(pool.pool.id),
-    ...consultationOpeningPolicy,
-  });
+  const {
+    query: participants,
+    failed,
+    hasLocations,
+    interactive,
+  } = participantRead;
   const standings = useQuery({
     ...queries.standings(pool.pool.id),
     refetchOnMount: false,
@@ -85,12 +105,11 @@ export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
   });
   const [refreshing, setRefreshing] = useState(false);
   const data = participants.data;
-  const hasLocations = data?.items.some((item) => item.location) ?? false;
-  const failed = hasReadError(participants);
   const recordUnavailable =
     hasReadError(standings) || standings.data?.availability === "unavailable";
+  // Observe fetching before the gesture so the shared read publishes its active progress.
   const refreshLoading =
-    refreshing && (participants.isFetching || standings.isFetching);
+    (participants.isFetching || standings.isFetching) && refreshing;
 
   /** Refetches both existing resources; optional statistics never condition map identity or navigation. */
   async function refresh() {
@@ -112,16 +131,18 @@ export function PoolMap({ pool, active = true }: Readonly<PoolMapProps>) {
     <View style={styles.fill}>
       {data && hasLocations && (
         <View
-          style={[StyleSheet.absoluteFill, failed && styles.hidden]}
-          pointerEvents={failed ? "none" : "auto"}
-          accessibilityElementsHidden={failed}
-          importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
+          style={[StyleSheet.absoluteFill, !interactive && styles.hidden]}
+          pointerEvents={interactive ? "auto" : "none"}
+          accessibilityElementsHidden={!interactive}
+          importantForAccessibility={
+            interactive ? "auto" : "no-hide-descendants"
+          }
         >
           <ParticipantMap
             items={data.items}
             standings={standings.data}
             recordUnavailable={recordUnavailable}
-            active={active && !failed}
+            active={active && interactive}
             onRefresh={() => void refresh()}
             refreshing={refreshLoading}
           />
