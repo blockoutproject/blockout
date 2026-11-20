@@ -3,6 +3,7 @@ import { PageFlatList } from "@/shared/components/page-list";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { ChevronUp } from "lucide-react-native";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -439,7 +440,7 @@ export function FollowedListsPreview() {
       {followedResources.map((resource) => (
         <View key={resource}>
           <View style={styles.heading}>
-            <FollowedHeading resource={resource} expanded />
+            <FollowedHeading resource={resource} />
           </View>
           <FollowedCardsLoading resource={resource} />
         </View>
@@ -451,7 +452,7 @@ export function FollowedListsPreview() {
 function FollowedHeading({
   resource,
   expanded,
-}: Readonly<{ resource: FollowingTarget["type"]; expanded: boolean }>) {
+}: Readonly<{ resource: FollowingTarget["type"]; expanded?: boolean }>) {
   const { colors } = useTheme();
   return (
     <>
@@ -464,7 +465,15 @@ function FollowedHeading({
       >
         {followedLabels[resource]}
       </Text>
-      <DisclosureChevron expanded={expanded} />
+      {expanded === undefined ? (
+        <ChevronUp
+          accessible={false}
+          size={tokens.size.icon.md}
+          color={colors.icon}
+        />
+      ) : (
+        <DisclosureChevron expanded={expanded} />
+      )}
     </>
   );
 }

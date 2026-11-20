@@ -166,10 +166,6 @@ export function SearchScreen() {
         }}
         tabs={searchTabs.map(({ id, label }) => {
           const selection = id === "club" ? undefined : visit[id];
-          const read =
-            selection && !selection.filters
-              ? selection.query
-              : (examples ? exampleQueries : queries)[id];
           // Editing text does not replace an unresolved catalogue or its Retry.
           const criteria = hashKey([
             id === "club" || selection?.filters ? textKey : undefined,
@@ -187,7 +183,7 @@ export function SearchScreen() {
             label,
             resetKey: criteria,
             preview:
-              (searchable || examples) && !hasReadError(read) ? (
+              searchable || examples ? (
                 <SearchResultsPreview resource={id} examples={examples} />
               ) : undefined,
             content: (
