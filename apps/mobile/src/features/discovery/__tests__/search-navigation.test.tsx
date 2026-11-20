@@ -10,7 +10,7 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
-import { Keyboard } from "react-native";
+import { AppState, Keyboard } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -48,7 +48,10 @@ import { createInstallationAdvertisingPrivacy } from "@/features/advertising/adv
 import { AgeDeclarationProvider } from "@/features/advertising/age-declaration-provider";
 import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
 import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
-import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "@/features/access/queries/use-access-admission";
 import { ProProvider, usePro } from "@/features/pro";
 import type { ProContext } from "@/features/pro/pro-provider";
 import { mockPurchases } from "@/features/pro/test-support/native-purchases";
@@ -121,6 +124,7 @@ let ad = controlledInterstitial();
 let privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
 let session: AccountSession;
 let pro: ProContext;
+let ordinaryAdmission: boolean;
 const environment = { ...process.env };
 const firstId = "aaaaaaaa-0000-4000-8000-000000000001";
 let accountProfile = accountResponse({ accountId: firstId });
@@ -267,7 +271,9 @@ function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   return children;
 }
 
+const previousAppState = AppState.currentState;
 beforeEach(async () => {
+  AppState.currentState = "active";
   accountProfile = accountResponse({ accountId: firstId });
   jest.replaceProperty(
     proSessionModule,
@@ -294,6 +300,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanup();
+  AppState.currentState = previousAppState;
   privacy.dispose();
   client?.clear();
   publicClient.clear();
@@ -301,12 +308,14 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Captures the committed public entitlement owner for controlled native-I/O scenarios. */
-function CurrentPro({ children }: Readonly<QueryFixtureProps>) {
+/** Observes real access and entitlement owners for controlled native-I/O scenarios. */
+function CurrentOwners({ children }: Readonly<QueryFixtureProps>) {
   const current = usePro();
+  const { ordinary } = useAccessAdmission();
   useLayoutEffect(() => {
     pro = current;
-  }, [current]);
+    ordinaryAdmission = ordinary;
+  }, [current, ordinary]);
   return children;
 }
 
@@ -341,7 +350,7 @@ async function renderSearch() {
                         <AccessAdmissionProvider>
                           <ProProvider>
                             <AgeDeclarationProvider enabled privacy={privacy}>
-                              <CurrentPro>{children}</CurrentPro>
+                              <CurrentOwners>{children}</CurrentOwners>
                             </AgeDeclarationProvider>
                           </ProProvider>
                         </AccessAdmissionProvider>
@@ -405,7 +414,7 @@ it("dismisses the search keyboard before opening a team's associated club", asyn
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   const results = await screen.findByLabelText("Résultats de recherche");
   const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => {});
-  const open = jest.spyOn(privacy, "openSportingTransition");
+  const open = jest.spyOn(privacy, "openSportingDetail");
 
   // When
   await user.press(
@@ -880,7 +889,7 @@ it.each(["tab", "route", "principal", "admission"])(
           : publicReads(url),
       );
       await act(async () => publicClient.refetchQueries());
-      await waitFor(() => expect(ad.destroy).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(ordinaryAdmission).toBe(false));
     }
     await act(async () => {
       ad.emit(AdEventType.OPENED);

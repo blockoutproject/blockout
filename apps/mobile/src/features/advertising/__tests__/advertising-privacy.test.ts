@@ -1,14 +1,12 @@
-import type { SessionSnapshot } from "@/features/accounts";
 import { PermissionStatus } from "expo";
 import { nativeUserChoices } from "../test-support/native-privacy";
 import { Platform } from "react-native";
-import { waitFor } from "@testing-library/react-native";
-import mobileAds, {
+import {
   AdsConsent,
   AdsConsentStatus,
+  AdEventType,
   AdsConsentPrivacyOptionsRequirementStatus,
   type AdsConsentInfo,
-  AdEventType,
   InterstitialAd,
 } from "react-native-google-mobile-ads";
 import {
@@ -75,16 +73,15 @@ const personalized = nativeUserChoices({
   selectPersonalisedAds: true,
   selectBasicAds: true,
 });
-let session: SessionSnapshot;
 let context: AdvertisingPrivacyContext;
 beforeEach(() => {
-  session = { subject: null, accountId: null };
   context = {
-    account: { status: "guest", ...session },
+    account: { subject: null, accountId: null },
     pro: { status: "guest" },
     admission: { ordinary: true },
     category: "adult",
   };
+  jest.mocked(setAdvertiserTrackingEnabled).mockClear();
   mockAds.setRequestConfiguration.mockReset().mockResolvedValue(undefined);
   mockAds.initialize.mockReset().mockResolvedValue([]);
   jest
@@ -129,783 +126,251 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 it.each([
-  ["under16", "child", "G", true],
-  ["16–17", "teen", "T", false],
-  ["adult", "unspecified", "T", false],
+  { category: "under16", treatment: "child", rating: "G", tag: true },
+  { category: "16–17", treatment: "teen", rating: "T", tag: false },
+  { category: "adult", treatment: "unspecified", rating: "T", tag: false },
 ] as const)(
-  "awaits %s configuration before the separate UMP age flag and permits only its native mode",
-  async (category, treatment, rating, underAge) => {
+  "uses native UMP and current treatment for $category",
+  async ({ category, treatment, rating, tag }) => {
     // Given
+    context = { ...context, category };
     jest.replaceProperty(Platform, "OS", "android");
-    context.category = category;
-    const configured = Promise.withResolvers<void>();
-    mockAds.setRequestConfiguration.mockReturnValueOnce(configured.promise);
     const privacy = createAdvertisingPrivacy({
       getContext: () => context,
-      adUnitId: "test-unit",
+      adUnitId: "synthetic-unit",
     });
 
     // When
-    const preparation = privacy.synchronize();
+    await privacy.synchronize();
+    await privacy.synchronize();
 
-    // Then: no native consent or request can overtake configuration acknowledgement.
-    expect(mobileAds().setRequestConfiguration).toHaveBeenCalledWith({
+    // Then
+    expect(mockAds.setRequestConfiguration).toHaveBeenCalledWith({
       ageRestrictedTreatment: treatment,
       maxAdContentRating: rating,
     });
-    expect(AdsConsent.requestInfoUpdate).not.toHaveBeenCalled();
-    expect(mockAds.initialize).not.toHaveBeenCalled();
-    expect(privacy.getSnapshot().choices).toBeNull();
-    configured.resolve();
-    await preparation;
     expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledWith({
-      tagForUnderAgeOfConsent: underAge,
+      tagForUnderAgeOfConsent: tag,
     });
-    expect(privacy.getSnapshot().choices?.authorizedMode).toBe(
-      category === "adult" ? "personalized" : "contextual",
+    expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
+      1,
     );
-    expect(getTrackingPermissionsAsync).not.toHaveBeenCalled();
-    expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-    privacy.dispose();
-  },
-);
-
-it("requests iOS ATT only after applicable adult UMP, without a duplicate even if the system stays undetermined", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest
-    .mocked(AdsConsent.requestInfoUpdate)
-    .mockReturnValueOnce(consent.promise);
-  jest.mocked(requestTrackingPermissionsAsync).mockResolvedValue({
-    status: PermissionStatus.UNDETERMINED,
-    granted: false,
-    expires: "never",
-    canAskAgain: true,
-  });
-  const privacy = createAdvertisingPrivacy({ getContext: () => context });
-
-  // When
-  const preparation = privacy.synchronize();
-  await Promise.resolve();
-
-  // Then
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-  expect(mockAds.initialize).not.toHaveBeenCalled();
-  consent.resolve(consentInfo);
-  await preparation;
-  expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(1);
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  await privacy.showOptions();
-  expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(1);
-  privacy.dispose();
-});
-
-it.each([
-  "under16",
-  "16–17",
-  "denied",
-  "restricted",
-  "refused-personalization",
-  "unknown-rights",
-] as const)("does not prompt ATT for %s", async (scenario) => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  if (scenario === "under16" || scenario === "16–17") {
-    context.category = scenario;
-  }
-  if (scenario === "denied" || scenario === "restricted") {
-    jest.mocked(getTrackingPermissionsAsync).mockResolvedValue({
-      status: PermissionStatus.DENIED,
-      granted: false,
-      expires: "never",
-      canAskAgain: false,
-    });
-  }
-  if (scenario === "refused-personalization") {
-    jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
-      ...personalized,
-      selectPersonalisedAds: false,
-    });
-  }
-  if (scenario === "unknown-rights") {
-    context = {
-      ...context,
-      pro: {
-        status: "unavailable",
-        reason: "customer-info",
-        operation: "idle",
-      },
-    };
-  }
-  const privacy = createAdvertisingPrivacy({ getContext: () => context });
-
-  // When
-  await privacy.synchronize();
-
-  // Then
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-  expect(privacy.getSnapshot().choices?.authorizedMode).not.toBe(
-    "personalized",
-  );
-  if (scenario === "unknown-rights") {
-    expect(mockAds.initialize).not.toHaveBeenCalled();
-  }
-  privacy.dispose();
-});
-
-it("does not prompt ATT when Pro becomes active during the native permission read", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  const permission =
-    Promise.withResolvers<
-      Awaited<ReturnType<typeof getTrackingPermissionsAsync>>
-    >();
-  jest
-    .mocked(getTrackingPermissionsAsync)
-    .mockReturnValueOnce(permission.promise);
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-  const preparation = privacy.synchronize();
-  await waitFor(() =>
-    expect(getTrackingPermissionsAsync).toHaveBeenCalledTimes(1),
-  );
-
-  // When
-  context = {
-    ...context,
-    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
-  };
-  privacy.invalidateAd();
-  permission.resolve({
-    status: PermissionStatus.UNDETERMINED,
-    granted: false,
-    expires: "never",
-    canAskAgain: true,
-  });
-  await preparation;
-
-  // Then
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-  expect(mockAds.initialize).not.toHaveBeenCalled();
-  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-  privacy.dispose();
-});
-
-it.each([
-  "native-refusal",
-  "configuration-error",
-  "consent-error",
-  "helpers-error",
-  "initialization-error",
-])(
-  "keeps content available with no ads on %s, without reset or automatic retry",
-  async (failure) => {
-    // Given
-    const error = new Error("private SDK payload");
-    if (failure === "native-refusal") {
-      jest
-        .mocked(AdsConsent.loadAndShowConsentFormIfRequired)
-        .mockResolvedValue({ ...consentInfo, canRequestAds: false });
-    }
-    if (failure === "configuration-error") {
-      mockAds.setRequestConfiguration.mockRejectedValueOnce(error);
-    }
-    if (failure === "consent-error") {
-      jest.mocked(AdsConsent.requestInfoUpdate).mockRejectedValueOnce(error);
-    }
-    if (failure === "helpers-error") {
-      jest.mocked(AdsConsent.getUserChoices).mockRejectedValueOnce(error);
-    }
-    if (failure === "initialization-error") {
-      mockAds.initialize.mockRejectedValueOnce(error);
-    }
-    const privacy = createAdvertisingPrivacy({
-      getContext: () => context,
-      adUnitId: "test-unit",
-    });
-
-    // When
-    await privacy.synchronize()?.catch(() => undefined);
-    const open = jest.fn();
-    await privacy.openSportingTransition({
-      key: {},
-      isCurrent: () => true,
-      open,
-    });
-
-    // Then
-    expect(open).toHaveBeenCalledTimes(1);
-    expect(privacy.getSnapshot().choices?.canRequestAds ?? false).toBe(false);
-    expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-    expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.reset).not.toHaveBeenCalled();
-    expect(privacy.synchronize()).toBeUndefined();
-    expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    privacy.dispose();
-  },
-);
-
-it.each(["configuration", "gathering"])(
-  "keeps the same native action available after %s fails while recovering a corrected age",
-  async (failure) => {
-    // Given
-    jest.replaceProperty(Platform, "OS", "android");
-    const privacy = createAdvertisingPrivacy({
-      getContext: () => context,
-      adUnitId: "test-unit",
-    });
-    await privacy.synchronize();
-    context = { ...context, category: "under16" };
-    privacy.suspend();
-    mockAds.setRequestConfiguration.mockRejectedValueOnce(
-      new Error("private failure"),
-    );
-    await privacy.synchronize()?.catch(() => undefined);
-    const priorUpdates = jest.mocked(AdsConsent.requestInfoUpdate).mock.calls
-      .length;
-    const priorRequests = jest.mocked(InterstitialAd.createForAdRequest).mock
-      .calls.length;
-
-    // When
-    await privacy.refreshOptions();
-
-    // Then: opening the menu only reads native applicability; the action must reestablish the corrected age.
-    expect(privacy.getSnapshot()).toMatchObject({
-      privacyOptionsRequired: true,
-      choices: null,
-    });
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(priorUpdates);
-    expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(
-      priorRequests,
-    );
-    expect(privacy.synchronize()).toBeUndefined();
-    if (failure === "configuration") {
-      mockAds.setRequestConfiguration.mockRejectedValueOnce(
-        new Error("private failure"),
-      );
+    expect(privacy.getSnapshot().privacyOptionsRequired).toBe(true);
+    expect(AdsConsent.getUserChoices).not.toHaveBeenCalled();
+    if (category === "under16") {
+      expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
+      expect(mockAds.initialize).not.toHaveBeenCalled();
     } else {
-      jest
-        .mocked(AdsConsent.requestInfoUpdate)
-        .mockRejectedValueOnce(new Error("private failure"));
+      expect(mockAds.initialize).toHaveBeenCalledTimes(1);
+      expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith(
+        "synthetic-unit",
+      );
     }
-    await privacy.showOptions()?.catch(() => undefined);
-    expect(privacy.getSnapshot()).toMatchObject({
-      privacyOptionsRequired: true,
-      choices: null,
-    });
-    expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
-    await privacy.showOptions();
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenLastCalledWith({
-      tagForUnderAgeOfConsent: true,
-    });
-    expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.reset).not.toHaveBeenCalled();
-    privacy.dispose();
   },
 );
 
-it("reuses native cached choices and supports limited advertising after optional processing is refused", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "android");
-  jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
-    ...personalized,
-    storeAndAccessInformationOnDevice: false,
-  });
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-
-  // When
-  await privacy.synchronize();
-
-  // Then
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("limited");
-  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
-    requestNonPersonalizedAdsOnly: true,
-  });
-  expect(AdsConsent.reset).not.toHaveBeenCalled();
-  privacy.dispose();
-});
-
-it("invalidates initialized adult → teen → child → adult preparation before reconfiguration, preserving the threshold", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "android");
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-  await privacy.synchronize();
-  for (let index = 0; index < 9; index++) {
-    await privacy.openSportingTransition({
-      key: {},
-      isCurrent: () => true,
-      open: jest.fn(),
-    });
-  }
-  for (const category of ["16–17", "under16", "adult"] as const) {
-    // Given
-    const previous = jest
-      .mocked(InterstitialAd.createForAdRequest)
-      .mock.results.at(-1)?.value;
-    const configured = Promise.withResolvers<void>();
-    mockAds.setRequestConfiguration.mockReturnValueOnce(configured.promise);
-
-    // When
-    context.category = category;
-    const preparation = privacy.synchronize();
-
-    // Then: retire the previous ad before acknowledging the next configuration.
-    expect(previous?.destroy).toHaveBeenCalledTimes(1);
-    expect(privacy.getSnapshot().choices).toBeNull();
-
-    // When
-    configured.resolve();
-    await preparation;
-  }
-
-  // Given
-  const ad = jest
-    .mocked(InterstitialAd.createForAdRequest)
-    .mock.results.at(-1)?.value;
-  // Controlled native callback makes the next sporting action eligible at the retained threshold.
-  (ad as unknown as ReturnType<typeof controlledInterstitial>).emit(
-    AdEventType.LOADED,
-  );
-
-  // When
-  const destination = privacy.openSportingTransition({
-    key: {},
-    isCurrent: () => true,
-    open: jest.fn(),
-  });
-
-  // Then
-  expect(ad?.show).toHaveBeenCalledTimes(1);
-
-  // When
-  (ad as unknown as ReturnType<typeof controlledInterstitial>).emit(
-    AdEventType.CLOSED,
-  );
-  await destination;
-
-  // Then
-  expect(mockAds.initialize).toHaveBeenCalledTimes(1);
-  expect(AdsConsent.reset).not.toHaveBeenCalled();
-  privacy.dispose();
-});
-
-it("keeps SDK privacy options conditional and refreshes authorization after a successful change", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "android");
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-  await privacy.synchronize();
-  const previous = jest.mocked(InterstitialAd.createForAdRequest).mock
-    .results[0].value;
-  const form =
-    Promise.withResolvers<
-      Awaited<ReturnType<typeof AdsConsent.showPrivacyOptionsForm>>
-    >();
-  jest
-    .mocked(AdsConsent.showPrivacyOptionsForm)
-    .mockReturnValueOnce(form.promise);
-
-  // When
-  const change = privacy.showOptions();
-  await Promise.resolve();
-
-  // Then
-  expect(previous.destroy).toHaveBeenCalledTimes(1);
-  expect(privacy.getSnapshot().choices).toBeNull();
-  jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
-    ...personalized,
-    selectPersonalisedAds: false,
-  });
-  form.resolve(consentInfo);
-  await change;
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  jest.mocked(AdsConsent.getConsentInfo).mockResolvedValue({
-    ...consentInfo,
-    privacyOptionsRequirementStatus:
-      AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
-  });
-  expect(await privacy.showOptions()).toBe(false);
-  expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
-  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
-  privacy.dispose();
-});
-
-it("rejects an obsolete category result before preparing the corrected native age treatment", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "android");
-  const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest
-    .mocked(AdsConsent.requestInfoUpdate)
-    .mockReturnValueOnce(consent.promise);
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-  const preparing = privacy.synchronize();
-  await waitFor(() =>
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1),
-  );
-
-  // When
-  context = { ...context, category: "under16" };
-  const overlapping = privacy.synchronize();
-  consent.resolve(consentInfo);
-  await preparing;
-
-  // Then
-  expect(overlapping).toBeUndefined();
-  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
-  expect(privacy.getSnapshot().choices).toBeNull();
-  expect(mockAds.initialize).not.toHaveBeenCalled();
-  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-
-  // When
-  await privacy.synchronize();
-
-  // Then
-  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(2);
-  expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(1);
-  expect(AdsConsent.requestInfoUpdate).toHaveBeenLastCalledWith({
-    tagForUnderAgeOfConsent: true,
-  });
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-  privacy.dispose();
-});
-
-it.each(["first-account", "account-switch", "Pro-activation"] as const)(
-  "retires the prepared ad on %s while preserving installation consent and frequency",
-  async (change) => {
-    // Given
-    jest.replaceProperty(Platform, "OS", "android");
-    if (change === "account-switch") {
-      context = {
-        ...context,
-        account: {
-          status: "authenticated",
-          subject: "auth0|a",
-          accountId: "a",
-        },
-        pro: { status: "inactive", operation: "idle" },
-      };
-    }
-    const privacy = createAdvertisingPrivacy({
-      getContext: () => context,
-      adUnitId: "test-unit",
-    });
-    await privacy.synchronize();
-    const choices = privacy.getSnapshot().choices;
-    const previous = jest.mocked(InterstitialAd.createForAdRequest).mock
-      .results[0].value as unknown as ReturnType<typeof controlledInterstitial>;
-    previous.emit(AdEventType.LOADED);
-    for (let index = 0; index < 9; index++) {
-      await privacy.openSportingTransition({
-        key: {},
-        isCurrent: () => true,
-        open: jest.fn(),
-      });
-    }
-
-    // When
-    context = {
-      ...context,
-      account: { status: "authenticated", subject: "auth0|b", accountId: "b" },
-      pro:
-        change === "Pro-activation"
-          ? { status: "active", entitlement: entitlement(), operation: "idle" }
-          : { status: "inactive", operation: "idle" },
-    };
-    privacy.invalidateAd();
-    await privacy.synchronize();
-    previous.emit(AdEventType.LOADED);
-    const open = jest.fn();
-    await privacy.openSportingTransition({
-      key: {},
-      isCurrent: () => true,
-      open,
-    });
-
-    // Then
-    expect(previous.destroy).toHaveBeenCalledTimes(1);
-    expect(previous.show).not.toHaveBeenCalled();
-    expect(open).toHaveBeenCalledTimes(1);
-    expect(privacy.getSnapshot().choices).toBe(choices);
-    expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(
-      change === "Pro-activation" ? 1 : 2,
-    );
-
-    if (change !== "Pro-activation") {
-      // When: the replacement ad loads after the tenth action.
-      const next = jest.mocked(InterstitialAd.createForAdRequest).mock
-        .results[1].value as unknown as ReturnType<
-        typeof controlledInterstitial
-      >;
-      next.emit(AdEventType.LOADED);
-      const destination = privacy.openSportingTransition({
-        key: {},
-        isCurrent: () => true,
-        open: jest.fn(),
-      });
-
-      // Then: removing the old account's ad did not reset installation frequency.
-      expect(next.show).toHaveBeenCalledTimes(1);
-      next.emit(AdEventType.CLOSED);
-      await destination;
-    }
-    privacy.dispose();
-  },
-);
-
-it.each(["unknown", "active"] as const)(
-  "loads for newly inactive rights without repeating installation preparation from %s rights",
-  async (initialRight) => {
-    // Given
-    jest.replaceProperty(Platform, "OS", "android");
-    context = {
-      ...context,
-      account: { status: "authenticated", subject: "auth0|a", accountId: "a" },
-      pro:
-        initialRight === "active"
-          ? { status: "active", entitlement: entitlement(), operation: "idle" }
-          : {
-              status: "unavailable",
-              reason: "customer-info",
-              operation: "idle",
-            },
-    };
-    const privacy = createAdvertisingPrivacy({
-      getContext: () => context,
-      adUnitId: "test-unit",
-    });
-    await privacy.synchronize();
-    expect(mockAds.initialize).not.toHaveBeenCalled();
-    expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-    const choices = privacy.getSnapshot().choices;
-
-    // When
-    context = { ...context, pro: { status: "inactive", operation: "idle" } };
-    privacy.invalidateAd();
-    await privacy.synchronize();
-
-    // Then
-    expect(privacy.getSnapshot().choices).toEqual(choices);
-    expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(mockAds.initialize).toHaveBeenCalledTimes(1);
-    expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
-    expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-    privacy.dispose();
-  },
-);
-
-it("completes a Pro-deferred native form when advertising becomes applicable without repeating the launch refresh", async () => {
-  // Given
-  jest.replaceProperty(Platform, "OS", "android");
-  context = {
-    ...context,
-    account: { status: "authenticated", subject: "auth0|a", accountId: "a" },
-    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
-  };
-  jest.mocked(AdsConsent.requestInfoUpdate).mockResolvedValue({
-    ...consentInfo,
-    canRequestAds: false,
-  });
-  const privacy = createAdvertisingPrivacy({
-    getContext: () => context,
-    adUnitId: "test-unit",
-  });
-  await privacy.synchronize();
-  expect(privacy.getSnapshot().choices).toBeNull();
-  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
-  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-  const form = Promise.withResolvers<AdsConsentInfo>();
-  jest
-    .mocked(AdsConsent.loadAndShowConsentFormIfRequired)
-    .mockReturnValueOnce(form.promise);
-  jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
-    ...personalized,
-    selectPersonalisedAds: false,
-  });
-
-  // When
-  context = { ...context, pro: { status: "inactive", operation: "idle" } };
-  privacy.invalidateAd();
-  const preparation = privacy.synchronize();
-
-  // Then: no request may overtake the native form's current decision.
-  await waitFor(() =>
-    expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
-      1,
-    ),
-  );
-  expect(privacy.getSnapshot().choices).toBeNull();
-  expect(mockAds.initialize).not.toHaveBeenCalled();
-  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-
-  // When
-  form.resolve(consentInfo);
-  await preparation;
-
-  // Then
-  expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  expect(mockAds.initialize).toHaveBeenCalledTimes(1);
-  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
-    requestNonPersonalizedAdsOnly: true,
-  });
-  privacy.dispose();
-});
-
-it("sets Meta's documented tracking flag only on older iOS before initialization", async () => {
+it.each([
+  { refusal: "system", prompt: false },
+  { refusal: "consent", prompt: false },
+  { refusal: "neither", prompt: true },
+])("respects $refusal in the one iOS ATT flow", async ({ refusal, prompt }) => {
   // Given
   jest.replaceProperty(Platform, "OS", "ios");
   jest.spyOn(Platform, "Version", "get").mockReturnValue("16.4");
-  const privacy = createAdvertisingPrivacy({ getContext: () => context });
-  mockAds.initialize.mockImplementation(async () => {
-    expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
-    return [];
-  });
-
-  // When
-  await privacy.synchronize();
-
-  // Then
-  expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
-  privacy.dispose();
-});
-
-it("reestablishes UMP age treatment before privacy options can recover a failed correction", async () => {
-  // Given: an initialized adult ad must never survive a confirmed child correction.
-  jest.replaceProperty(Platform, "OS", "android");
+  if (refusal === "system") {
+    jest.mocked(getTrackingPermissionsAsync).mockResolvedValue({
+      granted: false,
+      status: PermissionStatus.DENIED,
+      canAskAgain: false,
+      expires: "never",
+    });
+  } else if (refusal === "consent") {
+    jest
+      .mocked(AdsConsent.getUserChoices)
+      .mockResolvedValue(nativeUserChoices());
+  }
   const privacy = createAdvertisingPrivacy({
     getContext: () => context,
-    adUnitId: "test-unit",
+    adUnitId: "synthetic-unit",
   });
-  await privacy.synchronize();
-  context.category = "under16";
-  mockAds.setRequestConfiguration.mockRejectedValueOnce(
-    new Error("private configuration error"),
-  );
-  await privacy.synchronize()?.catch(() => undefined);
-  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
 
   // When
-  const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest
-    .mocked(AdsConsent.requestInfoUpdate)
-    .mockReturnValueOnce(consent.promise);
-  const recovery = privacy.showOptions();
-
-  // Then: native options are not a bypass around the corrected UMP under-age flag.
-  await waitFor(() =>
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenLastCalledWith({
-      tagForUnderAgeOfConsent: true,
-    }),
-  );
-  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
-  jest.mocked(AdsConsent.loadAndShowConsentFormIfRequired).mockResolvedValue({
-    ...consentInfo,
-    privacyOptionsRequirementStatus:
-      AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
-  });
-  consent.resolve({
-    ...consentInfo,
-    privacyOptionsRequirementStatus:
-      AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
-  });
-  await recovery;
-  expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
-  expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  privacy.dispose();
-});
-
-it("retains in-flight installation consent when Pro becomes known without a new prompt", async () => {
-  // Given: permission work started while the current entitlement was unknown.
-  jest.replaceProperty(Platform, "OS", "ios");
-  context = {
-    ...context,
-    pro: { status: "unavailable", reason: "customer-info", operation: "idle" },
-  };
-  const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest
-    .mocked(AdsConsent.requestInfoUpdate)
-    .mockReturnValueOnce(consent.promise);
-  const privacy = createAdvertisingPrivacy({ getContext: () => context });
-  const preparation = privacy.synchronize();
-  await waitFor(() =>
-    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1),
-  );
-  context = {
-    ...context,
-    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
-  };
-  privacy.invalidateAd();
-  expect(privacy.refreshOptions()).toBeUndefined();
-
-  // When
-  consent.resolve(consentInfo);
-  await preparation;
+  await privacy.synchronize();
+  await privacy.synchronize();
+  await privacy.showOptions();
   await privacy.synchronize();
 
-  // Then: Pro keeps its required native controls without another preparation or ATT prompt.
-  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
-  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(true);
-  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
-  expect(mockAds.initialize).not.toHaveBeenCalled();
-  privacy.dispose();
+  // Then: refusal may still allow a regular request under UMP's native authorization.
+  expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(prompt ? 1 : 0);
+  expect(setAdvertiserTrackingEnabled).toHaveBeenNthCalledWith(1, prompt);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith(
+    "synthetic-unit",
+  );
+  expect(mockAds.initialize).toHaveBeenCalledTimes(1);
 });
 
-it("does not retry a failed Pro launch refresh when current rights become inactive", async () => {
+it("defers the automatic form for Pro while preserving the installation update and current benefits", async () => {
   // Given
-  jest.replaceProperty(Platform, "OS", "android");
   context = {
     ...context,
-    account: { status: "authenticated", subject: "auth0|a", accountId: "a" },
-    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
+    pro: { status: "active", operation: "idle", entitlement: entitlement() },
   };
-  jest
-    .mocked(AdsConsent.requestInfoUpdate)
-    .mockRejectedValueOnce(new Error("private native failure"));
   const privacy = createAdvertisingPrivacy({
     getContext: () => context,
-    adUnitId: "test-unit",
+    adUnitId: "synthetic-unit",
   });
-  await privacy.synchronize()?.catch(() => undefined);
 
   // When
-  context = { ...context, pro: { status: "inactive", operation: "idle" } };
-  privacy.invalidateAd();
-  const retry = privacy.synchronize();
+  await privacy.synchronize();
+  await privacy.synchronize();
 
   // Then
-  expect(retry).toBeUndefined();
-  expect(privacy.getSnapshot().choices).toBeNull();
-  expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
   expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
+  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(true);
   expect(mockAds.initialize).not.toHaveBeenCalled();
-  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
-  privacy.dispose();
+
+  // When: an explicit privacy options failure leaves the native launch form deferred for Pro.
+  jest
+    .mocked(AdsConsent.showPrivacyOptionsForm)
+    .mockRejectedValueOnce(new Error("SDK error"));
+  await expect(privacy.showOptions()).rejects.toThrow(
+    "Advertising choices could not be established",
+  );
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
+
+  // When: RevenueCat resolves as inactive without a new installation.
+  context = { ...context, pro: { status: "inactive", operation: "idle" } };
+  await privacy.synchronize();
+  await privacy.synchronize();
+
+  // Then
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
+});
+
+it("prepares consent with unresolved Pro rights but waits for current inactive rights to load", async () => {
+  // Given
+  context = {
+    ...context,
+    pro: { status: "unavailable", operation: "idle", reason: "customer-info" },
+  };
+  const privacy = createAdvertisingPrivacy({
+    getContext: () => context,
+    adUnitId: "synthetic-unit",
+  });
+
+  // When
+  await privacy.synchronize();
+  await privacy.synchronize();
+
+  // Then
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(1);
+  expect(mockAds.initialize).not.toHaveBeenCalled();
+
+  // When
+  context.account = { subject: "auth0|new-session", accountId: "new-account" };
+  context = { ...context, pro: { status: "inactive", operation: "idle" } };
+  await privacy.synchronize();
+
+  // Then
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
+});
+
+it("continues to suppress ads when UMP can no longer request after an explicit choice", async () => {
+  // Given
+  const ad = controlledInterstitial();
+  jest
+    .mocked(InterstitialAd.createForAdRequest)
+    .mockReturnValueOnce(ad as unknown as InterstitialAd);
+  const privacy = createAdvertisingPrivacy({
+    getContext: () => context,
+    adUnitId: "synthetic-unit",
+  });
+  await privacy.synchronize();
+  await privacy.synchronize();
+  ad.emit(AdEventType.LOADED);
+  const revoked = { ...consentInfo, canRequestAds: false };
+  jest
+    .mocked(AdsConsent.getConsentInfo)
+    .mockResolvedValueOnce(consentInfo)
+    .mockResolvedValue(revoked);
+
+  // When
+  await privacy.showOptions();
+  await privacy.synchronize();
+  const push = jest.fn();
+  for (let index = 0; index < 10; index++) {
+    privacy.openSportingDetail(true, push);
+  }
+
+  // Then
+  expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
+  expect(ad.destroy).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
+  expect(ad.show).not.toHaveBeenCalled();
+  expect(push).toHaveBeenCalledTimes(10);
+});
+
+it("allows explicit privacy retry with current native applicability after a failed form", async () => {
+  // Given
+  const privacy = createAdvertisingPrivacy({ getContext: () => context });
+  await privacy.synchronize();
+  jest
+    .mocked(AdsConsent.showPrivacyOptionsForm)
+    .mockRejectedValueOnce(new Error("SDK error"));
+
+  // When
+  await expect(privacy.showOptions()).rejects.toThrow(
+    "Advertising choices could not be established",
+  );
+  await privacy.showOptions();
+
+  // Then
+  expect(privacy.getSnapshot()).toEqual({
+    pending: false,
+    privacyOptionsRequired: true,
+  });
+  expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(2);
+});
+
+it("keeps an old age's UMP permission out after the corrected-age launch update fails", async () => {
+  // Given
+  const ad = controlledInterstitial();
+  jest
+    .mocked(InterstitialAd.createForAdRequest)
+    .mockReturnValueOnce(ad as unknown as InterstitialAd);
+  const privacy = createAdvertisingPrivacy({
+    getContext: () => context,
+    adUnitId: "synthetic-unit",
+  });
+  await privacy.synchronize();
+  await privacy.synchronize();
+  privacy.suspend();
+  context = { ...context, category: "16–17" };
+  jest
+    .mocked(AdsConsent.requestInfoUpdate)
+    .mockRejectedValueOnce(new Error("SDK error"));
+
+  // When
+  await privacy.synchronize();
+  await privacy.synchronize();
+  await privacy.refreshOptions();
+
+  // Then
+  expect(ad.destroy).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(1);
+
+  // When: the explicit privacy action first refreshes consent with the new treatment.
+  await privacy.showOptions();
+  await privacy.synchronize();
+
+  // Then
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(3);
+  expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(2);
 });

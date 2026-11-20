@@ -7,6 +7,11 @@ const release = production || preview;
 const testStoreApiKey = process.env.REVENUECAT_TEST_STORE_API_KEY;
 const iosApiKey = process.env.REVENUECAT_IOS_API_KEY;
 const androidApiKey = process.env.REVENUECAT_ANDROID_API_KEY;
+const iosAdMobAppId = process.env.ADMOB_IOS_APP_ID;
+const androidAdMobAppId = process.env.ADMOB_ANDROID_APP_ID;
+const iosInterstitialUnitId = process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID;
+const androidInterstitialUnitId =
+  process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID;
 
 if (
   production &&
@@ -17,6 +22,21 @@ if (
   throw new Error(
     "Production candidates must not contain RevenueCat Test Store keys.",
   );
+}
+
+if (production) {
+  const appId = /^ca-app-pub-(?!3940256099942544)\d{16}~\d{10}$/;
+  const unitId = /^ca-app-pub-(?!3940256099942544)\d{16}\/\d{10}$/;
+  if (
+    !appId.test(iosAdMobAppId ?? "") ||
+    !appId.test(androidAdMobAppId ?? "") ||
+    !unitId.test(iosInterstitialUnitId ?? "") ||
+    !unitId.test(androidInterstitialUnitId ?? "")
+  ) {
+    throw new Error(
+      "Production candidates require non-demo AdMob app and V2 interstitial unit IDs for both platforms.",
+    );
+  }
 }
 
 const easSlug = process.env.EXPO_PROJECT_SLUG;
@@ -81,12 +101,9 @@ const config: ExpoConfig = {
       "react-native-google-mobile-ads",
       {
         // Google's sample apps allow native startup without configuring a provider account.
-        iosAppId:
-          process.env.ADMOB_IOS_APP_ID ||
-          "ca-app-pub-3940256099942544~1458002511",
+        iosAppId: iosAdMobAppId || "ca-app-pub-3940256099942544~1458002511",
         androidAppId:
-          process.env.ADMOB_ANDROID_APP_ID ||
-          "ca-app-pub-3940256099942544~3347511713",
+          androidAdMobAppId || "ca-app-pub-3940256099942544~3347511713",
         delayAppMeasurementInit: true,
         // Google's buyer list includes Meta's two IDs; declare each identifier once.
         // https://developers.google.com/admob/ios/quick-start#update_your_infoplist_file
@@ -205,11 +222,9 @@ const config: ExpoConfig = {
   },
   extra: {
     ...(expoProjectId ? { eas: { projectId: expoProjectId } } : {}),
-    // Public V2 inputs only; the future F11 lifecycle owns consent and SDK initialization.
     advertising: {
-      iosInterstitialUnitId: process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID,
-      androidInterstitialUnitId:
-        process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID,
+      iosInterstitialUnitId,
+      androidInterstitialUnitId,
     },
     // Public SDK keys only. Identity association remains with the Pro lifecycle owner.
     revenueCat: {

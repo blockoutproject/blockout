@@ -1,439 +1,193 @@
 import * as Sentry from "@sentry/react-native";
-import {
-  AdEventType,
-  InterstitialAd,
-  type AdError,
-} from "react-native-google-mobile-ads";
+import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { createInterstitialLifecycle } from "../interstitial-lifecycle";
-import {
-  advertisingContext,
-  controlledInterstitial,
-} from "../test-support/interstitial";
+import { controlledInterstitial } from "../test-support/interstitial";
 
 jest.mock("react-native-google-mobile-ads", () => ({
-  AdEventType: {
-    LOADED: "loaded",
-    OPENED: "opened",
-    CLOSED: "closed",
-    ERROR: "error",
-  },
-  InterstitialAd: { createForAdRequest: jest.fn(() => mockCreateAd()) },
+  AdEventType: { LOADED: "loaded", CLOSED: "closed", ERROR: "error" },
+  InterstitialAd: { createForAdRequest: jest.fn() },
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-const mockCreateAd = jest.fn(controlledInterstitial);
-const noFill: AdError = Object.assign(new Error("private provider payload"), {
-  namespace: "googleMobileAds",
-  jsStack: "",
-  userInfo: { code: "no-fill", message: "private provider payload" },
-  code: "googleMobileAds/no-fill",
-  reason: "no-fill",
-  phase: "load" as const,
+
+let ad: ReturnType<typeof controlledInterstitial>;
+
+beforeEach(() => {
+  ad = controlledInterstitial();
+  jest
+    .mocked(InterstitialAd.createForAdRequest)
+    .mockReset()
+    .mockImplementation(
+      () => controlledInterstitial() as unknown as InterstitialAd,
+    );
+  jest
+    .mocked(InterstitialAd.createForAdRequest)
+    .mockReturnValueOnce(ad as unknown as InterstitialAd);
+  jest.mocked(Sentry.captureException).mockClear();
 });
-beforeEach(() =>
-  mockCreateAd.mockReset().mockImplementation(controlledInterstitial),
+
+afterEach(() => jest.restoreAllMocks());
+
+it.each([
+  "dismissal",
+  "native failure",
+  "request rejection",
+  "synchronous failure",
+])(
+  "opens the tenth destination once on %s and starts another cycle",
+  async (completion) => {
+    // Given
+    const lifecycle = createInterstitialLifecycle({
+      adUnitId: "synthetic-unit",
+      isEligibleOpening: () => true,
+      canRequestAds: () => true,
+    });
+    const push = jest.fn();
+    lifecycle.preload();
+    ad.emit(AdEventType.LOADED);
+    if (completion === "request rejection") {
+      ad.show.mockRejectedValueOnce(new Error("Unavailable presentation"));
+    } else if (completion === "synchronous failure") {
+      ad.show.mockImplementationOnce(() => {
+        throw new Error("Unavailable presentation");
+      });
+    }
+
+    // When
+    for (let index = 0; index < 9; index++) {
+      lifecycle.open(true, push);
+    }
+    expect(push).toHaveBeenCalledTimes(9);
+    expect(ad.show).not.toHaveBeenCalled();
+    lifecycle.open(true, push);
+    if (completion === "dismissal") {
+      expect(push).toHaveBeenCalledTimes(9);
+      lifecycle.open(true, push);
+      ad.emit(AdEventType.CLOSED);
+    } else if (completion === "native failure") {
+      expect(push).toHaveBeenCalledTimes(9);
+      ad.emit(AdEventType.ERROR);
+    }
+    await Promise.resolve();
+    ad.emit(AdEventType.CLOSED);
+    ad.emit(AdEventType.CLOSED);
+
+    // Then
+    expect(ad.show).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledTimes(10);
+    expect(ad.destroy).toHaveBeenCalledTimes(1);
+    lifecycle.open(true, push);
+    expect(push).toHaveBeenCalledTimes(11);
+  },
 );
-afterEach(() => {
-  jest.restoreAllMocks();
-  jest.useRealTimers();
-});
 
-/** One valid accepted sporting intent, with its own transient deduplication key. */
-function action() {
-  return {
-    kind: "match",
-    voluntary: true,
-    key: {},
-    isCurrent: () => true,
-    open: jest.fn(),
-  };
-}
+it.each(["no ad", "unsuitable transition", "no permission", "expired ad"])(
+  "consumes the tenth opportunity immediately with %s",
+  (reason) => {
+    // Given
+    const now = jest.spyOn(Date, "now").mockReturnValue(0);
+    const nextAd = controlledInterstitial();
+    jest
+      .mocked(InterstitialAd.createForAdRequest)
+      .mockReturnValueOnce(nextAd as unknown as InterstitialAd);
+    const lifecycle = createInterstitialLifecycle({
+      adUnitId: "synthetic-unit",
+      isEligibleOpening: () => true,
+      canRequestAds: () => reason !== "no permission",
+    });
+    const push = jest.fn();
+    lifecycle.preload();
+    if (reason !== "no ad") {
+      ad.emit(AdEventType.LOADED);
+    }
+    if (reason === "expired ad") {
+      now.mockReturnValue(3_600_000);
+    }
 
-/** Advances only accepted sporting actions; the SDK and time remain controlled by each test. */
-async function nineActions(
-  lifecycle: ReturnType<typeof createInterstitialLifecycle>,
-) {
+    // When
+    for (let index = 0; index < 9; index++) {
+      lifecycle.open(true, push);
+    }
+    lifecycle.open(reason !== "unsuitable transition", push);
+    if (reason === "expired ad") {
+      nextAd.emit(AdEventType.LOADED);
+    } else {
+      ad.emit(AdEventType.LOADED);
+    }
+    for (let index = 0; index < 9; index++) {
+      lifecycle.open(true, push);
+    }
+
+    // Then
+    expect(push).toHaveBeenCalledTimes(19);
+    expect(ad.show).not.toHaveBeenCalled();
+    expect(nextAd.show).not.toHaveBeenCalled();
+    lifecycle.open(true, push);
+    if (reason !== "no permission") {
+      expect(
+        reason === "expired ad" ? nextAd.show : ad.show,
+      ).toHaveBeenCalledTimes(1);
+      expect(push).toHaveBeenCalledTimes(19);
+    } else {
+      expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
+      expect(push).toHaveBeenCalledTimes(20);
+    }
+  },
+);
+
+it("opens ineligible details immediately and leaves the current cycle intact", () => {
+  // Given
+  let eligible = true;
+  const lifecycle = createInterstitialLifecycle({
+    adUnitId: "synthetic-unit",
+    isEligibleOpening: () => eligible,
+    canRequestAds: () => eligible,
+  });
+  const push = jest.fn();
+  lifecycle.preload();
+  ad.emit(AdEventType.LOADED);
   for (let index = 0; index < 9; index++) {
-    await lifecycle.transition(action());
+    lifecycle.open(true, push);
   }
-}
 
-it("preloads one instance with current request options and resets only on OPENED", async () => {
-  // Given
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  lifecycle.preload();
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  await nineActions(lifecycle);
-  ad.emit(AdEventType.LOADED);
   // When
-  const destination = action();
-  const result = lifecycle.transition(destination);
-  await Promise.resolve();
-  // Then: a resolved show promise neither opens nor dismisses the ad.
-  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
-    requestNonPersonalizedAdsOnly: true,
-  });
-  expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  expect(ad.load).toHaveBeenCalledTimes(1);
-  expect(lifecycle.count).toBe(10);
-  expect(destination.open).not.toHaveBeenCalled();
-  ad.emit(AdEventType.OPENED);
-  expect(lifecycle.count).toBe(0);
-  expect(destination.open).not.toHaveBeenCalled();
-  ad.emit(AdEventType.CLOSED);
-  expect(await result).toEqual({ status: "opened" });
-  expect(destination.open).toHaveBeenCalledTimes(1);
-  expect(mockCreateAd).toHaveBeenCalledTimes(2);
-  expect(mockCreateAd.mock.results[1].value.load).toHaveBeenCalledTimes(1);
-});
-it.each(["closed", "error", "rejected", "synchronous"])(
-  "releases once on %s before destroy and ignores retired events",
-  async (outcome) => {
-    // Given
-    const { input } = advertisingContext();
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => input,
-    });
-    lifecycle.preload();
-    const ad = mockCreateAd.mock.results[0].value;
-    await nineActions(lifecycle);
-    ad.emit(AdEventType.LOADED);
-    const destination = action();
-    ad.destroy.mockImplementation(() =>
-      expect(destination.open).toHaveBeenCalledTimes(1),
-    );
-    if (outcome === "rejected") {
-      ad.show.mockRejectedValue(new Error("private provider payload"));
-    }
-    if (outcome === "synchronous") {
-      ad.show.mockImplementation(() => {
-        throw new Error("private provider payload");
-      });
-    }
-    // When
-    const result = lifecycle.transition(destination);
-    if (outcome === "closed") {
-      ad.emit(AdEventType.CLOSED);
-    }
-    if (outcome === "error") {
-      ad.emit(AdEventType.ERROR, { ...noFill, phase: "show" });
-    }
-    await result;
-    ad.emit(AdEventType.ERROR, noFill);
-    ad.emit(AdEventType.CLOSED);
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.LOADED);
-    // Then
-    expect(destination.open).toHaveBeenCalledTimes(1);
-    expect(ad.destroy).toHaveBeenCalledTimes(1);
-    expect(lifecycle.count).toBe(10);
-    expect(mockCreateAd).toHaveBeenCalledTimes(outcome === "closed" ? 2 : 1);
-    if (outcome !== "closed") {
-      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-      expect(Sentry.captureException).toHaveBeenCalledWith(
-        new Error("Interstitial show failed"),
-      );
-      await lifecycle.transition(action());
-      expect(mockCreateAd).toHaveBeenCalledTimes(2);
-    }
-  },
-);
-it("waits for the next eligible sporting action after no-fill without treating it as an incident", async () => {
-  // Given
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  // When
-  ad.emit(AdEventType.ERROR, noFill);
-  lifecycle.preload();
-  // Then
-  expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  expect(Sentry.captureException).not.toHaveBeenCalled();
-  await lifecycle.transition(action());
-  expect(mockCreateAd).toHaveBeenCalledTimes(2);
-  expect(lifecycle.count).toBe(1);
-});
-it.each([3599999, 3600000])(
-  "uses LOADED freshness at %i ms and never displays an expired replacement late",
-  async (age) => {
-    // Given
-    const clock = jest.spyOn(Date, "now").mockReturnValue(1000);
-    const { input } = advertisingContext();
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => input,
-    });
-    lifecycle.preload();
-    const ad = mockCreateAd.mock.results[0].value;
-    ad.emit(AdEventType.LOADED);
-    await nineActions(lifecycle);
-    clock.mockReturnValue(1000 + age);
-    const destination = action();
-    // When
-    const result = lifecycle.transition(destination);
-    // Then
-    if (age < 3600000) {
-      expect(ad.show).toHaveBeenCalledTimes(1);
-      expect(destination.open).not.toHaveBeenCalled();
-      ad.emit(AdEventType.CLOSED);
-    } else {
-      expect(ad.show).not.toHaveBeenCalled();
-      expect(ad.destroy).toHaveBeenCalledTimes(1);
-      const replacement = mockCreateAd.mock.results[1].value;
-      replacement.emit(AdEventType.LOADED);
-      expect(replacement.show).not.toHaveBeenCalled();
-    }
-    await result;
-    expect(destination.open).toHaveBeenCalledTimes(1);
-    expect(lifecycle.count).toBe(10);
-  },
-);
-it.each(["privacy", "session", "destination"])(
-  "settles %s invalidation before destruction and preserves the count",
-  async (change) => {
-    // Given
-    let { input, session } = advertisingContext();
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => input,
-    });
-    lifecycle.preload();
-    const ad = mockCreateAd.mock.results[0].value;
-    ad.emit(AdEventType.LOADED);
-    await nineActions(lifecycle);
-    let valid = true;
-    const destination = { ...action(), isCurrent: () => valid };
-    const result = lifecycle.transition(destination);
-    ad.destroy.mockImplementation(() =>
-      expect(destination.open).toHaveBeenCalledTimes(
-        change === "privacy" ? 1 : 0,
-      ),
-    );
-    // When
-    if (change === "session") {
-      session = { subject: "auth0|other", accountId: "other" };
-      input = { ...input, account: { ...input.account, ...session } };
-    }
-    if (change === "destination") {
-      valid = false;
-    }
-    lifecycle.invalidate();
-    ad.emit(AdEventType.CLOSED);
-    ad.emit(AdEventType.OPENED);
-    // Then
-    expect(await result).toEqual({
-      status: change === "privacy" ? "opened" : "abandoned",
-    });
-    expect(ad.destroy).toHaveBeenCalledTimes(1);
-    expect(lifecycle.count).toBe(10);
-    expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  },
-);
-it("rechecks authorization before show and discards incompatible session and mode preparation", async () => {
-  // Given
-  let { input, session } = advertisingContext();
-  let current = input;
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => current,
-  });
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  ad.emit(AdEventType.LOADED);
-  await nineActions(lifecycle);
-  current = { ...input, admission: { ordinary: false } };
-  // When
-  await lifecycle.transition(action());
-  session = { subject: "auth0|other", accountId: "other" };
-  current = { ...current, account: { ...current.account, ...session } };
-  current = {
-    ...input,
-    account: { ...input.account, ...session },
-    choices: {
-      canRequestAds: true,
-      authorizedMode: "personalized",
-    },
-  };
-  lifecycle.preload();
-  // Then
+  eligible = false;
+  lifecycle.open(true, push);
+  expect(push).toHaveBeenCalledTimes(10);
   expect(ad.show).not.toHaveBeenCalled();
-  expect(ad.destroy).toHaveBeenCalledTimes(1);
-  expect(lifecycle.count).toBe(9);
-  expect(InterstitialAd.createForAdRequest).toHaveBeenLastCalledWith(
-    "test-unit",
-    { requestNonPersonalizedAdsOnly: false },
-  );
-});
-it("does not preload after dismissal when current authorization has been withdrawn", async () => {
-  // Given
-  const { input } = advertisingContext();
-  let current = input;
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => current,
-  });
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  ad.emit(AdEventType.LOADED);
-  await nineActions(lifecycle);
-  const result = lifecycle.transition(action());
-  ad.emit(AdEventType.OPENED);
-  current = { ...input, choices: null };
-  // When
-  ad.emit(AdEventType.CLOSED);
+  eligible = true;
+  lifecycle.open(true, push);
+
   // Then
-  await result;
-  expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  expect(lifecycle.count).toBe(0);
-});
-it("keeps destination errors separate from ad failure after dismissal", async () => {
-  // Given
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  ad.emit(AdEventType.LOADED);
-  await nineActions(lifecycle);
-  const error = new Error("Destination unavailable");
-  const result = lifecycle.transition({
-    ...action(),
-    open: () => {
-      throw error;
-    },
-  });
-  // When
-  ad.emit(AdEventType.OPENED);
-  ad.emit(AdEventType.CLOSED);
-  // Then
-  expect(await result).toEqual({ status: "destination-failed", error });
-  expect(Sentry.captureException).not.toHaveBeenCalled();
-  expect(mockCreateAd).toHaveBeenCalledTimes(2);
-});
-it("allows restart to abandon a callback-free hang without a watchdog or replay", async () => {
-  // Given
-  jest.useFakeTimers();
-  const { input } = advertisingContext();
-  const lifecycle = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  lifecycle.preload();
-  const ad = mockCreateAd.mock.results[0].value;
-  ad.emit(AdEventType.LOADED);
-  await nineActions(lifecycle);
-  const destination = action();
-  const completed = jest.fn();
-  void lifecycle.transition(destination).then(completed);
-  // When
-  await jest.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
-  const restarted = createInterstitialLifecycle({
-    adUnitId: "test-unit",
-    getInput: () => input,
-  });
-  // Then
-  expect(completed).not.toHaveBeenCalled();
-  expect(destination.open).not.toHaveBeenCalled();
-  expect(restarted.count).toBe(0);
   expect(ad.show).toHaveBeenCalledTimes(1);
-  expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  jest.useRealTimers();
+  expect(push).toHaveBeenCalledTimes(10);
+  ad.emit(AdEventType.CLOSED);
+  expect(push).toHaveBeenCalledTimes(11);
 });
-it.each(["create", "load", "sdk-error"])(
-  "releases content after %s preparation failure and waits for another eligible action",
-  async (failure) => {
-    // Given
-    const { input } = advertisingContext();
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => input,
-    });
-    const ad = controlledInterstitial();
-    if (failure === "create") {
-      mockCreateAd.mockImplementationOnce(() => {
-        throw new Error("private provider details");
-      });
-    } else {
-      mockCreateAd.mockReturnValueOnce(ad);
-    }
-    if (failure === "load") {
-      ad.load.mockImplementationOnce(() => {
-        throw new Error("private provider details");
-      });
-    }
-    // When
-    lifecycle.preload();
-    if (failure === "sdk-error") {
-      ad.emit(AdEventType.ERROR, { ...noFill, reason: "network-error" });
-    }
-    lifecycle.preload();
-    const destination = action();
-    await lifecycle.transition(destination);
-    // Then
-    expect(destination.open).toHaveBeenCalledTimes(1);
-    expect(lifecycle.count).toBe(1);
-    expect(mockCreateAd).toHaveBeenCalledTimes(2);
-    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      new Error("Interstitial load failed"),
-    );
-  },
-);
-it.each(["switch", "first-account"])(
-  "ignores obsolete OPENED and abandons the destination after %s before provider invalidation",
-  async (change) => {
-    // Given
-    let { input, session } = advertisingContext();
-    if (change === "switch") {
-      session = {
-        subject: `auth0|${"00000000-0000-4000-8000-000000000001"}`,
-        accountId: "00000000-0000-4000-8000-000000000001",
-      };
-      input = { ...input, account: { ...input.account, ...session } };
-    }
-    let current = {
-      ...input,
-      account: { ...input.account, ...session },
-      choices: {
-        ...input.choices,
-        canRequestAds: true,
-        authorizedMode: "limited" as const,
-      },
-    };
-    const lifecycle = createInterstitialLifecycle({
-      adUnitId: "test-unit",
-      getInput: () => current,
-    });
-    lifecycle.preload();
-    const ad = mockCreateAd.mock.results[0].value;
-    ad.emit(AdEventType.LOADED);
-    await nineActions(lifecycle);
-    const destination = action();
-    const result = lifecycle.transition(destination);
-    // When
-    session = {
-      subject: `auth0|${"00000000-0000-4000-8000-000000000002"}`,
-      accountId: "00000000-0000-4000-8000-000000000002",
-    };
-    current = { ...current, account: { ...current.account, ...session } };
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-    // Then
-    expect(await result).toEqual({ status: "abandoned" });
-    expect(destination.open).not.toHaveBeenCalled();
-    expect(lifecycle.count).toBe(10);
-    expect(ad.destroy).toHaveBeenCalledTimes(1);
-    expect(mockCreateAd).toHaveBeenCalledTimes(1);
-  },
-);
+
+it("counts eligible sporting openings while UMP permission is unavailable", () => {
+  // Given
+  let permitted = false;
+  const lifecycle = createInterstitialLifecycle({
+    adUnitId: "synthetic-unit",
+    isEligibleOpening: () => true,
+    canRequestAds: () => permitted,
+  });
+  const push = jest.fn();
+  for (let index = 0; index < 8; index++) {
+    lifecycle.open(true, push);
+  }
+  expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
+
+  // When
+  permitted = true;
+  lifecycle.preload();
+  ad.emit(AdEventType.LOADED);
+  lifecycle.open(true, push);
+  lifecycle.open(true, push);
+
+  // Then
+  expect(push).toHaveBeenCalledTimes(9);
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  ad.emit(AdEventType.CLOSED);
+  expect(push).toHaveBeenCalledTimes(10);
+});

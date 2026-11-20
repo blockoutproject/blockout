@@ -1,45 +1,22 @@
-import type { AccountSession } from "@/features/accounts";
 import type { ProState } from "@/features/pro";
+import type { AgeDeclaration } from "./age-declaration";
 
-/**
- * Transient result of the installation's native privacy owner.
- * The owner establishes applicable treatment, consent and permissions before supplying a mode.
- * Native persistence stays with the SDK; these inputs contain no copied consent strings or age.
- */
-export interface AdvertisingChoices {
-  readonly canRequestAds: boolean;
-  readonly authorizedMode: "personalized" | "contextual" | "limited" | null;
-}
-
-/** Existing owners are read at evaluation; callers must reevaluate before loading or presenting. */
+/** Current installation treatment, RevenueCat evidence and public access at the moment of use. */
 export interface AdvertisingEligibilityInput {
-  readonly account: Pick<AccountSession, "status" | "subject" | "accountId">;
   readonly pro: ProState;
   readonly admission: { readonly ordinary: boolean };
-  readonly choices: AdvertisingChoices | null;
+  readonly category: AgeDeclaration["category"] | null;
 }
 
-/** Permissions only: no entitlement exemption, sporting-access decision or prepared-ad guarantee. */
-export interface AdvertisingEligibility {
-  readonly canServeAds: boolean;
-}
-
-/**
- * Derives current advertising permissions without retaining rights, choices or a refresh clock.
- * Unknown signed-in rights may prepare privacy choices but authorize no advertising. Guests need
- * no entitlement lookup. An active entitlement avoids new prompts; existing privacy controls remain
- * independent. Loading and presentation also require current native choices and F12 admission.
- */
-export function getAdvertisingEligibility({
+/** Consent and ad readiness govern requests and presentation, independently of the sporting count. */
+export function isAdvertisingEligible({
   pro,
   admission,
-  choices,
-}: AdvertisingEligibilityInput): AdvertisingEligibility {
-  const canServeAds =
+  category,
+}: AdvertisingEligibilityInput): boolean {
+  return (
     admission.ordinary &&
     (pro.status === "guest" || pro.status === "inactive") &&
-    choices !== null &&
-    choices.canRequestAds &&
-    choices.authorizedMode !== null;
-  return { canServeAds };
+    (category === "adult" || category === "16–17")
+  );
 }

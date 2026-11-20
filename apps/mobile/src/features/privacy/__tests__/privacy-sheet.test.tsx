@@ -312,7 +312,7 @@ it("returns to privacy after persisted age correction while native consent remai
   ).toBeOnTheScreen();
 });
 
-it("reconfigures a confirmed same-category correction and preserves it when native gathering fails", async () => {
+it("preserves a changed age declaration when native gathering fails", async () => {
   // Given: the previous adult declaration remains the installation owner until confirmation.
   await openPrivacy();
   const user = userEvent.setup();
@@ -320,7 +320,7 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
   await fireEvent(
     await screen.findByRole("adjustable", { name: "Âge en années révolues" }),
     "change",
-    { nativeEvent: { value: 20 } },
+    { nativeEvent: { value: 17 } },
   );
   const priorCalls = jest.mocked(AdsConsent.requestInfoUpdate).mock.calls
     .length;
@@ -331,7 +331,7 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then: changing an acknowledged declaration invalidates preparation even when its category is unchanged.
+  // Then: consent preparation fails separately from the acknowledged declaration.
   await waitFor(() =>
     expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(priorCalls + 1),
   );
@@ -339,7 +339,7 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
     await screen.findByRole("header", { name: "Confidentialité" }),
   ).toBeOnTheScreen();
   expect(await readAgeDeclaration()).toEqual({
-    category: "adult",
+    category: "16–17",
     declaredAt: expect.any(String),
   });
   expect(

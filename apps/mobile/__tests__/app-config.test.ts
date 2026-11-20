@@ -1,4 +1,11 @@
 const originalEnv = process.env;
+const adMobInputs = {
+  ADMOB_IOS_APP_ID: "ca-app-pub-0000000000000000~0000000001",
+  ADMOB_ANDROID_APP_ID: "ca-app-pub-0000000000000000~0000000002",
+  ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID: "ca-app-pub-0000000000000000/0000000003",
+  ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID:
+    "ca-app-pub-0000000000000000/0000000004",
+};
 
 beforeEach(() => {
   process.env = { ...originalEnv };
@@ -68,12 +75,7 @@ it("uses Google sample app IDs with delayed measurement and no configured V2 ad 
 
 it("selects explicit public app and V2 unit IDs independently for each platform", () => {
   // Given: synthetic deployment inputs, never provider credentials or V1 fallbacks.
-  process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
-  process.env.ADMOB_ANDROID_APP_ID = "ca-app-pub-0000000000000000~0000000002";
-  process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID =
-    "ca-app-pub-0000000000000000/0000000003";
-  process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID =
-    "ca-app-pub-0000000000000000/0000000004";
+  Object.assign(process.env, adMobInputs);
 
   // When
   const { default: config } =
@@ -140,6 +142,7 @@ it.each(["preview", "production"])(
     process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
     process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
     process.env.REVENUECAT_OFFERING_ID = "default";
+    Object.assign(process.env, adMobInputs);
 
     // When
     const { default: config } =
@@ -156,6 +159,33 @@ it.each(["preview", "production"])(
     );
   },
 );
+
+it.each([
+  ["ADMOB_IOS_APP_ID", ""],
+  ["ADMOB_ANDROID_APP_ID", "ca-app-pub-3940256099942544~3347511713"],
+  [
+    "ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID",
+    "ca-app-pub-3940256099942544/4411468910",
+  ],
+  [
+    "ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID",
+    "ca-app-pub-0000000000000000~0000000004",
+  ],
+])("rejects an invalid production AdMob input in %s", (input, value) => {
+  // Given
+  process.env.APP_VARIANT = "production";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  Object.assign(process.env, adMobInputs);
+  process.env[input] = value;
+
+  // When
+  const loadConfig = () => jest.requireActual("../app.config");
+
+  // Then
+  expect(loadConfig).toThrow(
+    "Production candidates require non-demo AdMob app and V2 interstitial unit IDs for both platforms.",
+  );
+});
 
 it.each([
   "REVENUECAT_TEST_STORE_API_KEY",

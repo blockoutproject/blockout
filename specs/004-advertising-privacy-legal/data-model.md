@@ -9,17 +9,16 @@ This describes state ownership, not a requirement to create a table for every co
 | `category`   | Under 16, 16–17 or adult. Derived at submission from an explicitly selected age in completed years; the raw input is not retained.            |
 | `declaredAt` | Local declaration date used to request a fresh minor declaration after one calendar year at a subsequent launch. Not the person's birth date. |
 
-No account identifier, country, location or backend synchronization. Adult categories have no annual reprompt; categories never advance automatically. Missing, invalid or expired data receives child-protected advertising without synthesizing a declaration; the required initial form still applies. Correction replaces category/date only on successful submission and invalidates prepared ads. A session/account switch grants no old Pro exemption; the local advertising declaration is separate from profile identity. The installation owner retains its own read/error/explicit-retry lifetime; the common F13 card does not move it into Query or add HTTP-style retries. Loaded correction has no read prerequisite; failed writes preserve the form selection, and an acknowledged category/date remains accepted if independent consent fails. UMP owns its own native choice persistence and installation preparation. Account UUID and Pro-state arrival/change neither revise unchanged age/consent preparation nor move it into F05/F09 storage. Blockout does not duplicate consent strings/status in business storage.
+No account identifier, country, location or backend synchronization. Adult categories have no annual reprompt; categories never advance automatically. Missing, invalid or expired data suppresses ads without synthesizing a declaration. The required initial form still applies. Correction replaces category/date only on successful submission and invalidates prepared ads. A session/account switch grants no old Pro exemption; the local advertising declaration is separate from profile identity. The installation owner retains its own read/error/explicit-retry lifetime; the common F13 card does not move it into Query or add HTTP-style retries. Loaded correction has no read prerequisite; failed writes preserve the form selection, and an acknowledged category/date remains accepted if independent consent fails. UMP owns its own native choice persistence and installation preparation. Account UUID and Pro-state arrival/change neither revise unchanged age/consent preparation nor move it into F05/F09 storage. Blockout does not duplicate consent strings/status in business storage.
 
 ## Runtime advertising state
 
-- Count in the range 0–10, initialized at process start; survives backgrounding, never persisted as history.
-- At most one prepared interstitial, with its load time, SDK loading outcome and preparation privacy/current-account context; [the plan](plan.md#mediation-and-presentation) owns freshness and callback handling.
-- At most one accepted pending sporting destination. Native display resets the count; dismissal/failure releases it at most once. A fresh process abandons an unresolved destination.
-- Current F09 entitlement state and F05 session are consumed from their existing owners rather than copied into a persistent advertising identity. Their changes retire the prepared ad and recalculate eligibility; they do not restart completed installation preparation.
-- One in-flight SDK sequence applies the installation age/choice context. Obsolete age-category results are discarded; transient readiness/applicability is not a second consent store.
+- One in-memory count for eligible, deliberate sporting-detail openings. Each tenth opening consumes that opportunity and starts a new cycle. A background transition alone preserves the count.
+- At most one prepared interstitial. Only its native readiness and freshness can make it available at an opportunity. Only an actual presentation retains a single continuation. The existing sporting navigator validates and opens the destination when dismissal or failure releases that continuation.
+- Current F05 identity, F09 entitlements and F12 admission come from their existing owners. Retirement of a prepared ad leaves unchanged installation consent preparation applicable.
+- UMP owns consent persistence and applicable serving choices. The native ad-request and privacy-options results are transient. The current age context prevents obsolete results from authorizing requests.
 
-Unavailable/loading ads do not delay navigation. Incompatible/expired ads and old-session events are discarded.
+See [the plan](plan.md#mediation-and-presentation) for presentation and expiry. An ad that is unavailable at an opportunity cannot delay the destination.
 
 ## Legal document
 

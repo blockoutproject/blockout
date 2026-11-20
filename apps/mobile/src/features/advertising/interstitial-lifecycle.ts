@@ -1,313 +1,143 @@
 import * as Sentry from "@sentry/react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
-import type { SessionSnapshot } from "@/features/accounts";
-import {
-  getAdvertisingEligibility,
-  type AdvertisingEligibilityInput,
-  type AdvertisingChoices,
-} from "./advertising-eligibility";
-import {
-  openTransitionDestination,
-  type SportingAdTransition,
-  type SportingAdTransitionResult,
-} from "./sporting-ad-transition";
 
-/** Current owner readers; construction does not initialize or request advertising. */
-export interface InterstitialLifecycleOptions {
-  readonly adUnitId: string;
-  readonly getInput: () => AdvertisingEligibilityInput;
-}
+const openingInterval = 10;
+const adLifetimeMs = 60 * 60 * 1000;
 
-/** Process-local owner, composed once by the installation advertising owner. */
-export type InterstitialLifecycle = ReturnType<
-  typeof createInterstitialLifecycle
->;
-
-/** One SDK resource with the context in which its request was authorized. */
-interface PreparedInterstitial {
-  readonly ad: InterstitialAd;
-  readonly session: SessionSnapshot;
-  readonly mode: AdvertisingChoices["authorizedMode"];
-  loadedAt: number | null;
-  showing: boolean;
-}
-
-/** One accepted intent; release starts destination opening once, independently of its completion. */
-interface PendingDestination {
-  readonly action: SportingAdTransition;
-  readonly session: SessionSnapshot;
-  readonly result: Promise<SportingAdTransitionResult>;
-  readonly resolve: (result: SportingAdTransitionResult) => void;
-  released: boolean;
-}
-
-/** Compares both F05 coordinates, including first account establishment within one generation. */
-function sameSession(left: SessionSnapshot, right: SessionSnapshot) {
-  return left.subject === right.subject && left.accountId === right.accountId;
+interface InterstitialOptions {
+  adUnitId: string;
+  isEligibleOpening(): boolean;
+  canRequestAds(): boolean;
 }
 
 /**
- * Owns one memory-only 0–10 counter, one SDK instance and one accepted pending destination.
- * Backgrounding has no effect. The provider must invalidate before native privacy reconfiguration
- * and on owner changes; requests/presentation also recheck the live F05/F09/F12 inputs.
- * No timer recovers a callback-free SDK hang; process loss abandons that pending intent.
+ * Holds one installation-session counter and one SDK ad. Only an actual presentation attempt
+ * retains a destination callback. The native terminal event releases it exactly once.
  */
 export function createInterstitialLifecycle({
   adUnitId,
-  getInput,
-}: InterstitialLifecycleOptions) {
+  isEligibleOpening,
+  canRequestAds,
+}: InterstitialOptions) {
   let count = 0;
-  let prepared: PreparedInterstitial | null = null;
-  let pending: PendingDestination | null = null;
-  let retryOnAction = false;
-  let disposed = false;
+  let ad: InterstitialAd | undefined;
+  let expiresAt = 0;
+  let continuation: (() => void) | undefined;
 
-  /** Completes the captured intent without clearing a different, newer pending destination. */
-  function complete(
-    destination: PendingDestination,
-    result: SportingAdTransitionResult,
-  ) {
-    if (pending === destination) {
-      pending = null;
-    }
-    destination.resolve(result);
+  function discard() {
+    const previous = ad;
+    ad = undefined;
+    expiresAt = 0;
+    previous?.destroy();
   }
 
-  /**
-   * Starts a still-current destination before SDK destruction. Opening failures stay with the
-   * caller and never enter the ad failure channel. Async openings remain pending for deduplication.
-   * Already-started work cannot be cancelled here; abandoning an obsolete result frees its slot,
-   * and its eventual completion cannot clear a newer destination.
-   */
-  function releaseDestination() {
-    const destination = pending;
-    if (!destination) {
+  function finish(instance: InterstitialAd) {
+    if (ad !== instance) {
       return;
     }
-    if (
-      !sameSession(destination.session, getInput().account) ||
-      !destination.action.isCurrent()
-    ) {
-      complete(destination, { status: "abandoned" });
-      return;
-    }
-    if (destination.released) {
-      return;
-    }
-    destination.released = true;
-    void openTransitionDestination(destination.action.open).then((result) =>
-      complete(destination, result),
-    );
+    const open = continuation;
+    continuation = undefined;
+    discard();
+    open?.();
   }
 
-  /** Retires callbacks first, settles the destination, then removes the SDK resource/listeners. */
-  function retire() {
-    const previous = prepared;
-    prepared = null;
-    releaseDestination();
-    previous?.ad.destroy();
-  }
-
-  /** Current permission and request context must still match the prepared resource. */
-  function compatible(
-    instance: PreparedInterstitial,
-    input: AdvertisingEligibilityInput,
-  ) {
-    return (
-      getAdvertisingEligibility(input).canServeAds &&
-      sameSession(instance.session, input.account) &&
-      instance.mode === input.choices?.authorizedMode
-    );
-  }
-
-  /** Rejects queued events after an owner change even before the provider's invalidation effect. */
-  function currentInstance(instance: PreparedInterstitial) {
-    if (prepared !== instance) {
-      return false;
-    }
-    if (!compatible(instance, getInput())) {
-      retire();
-      return false;
-    }
-    return true;
-  }
-
-  /** Absorbed SDK failures use bounded diagnostics; no provider payload or identifier escapes. */
-  function fail(
-    instance: PreparedInterstitial | null,
-    operation: "load" | "show",
-    noFill = false,
-  ) {
-    if (instance !== prepared) {
-      return;
-    }
-    retryOnAction = true;
-    retire();
-    if (!noFill) {
-      Sentry.captureException(new Error(`Interstitial ${operation} failed`));
-    }
-  }
-
-  /**
-   * Makes one eligible request. Repeated calls reuse the instance; failure waits for the next
-   * eligible sporting action. Native choices/initialization must already be established upstream.
-   */
   function preload() {
-    if (disposed || retryOnAction) {
+    if (continuation || !canRequestAds()) {
       return;
     }
-    const input = getInput();
-    if (prepared && !compatible(prepared, input)) {
-      retire();
+    // Google recommends clearing preloaded interstitials after one hour.
+    if (ad?.loaded && Date.now() >= expiresAt) {
+      discard();
     }
-    if (
-      prepared &&
-      !prepared.showing &&
-      prepared.loadedAt !== null &&
-      Date.now() - prepared.loadedAt >= 3_600_000
-    ) {
-      retire();
-    }
-    if (prepared || !getAdvertisingEligibility(input).canServeAds) {
+    if (ad) {
       return;
     }
 
     try {
-      const instance: PreparedInterstitial = {
-        ad: InterstitialAd.createForAdRequest(adUnitId, {
-          requestNonPersonalizedAdsOnly:
-            input.choices?.authorizedMode !== "personalized",
-        }),
-        session: input.account,
-        mode: input.choices?.authorizedMode ?? null,
-        loadedAt: null,
-        showing: false,
-      };
-      prepared = instance;
-      instance.ad.addAdEventListener(AdEventType.LOADED, () => {
-        if (currentInstance(instance) && !instance.showing) {
-          instance.loadedAt = Date.now();
+      const instance = InterstitialAd.createForAdRequest(adUnitId);
+      ad = instance;
+      instance.addAdEventListener(AdEventType.LOADED, () => {
+        if (ad === instance) {
+          expiresAt = Date.now() + adLifetimeMs;
         }
       });
-      instance.ad.addAdEventListener(AdEventType.OPENED, () => {
-        if (currentInstance(instance) && instance.showing) {
-          count = 0;
+      instance.addAdEventListener(AdEventType.CLOSED, () => {
+        if (ad === instance) {
+          finish(instance);
+          preload();
         }
       });
-      instance.ad.addAdEventListener(AdEventType.CLOSED, () => {
-        if (!currentInstance(instance)) {
+      instance.addAdEventListener(AdEventType.ERROR, (error) => {
+        if (ad !== instance) {
           return;
         }
-        retire();
-        preload();
-      });
-      instance.ad.addAdEventListener(AdEventType.ERROR, (error) => {
-        if (!currentInstance(instance)) {
-          return;
+        const presenting = !!continuation;
+        finish(instance);
+        if (
+          presenting ||
+          (error.reason !== "no-fill" && error.reason !== "mediation-no-fill")
+        ) {
+          const operation = presenting ? "show" : "load";
+          Sentry.captureException(
+            new Error(`Interstitial ${operation} failed`),
+          );
         }
-        const operation = instance.showing ? "show" : "load";
-        fail(
-          instance,
-          operation,
-          operation === "load" &&
-            error.phase === "load" &&
-            (error.reason === "no-fill" ||
-              error.reason === "mediation-no-fill"),
-        );
       });
-      instance.ad.load();
+      instance.load();
     } catch {
-      fail(prepared, "load");
-    }
-  }
-
-  /** Provider show failures retire this instance through the same bounded failure owner. */
-  function showPrepared(instance: PreparedInterstitial) {
-    try {
-      instance.ad.show().catch(() => fail(instance, "show"));
-    } catch {
-      fail(instance, "show");
+      discard();
+      Sentry.captureException(new Error("Interstitial load failed"));
     }
   }
 
   return {
-    get count() {
-      return count;
-    },
     preload,
-
-    /** Settles the pending intent and retires preparation before privacy/session reconfiguration. */
+    /** Retire preparation while allowing a visible native ad to deliver its dismissal. */
     invalidate() {
-      retire();
+      if (!continuation) {
+        discard();
+      }
     },
-
-    /** Releases a valid intent before teardown; a real process loss instead abandons memory. */
     dispose() {
-      disposed = true;
-      retire();
+      continuation = undefined;
+      discard();
     },
-
-    /**
-     * Accepts at most one intent. Its key deduplicates repeated pending submissions; other intents
-     * receive busy without acceptance. Only free, admitted sporting actions accrue opportunities.
-     */
-    transition(
-      action: SportingAdTransition,
-    ): Promise<SportingAdTransitionResult> {
-      if (disposed || !action.isCurrent()) {
-        return Promise.resolve({ status: "abandoned" });
+    /** Skips the opportunity immediately if the SDK has no presentable ad at this transition. */
+    open(canPresent: boolean, destination: () => void) {
+      if (continuation) {
+        return;
       }
-      const input = getInput();
-      if (prepared && !compatible(prepared, input)) {
-        retire();
-      }
-      if (pending) {
-        return pending.action.key === action.key
-          ? pending.result
-          : Promise.resolve({ status: "busy" });
+      if (!isEligibleOpening()) {
+        destination();
+        return;
       }
 
-      let resolve: PendingDestination["resolve"];
-      const result = new Promise<SportingAdTransitionResult>((settle) => {
-        resolve = settle;
-      });
-      pending = {
-        action,
-        result,
-        resolve: (outcome) => resolve(outcome),
-        session: input.account,
-        released: false,
-      };
-      const pro = input.pro;
-      const freeAction =
-        input.admission.ordinary &&
-        (pro.status === "guest" || pro.status === "inactive");
-      if (freeAction) {
-        count = Math.min(10, count + 1);
-      }
-      const eligibleAction =
-        freeAction && getAdvertisingEligibility(input).canServeAds;
-      if (eligibleAction) {
-        retryOnAction = false;
-      }
-      const instance = prepared;
+      count = (count + 1) % openingInterval;
+      const instance = ad;
       if (
-        eligibleAction &&
-        count === 10 &&
-        instance &&
-        instance.loadedAt !== null &&
-        Date.now() - instance.loadedAt < 3_600_000 &&
-        compatible(instance, getInput())
+        count === 0 &&
+        canPresent &&
+        canRequestAds() &&
+        instance?.loaded &&
+        Date.now() < expiresAt
       ) {
-        instance.showing = true;
-        showPrepared(instance);
-      } else {
-        releaseDestination();
-        if (eligibleAction) {
-          preload();
+        continuation = destination;
+        const failed = () => {
+          if (ad === instance) {
+            finish(instance);
+            Sentry.captureException(new Error("Interstitial show failed"));
+          }
+        };
+        try {
+          void instance.show().catch(failed);
+        } catch {
+          failed();
         }
+        return;
       }
-      return result;
+
+      destination();
+      preload();
     },
   };
 }

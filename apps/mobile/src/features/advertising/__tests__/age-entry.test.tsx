@@ -250,7 +250,7 @@ it("persists one submitted age while the rendered form is busy", async () => {
   expect(screen.getByText("Category: 16–17")).toBeOnTheScreen();
   expect(write).toHaveBeenCalledTimes(1);
 });
-it("prepares a same-category age correction after immediately acknowledged storage", async () => {
+it("keeps native consent after an acknowledged correction with the same age treatment", async () => {
   // Given
   await completeDiscovery();
   await submitAgeDeclaration(18);
@@ -260,7 +260,7 @@ it("prepares a same-category age correction after immediately acknowledged stora
   await screen.findByText("Category: adult");
   await waitFor(() => {
     expect(installationAge.nativePrivacy.pending).toBe(false);
-    expect(installationAge.nativePrivacy.choices).not.toBeNull();
+    expect(installationAge.nativePrivacy.privacyOptionsRequired).toBe(true);
   });
   expect(update).toHaveBeenCalledTimes(1);
 
@@ -270,10 +270,10 @@ it("prepares a same-category age correction after immediately acknowledged stora
   });
 
   // Then
-  await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+  expect(update).toHaveBeenCalledTimes(1);
   await waitFor(() => {
     expect(installationAge.nativePrivacy.pending).toBe(false);
-    expect(installationAge.nativePrivacy.choices).not.toBeNull();
+    expect(installationAge.nativePrivacy.privacyOptionsRequired).toBe(true);
   });
   expect(screen.getByText("Category: adult")).toBeOnTheScreen();
 });

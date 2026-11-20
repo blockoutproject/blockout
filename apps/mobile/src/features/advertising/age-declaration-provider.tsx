@@ -46,18 +46,15 @@ export function AgeDeclarationProvider({
   const mounted = useRef(false);
   const [pending, setPending] = useState(false);
   const [retryingRead, setRetryingRead] = useState(false);
-  const category = getAdvertisingAgeCategory(
-    state.status === "ready" ? state.declaration : null,
-    state.evaluatedAt,
-  );
+  const declaration = state.status === "ready" ? state.declaration : null;
+  const status = getAgeDeclarationStatus(declaration, state.evaluatedAt);
+  const category = getAdvertisingAgeCategory(declaration, state.evaluatedAt);
   const ready =
     enabled &&
     !pending &&
     state.status === "ready" &&
     admission.ordinary &&
-    (pro.status === "active" ||
-      getAgeDeclarationStatus(state.declaration, state.evaluatedAt) ===
-        "current");
+    (pro.status === "active" || status === "current");
   useLayoutEffect(() => {
     privacy.setContext(() => ({
       account,
@@ -70,10 +67,18 @@ export function AgeDeclarationProvider({
     privacy.subscribe,
     privacy.getSnapshot,
   );
-  // Synchronization rechecks live rights; only identity/admission changes unconditionally retire the ad.
+  // Native readiness survives identity changes, but a prepared ad does not.
   useLayoutEffect(() => {
     privacy.invalidateAd();
-  }, [privacy, account.subject, account.accountId, account.status, ready]);
+  }, [
+    privacy,
+    account.subject,
+    account.accountId,
+    account.status,
+    pro.status,
+    category,
+    ready,
+  ]);
   useEffect(() => {
     if (ready) {
       void privacy.synchronize()?.catch(() => undefined);
@@ -87,8 +92,7 @@ export function AgeDeclarationProvider({
     pro.status,
     category,
     nativePrivacy.pending,
-    // Reconfirmation must prepare even when batching leaves category and ready unchanged.
-    state,
+    status,
   ]);
   useEffect(() => () => privacy.invalidateAd(), [privacy]);
 
@@ -157,15 +161,21 @@ export function AgeDeclarationProvider({
     if (!mounted.current || pending || privacy.getSnapshot().pending) {
       return;
     }
-    privacy.suspend();
     setPending(true);
     const now = new Date();
     return submitAgeDeclaration(age, now)
-      .then((declaration) => {
+      .then((nextDeclaration) => {
         if (!mounted.current) {
           return false;
         }
-        setState({ status: "ready", evaluatedAt: now, declaration });
+        if (status !== "current" || category !== nextDeclaration.category) {
+          privacy.suspend();
+        }
+        setState({
+          status: "ready",
+          evaluatedAt: now,
+          declaration: nextDeclaration,
+        });
         return true;
       })
       .finally(() => {
@@ -175,8 +185,6 @@ export function AgeDeclarationProvider({
       });
   }
 
-  const declaration = state.status === "ready" ? state.declaration : null;
-  const status = getAgeDeclarationStatus(declaration, state.evaluatedAt);
   return (
     <AgeContext
       value={{

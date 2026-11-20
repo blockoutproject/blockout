@@ -1,33 +1,43 @@
 import { useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import { useAgeDeclaration } from "@/features/advertising/age-declaration-context";
 
 export type SportingResourceKind = "club" | "team" | "pool" | "match";
 
-/** Exact UUID routes share F11's boundary; composed actions may own failure feedback, and inactive tabs cannot release old intent. */
+/** Voluntary detail openings share one advertising opportunity while Router owns ordinary history. */
 export function useSportingNavigation(active = true) {
   const router = useRouter();
   const navigation = useNavigation();
-  const currentActive = useRef(active);
-  useLayoutEffect(() => {
-    currentActive.current = active;
-  }, [active]);
-  const transition = useSportingTransition();
+  const admission = useAccessAdmission();
+  const { privacy } = useAgeDeclaration();
   const feedback = useActionFeedback();
+  const current = useRef(false);
+  useLayoutEffect(() => {
+    current.current = active && admission.ordinary;
+    return () => {
+      current.current = false;
+    };
+  }, [active, admission.ordinary]);
 
-  /** Delegates safe destination failure to the optional event owner; ordinary sporting interactions keep their own toast. */
+  /** Opens an exact resource and leaves destination failure feedback with the initiating interaction. */
   function navigate(
     kind: SportingResourceKind,
     id: string,
     onFailure?: () => void,
   ) {
+    const isCurrent = () => current.current && navigation.isFocused();
+    if (!isCurrent()) {
+      return;
+    }
     feedback.clear();
-    return transition.open({
-      kind,
-      target: id,
-      isCurrent: () => currentActive.current && navigation.isFocused(),
-      open() {
+    privacy.openSportingDetail(AppState.currentState === "active", () => {
+      if (!isCurrent()) {
+        return;
+      }
+      try {
         if (kind === "club") {
           router.push({ pathname: "/clubs/[clubId]", params: { clubId: id } });
         } else if (kind === "team") {
@@ -40,10 +50,15 @@ export function useSportingNavigation(active = true) {
             params: { matchId: id },
           });
         }
-      },
-      onFailure: onFailure ?? (() => feedback.error()),
+      } catch {
+        if (onFailure) {
+          onFailure();
+        } else {
+          feedback.error();
+        }
+      }
     });
   }
 
-  return { pending: transition.pending, navigate };
+  return { navigate };
 }

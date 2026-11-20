@@ -1,105 +1,72 @@
 import type { ProState } from "@/features/pro";
 import { entitlement } from "@/features/pro/test-support/customer-info";
 import {
-  getAdvertisingEligibility,
+  isAdvertisingEligible,
   type AdvertisingEligibilityInput,
 } from "../advertising-eligibility";
 
-const account = {
-  status: "authenticated",
-  subject: "auth0|advertising-account",
-  accountId: "00000000-0000-4000-8000-000000000001",
-} as const;
-const authorizedChoices = {
-  canRequestAds: true,
-  authorizedMode: "limited",
-} as const;
-
 it.each([
-  {
-    label: "guest",
-    account: { status: "guest", subject: null, accountId: null },
-    pro: { status: "guest" },
-    allowed: true,
-  },
+  { label: "guest", pro: { status: "guest" }, allowed: true },
   {
     label: "SDK-inactive",
-    account,
     pro: { status: "inactive", operation: "idle" },
     allowed: true,
   },
   {
     label: "SDK-active",
-    account,
     pro: { status: "active", entitlement: entitlement(), operation: "idle" },
     allowed: false,
   },
   {
     label: "unavailable",
-    account,
     pro: { status: "unavailable", reason: "customer-info", operation: "idle" },
     allowed: false,
   },
-] satisfies {
-  label: string;
-  account: AdvertisingEligibilityInput["account"];
-  pro: ProState;
-  allowed: boolean;
-}[])(
-  "allows advertising according to current $label rights",
-  ({ account, pro, allowed }) => {
-    // Given: F09 owns the SDK evidence and supplies its current public result.
+] satisfies { label: string; pro: ProState; allowed: boolean }[])(
+  "uses current $label rights for sporting advertising eligibility",
+  ({ pro, allowed }) => {
+    // Given: the table supplies current RevenueCat evidence for an admitted adult.
 
     // When
-    const eligibility = getAdvertisingEligibility({
-      account,
+    const eligible = isAdvertisingEligible({
       pro,
       admission: { ordinary: true },
-      choices: authorizedChoices,
+      category: "adult",
     });
 
     // Then
-    expect(eligibility.canServeAds).toBe(allowed);
+    expect(eligible).toBe(allowed);
   },
 );
 
 it.each([
   {
-    label: "blocked application admission",
-    admission: { ordinary: false },
-    choices: authorizedChoices,
+    label: "blocked admission",
+    ordinary: false,
+    category: "adult",
+    allowed: false,
   },
-  {
-    label: "missing native choices",
-    admission: { ordinary: true },
-    choices: null,
-  },
-  {
-    label: "native request refusal",
-    admission: { ordinary: true },
-    choices: { canRequestAds: false, authorizedMode: "limited" },
-  },
-  {
-    label: "no authorized advertising mode",
-    admission: { ordinary: true },
-    choices: { canRequestAds: true, authorizedMode: null },
-  },
+  { label: "unknown age", ordinary: true, category: null, allowed: false },
+  { label: "under 16", ordinary: true, category: "under16", allowed: false },
+  { label: "16–17", ordinary: true, category: "16–17", allowed: true },
 ] satisfies {
   label: string;
-  admission: AdvertisingEligibilityInput["admission"];
-  choices: AdvertisingEligibilityInput["choices"];
-}[])("refuses advertising with $label", ({ admission, choices }) => {
-  // Given
-  const pro: ProState = { status: "inactive", operation: "idle" };
+  ordinary: boolean;
+  category: AdvertisingEligibilityInput["category"];
+  allowed: boolean;
+}[])(
+  "applies age and admission for $label",
+  ({ ordinary, category, allowed }) => {
+    // Given: the table supplies current admission and the installation's age treatment.
 
-  // When
-  const eligibility = getAdvertisingEligibility({
-    account,
-    pro,
-    admission,
-    choices,
-  });
+    // When
+    const eligible = isAdvertisingEligible({
+      pro: { status: "guest" },
+      admission: { ordinary },
+      category,
+    });
 
-  // Then
-  expect(eligibility.canServeAds).toBe(false);
-});
+    // Then
+    expect(eligible).toBe(allowed);
+  },
+);

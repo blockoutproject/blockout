@@ -10,8 +10,6 @@ import {
 } from "react";
 import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PermissionStatus } from "expo";
-import * as Tracking from "expo-tracking-transparency";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -26,17 +24,13 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Linking, Text } from "react-native";
+import { AppState, Linking, Text } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import * as Notifications from "expo-notifications";
-import {
-  AdEventType,
-  AdsConsent,
-  InterstitialAd,
-} from "react-native-google-mobile-ads";
+import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import { getGetClubQueryKey } from "../../../../.generated/mobile";
 import type {
   ClubDetailResponse,
@@ -81,7 +75,6 @@ import {
 import { AgeDeclarationProvider } from "../age-declaration-provider";
 import { submitAgeDeclaration } from "../age-declaration";
 import { controlledInterstitial } from "../test-support/interstitial";
-import { nativeUserChoices } from "../test-support/native-privacy";
 import { NotificationsScreen } from "@/features/notifications/screens/notifications-screen";
 import { NotificationLifecycle } from "@/features/notifications/native/notification-lifecycle";
 import { createPushRegistration } from "@/features/notifications/native/push-registration";
@@ -213,7 +206,9 @@ let failNativeRead = false;
 let table: PoolStandingsResponse;
 let participants: PoolParticipantsResponse;
 let club: ClubDetailResponse;
+const previousAppState = AppState.currentState;
 beforeEach(async () => {
+  AppState.currentState = "active";
   accountProfile = accountResponse({ accountId: inboxRow.id });
   // Inbox retention and native-ad freshness use a fixed current instant; native Query timers stay controlled.
   jest.useFakeTimers({ now: new Date("2026-10-28T12:00:00Z") });
@@ -435,6 +430,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   await cleanup();
+  AppState.currentState = previousAppState;
   client.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -575,130 +571,110 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   return result;
 }
 
-it.each([
-  ["limited", false],
-  ["personalized", true],
-] as const)(
-  "removes current restricted contacts without reusing club, location or account data in active %s advertising",
-  async (_mode, personalized) => {
-    // Given: real owners, ClubScreen, generated reads and Query; only HTTP/native I/O is controlled.
-    jest.spyOn(AdsConsent, "getUserChoices").mockResolvedValue(
-      nativeUserChoices({
-        storeAndAccessInformationOnDevice: personalized,
-        createAPersonalisedAdsProfile: personalized,
-        selectPersonalisedAds: personalized,
-        selectBasicAds: personalized,
-      }),
-    );
-    jest.spyOn(Tracking, "getTrackingPermissionsAsync").mockResolvedValue({
-      status: PermissionStatus.GRANTED,
-      granted: true,
-      canAskAgain: true,
-      expires: "never",
-    });
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    accountProfile = accountResponse({
-      accountId: inboxRow.id,
-      username: "SyntheticPrivacy193",
-      email: "synthetic-account-193@example.invalid",
-    });
-    const contacts = {
-      address: "193 Synthetic contact street",
-      city: "Synthetic contact municipality",
-      postalCode: "79193",
-      email: "synthetic-club-193@example.invalid",
-      phone: "+33 1 00 00 01 93",
-      website: "https://synthetic-club-193.example.invalid/contact",
-    };
-    club = {
-      ...club,
-      contacts,
-      seasons: [matchDetail().match.pool.season],
-      location: {
-        latitude: 46.193,
-        longitude: -0.193,
-        label: contacts.city,
-      },
-    };
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
-    const user = userEvent.setup();
-    await mount({ resourcePage: "club" });
-    await screen.findByRole("link", { name: `Téléphone : ${contacts.phone}` });
-    expect(
-      privateClient.getQueryData(getGetClubQueryKey(club.club.id)),
-    ).toEqual(club);
-    const nextAd = controlledInterstitial();
-    mockCreateAd.mockReturnValueOnce(nextAd);
+it("removes restricted contacts without supplying club, location or account data to advertising", async () => {
+  // Given: actual ClubScreen, generated reads and Query with controlled HTTP and native I/O.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  accountProfile = accountResponse({
+    accountId: inboxRow.id,
+    username: "SyntheticPrivacy193",
+    email: "synthetic-account-193@example.invalid",
+  });
+  const contacts = {
+    address: "193 Synthetic contact street",
+    city: "Synthetic contact municipality",
+    postalCode: "79193",
+    email: "synthetic-club-193@example.invalid",
+    phone: "+33 1 00 00 01 93",
+    website: "https://synthetic-club-193.example.invalid/contact",
+  };
+  club = {
+    ...club,
+    contacts,
+    seasons: [matchDetail().match.pool.season],
+    location: {
+      latitude: 46.193,
+      longitude: -0.193,
+      label: contacts.city,
+    },
+  };
+  const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
+  const user = userEvent.setup();
+  await mount({ resourcePage: "club" });
+  await screen.findByRole("link", { name: `Téléphone : ${contacts.phone}` });
+  expect(privateClient.getQueryData(getGetClubQueryKey(club.club.id))).toEqual(
+    club,
+  );
+  const nextAd = controlledInterstitial();
+  mockCreateAd.mockReturnValueOnce(nextAd);
 
-    // When: contact actions use their intended recipients, then a sporting opening shows an ad.
-    await user.press(
-      screen.getByRole("link", { name: `Téléphone : ${contacts.phone}` }),
-    );
-    await user.press(
-      screen.getByRole("link", { name: `E-mail du club : ${contacts.email}` }),
-    );
-    await user.press(
-      screen.getByRole("link", { name: `Site web : ${contacts.website}` }),
-    );
-    expect(openURL.mock.calls.map(([url]) => url)).toEqual([
-      "tel:+33100000193",
-      `mailto:${encodeURIComponent(contacts.email)}`,
-      contacts.website,
-    ]);
-    for (let index = 0; index < 10; index++) {
-      await user.press(screen.getByRole("link", { name: "Club" }));
-    }
-    expect(ad.show).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      ad.emit(AdEventType.OPENED);
-      ad.emit(AdEventType.CLOSED);
-      nextAd.emit(AdEventType.LOADED);
-    });
+  // When: contact actions use their intended recipients, then a sporting opening shows an ad.
+  await user.press(
+    screen.getByRole("link", { name: `Téléphone : ${contacts.phone}` }),
+  );
+  await user.press(
+    screen.getByRole("link", { name: `E-mail du club : ${contacts.email}` }),
+  );
+  await user.press(
+    screen.getByRole("link", { name: `Site web : ${contacts.website}` }),
+  );
+  expect(openURL.mock.calls.map(([url]) => url)).toEqual([
+    "tel:+33100000193",
+    `mailto:${encodeURIComponent(contacts.email)}`,
+    contacts.website,
+  ]);
+  for (let index = 0; index < 10; index++) {
+    await user.press(screen.getByRole("link", { name: "Club" }));
+  }
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    ad.emit(AdEventType.OPENED);
+    ad.emit(AdEventType.CLOSED);
+    nextAd.emit(AdEventType.LOADED);
+  });
 
-    // Current server restrictions remove all contact fields and the obsolete point on actual refresh.
-    club = { club: club.club, contacts: {}, seasons: club.seasons };
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await screen.findByText("Commune non renseignée");
+  // Current server restrictions remove all contact fields and the obsolete point on actual refresh.
+  club = { club: club.club, contacts: {}, seasons: club.seasons };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByText("Commune non renseignée");
 
-    // Then: the successful generated read replaces sensitive cache data; sporting identity remains usable.
-    for (const value of Object.values(contacts)) {
-      expect(screen.queryByText(value, { exact: false })).not.toBeOnTheScreen();
-    }
-    expect(
-      screen.queryByRole("link", {
-        name: /^(Téléphone|E-mail du club|Site web) :/,
-      }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("link", { name: "Ouvrir la commune sur la carte" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByLabelText(`Localisation du club : ${contacts.city}`),
-    ).not.toBeOnTheScreen();
-    expect(
-      privateClient.getQueryData(getGetClubQueryKey(club.club.id)),
-    ).toEqual(club);
-    for (let index = 0; index < 9; index++) {
-      await user.press(screen.getByRole("link", { name: "Club" }));
-    }
-    await user.press(screen.getByRole("tab", { name: "Équipes" }));
-    await user.press(await screen.findByRole("link", { name: "Home" }));
-    expect(nextAd.show).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      nextAd.emit(AdEventType.OPENED);
-      nextAd.emit(AdEventType.CLOSED);
-    });
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: "/teams/[teamId]",
-      params: { teamId: matchDetail().match.home.id },
-    });
-    expect(jest.mocked(InterstitialAd.createForAdRequest).mock.calls).toEqual([
-      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
-      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
-      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
-    ]);
-  },
-);
+  // Then: the successful generated read replaces sensitive cache data; sporting identity remains usable.
+  for (const value of Object.values(contacts)) {
+    expect(screen.queryByText(value, { exact: false })).not.toBeOnTheScreen();
+  }
+  expect(
+    screen.queryByRole("link", {
+      name: /^(Téléphone|E-mail du club|Site web) :/,
+    }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Ouvrir la commune sur la carte" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText(`Localisation du club : ${contacts.city}`),
+  ).not.toBeOnTheScreen();
+  expect(privateClient.getQueryData(getGetClubQueryKey(club.club.id))).toEqual(
+    club,
+  );
+  for (let index = 0; index < 9; index++) {
+    await user.press(screen.getByRole("link", { name: "Club" }));
+  }
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await user.press(await screen.findByRole("link", { name: "Home" }));
+  expect(nextAd.show).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    nextAd.emit(AdEventType.OPENED);
+    nextAd.emit(AdEventType.CLOSED);
+  });
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: matchDetail().match.home.id },
+  });
+  expect(jest.mocked(InterstitialAd.createForAdRequest).mock.calls).toEqual([
+    ["synthetic-unit"],
+    ["synthetic-unit"],
+    ["synthetic-unit"],
+  ]);
+});
 
 it("counts a team link inside a calendar match as the tenth opening and deduplicates pending taps", async () => {
   // Given
@@ -736,7 +712,7 @@ it("counts a team link inside a calendar match as the tenth opening and deduplic
     params: { teamId: team.id },
   });
 });
-it("shares actual Search, personal calendar, followed cards and F03 openings with one tenth live placement", async () => {
+it("shares Search, calendar, followed cards and details while excluding the stream", async () => {
   // Given: all consumers keep the same installation owner; only HTTP, native I/O and route handoff are controlled.
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const detail = {
@@ -788,20 +764,21 @@ it("shares actual Search, personal calendar, followed cards and F03 openings wit
   expect(ad.show).not.toHaveBeenCalled();
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
 
-  // Then: the sole live entry waits for dismissal, releases the exact URL once and resets the shared frequency.
+  // Then: the stream opens immediately, leaving the tenth opportunity to the next detail.
+  expect(ad.show).not.toHaveBeenCalled();
+  expect(openURL).toHaveBeenCalledTimes(1);
+  expect(openURL).toHaveBeenCalledWith(detail.streamUrl);
+  await user.press(screen.getByRole("link", { name: "Club" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-  expect(openURL).not.toHaveBeenCalled();
+  expect(mockPush).toHaveBeenCalledTimes(9);
   await act(async () => {
-    ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.CLOSED);
   });
+  expect(mockPush).toHaveBeenCalledTimes(10);
   expect(openURL).toHaveBeenCalledTimes(1);
-  expect(openURL).toHaveBeenCalledWith(detail.streamUrl);
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
-  expect(openURL).toHaveBeenCalledTimes(2);
-  expect(ad.show).toHaveBeenCalledTimes(1);
 });
+
 it.each([
   ["guest", false],
   ["signed-in", true],
@@ -906,55 +883,34 @@ it.each(["À venir", "Terminés", "Suivis"])(
     expect(mockPush).toHaveBeenCalledTimes(10);
   },
 );
-it.each(["resource", "live"])(
-  "keeps a failed %s destination with its owner after advertising dismissal and explicit retry",
-  async (destination) => {
-    // Given
-    const detail = {
-      ...matchDetail(),
-      streamUrl: "https://video.example.invalid/current",
-    };
-    await mount({ detail });
-    const user = userEvent.setup();
-    for (let index = 0; index < 9; index++) {
-      await user.press(screen.getByRole("link", { name: "Club" }));
-    }
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
-    if (destination === "live") {
-      openURL.mockRejectedValueOnce(
-        new Error("Private native handoff failure"),
-      );
-    } else {
-      mockPush.mockImplementationOnce(() => {
-        throw new Error("Private route failure");
-      });
-    }
-    const name = destination === "live" ? "Ouvrir le lien" : "Équipe";
+it("keeps route failure with its owner after dismissal and permits explicit retry", async () => {
+  // Given
+  await mount();
+  const user = userEvent.setup();
+  for (let index = 0; index < 9; index++) {
+    await user.press(screen.getByRole("link", { name: "Club" }));
+  }
+  mockPush.mockImplementationOnce(() => {
+    throw new Error("Private route failure");
+  });
 
-    // When
-    await user.press(screen.getByRole("link", { name }));
-    await act(async () => {
-      ad.emit(AdEventType.OPENED);
-      ad.emit(AdEventType.CLOSED);
-    });
+  // When
+  await user.press(screen.getByRole("link", { name: "Équipe" }));
+  await act(async () => ad.emit(AdEventType.CLOSED));
 
-    // Then: ad success cannot pretend that the destination opened, expose its error or replay it.
-    expect(ad.show).toHaveBeenCalledTimes(1);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      /Une erreur est survenue/,
-    );
-    expect(screen.queryByText(/Private .* failure/)).not.toBeOnTheScreen();
-    expect(destination === "live" ? openURL : mockPush).toHaveBeenCalledTimes(
-      destination === "live" ? 1 : 10,
-    );
-    await user.press(screen.getByRole("link", { name }));
-    expect(destination === "live" ? openURL : mockPush).toHaveBeenCalledTimes(
-      destination === "live" ? 2 : 11,
-    );
-    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-    expect(ad.show).toHaveBeenCalledTimes(1);
-  },
-);
+  // Then
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    /Une erreur est survenue/,
+  );
+  expect(screen.queryByText(/Private route failure/)).not.toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledTimes(10);
+  await user.press(screen.getByRole("link", { name: "Équipe" }));
+  expect(mockPush).toHaveBeenCalledTimes(11);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(ad.show).toHaveBeenCalledTimes(1);
+});
+
 it("abandons the pending calendar destination when the native principal changes", async () => {
   // Given
   await mount();
@@ -1017,7 +973,7 @@ it.each(["screen focus", "calendar tab"])(
     expect(mockPush).toHaveBeenCalledTimes(9);
   },
 );
-it("shares calendar, inbox and native tap openings while keeping read failure independent of the pending ad", async () => {
+it("counts a deliberate inbox detail and excludes native notification taps", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   await mount({ notifications: true });
@@ -1106,17 +1062,20 @@ it("shares calendar, inbox and native tap openings while keeping read failure in
     ).toHaveLength(1),
   );
   expect(await screen.findByRole("alert")).toBeOnTheScreen();
-  expect(ad.show).toHaveBeenCalledTimes(1);
-  expect(mockPush).toHaveBeenCalledTimes(9);
-  expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
+  expect(ad.show).not.toHaveBeenCalled();
   expect(mockPush).toHaveBeenCalledTimes(10);
   expect(mockPush).toHaveBeenLastCalledWith({
     pathname: "/matches/[matchId]",
     params: { matchId: nativeMatchId },
+  });
+  expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
+  await user.press(match);
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  await act(async () => ad.emit(AdEventType.CLOSED));
+  expect(mockPush).toHaveBeenCalledTimes(11);
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/matches/[matchId]",
+    params: { matchId: matchDetail().match.id },
   });
 });
 it("releases the exact calendar destination once when the SDK rejects presentation", async () => {
@@ -1141,68 +1100,32 @@ it("releases the exact calendar destination once when the SDK rejects presentati
   });
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
-it("abandons the exact old stream URL when its published version changes during an interstitial", async () => {
+it("opens the current stream directly and keeps native handoff failure on its action", async () => {
   // Given
-  const original = {
+  const detail = {
     ...matchDetail(),
-    streamUrl: "https://video.example.invalid/first",
-    streamContributionId: "00000000-0000-4000-8000-000000000601",
+    streamUrl: "https://video.example.invalid/current",
   };
-  const result = await mount({ detail: original });
+  await mount({ detail });
   const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
+  openURL.mockRejectedValueOnce(new Error("Private native handoff failure"));
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++) {
-    await user.press(screen.getByRole("link", { name: "Club" }));
-  }
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
-  expect(ad.show).toHaveBeenCalledTimes(1);
+
   // When
-  await result.rerender(
-    <Owners>
-      <Entries
-        detail={{
-          ...original,
-          streamUrl: "https://video.example.invalid/replacement",
-          streamContributionId: "00000000-0000-4000-8000-000000000602",
-        }}
-      />
-    </Owners>,
-  );
-  await act(async () => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
-  // Then
-  expect(openURL).not.toHaveBeenCalled();
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
-  expect(openURL).toHaveBeenCalledTimes(1);
-  expect(openURL).toHaveBeenCalledWith(
-    "https://video.example.invalid/replacement",
-  );
-});
-it("abandons a still-mounted stream handoff after the match route loses focus", async () => {
-  // Given
-  await mount({
-    detail: {
-      ...matchDetail(),
-      streamUrl: "https://video.example.invalid/current",
-    },
-  });
-  const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
-  const user = userEvent.setup();
-  for (let index = 0; index < 9; index++) {
-    await user.press(screen.getByRole("link", { name: "Club" }));
-  }
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
-  expect(ad.show).toHaveBeenCalledTimes(1);
-  // When
-  mockFocused = false;
-  await act(async () => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
+
   // Then
-  expect(openURL).not.toHaveBeenCalled();
+  expect(ad.show).not.toHaveBeenCalled();
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    /Une erreur est survenue/,
+  );
+  expect(
+    screen.queryByText(/Private native handoff failure/),
+  ).not.toBeOnTheScreen();
+  expect(openURL).toHaveBeenCalledWith(detail.streamUrl);
+  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  expect(openURL).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 it.each(["list", "cards", "podium"])(
   "abandons a pending %s standings team when refresh changes its association at the same slot",

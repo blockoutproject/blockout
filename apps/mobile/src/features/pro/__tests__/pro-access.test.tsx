@@ -10,6 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { router } from "expo-router";
+import { AppState } from "react-native";
 import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
@@ -145,7 +146,9 @@ function rights(store: "APP_STORE" | "PROMOTIONAL") {
   });
 }
 
+const previousAppState = AppState.currentState;
 beforeEach(async () => {
+  AppState.currentState = "active";
   mockAccount = accountResponse({ accountId });
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -281,6 +284,7 @@ function publicCalendarResponse(parsed: URL) {
 
 afterEach(async () => {
   await cleanup();
+  AppState.currentState = previousAppState;
   jest.restoreAllMocks();
   jest.useRealTimers();
   process.env = { ...environment };
@@ -437,7 +441,6 @@ it.each([
       await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
       expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith(
         "synthetic-unit",
-        { requestNonPersonalizedAdsOnly: true },
       );
       mockCreateAd.mock.results.forEach((result) => {
         if (result.type === "return") {
