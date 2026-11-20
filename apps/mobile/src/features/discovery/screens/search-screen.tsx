@@ -9,6 +9,7 @@ import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "@/shared/components/page";
 import { PagedTabs } from "@/shared/components/paged-tabs";
+import { useContentReveal } from "@/shared/components/content-reveal";
 import { Button } from "@/shared/components/button";
 import { hasReadError } from "@/shared/components/read-feedback";
 
@@ -56,6 +57,12 @@ export function SearchScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");
+  // A criteria reset replaces the scroller; the tab has only one initial presentation.
+  const reveal = {
+    team: useContentReveal(),
+    pool: useContentReveal(),
+    club: useContentReveal(),
+  };
   const { control, reset, setFocus } = useForm<SearchValues>({
     defaultValues: searchValues(),
     resolver: zodResolver(searchSchema),
@@ -178,6 +185,7 @@ export function SearchScreen() {
               <SearchScene
                 resource={id}
                 active={resource === id}
+                reveal={reveal[id]}
                 searchable={searchable}
                 query={queries[id]}
                 exampleQuery={exampleQueries[id]}

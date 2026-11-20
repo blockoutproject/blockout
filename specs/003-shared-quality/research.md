@@ -274,6 +274,10 @@ React local pending state handles ordinary actions. Linking.openURL supplies nat
 
 ### Native preferences, geometry and animation
 
+**Initial content.** Use the installed Reanimated [timing](https://docs.swmansion.com/react-native-reanimated/docs/animations/withTiming/) and animated opacity to express FR-043 through one short progress value per existing content owner. The [native reduced-motion preference](https://docs.swmansion.com/react-native-reanimated/docs/guides/accessibility/) takes the immediate full-opacity path. Cell mounts reflect virtualization and recycling, so a mount-triggered entrance on each cell would also run when scrolling or paging. Snapshot the [LegendList viewport](https://legendapp.com/open-source/list/v3/api/#getstate) for first presentation. Each cell reads its opacity from the owning scene using its current item or calendar group key. Keep native scroll and sticky geometry with the list. Entries outside the initial snapshot display at full opacity. A navigation transition describes route or tab movement and does not cover first usable content arriving after loading.
+
+The existing `PageFlatList` consumers use the public [viewability callback](https://reactnative.dev/docs/flatlist#onviewableitemschanged). A read can finish while a retained list is inactive, and changing its activity can leave the visible keys unchanged. Keep only the most recent measured keys until first active presentation and release that snapshot as soon as the fade starts.
+
 System appearance, native safe-area/keyboard geometry and the existing reduced-motion subscription keep their actual platform owners. The installed Reanimated contrastColor supplies contrast selection; its current input-domain parity does not certify pixels on a device. No implicit reduced-motion or chrome redesign is selected. Resource/data qualification and product design approval remain distinct.
 
 ### Development-only owners and evidence boundary

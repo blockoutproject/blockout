@@ -1,6 +1,7 @@
 import "@/shared/native/test-support/tab-view-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { PageList } from "../page-list";
 
@@ -8,15 +9,18 @@ function Results({
   items,
   loading,
   onReady,
+  reveal,
 }: Readonly<{
   items: string[];
   loading: boolean;
   onReady?: () => void;
+  reveal?: { active: boolean };
 }>) {
   return (
     <PageList
       testID="results-list"
       data={items}
+      reveal={reveal}
       keyExtractor={(item) => item}
       renderItem={({ item }) => <Text>{item}</Text>}
       ListHeaderComponent={<Text>Results</Text>}
@@ -34,35 +38,50 @@ function Results({
   );
 }
 
-it("keeps decorative placeholders until the populated list is ready", async () => {
-  // Given
-  const onReady = jest.fn();
-  const view = await render(<Results items={[]} loading onReady={onReady} />);
-  expect(
-    screen.getByRole("progressbar", { name: "Loading results" }),
-  ).toBeOnTheScreen();
+it.each([
+  { scene: "an ordinary list", reveal: undefined },
+  { scene: "a retained scene awaiting reveal", reveal: { active: false } },
+])(
+  "keeps decorative placeholders until $scene has laid out its content",
+  async ({ reveal }) => {
+    // Given
+    const onReady = jest.fn();
+    const view = await render(
+      <Results items={[]} loading onReady={onReady} reveal={reveal} />,
+      { wrapper: ThemeProvider },
+    );
+    expect(
+      screen.getByRole("progressbar", { name: "Loading results" }),
+    ).toBeOnTheScreen();
 
-  // When
-  await view.rerender(
-    <Results items={["First match"]} loading={false} onReady={onReady} />,
-  );
+    // When
+    await view.rerender(
+      <Results
+        items={["First match"]}
+        loading={false}
+        onReady={onReady}
+        reveal={reveal}
+      />,
+    );
 
-  // Then
-  expect(screen.getByText("First match")).toBeOnTheScreen();
-  expect(
-    screen.getByText("Placeholders", { includeHiddenElements: true }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("progressbar")).toBeNull();
+    // Then
+    expect(screen.getByText("First match")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Placeholders", { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).toBeNull();
 
-  // When
-  await fireEvent(screen.getByTestId("results-list"), "ready");
+    // When
+    await fireEvent(screen.getByTestId("results-list"), "ready");
 
-  // Then
-  expect(onReady).toHaveBeenCalledTimes(1);
-  expect(
-    screen.queryByText("Placeholders", { includeHiddenElements: true }),
-  ).toBeNull();
-});
+    // Then
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("First match")).toBeOnTheScreen();
+    expect(
+      screen.queryByText("Placeholders", { includeHiddenElements: true }),
+    ).toBeNull();
+  },
+);
 
 it("releases loading feedback immediately for a successful empty list", async () => {
   // Given

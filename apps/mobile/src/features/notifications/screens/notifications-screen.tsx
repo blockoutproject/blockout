@@ -34,7 +34,10 @@ import { useInboxQueries } from "../api/use-inbox-queries";
 import type { InboxOwner, InboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
-import { NotificationItem } from "../components/notification-item";
+import {
+  NotificationItem,
+  type NotificationItemProps,
+} from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
 import {
   AccountRecovery,
@@ -104,6 +107,10 @@ function NotificationsHeader() {
       }
     />
   );
+}
+
+function notificationKey(item: NotificationItemProps["notification"]) {
+  return item.id;
 }
 
 /** Native growing list with a fully named, one-line page title; read and match navigation settle independently in their existing owners. */
@@ -234,12 +241,13 @@ function Inbox({
       <PageFlatList
         alwaysBounceVertical={rows.length > 0}
         data={rows}
+        reveal={{ active: focused }}
         onEndReached={() => {
           if (!query.isError) {
             void loadMore();
           }
         }}
-        keyExtractor={(item) => item.id}
+        keyExtractor={notificationKey}
         ItemSeparatorComponent={ListSeparator}
         contentContainerStyle={
           rows.length || continuationFailed || query.isFetchingNextPage

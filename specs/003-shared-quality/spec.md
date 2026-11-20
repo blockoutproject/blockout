@@ -94,7 +94,7 @@ As a user, I want retained or reconstructed data to respect current rights, priv
 
 As an iOS or Android user, I want the approved Blockout interface in my phone’s light or dark appearance, with French content, accessible actions and understandable waiting or error states.
 
-FR-039 and the scenarios below own the approved shared presentation; [F03](../007-sporting-consultation/spec.md) owns sporting facts and the single team-follow action. [Evidence scope](#evidence-scope) records the prototype approval and remaining design/native stages.
+FR-039, FR-043 and the scenarios below own the shared presentation. [F03](../007-sporting-consultation/spec.md) owns sporting facts and the single team-follow action. [Evidence scope](#evidence-scope) records the prototype approval and remaining design/native stages.
 
 **Why this priority**: A quick response is not useful if it is unreadable, inaccessible or misleading on failure.
 
@@ -124,6 +124,8 @@ FR-039 and the scenarios below own the approved shared presentation; [F03](../00
 19. **A38** — **Given** a first read for the current context with known structure and no usable content or prior error, **when** it is enabled and actively fetching, **then** the corresponding shared page/list/section skeleton follows the expected widths, insets, alignment, spacing and proportions. Disabled, idle and suspended observations show no artificial active wait. Bounded decorative repetitions convey no fictional facts or counts and expose pending once. Ordinary pending pagination keeps accepted rows with compact native footer progress; final next-page failure keeps that same list and its controls with compact footer Error and Retry. A card Retry after a first failure without data keeps that card throughout the attempt. (FR-030, FR-031, FR-036–FR-038)
 
 20. **A39** — **Given** a page with semi-independent tabs, **when** its indispensable common context becomes available, **then** its valid identity and tabs are accessible even if the default tab is loading or in Error. Ordinary entry follows F05 before the first successful account read; a missing matching account gates only its dependent personal content and commands, not permitted public navigation. A common prerequisite failure replaces its dependent destination content; an initial or full-reread tab-specific failure replaces only that tab and its own controls, from the first visit onward. Next-page-only failure keeps that tab’s rows, controls and scroller mounted under A26. Successful Empty resolves its read. Switching away and back during Retry shows the applicable real pending feedback, successful result or available Retry without starting another operation. Shared data alone does not make a read a whole-destination prerequisite. Data, drafts and confirmed commands keep their authorized owner across retries and context changes. (FR-038, FR-041)
+
+21. **A42** — **Given** a first visit to a calendar, a Match, a tabbed detail or a screen with one content block, **when** usable content is ready immediately or after its loading state, **then** the existing main blocks fade in according to FR-043. In a calendar, each visible pool card fades as a whole with its match rows while the date markers remain stable. Existing taps and scrolling work during the reveal. Retained content keeps its position and final appearance on return. Refresh and pagination continue without replaying the reveal. With system Reduce Motion enabled, the same content appears immediately at full opacity in its final position. (FR-030, FR-039, FR-041, FR-043)
 
 ### User Story 7 — Preserve logo associations during transition (Priority: P1)
 
@@ -224,6 +226,8 @@ As an operator who has associated club logos, I want the authorized reset not to
 
 F05 owns the native launch splash during SDK identity resolution, ordinary Login and explicit connection/establishment, scoped account-read Retry and guest/help exits; the launch splash is not a React read-feedback composition, and an account-read success is not an application-navigation prerequisite. F12 public maintenance/version gates retain precedence. Material changes to initial composition require the affected prototype approval followed by separate Figma approval before finalizing native planning or adoption. Existing approvals remain valid for unchanged boundaries above.
 
+- **FR-043**: When a native screen or tab scene first presents usable Blockout content, its existing main content blocks MUST fade from low opacity to full opacity from top to bottom in reading order. The starts MUST be visibly staggered and the fades MUST overlap, with upper blocks already readable when lower blocks start. In a calendar, each of the first visible pool cards fades as a whole, including all match rows grouped within it. Calendar date markers and their sticky behavior remain stable. Other lists use their first visible rows or cards in the existing order. Match starts with the summary card, followed by the visible score and other sections as separate blocks in their existing order. A shared card above tabs and the content of each tab scene take part at their own first presentation. The tab bar and pager keep their existing navigation timing. A composition with one content block uses one fade. Ready content MUST be usable from its first presentation, including while the fade runs. Retained content keeps its position and final appearance on return, refresh and pagination. Scrolling shows newly visible blocks in their final state. With system Reduce Motion enabled, content MUST appear immediately at full opacity in its final position.
+
 #### Initial control adoption boundary
 
 The reproduced iOS truncation after changing system text size during use is temporarily accepted as a nonblocking limitation for the initial shared controls and their dependent consumers. FR-030 remains the intended accessibility outcome. [Research](research.md#native-ui-projection-and-system-appearance) records the defect and [T077](tasks.md#phase-9-user-story-6--use-the-application-with-the-phones-capabilities-priority-p2) owns requalification; this scoped acceptance neither treats the failed case as passed nor permits unrelated accessibility failures.
@@ -252,6 +256,8 @@ The reproduced iOS truncation after changing system text size during use is temp
 
 - **SC-011**: A39 identifies indispensable common context and a native owner for each covered family. With valid common context, a default-tab read failure leaves authorized other tabs and Return usable. Card Retry, tab return and exhausted refresh retain their FR-038 scope; failed continuation keeps its mounted authorized list and shared footer Retry; authorized cached data, draft state and confirmed effects remain retained by their owner rather than misreported as current successful content. (FR-038, FR-041)
 
+- **SC-012**: A42 passes on both iOS and Android. At actual speed, the first visible calendar pool cards and Match sections start in order with overlapping fades. The pool heading and its match rows fade together while the date markers stay stable. A tabbed detail shows its common card and each scene’s first content independently. Ready content responds during the reveal, retained content resumes at its existing position, and system Reduce Motion shows the final state immediately.
+
 ## Assumptions
 
 - Historical traffic observations prescribe neither application capacity nor hosted infrastructure. This feature adds no performance benchmark or monthly availability programme.
@@ -264,6 +270,8 @@ The reproduced iOS truncation after changing system text size during use is temp
 ## Evidence and decision traceability
 
 ### Evidence scope
+
+The approved FR-043 motion uses the UI Library’s [initial content reveal](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=4348-25) with the Product Design references for [Home Calendar](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-18), [Match](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=976-293) and [Team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711). The calendar reference shows the whole pool card as one block. Match and Team show the boundaries between the existing cards, navigation and independently presented scene content.
 
 The designated [product prototype](https://github.com/blockoutproject/product-prototype), [UI Library](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library) and [Product Design](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design) supply the current visual sources. Existing scoped approvals apply to the compositions below; material changes follow constitution III. Component properties express theme, width, copy and busy-action variations without a separate screen for each combination.
 

@@ -1,5 +1,6 @@
 import { NoAvailableFollows } from "./no-available-follows";
 import { PageFlatList } from "@/shared/components/page-list";
+import { useContentReveal } from "@/shared/components/content-reveal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
@@ -258,6 +259,10 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       );
     })
     .map((type) => lists[type].query);
+  const presentation = useContentReveal();
+  const hasCards =
+    (teamDisclosure.visible && teams.items.length > 0) ||
+    (poolDisclosure.visible && pools.items.length > 0);
 
   /** One pull refetches the open collections; their existing queries own both outcomes. */
   async function refresh() {
@@ -346,6 +351,11 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
+      reveal={{
+        active: props.active && hasCards,
+        blockKey: (row) => (row.kind === "item" ? row.key : undefined),
+        presentation,
+      }}
       keyExtractor={(row) => row.key}
       removeClippedSubviews={false}
       alwaysBounceVertical

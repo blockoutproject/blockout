@@ -4,6 +4,8 @@ import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
+import { useIsFocused } from "expo-router";
+import type { ContentReveal } from "@/shared/components/content-reveal";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -16,6 +18,8 @@ export interface SearchResultsProps {
   resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
+  active: boolean;
+  reveal: ContentReveal;
   examples?: boolean;
   heading?: ReactElement;
   emptyComponent?: ReactElement | null;
@@ -25,11 +29,17 @@ export interface SearchResultsProps {
   onOpen(kind: SearchResult["kind"], id: string): void;
 }
 
+function searchResultKey(item: SearchResult) {
+  return item.identity.id.toLowerCase();
+}
+
 /** Keeps results and their structural feedback in the same list viewport. */
 export function SearchResults({
   resource,
   items,
   loading,
+  active,
+  reveal,
   examples = false,
   heading,
   emptyComponent,
@@ -38,8 +48,10 @@ export function SearchResults({
   onOpen,
 }: Readonly<SearchResultsProps>) {
   const hasItems = items.length > 0;
+  const focused = useIsFocused();
   return (
     <PageList
+      reveal={{ active: active && focused, presentation: reveal }}
       maintainVisibleContentPosition={{ size: false, data: true }}
       accessibilityRole={hasItems ? "list" : undefined}
       accessibilityLabel={
@@ -72,7 +84,7 @@ export function SearchResults({
         </>
       }
       data={items}
-      keyExtractor={(item) => item.identity.id.toLowerCase()}
+      keyExtractor={searchResultKey}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"

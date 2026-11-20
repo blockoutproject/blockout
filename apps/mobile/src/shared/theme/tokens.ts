@@ -282,6 +282,13 @@ export const tokens = {
   elevation: { offsetX: 0, offsetY: 4, blur: 10, cardShadowBlurRadius },
   motion: {
     compact: { duration: 220, easing: [0.2, 0.7, 0.2, 1] as const },
+    // UI Library Motion 4348:25.
+    contentReveal: {
+      initialOpacity: 0.22,
+      duration: 320,
+      stagger: 90,
+      easing: [0.16, 1, 0.3, 1] as const,
+    },
     slow: 480,
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
     navigation: {

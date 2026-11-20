@@ -68,6 +68,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
+  useIsFocused: () => true,
   useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("expo/fetch", () => ({

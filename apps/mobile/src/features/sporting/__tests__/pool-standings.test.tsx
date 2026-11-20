@@ -70,6 +70,7 @@ jest.mock("expo-router", () => ({
   useFocusEffect: (effect: () => void | (() => void)) =>
     jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
+  useIsFocused: () => true,
   useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("expo/fetch", () => ({

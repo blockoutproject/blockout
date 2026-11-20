@@ -11,6 +11,12 @@ import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
+import { useContentReveal } from "@/shared/components/content-reveal";
+import {
+  RevealSection,
+  SectionContentReveal,
+  useSectionContentReveal,
+} from "@/shared/components/section-content-reveal";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -25,6 +31,7 @@ import { isAccessDenied } from "@/shared/api/access-denied";
 import { EmptyState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
+import { useIsFocused } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, Phone, RefreshCw } from "lucide-react-native";
@@ -68,6 +75,7 @@ export function ClubScreen(props: Readonly<ClubScreenProps>) {
 function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
   const { colors } = useTheme();
+  const focused = useIsFocused();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
@@ -128,8 +136,13 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
+  // The season can replace the pager while the club's information stays presented.
+  const informationReveal = useSectionContentReveal(
+    focused && tab === "info" && !!data && !hasReadError(club),
+  );
   const information = data ? (
     <PageScrollView
+      onLayout={informationReveal.onViewportLayout}
       alwaysBounceVertical
       refreshControl={
         <DataRefreshControl
@@ -139,8 +152,11 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       }
     >
-      <PageContent style={styles.information}>
-        <View style={styles.informationSection}>
+      <SectionContentReveal
+        style={styles.information}
+        reveal={informationReveal}
+      >
+        <RevealSection sectionKey="contacts" style={styles.informationSection}>
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -177,8 +193,8 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               icon={Phone}
             />
           </Surface>
-        </View>
-        <View style={styles.informationSection}>
+        </RevealSection>
+        <RevealSection sectionKey="location" style={styles.informationSection}>
           <Text
             accessibilityRole="header"
             style={[tokens.typography.headingSm, { color: colors.text }]}
@@ -186,8 +202,8 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
             Localisation
           </Text>
           <ClubLocation detail={data} />
-        </View>
-      </PageContent>
+        </RevealSection>
+      </SectionContentReveal>
     </PageScrollView>
   ) : undefined;
 
@@ -304,6 +320,7 @@ function ClubTeams({
   const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
+  const presentation = useContentReveal();
 
   /** Explicitly rereads only this season, including a failed observer awaiting its card action. */
   async function refresh() {
@@ -350,6 +367,7 @@ function ClubTeams({
           });
         }
       }}
+      reveal={{ active, presentation }}
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}

@@ -43,7 +43,7 @@ export function MatchInformation({
     .filter(Boolean)
     .join(" · ");
   return (
-    <MatchSurface division={division}>
+    <MatchSurface division={division} revealBlock="information">
       <View style={styles.heading}>
         <Text
           accessibilityRole="header"

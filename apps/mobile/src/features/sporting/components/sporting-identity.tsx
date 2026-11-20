@@ -1,3 +1,4 @@
+import { useContext } from "react";
 import { genderLabel, formatLabel } from "../classification-presentation";
 import { SportingLink } from "../link";
 import { ChevronRight } from "lucide-react-native";
@@ -20,6 +21,7 @@ import {
 } from "./sporting-media";
 import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
 import { IdentityCard } from "@/shared/components/identity-card";
+import { SportingIdentityRevealContext } from "./sporting-initial-composition";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
 export type SportingLogoProps = Pick<
@@ -120,6 +122,7 @@ export function SportingIdentity({
   }
 
   const { colors } = useTheme();
+  const revealStyle = useContext(SportingIdentityRevealContext);
   const division = classification?.division;
   const logoIdentity =
     kind === "pool"
@@ -146,6 +149,7 @@ export function SportingIdentity({
 
   return (
     <IdentityCard
+      style={revealStyle}
       artwork={
         <SportingMedia
           identity={logoIdentity}

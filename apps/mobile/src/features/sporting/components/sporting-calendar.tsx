@@ -35,6 +35,10 @@ import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "@/shared/components/screen-state";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
+import {
+  useContentReveal,
+  type ContentReveal,
+} from "@/shared/components/content-reveal";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { calendarDays, type CalendarSelection } from "../api/sporting-calendar";
@@ -74,7 +78,7 @@ export function SportingCalendar({
   );
   return (
     <SportingCalendarView
-      key={hashKey(queryKey)}
+      traversalKey={hashKey(queryKey)}
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
@@ -89,6 +93,7 @@ export function SportingCalendar({
 
 /** Native calendar read state; validated DTOs and their query lifecycle remain with the caller. */
 export interface SportingCalendarViewProps {
+  traversalKey: string;
   calendar: Pick<
     UseInfiniteQueryResult<InfiniteData<MatchCalendarResponse>, Error>,
     | "data"
@@ -118,8 +123,20 @@ export interface SportingCalendarViewProps {
   children?: ReactNode;
 }
 
+function calendarRevealKey(row: CalendarRow) {
+  return row.kind === "match" ? row.groupKey : undefined;
+}
+
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
 export function SportingCalendarView({
+  traversalKey,
+  ...props
+}: Readonly<SportingCalendarViewProps>) {
+  const reveal = useContentReveal();
+  return <CalendarViewport key={traversalKey} {...props} reveal={reveal} />;
+}
+
+function CalendarViewport({
   calendar,
   category,
   currentPoolId,
@@ -128,7 +145,12 @@ export function SportingCalendarView({
   onRefresh,
   emptyState,
   children,
-}: Readonly<SportingCalendarViewProps>) {
+  reveal,
+}: Readonly<
+  Omit<SportingCalendarViewProps, "traversalKey"> & {
+    reveal: ContentReveal;
+  }
+>) {
   const navigation = useNavigation();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
@@ -159,8 +181,6 @@ export function SportingCalendarView({
     setRefreshing(true);
     try {
       await onRefresh(currentSportingTimeZone());
-      offset.current = 0;
-      list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch {
       // The existing Query result renders the final read failure in this pane.
     } finally {
@@ -240,6 +260,7 @@ export function SportingCalendarView({
       bounces={rows.length > 0}
       contentContainerStyle={pageContentStyle}
       data={rows}
+      maintainVisibleContentPosition
       onScroll={({ nativeEvent }) => {
         if (showRows) {
           offset.current = nativeEvent.contentOffset.y;
@@ -253,6 +274,7 @@ export function SportingCalendarView({
           });
         }
       }}
+      reveal={{ active, blockKey: calendarRevealKey, presentation: reveal }}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}

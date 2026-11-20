@@ -5,6 +5,10 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import {
+  SectionContentReveal,
+  useSectionContentReveal,
+} from "@/shared/components/section-content-reveal";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
@@ -46,7 +50,7 @@ export function MatchScreen({
       return <ScreenState>{blockingState}</ScreenState>;
     }
     return (
-      <PageContent>
+      <SectionContentReveal reveal={reveal}>
         {data && (
           <>
             <MatchSummary
@@ -84,7 +88,7 @@ export function MatchScreen({
             />
           </>
         )}
-      </PageContent>
+      </SectionContentReveal>
     );
   }
 
@@ -159,6 +163,7 @@ export function MatchScreen({
         loadingContent={null}
       />
     ) : undefined;
+  const reveal = useSectionContentReveal(focused && !!data && !blockingState);
   return (
     <Page
       canvasTint={failed ? undefined : division?.color}
@@ -182,6 +187,7 @@ export function MatchScreen({
     >
       <NavigationAccent color={failed ? undefined : division?.color} />
       <PageScrollView
+        onLayout={reveal.onViewportLayout}
         refreshControl={
           data && !failed ? (
             <DataRefreshControl

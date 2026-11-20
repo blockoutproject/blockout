@@ -42,6 +42,10 @@ jest.mock("react-native-reanimated/mock", () => {
   );
   return {
     ...mockReanimatedTabScroll(upstream),
+    Easing: {
+      ...upstream.Easing,
+      bezierFn: jest.requireActual("react-native-reanimated").Easing.bezierFn,
+    },
     useAnimatedRef: jest.requireActual("react-native-reanimated")
       .useAnimatedRef,
   };
