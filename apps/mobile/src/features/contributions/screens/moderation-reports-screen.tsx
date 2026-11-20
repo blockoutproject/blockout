@@ -140,6 +140,7 @@ export function ModerationReportsScreen({
               <DataRefreshControl
                 enabled={!query.isFetchingNextPage}
                 onRefresh={refresh}
+                fetching={query.isFetching}
               />
             ) : undefined
           }

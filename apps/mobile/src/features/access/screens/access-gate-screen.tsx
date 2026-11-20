@@ -189,10 +189,10 @@ function GateView({
       <PageViewport header={header} headerMinHeight={tokens.layout.brandHeader}>
         <PageScrollView
           refreshControl={
-            !onClose && onRefresh && !simple ? (
+            !onClose && query && onRefresh && !simple ? (
               <DataRefreshControl
                 onRefresh={onRefresh}
-                fetching={query?.isFetching}
+                fetching={query.isFetching}
               />
             ) : undefined
           }

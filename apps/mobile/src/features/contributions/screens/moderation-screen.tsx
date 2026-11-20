@@ -290,7 +290,11 @@ function QueueScene({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       refreshControl={
-        <DataRefreshControl enabled={active && hasRows} onRefresh={refresh} />
+        <DataRefreshControl
+          enabled={active && hasRows}
+          onRefresh={refresh}
+          fetching={query.isFetching}
+        />
       }
       onEndReached={() => {
         if (hasRows && !query.isError) {

@@ -3,7 +3,9 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { onlineManager } from "@tanstack/react-query";
 import {
   getGetCollectionControlQueryKey,
+  getGetCollectionSeasonQueryKey,
   getGetMyAccountQueryKey,
+  getListCollectionResultsQueryKey,
   getListCollectionSeasonsQueryKey,
 } from "../../../../.generated/mobile";
 import {
@@ -600,6 +602,61 @@ it("refreshes only reads and retains uncertain integration and absent measuremen
     ),
   ).toBe(true);
   expect(screen.queryByText(/classement|classification|mapping/i)).toBeNull();
+});
+
+it("leaves native pull progress quiet while dashboard reads are paused and only the account is fetching", async () => {
+  // Given: a loaded dashboard and a separate account read held at the HTTP boundary.
+  const selected = control();
+  peer.controls = [selected];
+  peer.results = [result()];
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByText("Nationale 2 · Poule A · Calendrier");
+  const accountKey = getGetMyAccountQueryKey();
+  const account = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (new URL(String(url)).pathname === accountKey[0]) {
+      await account.promise;
+    }
+    return peer.reads(url, options);
+  });
+
+  try {
+    // When: the user starts a native pull after Query goes offline.
+    await act(async () => {
+      void privateClient.refetchQueries({ queryKey: accountKey });
+      // Deliver Query's batched observer notification before the gesture.
+      await jest.advanceTimersByTimeAsync(1);
+    });
+    await act(() => onlineManager.setOnline(false));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    const pullKeys = [
+      getGetCollectionControlQueryKey(selected.id),
+      getListCollectionResultsQueryKey(selected.id, { size: 50 }),
+      getGetCollectionSeasonQueryKey(seasonId),
+    ];
+    for (const queryKey of pullKeys) {
+      expect(privateClient.getQueryState(queryKey)?.fetchStatus).toBe("paused");
+    }
+    expect(privateClient.getQueryState(accountKey)?.fetchStatus).toBe(
+      "fetching",
+    );
+    const refreshControl = screen.getByLabelText("Actualiser les données");
+    expect(refreshControl).not.toBeBusy();
+    expect(refreshControl).toHaveProp("refreshing", false);
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      account.resolve();
+    });
+  }
 });
 
 it.each([202, 200])(
