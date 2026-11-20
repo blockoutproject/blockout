@@ -1,6 +1,5 @@
 package com.blockout.backend.sporting.infrastructure;
 
-import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
@@ -13,6 +12,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.DivisionDet
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.domain.SportingReferences;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CommonAbstractCriteria;
@@ -57,20 +57,12 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   @Override
   public URI officialCalendar(UUID poolId) {
     return entityManager
-        .createQuery(
-            "SELECT p.calendarUrl FROM PoolEntity p WHERE p.id = :id AND p.provider = :provider",
-            String.class)
+        .createQuery("SELECT p.calendarUrl FROM PoolEntity p WHERE p.id = :id", String.class)
         .setParameter("id", poolId)
-        .setParameter("provider", CollectionProviderEnum.FFVB)
         .getResultStream()
         .filter(Objects::nonNull)
         .map(URI::create)
-        .filter(
-            uri ->
-                ("https".equalsIgnoreCase(uri.getScheme())
-                        || "http".equalsIgnoreCase(uri.getScheme()))
-                    && uri.getHost() != null
-                    && uri.getUserInfo() == null)
+        .filter(SportingReferences::qualified)
         .findFirst()
         .orElse(null);
   }

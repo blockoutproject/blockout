@@ -23,7 +23,7 @@ Convert an established instant into the requested IANA grouping zone. A date alo
 
 ## Qualified documents
 
-F02 retains only current qualified reference data and its observation time/order. Information-sheet locators carry the supported season, organizer and match code used by the official form. Professional scoresheet/statistics references are actual published PDF URLs; arbitrary schemes, hosts and redirect destinations are refused. Adapter qualification does not make a document public before its current match/result conditions permit it.
+F02 retains only current qualified reference data and its observation time/order. Information-sheet locators carry the supported season, organizer and match code used by the official form. Scoresheets use the qualified URL published for the match by FFVB or LNV. Professional statistics use their separate LNV URL. The backend checks current eligibility before retrieving a document, and validates provider origins and redirects during retrieval.
 
 For professional information sheets, verified team-label associations are ordinary collector configuration scoped by season/championship and native DataProject team identity. A unique exact participants/date match may establish the auxiliary document code; it never establishes sporting identity. The backend retains the accepted code on the match and preserves it after rescheduling. Current XML cannot invent historical references. A missing mapping or failed read supplies no new fact; it does not erase a useful accepted reference. A qualified explicit withdrawal removes only its named reference. No mapping editor, alias-learning process or acquisition schedule is added.
 

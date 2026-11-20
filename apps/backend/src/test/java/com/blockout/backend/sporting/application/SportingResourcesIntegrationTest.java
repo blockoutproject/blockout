@@ -26,6 +26,7 @@ import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -306,6 +307,42 @@ class SportingResourcesIntegrationTest {
     assertThat(detail.seasons()).extracting(value -> value.id()).containsExactly(scope.season());
     assertThat(teams.items()).hasSize(201);
     assertThat(teams.items()).extracting(value -> value.team().id()).doesNotHaveDuplicates();
+  }
+
+  @Test
+  @DisplayName("Projects the published calendar of the match's exact professional phase")
+  void readsExactProfessionalPhaseCalendar() {
+    // Given
+    UUID regularPool = pool(scope.season(), CollectionProviderEnum.LNV, "902");
+    UUID playoffPool = pool(scope.season(), CollectionProviderEnum.LNV, "904");
+    URI regularCalendar =
+        URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    URI playoffCalendar =
+        URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=904");
+    sql.update(
+        "UPDATE sporting_pool SET calendar_url=? WHERE id=?",
+        regularCalendar.toString(),
+        regularPool);
+    sql.update(
+        "UPDATE sporting_pool SET calendar_url=? WHERE id=?",
+        playoffCalendar.toString(),
+        playoffPool);
+    TeamCandidate home = new TeamCandidate("PRO-HOME", "Professional", null, null);
+    TeamCandidate away = new TeamCandidate("PRO-AWAY", "Professional away", null, null);
+    MatchView regular = identities.identifyMatch(regularPool, "MATCH", home, away);
+    MatchView playoff = identities.identifyMatch(playoffPool, "MATCH", home, away);
+    sql.update(
+        "UPDATE sporting_match SET local_date='2026-10-24' WHERE id IN (?,?)",
+        regular.id(),
+        playoff.id());
+
+    // When
+    ConsultationViews.MatchDetail regularDetail = resources.match(regular.id());
+    ConsultationViews.MatchDetail playoffDetail = resources.match(playoff.id());
+
+    // Then
+    assertThat(regularDetail.officialCalendarUrl()).isEqualTo(regularCalendar);
+    assertThat(playoffDetail.officialCalendarUrl()).isEqualTo(playoffCalendar);
   }
 
   @Test

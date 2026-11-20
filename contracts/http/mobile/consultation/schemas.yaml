@@ -588,7 +588,7 @@ MatchDetailResponse:
       description: Exact version of a contributed streamUrl; present with a contributive link, omitted for professional links or no link.
     officialCalendarUrl:
       type: string
-      description: Qualified official FFVB calendar destination when available.
+      description: Qualified official FFVB pool or LNV phase calendar destination when available.
       format: uri
     documents:
       type: array

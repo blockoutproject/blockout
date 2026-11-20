@@ -133,7 +133,7 @@ public class FfvbCalendarParser {
                 reference,
                 new SportingObservation.Team(home, null, row.get("EQA_no").strip(), null),
                 new SportingObservation.Team(away, null, row.get("EQB_no").strip(), null),
-                facts(row, failures),
+                facts(row, page.documents(reference), failures),
                 null));
       }
     }
@@ -150,11 +150,14 @@ public class FfvbCalendarParser {
    * Preserves unknown fields and isolates malformed proposals without zero substitution.
    *
    * @param row identifiable match
+   * @param documents separately qualified references from the match's official calendar row
    * @param failures safe field diagnostics for the same observation
    * @return valid proposals only; invalid values remain omitted
    */
   private SportingObservation.Facts facts(
-      CSVRecord row, List<SportingObservation.Failure> failures) {
+      CSVRecord row,
+      FfvbPage.DocumentReferences documents,
+      List<SportingObservation.Failure> failures) {
     SportingObservation.Facts.FactsBuilder facts = SportingObservation.Facts.builder();
     String reference = row.get("Match").strip();
     String date = row.get("Date").strip();
@@ -190,10 +193,11 @@ public class FfvbCalendarParser {
       } else if (result.matches("[0-9]+/[0-9]+")) {
         String[] values = result.split("/");
         try {
+          // This qualified export publishes results. Its numeric result does not depend on a PDF.
           facts.result(
               JsonNullable.of(
                   new SportingObservation.Result(
-                      ResultStateEnum.UNCONFIRMED,
+                      ResultStateEnum.FINAL,
                       Integer.valueOf(values[0]),
                       Integer.valueOf(values[1]),
                       null)));
@@ -231,6 +235,12 @@ public class FfvbCalendarParser {
             .toList();
     if (!referees.isEmpty()) {
       facts.referees(JsonNullable.of(referees));
+    }
+    if (documents.information() != null) {
+      facts.informationSheet(JsonNullable.of(documents.information()));
+    }
+    if (documents.scoresheet() != null) {
+      facts.scoresheetUrl(JsonNullable.of(documents.scoresheet()));
     }
     return facts.build();
   }

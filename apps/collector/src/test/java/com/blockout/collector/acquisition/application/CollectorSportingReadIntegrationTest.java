@@ -29,6 +29,7 @@ import com.blockout.collector.generated.ingestion.model.StandingsPublicationStat
 import com.blockout.collector.ingestion.IngestionTestClient;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.Charset;
@@ -75,6 +76,9 @@ class CollectorSportingReadIntegrationTest {
   private static final Instant FIRST = Instant.parse("2026-10-24T12:00:00Z");
   private static final Instant PUBLISHED = Instant.parse("2026-10-23T12:00:00Z");
   private static final LocalDate DATE = LocalDate.of(2026, 10, 24);
+  private static final Charset FFVB_CHARSET = Charset.forName("windows-1252");
+  private static final FfvbScope FFVB_SCOPE =
+      new FfvbScope("2026/2027", "SYNTHETIC", "COMP", "POOL", null, null);
   private static CollectorSportingRuntime runtime;
   private IngestionTestClient transport;
   private CollectionBackend backend;
@@ -239,14 +243,9 @@ class CollectorSportingReadIntegrationTest {
   @ValueSource(strings = {"", "00:00"})
   @DisplayName(
       "An interpreted FFVB unknown time invents no result, instant or source publication time")
-  void preservesUnknownFacts(String sourceTime) throws Exception {
+  void preservesUnknownFacts(String sourceTime) throws IOException {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    String html =
-        new ClassPathResource("acquisition/ffvb/calendar.html")
-            .getContentAsString(StandardCharsets.UTF_8)
-            .replace("ABCCS", "SYNTHETIC")
-            .replace("TST", "POOL");
     String csv =
         """
         Entité;Jo;Match;Date;Heure;EQA_no;EQA_nom;EQB_no;EQB_nom;Set;Score;Total;Salle;Arb1;Arb2;
@@ -254,19 +253,12 @@ class CollectorSportingReadIntegrationTest {
         SYNTHETIC;02;POOL002;2026-10-25;00:00;000193;Away;;xxxxx;;;;;;;
         """
             .formatted(sourceTime);
-    Charset charset = Charset.forName("windows-1252");
-    FfvbScope scope = new FfvbScope("2026/2027", "SYNTHETIC", "COMP", "POOL", null, null);
-    FfvbPage page =
-        new FfvbPage(
-            html.getBytes(charset),
-            URI.create(
-                "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET"),
-            scope);
+    FfvbPage page = ffvbPage(ffvbCalendarHtml());
     long ordinal = cycle.nextReadOrdinal();
 
     // When
     SportingObservation.Calendar interpreted =
-        new FfvbCalendarParser().parse(csv.getBytes(charset), page, scope);
+        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page, FFVB_SCOPE);
     UUID id =
         sporting
             .calendar(POOL, context(cycle, ordinal, FIRST, null), interpreted)
@@ -288,6 +280,66 @@ class CollectorSportingReadIntegrationTest {
             runtime.sql.queryForObject(
                 "SELECT schedule_published_at FROM sporting_match WHERE id=?", Instant.class, id))
         .isNull();
+  }
+
+  @Test
+  @DisplayName("Publishes the retained FFVB scoresheet only after an official result")
+  void publishesFfvbDocuments() throws IOException {
+    // Given
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    String html = ffvbCalendarHtml();
+    FfvbPage withDocuments =
+        ffvbPage(
+            html.replace(
+                "<td>Équipe B</td>\n      </tr>",
+                """
+                <td>Équipe B</td>
+                <form method=post action="../adressier/fiche_match_ffvb.php">
+                  <td>
+                    <input type=hidden name=wss_saison value="2026/2027">
+                    <input type=hidden name=codent value=SYNTHETIC>
+                    <input type=hidden name=codmatch value=POOL001>
+                    <input type=image src="../images/fiche.jpg">
+                  </td>
+                </form>
+                <form method=post action="ffvolley_fdme.php?saison=2026/2027&amp;codent=SYNTHETIC&amp;codmatch=POOL001">
+                  <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
+                </form>
+                </tr>
+                """));
+    String csv =
+        """
+        Entité;Jo;Match;Date;Heure;EQA_no;EQA_nom;EQB_no;EQB_nom;Set;Score;Total;Salle;Arb1;Arb2;
+        SYNTHETIC;01;POOL001;2026-10-24;20:00;000192;Home;000193;Away;%s;;;;;;
+        SYNTHETIC;02;POOL002;2026-10-25;00:00;000193;Away;;xxxxx;;;;;;;
+        """;
+    FfvbCalendarParser parser = new FfvbCalendarParser();
+
+    // When: first obtain the documents, then the result from a page without document forms.
+    SportingObservation.Calendar beforeResult =
+        parser.parse(csv.formatted("").getBytes(FFVB_CHARSET), withDocuments, FFVB_SCOPE);
+    UUID id =
+        sporting
+            .calendar(POOL, context(cycle, cycle.nextReadOrdinal(), FIRST, null), beforeResult)
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    JsonNode before = read("/matches/" + id);
+    SportingObservation.Calendar withResult =
+        parser.parse(csv.formatted("3/0").getBytes(FFVB_CHARSET), ffvbPage(html), FFVB_SCOPE);
+    sporting.calendar(
+        POOL, context(cycle, cycle.nextReadOrdinal(), FIRST.plusSeconds(30), null), withResult);
+    JsonNode after = read("/matches/" + id);
+
+    // Then
+    assertThat(before.at("/match").has("result")).isFalse();
+    assertThat(
+            before.get("documents").valueStream().map(document -> document.get("kind").asString()))
+        .containsExactly("information");
+    assertThat(after.at("/match/result/state").asString()).isEqualTo("final");
+    assertThat(
+            after.get("documents").valueStream().map(document -> document.get("kind").asString()))
+        .containsExactly("information", "scoresheet");
   }
 
   @ParameterizedTest
@@ -1203,6 +1255,22 @@ class CollectorSportingReadIntegrationTest {
   private SportingObservation.Context context(
       CollectorLifecycle.AdmittedCycle cycle, long ordinal, Instant observed, Instant published) {
     return new SportingObservation.Context(cycle.getCycle().id(), ordinal, observed, published);
+  }
+
+  /** Aligns the shared provider fixture with this suite's admitted synthetic pool. */
+  private String ffvbCalendarHtml() throws IOException {
+    return new ClassPathResource("acquisition/ffvb/calendar.html")
+        .getContentAsString(StandardCharsets.UTF_8)
+        .replace("ABCCS", FFVB_SCOPE.organizerReference())
+        .replace("TST", FFVB_SCOPE.poolReference());
+  }
+
+  /** Qualifies the fixture against the ordinary FFVB calendar URL and parser charset. */
+  private FfvbPage ffvbPage(String html) {
+    return new FfvbPage(
+        html.getBytes(FFVB_CHARSET),
+        URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET"),
+        FFVB_SCOPE);
   }
 
   /**

@@ -107,6 +107,12 @@ Use the [disposable collector-to-sporting runtime](../../README.md#collector-to-
 
 Run the opt-in suites together as documented in the runtime command. Use the native 15-second response timeout for 100 real transactions; the ordinary two-second test-peer timeout cannot bound that scenario. Keep these controlled cross-process checks distinct from live supplier content, native screens, Auth0, alerts and production operations.
 
+### FFVB match documents and published results
+
+Within a qualified pool and season, collect a match with a published numeric result and official scoresheet and a match with a published information form and no result. Use `CollectorSportingReadIntegrationTest` to check the resulting Match actions through generated ingestion and public HTTP. Accept repeated scoresheet actions with equivalent query values. Ignore an out-of-context form or one with unqualified submitted fields without withdrawing a previous reference or invalidating the result or match. Preserve an unclear special notation as unconfirmed.
+
+A normal passage may present a previously known unconfirmed result as definitive for the first time. As a deployment check, qualify [F07’s existing notification rule](../011-notifications-delivery/spec.md#functional-requirements) with a test subscriber and a repeat ordinary FFVB passage. Follow the [production population check](../../infra/operations/README.md#first-startup-and-explicit-migration) before rollout.
+
 ## Contract and native validation
 
 Use JUnit for source interpretation and clock-driven eligibility, Spring MVC for contract/authorization behavior, and Testcontainers PostgreSQL for real transaction ordering, incarnation replacement and constraints. Generate and compile Java server/client and mobile outputs; check enums, date/absence/null semantics, unknown request fields, additive response fields, deterministic regeneration and no generated files in Git. Carry the nullable validation failure category through both generated HTTP boundaries.

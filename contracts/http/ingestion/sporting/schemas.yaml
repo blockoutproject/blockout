@@ -248,7 +248,7 @@ MatchFactsInternalRequest:
       type: string
       format: uri
       nullable: true
-      description: Published qualified PDF URL for professional matches; omit for acquisition failure, null for qualified withdrawal. Amateur delivery uses the known official match context.
+      description: Qualified official scoresheet URL for the match. Omission preserves the accepted reference; null explicitly withdraws it.
     statisticsUrl:
       type: string
       format: uri

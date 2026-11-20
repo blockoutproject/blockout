@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ContextSlotKindEnum;
+import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Qualifies contextual interpretation using synthetic fixtures and native CSV/HTML parsers. */
 @DisplayName("FFVB contextual calendar and official standings interpretation")
@@ -199,11 +201,137 @@ class FfvbObservationsTest {
             match -> {
               assertThat(match.home().sourceName()).isEqualTo("Équipe A; espoirs");
               assertThat(match.home().clubReference()).isEqualTo("0012345");
+              assertThat(match.facts().result().get())
+                  .isEqualTo(new SportingObservation.Result(ResultStateEnum.FINAL, 3, 0, null));
               assertThat(match.facts().sets().get()).hasSize(3);
             });
     assertThat(result.contextSlots())
         .singleElement()
         .satisfies(slot -> assertThat(slot.kind()).isEqualTo(ContextSlotKindEnum.BYE));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "",
+        """
+        <form method=post action="../resu/ffvolley_fdme.php?codmatch=TST001&amp;codent=ABCCS&amp;saison=2026%2F2027">
+          <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
+        </form>
+        """
+      })
+  @DisplayName("Keeps the published scoresheet URI for the exact qualified match")
+  void readsPublishedScoresheet(String repeatedForm) throws IOException {
+    // Given
+    FfvbPage context =
+        calendarWithDocumentForm(
+            """
+            <form method=post action="../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001">
+              <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
+            </form>
+            """
+                + repeatedForm);
+
+    // When
+    SportingObservation.Calendar result =
+        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+
+    // Then
+    URI expected =
+        URI.create(
+            "https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php?saison=2026/2027&codent=ABCCS&codmatch=TST001");
+    assertThat(result.matches())
+        .singleElement()
+        .satisfies(
+            match ->
+                assertThat(match.facts().scoresheetUrl()).isEqualTo(JsonNullable.of(expected)));
+  }
+
+  @Test
+  @DisplayName("Keeps the published information-sheet form without requiring a result")
+  void readsPublishedInformationBeforeResult() throws IOException {
+    // Given
+    FfvbPage context =
+        calendarWithDocumentForm(
+            """
+            <form method=post action="../adressier/fiche_match_ffvb.php">
+              <td>
+                <input type=hidden name=wss_saison value="2026/2027">
+                <input type=hidden name=codent value=ABCCS>
+                <input type=hidden name=codmatch value=TST001>
+                <input type=image src="../images/fiche.jpg">
+              </td>
+            </form>
+            """);
+    String csv = fixture("calendar.csv").replace("3/0;25-22,25-18,25-16;75-56", ";;");
+
+    // When
+    SportingObservation.Calendar result = calendars.parse(bytes(csv), context, SCOPE);
+
+    // Then
+    assertThat(result.matches())
+        .singleElement()
+        .satisfies(
+            match -> {
+              assertThat(match.facts().result()).isNull();
+              assertThat(match.facts().informationSheet())
+                  .isEqualTo(
+                      JsonNullable.of(
+                          new SportingObservation.InformationSheet(
+                              "2026/2027", "ABCCS", "TST001")));
+            });
+  }
+
+  @Test
+  @DisplayName("Omits a scoresheet whose form supplies contradictory POST data")
+  void omitsScoresheetWithPostData() throws IOException {
+    // Given
+    FfvbPage context =
+        calendarWithDocumentForm(
+            """
+            <form method=post action="../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001">
+              <td><input type=hidden name=codmatch value=TST002></td>
+            </form>
+            """);
+
+    // When
+    SportingObservation.Calendar result =
+        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+
+    // Then
+    assertThat(result.complete()).isTrue();
+    assertThat(result.matches())
+        .singleElement()
+        .satisfies(match -> assertThat(match.facts().scoresheetUrl()).isNull());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "https://documents.example.invalid/ffvbapp/resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001",
+        "../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST002",
+        "../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001&amp;codmatch=TST002"
+      })
+  @DisplayName(
+      "Omits an unqualified scoresheet while preserving the independently published result")
+  void omitsUnqualifiedScoresheets(String action) throws IOException {
+    // Given
+    FfvbPage context =
+        calendarWithDocumentForm("<form method=post action=\"" + action + "\"><td></td></form>");
+
+    // When
+    SportingObservation.Calendar result =
+        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+
+    // Then
+    assertThat(result.complete()).isTrue();
+    assertThat(result.matches())
+        .singleElement()
+        .satisfies(
+            match -> {
+              assertThat(match.facts().scoresheetUrl()).isNull();
+              assertThat(match.facts().result().get().state()).isEqualTo(ResultStateEnum.FINAL);
+            });
   }
 
   @ParameterizedTest
@@ -224,6 +352,7 @@ class FfvbObservationsTest {
             .get();
 
     // Then
+    assertThat(result.state()).isEqualTo(ResultStateEnum.UNCONFIRMED);
     assertThat(result.specialLabel()).isEqualTo(notation);
     assertThat(result.homeSets()).isNull();
     assertThat(result.awaySets()).isNull();
@@ -409,5 +538,12 @@ class FfvbObservationsTest {
    */
   private FfvbPage page(String html) {
     return new FfvbPage(bytes(html), URL, SCOPE);
+  }
+
+  /** Puts the provider form inside the first match row using FFVB's table/form markup. */
+  private FfvbPage calendarWithDocumentForm(String form) throws IOException {
+    return page(
+        fixture("calendar.html")
+            .replace("<td>Équipe B</td>\n      </tr>", "<td>Équipe B</td>\n" + form + "</tr>"));
   }
 }
