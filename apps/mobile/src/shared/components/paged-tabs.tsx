@@ -43,7 +43,7 @@ export interface PagedTab {
   id: string;
   label: string;
   content: ReactNode;
-  /** Decorative content for a first transition, before the settled page admits its own content and reads. */
+  /** Passive loading shape shown in an unvisited neighbor before it settles. */
   preview?: ReactNode;
   /** A changed reading context replaces only this scene and its native scroll position. */
   resetKey?: string;
@@ -431,7 +431,11 @@ export function PagedTabs({
                 collapse={chromeOffset}
                 active={index === selectedIndex}
                 visited={index === selectedIndex || visited.has(tab.id)}
-                preview={tab.preview}
+                preview={
+                  Math.abs(index - selectedIndex) === 1
+                    ? tab.preview
+                    : undefined
+                }
                 width={width}
                 height={height}
                 contentInset={contentInset}
@@ -564,7 +568,7 @@ function TabScene({
           style={[
             StyleSheet.absoluteFill,
             frame,
-            !visited && { paddingTop: contentInset },
+            !visited && !scene.fullHeight && { paddingTop: contentInset },
           ]}
         >
           {visited ? (

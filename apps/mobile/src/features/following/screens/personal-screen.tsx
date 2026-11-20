@@ -17,7 +17,10 @@ import { supportHref } from "@/features/support";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
-import { FollowedLists } from "../components/followed-lists";
+import {
+  FollowedLists,
+  FollowedListsPreview,
+} from "../components/followed-lists";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { CalendarLoading } from "@/features/sporting/calendar";
@@ -217,6 +220,15 @@ function PersonalSpace({
           id,
           label,
           resetKey: season?.seasonId,
+          preview: ready ? (
+            id === "following" ? (
+              <FollowedListsPreview />
+            ) : (
+              <PageContent>
+                <CalendarLoading category={id} />
+              </PageContent>
+            )
+          ) : undefined,
           content:
             !ready || !scope ? (
               <PageScrollView>

@@ -3,11 +3,12 @@ import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
+import { CalendarLoading } from "../components/calendar-loading";
+import { StandingsLoading } from "../components/standings-loading";
 import {
   sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
-  useStandingsCalendarPreview,
 } from "../components/sporting-initial-composition";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
@@ -53,11 +54,6 @@ function TeamPage({
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
-  const { onStandingsReady, preview } = useStandingsCalendarPreview(
-    "completed",
-    team,
-    initialFollow,
-  );
   const data = team.data;
   const firstParticipation = data?.participations[0]?.pool.id;
   const divisionColor = data?.team.classification.division?.color;
@@ -138,9 +134,6 @@ function TeamPage({
                 divisionColor={divisionColor}
                 highlightTeamId={teamId}
                 active={tab === item.id}
-                onReady={
-                  item.id === firstParticipation ? onStandingsReady : undefined
-                }
               >
                 <PoolParticipationLink
                   pool={participation}
@@ -152,7 +145,15 @@ function TeamPage({
               id: item.id,
               label: item.label,
               content,
-              preview: item.id === "completed" ? preview : undefined,
+              preview: (
+                <PageContent>
+                  {category ? (
+                    <CalendarLoading category={category} />
+                  ) : (
+                    <StandingsLoading />
+                  )}
+                </PageContent>
+              ),
             };
           })}
         />

@@ -1,6 +1,10 @@
 import { SportingEntityCard, SportingEntityCardLoading } from "../entity-card";
 import { useSportingNavigation } from "../navigation";
-import { SportingClubLoading } from "../components/sporting-loading";
+import {
+  ClubInformationSkeleton,
+  SportingClubLoading,
+} from "../components/sporting-loading";
+import { CalendarLoading } from "../components/calendar-loading";
 import { ClubLocation } from "../components/club-location";
 import { PageList } from "@/shared/components/page-list";
 import {
@@ -54,6 +58,8 @@ import {
   phoneDestination,
   safeWebsite,
 } from "../components/contact-link";
+
+const noSeasonTitle = "Aucune saison disponible";
 
 /** Exact club identity; the page composes the single native calendar owner. */
 export interface ClubScreenProps {
@@ -248,7 +254,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
                   <PageScrollView>
                     <ScreenState>
                       <ClubEmptyState
-                        title="Aucune saison disponible"
+                        title={noSeasonTitle}
                         onRefresh={refresh}
                         fetching={club.isFetching}
                         active={tab === value}
@@ -285,11 +291,39 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               id: value,
               label,
               content: renderTabContent(),
+              preview:
+                value === "info" ? (
+                  <PageContent style={styles.information}>
+                    <ClubInformationSkeleton />
+                  </PageContent>
+                ) : season ? (
+                  <PageContent>
+                    {seasonControls}
+                    {value === "teams" ? (
+                      <ClubTeamsLoading />
+                    ) : (
+                      <CalendarLoading category={value} />
+                    )}
+                  </PageContent>
+                ) : (
+                  <ScreenState>
+                    <EmptyState title={noSeasonTitle} />
+                  </ScreenState>
+                ),
             };
           })}
         />
       )}
     </SportingInitialComposition>
+  );
+}
+
+function ClubTeamsLoading() {
+  return (
+    <SportingEntityCardLoading
+      layout="club-team"
+      label="Chargement des équipes du club"
+    />
   );
 }
 
@@ -381,12 +415,7 @@ function ClubTeams({
       ListEmptyComponent={emptyContent}
       loadingFeedback={{
         active: teams.isLoading,
-        content: (
-          <SportingEntityCardLoading
-            layout="club-team"
-            label="Chargement des équipes du club"
-          />
-        ),
+        content: <ClubTeamsLoading />,
       }}
       data={items}
       keyExtractor={(item) => item.team.id}

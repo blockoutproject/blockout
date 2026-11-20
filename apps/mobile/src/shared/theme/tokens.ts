@@ -285,8 +285,8 @@ export const tokens = {
     // UI Library Motion 4348:25.
     contentReveal: {
       initialOpacity: 0.22,
-      duration: 320,
-      stagger: 90,
+      duration: 720,
+      stagger: 240,
       easing: [0.16, 1, 0.3, 1] as const,
     },
     slow: 480,
