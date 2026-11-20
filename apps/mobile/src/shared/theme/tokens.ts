@@ -286,7 +286,7 @@ export const tokens = {
     contentReveal: {
       initialOpacity: 0.22,
       duration: 460,
-      stagger: 240,
+      stagger: 150,
       easing: [0.16, 1, 0.3, 1] as const,
     },
     slow: 480,
