@@ -295,7 +295,7 @@ public final class ConsultationViews {
      * @param venueAddress permitted effective venue address, or null
      * @param referees permitted published names; null unknown, empty known empty
      * @param stream current permitted URL/version pair, or null
-     * @param officialCalendarUrl qualified official FFVB calendar link, or null
+     * @param officialCalendarUrl qualified official calendar for the owning pool, or null
      * @param documents currently eligible backend document actions
      */
     public MatchDetail {

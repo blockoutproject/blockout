@@ -21,10 +21,10 @@ import java.util.UUID;
  */
 public interface ConsultationStore {
   /**
-   * Reads a previously qualified FFVB calendar reference for an already admitted pool.
+   * Reads the qualified calendar reference retained for the already admitted pool's source phase.
    *
    * @param poolId current viewable owning pool
-   * @return its published HTTP(S) calendar, or null for absent/non-FFVB references
+   * @return its published HTTP(S) calendar, or null when no usable reference is retained
    */
   URI officialCalendar(UUID poolId);
 

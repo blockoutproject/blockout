@@ -22,6 +22,12 @@ Backend, collector and OpenSearch each use one replica, with native `UpdateConfi
 
 Set application sources to Docker images, disable Auto Deploy and Preview Deployments, and create no webhooks or schedules. Keep a native GHCR Registry credential record with a `read:packages` classic token for the three Blockout images. For v0.31.0 Docker-source Applications, set native Docker provider `username`, `password` and `registryUrl` to that same read-only credential, and leave `registryId`, `buildRegistryId` and `rollbackRegistryId` null. Those Registry associations select output publication and would attempt a push with pull-only access; the record is an administration reference, not an Application output target. Keep credentials in Dokploy, never in image layers or Docker build arguments. Backend receives only its application-role connection and existing authorized provider inputs; migrations alone receive schema credentials. Collector receives its existing ingestion identity and environment-owned API URL, with no SQL credentials. Preserve push, cleanup, external support and reporting activation state.
 
+For [match PDF delivery](../../specs/007-sporting-consultation/quickstart.md#match-document-cases), add the following setting to the backend Application's existing **Environment**, preserving its other entries and build settings. Save, then deploy that Application. The relay checks the exact origin of the initial request and every redirect.
+
+```dotenv
+BLOCKOUT_CONSULTATION_DOCUMENTS_ALLOWEDORIGINS=https://www.ffvbbeach.org,https://dataprojectstoragewe.blob.core.windows.net
+```
+
 Verify DNS and the certificate before binding the unused preproduction host. Configure its native Dokploy domain with HTTPS/Let's Encrypt and backend port 8080. Keep the future production host unbound until a separately authorized cutover.
 
 Preproduction collector uses the existing `BLOCKOUT_INGESTION_TIMEOUT=60s` for finite backend exchanges during calendar integration. A timeout can leave independently accepted facts with an unconfirmed passage outcome; inspect that outcome before another explicit collection. Preserve the local and prepared production values until their own qualification.
@@ -58,6 +64,8 @@ Open the [Deploy workflow](../../.github/workflows/deploy.yml) in GitHub Actions
 Schema changes require an explicit migration run with the matching revision. Backend remains Hibernate validation-only; incompatibility fails without repair, checksum clearing or reset. Keep preproduction data across ordinary image updates and rollbacks. Until data retention becomes mandatory, the current initial schema is disposable only by explicit owner decision; an edited initial schema cannot upgrade an existing volume. Before mandatory retention, freeze applied history and use incremental migrations under [F13's schema lifecycle](../../specs/003-shared-quality/plan.md#runtime-data-and-consistency).
 
 After deployment, verify current-season consultation, search, collection and internal inbox with authorized test accounts. Verify one running process per Application and data persistence through a real redeployment. A controlled collector startup failure belongs only to preproduction; inspect task attempts and ten-second spacing, then restore the valid configuration and relaunch manually. Do not inject failures into V1 or production.
+
+After enabling or changing the relay configuration in preproduction, use eligible matches with published references. Check the FFVB information sheet and scoresheet, and the LNV scoresheet and professional statistics. Verify that each `getMatchDocument` response is HTTP 200 with `Content-Type: application/pdf` and that each opens in a compatible mobile client. Keep response evidence private.
 
 ### Diagnose, renew and reset
 

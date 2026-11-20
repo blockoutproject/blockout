@@ -1,9 +1,12 @@
 package com.blockout.collector.acquisition.ffvb;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.SportingObservation.InformationSheet;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +23,12 @@ import org.jsoup.nodes.FormElement;
 /** Contextual HTML qualification shared by FFVB calendar and official standings interpretation. */
 public final class FfvbPage {
   static final Charset CHARSET = Charset.forName("windows-1252");
+  private static final String INFORMATION_PATH = "/ffvbapp/adressier/fiche_match_ffvb.php";
+  private static final String SCORESHEET_PATH = "/ffvbapp/resu/ffvolley_fdme.php";
+  private final FfvbScope scope;
   private final FormElement export;
   private final Element standings;
-  private final Set<String> references;
+  private final Map<String, List<Element>> matchRows;
   private final Set<String> allReferences;
   private final boolean calendarPresent;
   private final boolean qualifiedEmpty;
@@ -35,6 +41,7 @@ public final class FfvbPage {
    * @param scope backend-qualified expected context
    */
   public FfvbPage(byte[] body, URI url, FfvbScope scope) {
+    this.scope = scope;
     if (new URIBuilder(url)
         .getQueryParams().stream()
             .noneMatch(
@@ -83,7 +90,7 @@ public final class FfvbPage {
       throw new FfvbAcquisitionException("Unqualified FFVB pool context");
     }
     Element selectedStandings = null;
-    LinkedHashSet<String> selectedReferences = new LinkedHashSet<>();
+    Map<String, List<Element>> selectedRows = new LinkedHashMap<>();
     LinkedHashSet<String> publishedReferences = new LinkedHashSet<>();
     boolean selectedCalendar = false;
     String currentGroup = grouped ? null : selected;
@@ -120,16 +127,17 @@ public final class FfvbPage {
         for (Element row : rows) {
           List<String> cells = cells(row);
           if (cells.size() >= 6 && !cells.getFirst().isBlank()) {
-            publishedReferences.add(cells.getFirst());
+            String reference = cells.getFirst();
+            publishedReferences.add(reference);
             if (selected.equals(currentGroup)) {
-              selectedReferences.add(cells.getFirst());
+              selectedRows.computeIfAbsent(reference, key -> new ArrayList<>()).add(row);
             }
           }
         }
       }
     }
     standings = selectedStandings;
-    references = Collections.unmodifiableSet(selectedReferences);
+    matchRows = Collections.unmodifiableMap(selectedRows);
     allReferences = Collections.unmodifiableSet(publishedReferences);
     // Positive empty-pool context uses the named published scope and its native empty container.
     // An unknown pool, shared round without its group or header-only export supplies no such proof.
@@ -163,9 +171,7 @@ public final class FfvbPage {
    * @return native published form values; no guessed pool inventory or transport instructions
    */
   public List<NameValuePair> exportFields() {
-    return export.formData().stream()
-        .<NameValuePair>map(field -> new BasicNameValuePair(field.key(), field.value()))
-        .toList();
+    return requestFields(export);
   }
 
   /**
@@ -174,7 +180,73 @@ public final class FfvbPage {
    * @return actual published match references for the selected contextual group
    */
   Set<String> references() {
-    return references;
+    return matchRows.keySet();
+  }
+
+  /** Independently accepted document proposals. Null leaves any retained reference intact. */
+  record DocumentReferences(InformationSheet information, URI scoresheet) {}
+
+  /**
+   * Reads official document forms from the exact match rows already attributed to this pool or
+   * group. Only their published identifiers may supply a proposal. Missing or ambiguous forms
+   * supply no withdrawal and cannot invalidate the sporting row.
+   *
+   * @param reference qualified native match code in this group
+   * @return separate optional information and scoresheet references
+   */
+  DocumentReferences documents(String reference) {
+    InformationSheet information = null;
+    LinkedHashSet<URI> scoresheets = new LinkedHashSet<>();
+    for (Element row : matchRows.getOrDefault(reference, List.of())) {
+      for (Element candidate : row.select("form[method=post][action]")) {
+        if (!(candidate instanceof FormElement form)) {
+          continue;
+        }
+        URI action = documentAction(form);
+        if (action == null) {
+          continue;
+        }
+        if (INFORMATION_PATH.equals(action.getRawPath())
+            && action.getRawQuery() == null
+            && matchesDocumentFields(requestFields(form), "wss_saison", reference)) {
+          information =
+              new InformationSheet(scope.seasonLabel(), scope.organizerReference(), reference);
+        } else if (SCORESHEET_PATH.equals(action.getRawPath())
+            && matchesDocumentFields(
+                new URIBuilder(action).getQueryParams(), "saison", reference)) {
+          scoresheets.add(action);
+        }
+      }
+    }
+    URI scoresheet = scoresheets.size() == 1 ? scoresheets.getFirst() : null;
+    return new DocumentReferences(information, scoresheet);
+  }
+
+  /** Refuses a document form outside the qualified FFVB HTTPS origin before using its fields. */
+  private static URI documentAction(FormElement form) {
+    URI action;
+    try {
+      action = URI.create(form.absUrl("action"));
+    } catch (IllegalArgumentException invalid) {
+      return null;
+    }
+    if ("https".equalsIgnoreCase(action.getScheme())
+        && "www.ffvbbeach.org".equalsIgnoreCase(action.getHost())
+        && (action.getPort() == -1 || action.getPort() == 443)
+        && action.getRawUserInfo() == null
+        && action.getRawFragment() == null) {
+      return action;
+    }
+    return null;
+  }
+
+  /** Matches the three published identifiers once each, regardless of their order. */
+  private boolean matchesDocumentFields(
+      List<NameValuePair> fields, String seasonField, String reference) {
+    return fields.size() == 3
+        && fields.contains(new BasicNameValuePair(seasonField, scope.seasonLabel()))
+        && fields.contains(new BasicNameValuePair("codent", scope.organizerReference()))
+        && fields.contains(new BasicNameValuePair("codmatch", reference));
   }
 
   /**
@@ -236,6 +308,12 @@ public final class FfvbPage {
   private static Map<String, String> fields(FormElement form) {
     return form.formData().stream()
         .collect(Collectors.toMap(field -> field.key(), field -> field.value()));
+  }
+
+  private static List<NameValuePair> requestFields(FormElement form) {
+    return form.formData().stream()
+        .<NameValuePair>map(field -> new BasicNameValuePair(field.key(), field.value()))
+        .toList();
   }
 
   /**
