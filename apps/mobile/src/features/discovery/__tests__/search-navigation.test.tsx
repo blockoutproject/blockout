@@ -42,13 +42,14 @@ import { ApplicationAccessProvider } from "@/features/access/queries/use-applica
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AdEventType } from "react-native-google-mobile-ads";
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
-import { AgeDeclarationProvider } from "@/features/advertising/age-declaration-provider";
-import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { AdvertisingProvider } from "@/features/advertising/advertising-provider";
 import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
-import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "@/features/access/queries/use-access-admission";
 import { ProProvider, usePro } from "@/features/pro";
 import type { ProContext } from "@/features/pro/pro-provider";
 import { mockPurchases } from "@/features/pro/test-support/native-purchases";
@@ -71,7 +72,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",
-    OPENED: "opened",
     CLOSED: "closed",
     ERROR: "error",
   },
@@ -83,8 +83,8 @@ jest.mock("expo-constants", () => ({
     expoConfig: {
       extra: {
         advertising: {
-          iosInterstitialUnitId: "synthetic-unit",
-          androidInterstitialUnitId: "synthetic-unit",
+          ios: { adUnitId: "synthetic-unit" },
+          android: { adUnitId: "synthetic-unit" },
         },
         revenueCat: { iosApiKey: "test_public", androidApiKey: "test_public" },
       },
@@ -121,6 +121,7 @@ let ad = controlledInterstitial();
 let privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
 let session: AccountSession;
 let pro: ProContext;
+let admitted: boolean;
 const environment = { ...process.env };
 const firstId = "aaaaaaaa-0000-4000-8000-000000000001";
 let accountProfile = accountResponse({ accountId: firstId });
@@ -275,8 +276,6 @@ beforeEach(async () => {
     proSessionModule.createProSession(),
   );
   prepareProNativeIO();
-  await AsyncStorage.clear();
-  await submitAgeDeclaration(18, new Date());
   ad = controlledInterstitial();
   mockCreateAd
     .mockReset()
@@ -301,12 +300,14 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Captures the committed public entitlement owner for controlled native-I/O scenarios. */
-function CurrentPro({ children }: Readonly<QueryFixtureProps>) {
+/** Observes committed access and entitlement state without replacing either owner. */
+function ObserveEligibility({ children }: Readonly<QueryFixtureProps>) {
   const current = usePro();
+  const { ordinary } = useAccessAdmission();
   useLayoutEffect(() => {
     pro = current;
-  }, [current]);
+    admitted = ordinary;
+  }, [current, ordinary]);
   return children;
 }
 
@@ -340,9 +341,11 @@ async function renderSearch() {
                       <AccountFeedbackProvider>
                         <AccessAdmissionProvider>
                           <ProProvider>
-                            <AgeDeclarationProvider enabled privacy={privacy}>
-                              <CurrentPro>{children}</CurrentPro>
-                            </AgeDeclarationProvider>
+                            <AdvertisingProvider enabled privacy={privacy}>
+                              <ObserveEligibility>
+                                {children}
+                              </ObserveEligibility>
+                            </AdvertisingProvider>
                           </ProProvider>
                         </AccessAdmissionProvider>
                       </AccountFeedbackProvider>
@@ -400,12 +403,12 @@ it("announces each namesake with its available public context", async () => {
 it("dismisses the search keyboard before opening a team's associated club", async () => {
   // Given: the native keyboard is controlled while Search and sporting navigation remain real.
   const user = userEvent.setup();
+  const open = jest.spyOn(privacy, "openSportingDestination");
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   const results = await screen.findByLabelText("Résultats de recherche");
   const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => {});
-  const open = jest.spyOn(privacy, "openSportingTransition");
 
   // When
   await user.press(
@@ -805,10 +808,7 @@ it("counts only card openings and releases the tenth namesake once after the sha
   // Then
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(screen).toHavePathname("/search");
-  await act(async () => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
+  await act(async () => ad.emit(AdEventType.CLOSED));
   expect(screen).toHavePathname(`/clubs/${secondId}`);
   expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
   await act(async () => router.back());
@@ -880,16 +880,14 @@ it.each(["tab", "route", "principal", "admission"])(
           : publicReads(url),
       );
       await act(async () => publicClient.refetchQueries());
-      await waitFor(() => expect(ad.destroy).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(admitted).toBe(false));
     }
-    await act(async () => {
-      ad.emit(AdEventType.OPENED);
-      ad.emit(AdEventType.CLOSED);
-    });
+    await act(async () => ad.emit(AdEventType.CLOSED));
 
     // Then
     expect(screen).not.toHavePathname(`/clubs/${secondId}`);
     expect(screen.queryByText("Volley Niort")).not.toBeOnTheScreen();
+    expect(ad.destroy).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -934,7 +932,6 @@ it.each(["inactive", "active", "unavailable"])(
       if (index === 9 && status === "inactive") {
         expect(ad.show).toHaveBeenCalledTimes(1);
         await act(async () => {
-          ad.emit(AdEventType.OPENED);
           ad.emit(AdEventType.CLOSED);
         });
       }

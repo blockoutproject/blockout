@@ -17,15 +17,11 @@ import { applicationAccessResponse } from "@/shared/api/test-support/application
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
 import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import {
-  readAgeDeclaration,
-  submitAgeDeclaration,
-} from "@/features/advertising/age-declaration";
-import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
 import { usePro } from "@/features/pro";
 import * as proSessionModule from "@/features/pro/pro-session";
 import {
@@ -56,6 +52,7 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
+          advertising: { ios: {}, android: {} },
           revenueCat: {
             iosApiKey: "test_public",
             offeringIdentifier: "default",
@@ -104,7 +101,6 @@ jest.mock("expo/fetch", () => ({
 }));
 
 const mockMobileAds = {
-  setRequestConfiguration: jest.fn().mockResolvedValue(undefined),
   initialize: jest.fn().mockResolvedValue([]),
 };
 const mockFetch = jest.fn<
@@ -169,9 +165,6 @@ beforeEach(async () => {
     .mockReset()
     .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockMobileAds.initialize.mockClear();
-  mockMobileAds.setRequestConfiguration.mockClear();
-  nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
-  nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
     if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
@@ -248,7 +241,7 @@ it("restores ordinary personal access on later launches after explicit first-V2 
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await screen.findByRole("header", { name: "Quel est votre âge ?" });
+  await waitFor(() => expect(owners.session.status).toBe("authenticated"));
   await act(() => router.push("/profile"));
   await screen.findByText("Original");
   expect(
@@ -293,7 +286,7 @@ it("keeps skipped discovery complete across sign-in and sign-out when its option
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await screen.findByRole("header", { name: "Quel est votre âge ?" });
+  await waitFor(() => expect(owners.session.status).toBe("authenticated"));
   await act(() => router.push("/profile"));
 
   // Then
@@ -307,7 +300,7 @@ it("keeps skipped discovery complete across sign-in and sign-out when its option
 
   // Then
   expect(
-    await screen.findByRole("header", { name: "Quel est votre âge ?" }),
+    await screen.findByPlaceholderText("Rechercher une équipe…"),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(false);
@@ -317,7 +310,6 @@ it("keeps unknown Pro rights out of free/expired presentation and ads while expl
   // Given
   await AsyncStorage.setItem(initializationMarker, "true");
   await completeDiscovery();
-  await submitAgeDeclaration(18);
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockPurchases.getCustomerInfo.mockRejectedValue(
     new Error("Native state unavailable"),
@@ -375,7 +367,7 @@ it.each([
   ["cancelled", "a0.session.user_cancelled"],
   ["failed", "a0.network_error"],
 ] as const)(
-  "opens real assistance after skipped discovery and %s sign-in without declaring an age",
+  "opens real assistance after skipped discovery and %s sign-in",
   async (_outcome, code) => {
     // Given
     mockAuth0.webAuth.mockRejectedValue({
@@ -408,7 +400,6 @@ it.each([
     expect(
       screen.getByRole("button", { name: "Envoyer la demande" }),
     ).toBeOnTheScreen();
-    expect(await readAgeDeclaration()).toBeNull();
     expect(await readDiscoveryCompletion()).toBe(true);
     expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   },
@@ -465,30 +456,29 @@ it("retains real assistance on Login when establishment fails after native sign-
   expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
 });
 
-it("requires the actual age declaration after the skipped journey enters guest home", async () => {
+it("opens sporting search directly when a guest skips discovery", async () => {
   // Given
+  const requestConsent = nativeAdvertising.AdsConsent.requestInfoUpdate;
+  requestConsent.mockClear();
   const user = userEvent.setup();
   await openInstallation();
   await user.press(await screen.findByRole("button", { name: "Passer" }));
+  const guestEntry = await screen.findByRole("button", {
+    name: "Continuer en tant qu’invité",
+  });
+  expect(requestConsent).not.toHaveBeenCalled();
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
+  await user.press(guestEntry);
 
   // Then
   expect(
-    await screen.findByRole("header", { name: "Quel est votre âge ?" }),
+    await screen.findByPlaceholderText("Rechercher une équipe…"),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Continuer" })).toBeDisabled();
+  expect(screen).toHavePathname("/search");
+  await waitFor(() => expect(requestConsent).toHaveBeenCalledTimes(1));
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(true);
-  expect(await readAgeDeclaration()).toBeNull();
-  expect(nativeAdvertising.AdsConsent.requestInfoUpdate).not.toHaveBeenCalled();
-  expect(
-    nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired,
-  ).not.toHaveBeenCalled();
-  expect(mockMobileAds.initialize).not.toHaveBeenCalled();
 });
 
 it.each([
@@ -550,7 +540,6 @@ it("rejects old private reads, Pro callbacks and administrative grants after cha
   // Given
   await AsyncStorage.setItem(initializationMarker, "true");
   await completeDiscovery();
-  await submitAgeDeclaration(18);
   const privileged = accountResponse({
     username: "AccountA",
     permissions: { ...accountResponse().permissions, manageMaintenance: true },

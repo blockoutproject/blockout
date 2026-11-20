@@ -31,7 +31,7 @@ function ResourceLink({
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={label}
-      onPress={() => void sporting.navigate(kind, id)}
+      onPress={() => sporting.navigate(kind, id)}
       style={({ pressed }) => [
         style,
         pressed && { opacity: tokens.opacity.pressed },

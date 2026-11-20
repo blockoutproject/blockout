@@ -126,7 +126,7 @@ The pinned Search controls retain the common text field, tab/report rail and app
 
 The approved Search header's reporting action opens the existing `supportHref({ screen: "search" })` route. F10's finite screen mapping owns the “Recherche” provenance; its existing target mapping continues to preserve a known attempted UUID from detail journeys. Search text, tab/filter state and errors are not support URL/context fields. Returning from support retains the mounted public visit; F05/F13 invalidation separates old work and F10 independently discards its private draft. F12 global gates still remove ordinary routes, so a visit removed by that gate is not a retained applicable context.
 
-F03 identity-based destinations and F11 opening counter remain unchanged; filtering, scrolling and returning add no interstitial trigger. F13 FR-039/A37 owns the main capsule on Search and sporting details, ordinary Back history and root reselection. The mounted visit, Query and native list keep valid context and position; no global context/provenance registry, navigation snapshot, parallel cache or scroll-restoration protocol is introduced.
+F03 identity-based destinations share F11's opening counter; filtering, scrolling and returning add no interstitial trigger. F13 FR-039/A37 owns the main capsule on Search and sporting details, ordinary Back history and root reselection. The mounted visit, Query and native list keep valid context and position; no global context/provenance registry, navigation snapshot, parallel cache or scroll-restoration protocol is introduced.
 
 ## Operations and validation
 

@@ -61,17 +61,19 @@ it("uses Google sample app IDs with delayed measurement and no configured V2 ad 
     }),
   ]);
   expect(config.extra?.advertising).toEqual({
-    iosInterstitialUnitId: undefined,
-    androidInterstitialUnitId: undefined,
+    ios: {},
+    android: {},
   });
 });
 
 it("selects explicit public app and V2 unit IDs independently for each platform", () => {
   // Given: synthetic deployment inputs, never provider credentials or V1 fallbacks.
-  process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
+  process.env.APP_VARIANT = "production";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  process.env.ADMOB_IOS_APP_ID = " ca-app-pub-0000000000000000~0000000001 ";
   process.env.ADMOB_ANDROID_APP_ID = "ca-app-pub-0000000000000000~0000000002";
   process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID =
-    "ca-app-pub-0000000000000000/0000000003";
+    " ca-app-pub-0000000000000000/0000000003 ";
   process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID =
     "ca-app-pub-0000000000000000/0000000004";
 
@@ -89,10 +91,43 @@ it("selects explicit public app and V2 unit IDs independently for each platform"
     }),
   ]);
   expect(config.extra?.advertising).toEqual({
-    iosInterstitialUnitId: "ca-app-pub-0000000000000000/0000000003",
-    androidInterstitialUnitId: "ca-app-pub-0000000000000000/0000000004",
+    ios: { adUnitId: "ca-app-pub-0000000000000000/0000000003" },
+    android: { adUnitId: "ca-app-pub-0000000000000000/0000000004" },
   });
 });
+
+it.each([
+  [
+    "missing app ID and demo unit",
+    undefined,
+    "ca-app-pub-3940256099942544/4411468910",
+  ],
+  ["demo app ID and blank unit", "ca-app-pub-3940256099942544~3347511713", " "],
+])(
+  "keeps production UMP on the configured platform without ads for %s",
+  (_case, androidAppId, iosAdUnitId) => {
+    // Given: iOS has a real app ID but no production unit. Android has no real app ID.
+    process.env.APP_VARIANT = "production";
+    process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+    process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
+    if (androidAppId !== undefined) {
+      process.env.ADMOB_ANDROID_APP_ID = androidAppId;
+    }
+    process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID = iosAdUnitId;
+    process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID =
+      "ca-app-pub-0000000000000000/0000000004";
+
+    // When
+    const { default: config } =
+      jest.requireActual<typeof import("../app.config")>("../app.config");
+
+    // Then
+    expect(config.extra?.advertising).toStrictEqual({
+      ios: {},
+      android: undefined,
+    });
+  },
+);
 
 it("keeps ordinary local builds unconfigured without inventing provider identifiers", () => {
   // Given: no RevenueCat inputs, as in the environment example.

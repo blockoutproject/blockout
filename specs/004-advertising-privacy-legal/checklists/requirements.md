@@ -31,6 +31,6 @@
 
 ## Notes
 
-- The specification integrates all-age access, local advertising age declaration, eligible adult personalization, EU27 distribution with existing-user continuity, native ad failure limits, integrated-browser reading and club-field restrictions. Existing support, privacy and restoration protections remain applicable.
+- The specification integrates sporting access without age collection, a ten-navigation advertising interval, native provider choices, EU27 distribution with existing-user continuity, integrated-browser reading and club-field restrictions. Existing support, privacy and restoration protections remain applicable.
 - Implementation-independence items remain unchecked: the accepted RevenueCat SDK state and native advertising/permission limitations are deliberate constraints. This checklist is not legal, provider, native or visual approval.
-- The required prototype and Figma approvals cover the affected age/privacy/search and public-document scope; exact references and evidence limits are in the plan. The combined dossier remains subject to owner review.
+- The approved prototype and Figma design cover direct guest entry and the applicable advertising choices action. The plan records the exact references and approval boundaries.

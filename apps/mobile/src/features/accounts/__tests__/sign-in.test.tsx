@@ -347,9 +347,7 @@ it("reads a restored account without implicitly establishing it", async () => {
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
 
   // When
-  await renderJourney(
-    <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
-  );
+  await renderJourney(<ProfileScreen admitted proEntry={null} />);
 
   // Then
   expect(await screen.findByText(account.username)).toBeOnTheScreen();

@@ -39,14 +39,12 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 export interface ProfileScreenProps {
   admitted: boolean;
   proEntry: ReactNode;
-  privacyEntry: ReactNode;
 }
 
 /** Admits the authorized account overview independently of its optional photo; account/session failures own whole-page recovery. */
 export function ProfileScreen({
   admitted,
   proEntry,
-  privacyEntry,
 }: Readonly<ProfileScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
@@ -165,7 +163,6 @@ export function ProfileScreen({
           Mon compte
         </Text>
         {proEntry}
-        {privacyEntry}
       </View>
       {connected && (
         <View style={styles.actions}>

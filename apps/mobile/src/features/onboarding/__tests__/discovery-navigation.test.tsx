@@ -1,4 +1,3 @@
-import AgeDeclarationRoute from "@/app/age-declaration";
 import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
 import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -95,15 +94,12 @@ async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
       index: EntryRoute,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
-      "age-declaration": AgeDeclarationRoute,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/(home)/(personal)/index": () => (
         <Text>Ordinary home</Text>
       ),
-      "(ordinary)/profile": () => (
-        <ProfileScreen admitted proEntry={null} privacyEntry={null} />
-      ),
+      "(ordinary)/profile": () => <ProfileScreen admitted proEntry={null} />,
       "(recovery)/sign-in": () => <SignIn />,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
       "(recovery)/support": () => <Text>Support route</Text>,

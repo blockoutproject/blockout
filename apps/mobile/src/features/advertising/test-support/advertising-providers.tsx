@@ -2,7 +2,7 @@ import { useEffect, useState, type PropsWithChildren } from "react";
 import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
 import { ProProvider } from "@/features/pro";
-import { AgeDeclarationProvider } from "../age-declaration-provider";
+import { AdvertisingProvider } from "../advertising-provider";
 
 /**
  * Real root admission, entitlement and advertising contexts below existing F05/Query owners.
@@ -17,9 +17,9 @@ export function AdvertisingProviders({
   return (
     <AccessAdmissionProvider>
       <ProProvider>
-        <AgeDeclarationProvider enabled={false} privacy={privacy}>
+        <AdvertisingProvider enabled={false} privacy={privacy}>
           {children}
-        </AgeDeclarationProvider>
+        </AdvertisingProvider>
       </ProProvider>
     </AccessAdmissionProvider>
   );

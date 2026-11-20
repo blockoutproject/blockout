@@ -23,9 +23,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
 import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
-import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
 import { usePro } from "../../pro";
 import * as proSessionModule from "../../pro/pro-session";
 import {
@@ -56,13 +54,10 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
+          advertising: { ios: {}, android: {} },
           revenueCat: {
             iosApiKey: "test_public",
             offeringIdentifier: "default",
-          },
-          advertising: {
-            iosInterstitialUnitId: "synthetic-unit",
-            androidInterstitialUnitId: "synthetic-unit",
           },
         },
       },
@@ -97,28 +92,11 @@ jest.mock("react-native-purchases-ui", () => {
     },
   };
 });
-jest.mock("react-native-google-mobile-ads", () => ({
-  ...jest.requireActual("@/features/advertising/test-support/native-privacy")
-    .nativeAdvertising,
-  default: () => mockMobileAds,
-  AdEventType: {
-    LOADED: "loaded",
-    OPENED: "opened",
-    CLOSED: "closed",
-    ERROR: "error",
-  },
-  InterstitialAd: { createForAdRequest: jest.fn(() => mockCreateAd()) },
-}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     mockFetch(url, options),
 }));
 
-const mockCreateAd = jest.fn(controlledInterstitial);
-const mockMobileAds = {
-  setRequestConfiguration: jest.fn().mockResolvedValue(undefined),
-  initialize: jest.fn().mockResolvedValue([]),
-};
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -147,7 +125,6 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   await AsyncStorage.setItem(initializationMarker, "true");
   await completeDiscovery();
-  await submitAgeDeclaration(18);
   mockAccount = accountResponse({
     accountId: newUuid,
     username: "Fresh_profile",
@@ -204,11 +181,7 @@ beforeEach(async () => {
   mockPurchases.getOfferings
     .mockReset()
     .mockResolvedValue({ current: null, all: { default: defaultOffering } });
-  mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
-  mockMobileAds.initialize.mockClear();
-  mockMobileAds.setRequestConfiguration.mockClear();
   nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
-  nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
     if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());

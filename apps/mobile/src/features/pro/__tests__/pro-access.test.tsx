@@ -18,7 +18,6 @@ import type {
   PoolParticipantsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import RevenueCatUI from "react-native-purchases-ui";
-import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -26,7 +25,6 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
 import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
 import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
 import { completeDiscovery } from "@/features/onboarding/discovery-state";
@@ -66,8 +64,8 @@ jest.mock("expo-constants", () => {
             offeringIdentifier: "default",
           },
           advertising: {
-            iosInterstitialUnitId: "synthetic-unit",
-            androidInterstitialUnitId: "synthetic-unit",
+            ios: { adUnitId: "synthetic-unit" },
+            android: { adUnitId: "synthetic-unit" },
           },
         },
       },
@@ -108,7 +106,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",
-    OPENED: "opened",
     CLOSED: "closed",
     ERROR: "error",
   },
@@ -156,7 +153,6 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   await AsyncStorage.setItem("blockout:v2-initialized", "true");
   await completeDiscovery();
-  await submitAgeDeclaration(18);
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -203,7 +199,6 @@ beforeEach(async () => {
   jest.mocked(InterstitialAd.createForAdRequest).mockClear();
   nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
   nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
-  jest.mocked(requestTrackingPermissionsAsync).mockClear();
   mockFetch.mockReset().mockImplementation(async (url) => {
     const parsed = new URL(String(url));
     const path = parsed.pathname;
@@ -437,7 +432,6 @@ it.each([
       await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
       expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith(
         "synthetic-unit",
-        { requestNonPersonalizedAdsOnly: true },
       );
       mockCreateAd.mock.results.forEach((result) => {
         if (result.type === "return") {
@@ -495,7 +489,6 @@ it("presents the single F11 interstitial on the tenth sporting opening and relea
 
   // When
   await act(() => {
-    ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.CLOSED);
   });
@@ -555,10 +548,9 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
 );
 
 it.each(["APP_STORE", "PROMOTIONAL"] as const)(
-  "avoids age, consent, ATT and purchase prompts for known %s Pro while retaining F05/F12 permissions",
+  "avoids automatic consent and purchase prompts for known %s Pro while retaining F05/F12 permissions",
   async (store) => {
     // Given
-    await AsyncStorage.removeItem("blockout:advertising-age");
     mockPurchases.getCustomerInfo.mockResolvedValue(rights(store));
     await openInstallation();
     await waitFor(() => expect(owners.pro.state.status).toBe("active"));
@@ -566,7 +558,6 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
     // When
     await act(() => router.push("/"));
     await waitFor(() => expect(screen).toHavePathname("/"));
-    expect(screen.queryByRole("adjustable")).toBeNull();
     await act(() => router.push("/profile"));
 
     // Then
@@ -579,9 +570,7 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
     expect(
       nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired,
     ).not.toHaveBeenCalled();
-    expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
     expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-    expect(screen.queryByRole("adjustable")).toBeNull();
 
     // When
     await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
@@ -615,10 +604,7 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await visitMappedTeam(9);
   await userEvent.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-  await act(() => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
+  await act(() => ad.emit(AdEventType.CLOSED));
   await waitFor(() => expect(screen).toHavePathname(`/teams/${sportingId}`));
   await act(() => router.back());
   await userEvent.press(screen.getByRole("button", { name: "Suivre" }));
@@ -720,6 +706,9 @@ it("keeps inactive sporting access public when native consent cannot authorize a
   jest
     .spyOn(nativeAdvertising.AdsConsent, "requestInfoUpdate")
     .mockRejectedValue(new Error("Native consent unavailable"));
+  jest
+    .spyOn(nativeAdvertising.AdsConsent, "getConsentInfo")
+    .mockRejectedValue(new Error("No cached native consent"));
   await openInstallation();
   await waitFor(() => expect(owners.pro.state.status).toBe("inactive"));
 
@@ -731,5 +720,4 @@ it("keeps inactive sporting access public when native consent cannot authorize a
     1,
   );
   expect(mockCreateAd).not.toHaveBeenCalled();
-  expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
 });

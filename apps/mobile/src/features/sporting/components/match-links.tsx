@@ -1,13 +1,12 @@
 import { Globe, Play } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useNavigation } from "expo-router";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { safeWebsite } from "./contact-link";
 import { MatchSurface } from "./match-surface";
 import { divisionTextColor } from "../presentation";
@@ -52,7 +51,6 @@ export function MatchLinks({
           <StreamLink
             key={target}
             url={url}
-            target={target}
             detail={detail}
             action={primaryAction}
           />
@@ -78,32 +76,17 @@ export function MatchLinks({
  */
 function StreamLink({
   url,
-  target,
   detail,
   action,
 }: Readonly<{
   url: string;
-  target: string;
   detail: MatchDetailResponse;
   action?: ReactNode;
 }>) {
-  const transition = useSportingTransition();
   const navigation = useNavigation();
-  const feedback = useActionFeedback();
+  const handoff = useNativeHandoff(url, () => navigation.isFocused());
   const { colors } = useTheme();
   const division = detail.match.pool.classification.division;
-
-  /** F11 counts the voluntary opening once; only another explicit press retries a failed destination. */
-  function open() {
-    feedback.clear();
-    void transition.open({
-      kind: "live",
-      target,
-      isCurrent: () => navigation.isFocused(),
-      open: () => Linking.openURL(url),
-      onFailure: () => feedback.error(),
-    });
-  }
 
   return (
     <View style={styles.destination}>
@@ -129,8 +112,8 @@ function StreamLink({
           contextForeground={
             division ? divisionTextColor(division.color) : undefined
           }
-          loading={transition.pending}
-          onPress={open}
+          loading={handoff.pending}
+          onPress={handoff.open}
         />
       )}
     </View>

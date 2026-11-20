@@ -8,7 +8,6 @@ import {
   PersonalSeasonProvider,
   usePersonalSeasonScope,
 } from "@/features/following/components/personal-season-provider";
-import { useAgeDeclaration } from "@/features/advertising/age-declaration-provider";
 
 /** A direct link to a contextual sheet keeps the default tab stack underneath. */
 export const unstable_settings = { anchor: "(tabs)" };
@@ -16,18 +15,13 @@ export const unstable_settings = { anchor: "(tabs)" };
 /** Public admission is resolved above; account prerequisites stay inside their destination. */
 export default function OrdinaryLayout() {
   const pathname = usePathname();
-  const age = useAgeDeclaration();
   return (
     <NotificationState>
       <SearchVisitProvider
         enter={pathname === "/search" || pathname.startsWith("/search/")}
       >
         <PersonalSeasonProvider
-          enabled={
-            !age.loading &&
-            !age.required &&
-            (pathname === "/" || pathname === "/season")
-          }
+          enabled={pathname === "/" || pathname === "/season"}
         >
           <OrdinaryStack />
         </PersonalSeasonProvider>
@@ -62,8 +56,6 @@ function OrdinaryStack() {
       <Stack.Protected guard={canChooseSeason}>
         <Stack.Screen name="(sheets)/season" options={contextualSheetOptions} />
       </Stack.Protected>
-      <Stack.Screen name="privacy" options={contextualSheetOptions} />
-      <Stack.Screen name="privacy-age" options={contextualSheetOptions} />
       <Stack.Screen
         name="sign-in-invitation"
         options={contextualSheetOptions}
