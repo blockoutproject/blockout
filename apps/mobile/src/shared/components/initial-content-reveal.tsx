@@ -25,8 +25,8 @@ import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 export const initialRevealLimit = 4;
 
-const stagger = 24;
-const initialOpacity = 0.74;
+const stagger = 60;
+const initialOpacity = 0.62;
 const { duration, easing } = tokens.motion.compact;
 const revealDuration = duration + stagger * (initialRevealLimit - 1);
 const compactEasing = Easing.bezierFn(...easing);

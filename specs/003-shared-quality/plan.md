@@ -395,7 +395,7 @@ Every planned image slot remains present at its nominal size even when its URI o
 
 #### Initial content reveal
 
-Use the [approved motion foundation](spec.md#evidence-scope) with the existing compact motion easing (0.2, 0.7, 0.2, 1). Fade up to four leading visible content groups from 74% to full opacity over 220 ms each, starting 24 ms apart. Use opacity alone. Row and section geometry, native input, access and scroll ownership remain with the current composition.
+Use the [approved motion foundation](spec.md#evidence-scope) with the existing compact motion easing (0.2, 0.7, 0.2, 1). Fade up to four leading visible content groups from 62% to full opacity over 220 ms each, starting 60 ms apart. The full sequence lasts at most 400 ms. Use opacity alone. Row and section geometry, native input, access and scroll ownership remain with the current composition.
 
 Use the existing visible page or admitted tab lifetime and the feature’s existing ready condition. Present accepted cache content immediately. For a first active read, keep the shared skeleton until its normal handoff to accepted content. Apply the fade to the ready content of ordinary pages and forms, and to eligible leading rows of `PageList` and `PageFlatList` in ordinary pages and real `PagedTabs` scenes. Keep the first-presentation decision above deliberate scene or list remounts for criteria, layout and read recovery. Exclude skeletons, feedback, pinned chrome and sticky date labels from the affected content. Form owners retain their draft and scroller while their body is blocked.
 
