@@ -461,11 +461,11 @@ it.each([
       screen.queryByRole("progressbar", { name: "Chargement des matchs" }),
     ).toBeNull();
     expect(
-      screen.getByRole("progressbar", {
+      screen.getAllByRole("progressbar", {
         name: "Chargement des matchs",
         includeHiddenElements: true,
       }),
-    ).toBeOnTheScreen();
+    ).toHaveLength(2);
     expect(listRequests()).toHaveLength(0);
 
     // When: the current table confirms ordinary absence, and a first swipe is canceled.

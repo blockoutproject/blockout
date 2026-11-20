@@ -51,7 +51,6 @@ function Example({
               id: "one",
               label: "Premier",
               content: <FirstScene onRead={readFirstScene} />,
-              preview: <Text>Aperçu première scène</Text>,
             },
             ...(removeSecond
               ? []
@@ -106,7 +105,7 @@ it.each([false, true])(
   },
 );
 
-it("shows only adjacent decorative previews and admits content at settlement", async () => {
+it("mounts the available previews up front and admits content at settlement", async () => {
   // Given
   await render(<Example />);
   await layoutNativeTabs();
@@ -115,10 +114,9 @@ it("shows only adjacent decorative previews and admits content at settlement", a
     screen.getByText("Aperçu décoratif", { includeHiddenElements: true }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByText("Aperçu troisième scène", {
-      includeHiddenElements: true,
-    }),
-  ).toBeNull();
+    screen.getByText("Aperçu troisième scène", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aperçu troisième scène")).toBeNull();
 
   // When
   await scrollNativeTabs(0.5);
@@ -151,23 +149,6 @@ it("shows only adjacent decorative previews and admits content at settlement", a
   ).toBeOnTheScreen();
   expect(
     screen.queryByText("Dernière scène", { includeHiddenElements: true }),
-  ).toBeNull();
-});
-
-it("prepares a decorative preview on each side of an initial middle tab", async () => {
-  // Given the middle tab is the first settled scene.
-  await render(<Example initialSelected="two" />);
-
-  // Then
-  expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
-  expect(
-    screen.getByText("Aperçu première scène", { includeHiddenElements: true }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByText("Aperçu troisième scène", { includeHiddenElements: true }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByText("Scène initiale", { includeHiddenElements: true }),
   ).toBeNull();
 });
 
