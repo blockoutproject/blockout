@@ -308,7 +308,7 @@ function StandingRow({
         accessibilityRole="link"
         accessibilityLabel={label}
         accessibilityState={list ? { selected: highlighted } : undefined}
-        onPress={() => void sporting.navigate("team", teamId)}
+        onPress={() => sporting.navigate("team", teamId)}
         style={style}
       >
         {content}

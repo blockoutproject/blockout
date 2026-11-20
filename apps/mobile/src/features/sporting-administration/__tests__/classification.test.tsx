@@ -813,7 +813,6 @@ async function openRoutes() {
       _layout: () => <RootLayout />,
       access: PermissionRefresh,
       onboarding: OnboardingRoute,
-      "age-declaration": () => null,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
       ),

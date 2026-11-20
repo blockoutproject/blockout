@@ -78,7 +78,7 @@ This security marker is not the app version and is not reset on each release, si
 
 The separate optional discovery flag uses ordinary AsyncStorage. Its initial read keeps the ordinary startup wait; rejection presents normal discovery rather than an error/retry screen. The existing `DiscoveryProvider` belongs to the process root above `AccountSessionProvider`, so private subject-tree replacement does not restart discovery. Explicit skip or finish marks that application session complete immediately and starts a best-effort write without a saving state, feedback loop or automatic retry. Sign-in, sign-out and account changes keep this completion until the next application launch even when the flag could not be persisted. Failed persistence may repeat discovery at the next launch. Successful persistence survives ordinary account changes and later releases; interruption before skip/finish remains incomplete, and V1 discovery never substitutes for first V2 discovery. This local owner stays outside HTTP Query and does not share the secure initialization protocol.
 
-The common discovery includes brief former-user information, then uses ordinary guest/sign-in routes. There is no V1-origin detection, separate migration welcome, follow-selection requirement or automatic purchase restoration. F11's mandatory age declaration remains independent. Existing OS permissions and provider choices are not reset as a migration side effect.
+The common discovery includes brief former-user information, then uses ordinary guest/sign-in routes. There is no V1-origin detection, separate migration welcome, follow-selection requirement or automatic purchase restoration. Guest completion opens public Search directly. Existing OS permissions and provider choices are not reset as a migration side effect.
 
 ## Identity and purchase continuity
 
@@ -138,9 +138,9 @@ Reusing older data must respect current erasure, permissions, entitlements, priv
 
 The owner approved the common discovery prototype and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
 
-Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The retained Figma [final discovery composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148) and its existing theme, width and text properties retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
+Common discovery includes former-user information in its last step. Existing sign-in, Pro and global-gate journeys remain in place. The [approved discovery-to-Search journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=787-21) leads guests directly to public Search. The retained Figma [final discovery composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148) and its existing theme, width and text properties retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
 
-The approved scope covers completion, skipping, the independent age gate and 320 px with 150% text. Native accessibility, secure storage, signed upgrade and provider continuity require their own qualification.
+The approved scope covers completion, skipping, ordinary Search entry and 320 px with 150% text. Native accessibility, secure storage, signed upgrade and provider continuity require their own qualification.
 
 ## Verification and evidence limits
 

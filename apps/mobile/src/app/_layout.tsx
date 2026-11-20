@@ -1,13 +1,13 @@
 import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
+import { AdvertisingProvider } from "@/features/advertising/advertising-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack, useSegments } from "expo-router";
 import {
   NativeSplashHandoff,
   useNativeSplashPending,
 } from "@/shared/native/native-splash-handoff";
-import { homeHref } from "@/shared/native/home-href";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -32,10 +32,6 @@ import {
   DiscoveryProvider,
   useDiscovery,
 } from "@/features/onboarding/discovery-provider";
-import {
-  AgeDeclarationProvider,
-  useAgeDeclaration,
-} from "@/features/advertising/age-declaration-provider";
 import { NotificationLifecycle } from "@/features/notifications/native/notification-lifecycle";
 import {
   createPushRegistration,
@@ -56,7 +52,6 @@ function Navigation({
   const theme = useTheme();
   const access = useAccessAdmission();
   const discovery = useDiscovery();
-  const age = useAgeDeclaration();
   const session = useAccountSession();
   const waiting =
     (!access.snapshot.complete && !hasReadError(access.query)) ||
@@ -89,15 +84,6 @@ function Navigation({
           <Stack.Screen name="(ordinary)" />
           <Stack.Screen name="(recovery)" />
         </Stack.Protected>
-        <Stack.Protected
-          guard={access.ordinary && discovery.complete && age.required}
-          redirectTo={access.ordinary ? homeHref : "/access"}
-        >
-          <Stack.Screen
-            name="age-declaration"
-            options={{ gestureEnabled: false }}
-          />
-        </Stack.Protected>
         <Stack.Protected guard={access.operations}>
           <Stack.Screen name="(operations)" />
         </Stack.Protected>
@@ -106,7 +92,7 @@ function Navigation({
   );
 }
 
-/** Projects membership into the theme and defers age I/O until discovery releases entry. */
+/** Projects membership into the theme and starts advertising in ordinary content. */
 function ThemedNavigation({
   registration,
   privacy,
@@ -117,12 +103,16 @@ function ThemedNavigation({
   const { state } = usePro();
   const session = useAccountSession();
   const discovery = useDiscovery();
+  const [rootGroup] = useSegments();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
-        <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
+        <AdvertisingProvider
+          enabled={discovery.complete && rootGroup === "(ordinary)"}
+          privacy={privacy}
+        >
           <Navigation registration={registration} />
-        </AgeDeclarationProvider>
+        </AdvertisingProvider>
       </ActionFeedbackProvider>
     </ThemeProvider>
   );

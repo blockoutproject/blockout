@@ -1,4 +1,4 @@
-import { PrivacyEntry } from "@/features/privacy/components/privacy-sheet";
+import { AdvertisingChoicesEntry } from "@/features/privacy/components/advertising-choices-entry";
 import { ProProfileEntry } from "@/features/pro/presentation";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
@@ -10,10 +10,9 @@ export default function ProfileRoute() {
       admitted={useAccessAdmission().ordinary}
       proEntry={
         <ProProfileEntry>
-          <PrivacyEntry />
+          <AdvertisingChoicesEntry />
         </ProProfileEntry>
       }
-      privacyEntry={null}
     />
   );
 }

@@ -10,7 +10,10 @@ import { useLayoutEffect } from "react";
 import * as Notifications from "expo-notifications";
 import { PermissionStatus } from "expo";
 import { AccessibilityInfo } from "react-native";
-import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "@/features/access/queries/use-access-admission";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
 import { createInboxQueries } from "../api/inbox-queries";
@@ -33,7 +36,6 @@ import { notificationResponse } from "../test-support/notification-data";
 import { nativeNotificationResponse } from "../test-support/native-notification-data";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
-import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -128,9 +130,9 @@ function Root() {
       <QueryClientProvider client={client}>
         <ApplicationAccessProvider>
           <AccountSessionProvider preparePushRemoval={push.prepareRemoval}>
-            <AdvertisingProviders>
+            <AccessAdmissionProvider>
               <Capture />
-            </AdvertisingProviders>
+            </AccessAdmissionProvider>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
       </QueryClientProvider>

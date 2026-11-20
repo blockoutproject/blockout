@@ -1,4 +1,5 @@
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
+import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
 import "@/shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -48,12 +49,12 @@ import {
   useAccessAdmission,
 } from "@/features/access/queries/use-access-admission";
 import { ProProvider } from "@/features/pro";
-import { AgeDeclarationProvider } from "@/features/advertising/age-declaration-provider";
-import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { AdvertisingProvider } from "@/features/advertising/advertising-provider";
 import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 import * as proSessionModule from "@/features/pro/pro-session";
 import { ownContributions } from "@/features/contributions/test-support/contribution-data";
 import * as Notifications from "expo-notifications";
+import { AdEventType } from "react-native-google-mobile-ads";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
 
@@ -83,6 +84,40 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
+jest.mock("expo-constants", () => {
+  const actual = jest.requireActual("expo-constants");
+  return {
+    __esModule: true,
+    default: {
+      ...actual.default,
+      expoConfig: {
+        ...actual.default.expoConfig,
+        extra: {
+          ...actual.default.expoConfig?.extra,
+          revenueCat: {
+            iosApiKey: "test_public",
+            androidApiKey: "test_public",
+          },
+          advertising: {
+            iosInterstitialUnitId: "test-interstitial",
+            androidInterstitialUnitId: "test-interstitial",
+          },
+        },
+      },
+    },
+  };
+});
+jest.mock("react-native-google-mobile-ads", () => ({
+  ...jest.requireActual("@/features/advertising/test-support/native-privacy")
+    .nativeAdvertising,
+  AdEventType: {
+    LOADED: "loaded",
+    OPENED: "opened",
+    CLOSED: "closed",
+    ERROR: "error",
+  },
+  InterstitialAd: { createForAdRequest: jest.fn(() => mockCreateAd()) },
+}));
 jest.mock("expo-notifications", () => ({
   DEFAULT_ACTION_IDENTIFIER: "default",
   setNotificationHandler: jest.fn(),
@@ -99,6 +134,7 @@ jest.mock("expo-notifications", () => ({
   setBadgeCountAsync: jest.fn().mockResolvedValue(true),
 }));
 const mockFetch = jest.fn();
+const mockCreateAd = jest.fn(controlledInterstitial);
 const env = { ...process.env };
 const row = notificationResponse();
 let client = createQueryClient();
@@ -123,12 +159,12 @@ function SessionRoutes({
     <AccountFeedbackProvider>
       <AccessAdmissionProvider>
         <ProProvider>
-          <AgeDeclarationProvider enabled privacy={privacy}>
+          <AdvertisingProvider enabled privacy={privacy}>
             <NotificationState>
               <NativeResponses registration={registration} />
               <Stack screenOptions={{ headerShown: false }} />
             </NotificationState>
-          </AgeDeclarationProvider>
+          </AdvertisingProvider>
         </ProProvider>
       </AccessAdmissionProvider>
     </AccountFeedbackProvider>
@@ -172,6 +208,7 @@ function Root() {
 beforeEach(async () => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
+  mockCreateAd.mockClear();
 
   let read = false;
   jest
@@ -186,7 +223,6 @@ beforeEach(async () => {
   );
   prepareProNativeIO();
   await AsyncStorage.clear();
-  await submitAgeDeclaration(30);
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-client";
@@ -456,6 +492,57 @@ it.each(["professional", "contributed"] as const)(
     expect(open).toHaveBeenCalledWith(streamUrl);
   },
 );
+
+it("counts inbox match opens while leaving a native push and its stream link immediate", async () => {
+  // Given
+  const stream = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  await openInbox();
+  await screen.findByRole("link", { name: /^Le résultat est disponible/ });
+  await waitFor(() => expect(mockCreateAd).toHaveBeenCalledTimes(1));
+  const ad = mockCreateAd.mock.results[0].value;
+  await act(() => ad.emit(AdEventType.LOADED));
+  for (let visit = 0; visit < 9; visit++) {
+    await user.press(
+      await screen.findByRole("link", { name: /^Le résultat est disponible/ }),
+    );
+    await user.press(await screen.findByRole("button", { name: "Retour" }));
+  }
+  const tap = jest
+    .mocked(Notifications.addNotificationResponseReceivedListener)
+    .mock.calls.at(-1)?.[0];
+  if (!tap) {
+    throw new Error("The native tap listener must be mounted");
+  }
+  const push = nativeNotificationResponse("current-match", Date.now(), {
+    ownerAccountId: row.id,
+    notificationId: row.id,
+    matchId: row.match.id,
+  });
+
+  // When
+  await act(() => tap(push));
+  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+
+  // Then
+  expect(screen).toHavePathname(`/matches/${row.match.id}`);
+  expect(stream).toHaveBeenCalledWith(streamUrl);
+  expect(ad.show).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+  await user.press(
+    await screen.findByRole("link", { name: /^Le résultat est disponible/ }),
+  );
+
+  // Then
+  expect(ad.show).toHaveBeenCalledTimes(1);
+  expect(screen).toHavePathname("/notifications");
+  await act(() => ad.emit(AdEventType.CLOSED));
+  await waitFor(() =>
+    expect(screen).toHavePathname(`/matches/${row.match.id}`),
+  );
+});
 
 it("offers no fictional stream opening when the current match has no link", async () => {
   // Given

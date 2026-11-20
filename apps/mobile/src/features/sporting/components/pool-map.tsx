@@ -516,6 +516,7 @@ function ParticipantMap({
               contentContainerStyle={styles.summary}
             >
               <ParticipantSummary
+                key={selected.team.team.id}
                 participant={selected}
                 active={active}
                 recordUnavailable={recordUnavailable}
@@ -554,7 +555,7 @@ function ParticipantSummary({
         accessible
         accessibilityRole="link"
         accessibilityLabel={identity.name}
-        onPress={() => void sporting.navigate("team", identity.id)}
+        onPress={() => sporting.navigate("team", identity.id)}
         style={({ pressed }) => [
           styles.summaryIdentity,
           { opacity: pressed ? tokens.opacity.pressed : 1 },

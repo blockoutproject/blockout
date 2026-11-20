@@ -35,7 +35,6 @@ import { customerInfo, entitlement } from "../test-support/customer-info";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { ProProvider } from "../pro-provider";
-import { PrivacyEntry } from "@/features/privacy/components/privacy-sheet";
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -159,15 +158,11 @@ async function mount(content: React.ReactNode) {
   );
 }
 
-it("places a distinct Pro action before Privacy in the existing admitted profile", async () => {
+it("opens the guest Pro invitation from the admitted profile", async () => {
   // Given
   await mount(
     <ProProvider>
-      <ProfileScreen
-        privacyEntry={<PrivacyEntry />}
-        admitted
-        proEntry={<ProProfileEntry />}
-      />
+      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
     </ProProvider>,
   );
   await screen.findByText("Session: guest");
@@ -178,17 +173,8 @@ it("places a distinct Pro action before Privacy in the existing admitted profile
   expect(mockRouter.push).toHaveBeenCalledWith("/sign-in-invitation");
   expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: "Confidentialité" }),
-  ).toBeOnTheScreen();
-  expect(
     screen.getByRole("link", { name: "Politique de confidentialité" }),
   ).toBeOnTheScreen();
-  const actions = screen.getAllByRole(/button|link/);
-  expect(
-    actions.indexOf(screen.getByRole("button", { name: "Blockout Pro" })),
-  ).toBeLessThan(
-    actions.indexOf(screen.getByRole("link", { name: "Confidentialité" })),
-  );
   expect(
     screen.getByRole("button", { name: "Besoin d’aide ?" }),
   ).toBeOnTheScreen();
@@ -202,11 +188,7 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
   await mount(
     <>
       <ProProvider>
-        <ProfileScreen
-          privacyEntry={null}
-          admitted={admitted}
-          proEntry={<ProProfileEntry />}
-        />
+        <ProfileScreen admitted={admitted} proEntry={<ProProfileEntry />} />
       </ProProvider>
       <SignInInvitationScreen admitted={admitted} message={message} />
     </>,
@@ -341,11 +323,7 @@ it("keeps the signed-in profile after cancelled browser logout, then returns hom
   // Given
   await mount(
     <ProProvider>
-      <ProfileScreen
-        privacyEntry={null}
-        admitted
-        proEntry={<ProProfileEntry />}
-      />
+      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
     </ProProvider>,
   );
   await screen.findByText("Session: guest");

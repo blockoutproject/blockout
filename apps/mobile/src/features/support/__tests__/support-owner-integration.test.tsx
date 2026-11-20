@@ -159,7 +159,6 @@ async function openRoute(path: string) {
       access: AccessRoute,
       "+not-found": NotFoundRoute,
       onboarding: OnboardingRoute,
-      "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/(home)/(personal)/index": () => (

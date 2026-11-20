@@ -153,7 +153,7 @@ async function openProfile(initialUrl = "/profile") {
         unstable_settings: profileStackSettings,
       },
       "(tabs)/(profile)/profile/index": () => (
-        <ProfileScreen admitted proEntry={null} privacyEntry={null} />
+        <ProfileScreen admitted proEntry={null} />
       ),
       "(tabs)/(profile)/profile/(forms)/edit": () => (
         <ProfileEditScreen admitted />

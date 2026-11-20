@@ -87,7 +87,6 @@ jest.mock("expo-tracking-transparency", () => ({
     status: "denied",
     canAskAgain: false,
   })),
-  requestTrackingPermissionsAsync: jest.fn(),
 }));
 
 // PDF decoding belongs to the native module; lifecycle suites supply controlled native callbacks.

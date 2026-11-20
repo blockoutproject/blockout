@@ -152,9 +152,7 @@ async function openErasure() {
         </AccountSessionProvider>
       ),
       "(ordinary)/(tabs)/(home)/(personal)/index": Home,
-      "profile/index": () => (
-        <ProfileScreen admitted proEntry={null} privacyEntry={null} />
-      ),
+      "profile/index": () => <ProfileScreen admitted proEntry={null} />,
       "profile/erase": EraseAccountRoute,
     },
     {

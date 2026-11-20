@@ -116,7 +116,6 @@ async function openRoute(path: string) {
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
-      "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
       "(operations)/_layout": () => (

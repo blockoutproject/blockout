@@ -43,6 +43,7 @@ it("shows native opening feedback and permits an explicit retry after rejection"
   // When
   await act(() => {
     void result.current.open();
+    void result.current.open();
   });
 
   // Then

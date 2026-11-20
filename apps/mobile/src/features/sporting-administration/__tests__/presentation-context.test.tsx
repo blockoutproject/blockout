@@ -211,7 +211,6 @@ async function openRoute(path: string) {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
       access: () => <Text>Access gate</Text>,
-      "age-declaration": () => null,
       "(ordinary)/_layout": () => (
         <PrivateQueries>
           <Stack />

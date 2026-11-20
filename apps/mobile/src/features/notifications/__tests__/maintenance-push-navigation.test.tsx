@@ -30,7 +30,6 @@ import {
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
 import { completeDiscovery } from "@/features/onboarding/discovery-state";
-import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
 import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 import * as proSessionModule from "@/features/pro/pro-session";
 import { notificationResponse } from "../test-support/notification-data";
@@ -102,14 +101,11 @@ async function openApplication() {
     index: EntryRoute,
     access: AccessGateScreen,
     onboarding: () => <Text>Discovery</Text>,
-    "age-declaration": () => <Text>Age declaration</Text>,
     "(ordinary)/_layout": OrdinaryLayout,
     "(ordinary)/(tabs)/_layout": () => <Stack />,
     "(ordinary)/(tabs)/(home)/(personal)/index": () => (
       <Text>Ordinary home</Text>
     ),
-    "(ordinary)/privacy": () => <Text>Privacy</Text>,
-    "(ordinary)/privacy-age": () => <Text>Privacy age</Text>,
     "(ordinary)/pro": () => <Text>Pro</Text>,
     "(ordinary)/sign-in-invitation": () => <Text>Sign-in invitation</Text>,
     "(ordinary)/matches/[matchId]": MatchDestination,
@@ -130,7 +126,6 @@ beforeEach(async () => {
   });
   await AsyncStorage.clear();
   await completeDiscovery();
-  await submitAgeDeclaration(30);
   jest.replaceProperty(
     proSessionModule,
     "proSession",

@@ -68,6 +68,8 @@ it("uses Google sample app IDs with delayed measurement and no configured V2 ad 
 
 it("selects explicit public app and V2 unit IDs independently for each platform", () => {
   // Given: synthetic deployment inputs, never provider credentials or V1 fallbacks.
+  process.env.APP_VARIANT = "production";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
   process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
   process.env.ADMOB_ANDROID_APP_ID = "ca-app-pub-0000000000000000~0000000002";
   process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID =
@@ -91,6 +93,27 @@ it("selects explicit public app and V2 unit IDs independently for each platform"
   expect(config.extra?.advertising).toEqual({
     iosInterstitialUnitId: "ca-app-pub-0000000000000000/0000000003",
     androidInterstitialUnitId: "ca-app-pub-0000000000000000/0000000004",
+  });
+});
+
+it("leaves production ads unconfigured for a demo unit or a missing app ID", () => {
+  // Given
+  process.env.APP_VARIANT = "production";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
+  process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID =
+    "ca-app-pub-3940256099942544/4411468910";
+  process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID =
+    "ca-app-pub-0000000000000000/0000000004";
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.extra?.advertising).toEqual({
+    iosInterstitialUnitId: undefined,
+    androidInterstitialUnitId: undefined,
   });
 });
 

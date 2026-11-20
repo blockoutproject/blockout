@@ -2,24 +2,16 @@
 
 This describes state ownership, not a requirement to create a table for every concept.
 
-## Installation-local advertising declaration
+## Advertising choices
 
-| Field        | Meaning and constraints                                                                                                                       |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `category`   | Under 16, 16–17 or adult. Derived at submission from an explicitly selected age in completed years; the raw input is not retained.            |
-| `declaredAt` | Local declaration date used to request a fresh minor declaration after one calendar year at a subsequent launch. Not the person's birth date. |
-
-No account identifier, country, location or backend synchronization. Adult categories have no annual reprompt; categories never advance automatically. Missing, invalid or expired data receives child-protected advertising without synthesizing a declaration; the required initial form still applies. Correction replaces category/date only on successful submission and invalidates prepared ads. A session/account switch grants no old Pro exemption; the local advertising declaration is separate from profile identity. The installation owner retains its own read/error/explicit-retry lifetime; the common F13 card does not move it into Query or add HTTP-style retries. Loaded correction has no read prerequisite; failed writes preserve the form selection, and an acknowledged category/date remains accepted if independent consent fails. UMP owns its own native choice persistence and installation preparation. Account UUID and Pro-state arrival/change neither revise unchanged age/consent preparation nor move it into F05/F09 storage. Blockout does not duplicate consent strings/status in business storage.
+Google UMP owns advertising choices and their persistence for the installation. Blockout uses the SDK's current request permission and privacy-options requirement. iOS owns the tracking permission.
 
 ## Runtime advertising state
 
-- Count in the range 0–10, initialized at process start; survives backgrounding, never persisted as history.
-- At most one prepared interstitial, with its load time, SDK loading outcome and preparation privacy/current-account context; [the plan](plan.md#mediation-and-presentation) owns freshness and callback handling.
-- At most one accepted pending sporting destination. Native display resets the count; dismissal/failure releases it at most once. A fresh process abandons an unresolved destination.
-- Current F09 entitlement state and F05 session are consumed from their existing owners rather than copied into a persistent advertising identity. Their changes retire the prepared ad and recalculate eligibility; they do not restart completed installation preparation.
-- One in-flight SDK sequence applies the installation age/choice context. Obsolete age-category results are discarded; transient readiness/applicability is not a second consent store.
-
-Unavailable/loading ads do not delay navigation. Incompatible/expired ads and old-session events are discarded.
+- One in-memory count starts at zero for each process and survives backgrounding. The tenth eligible sporting navigation starts a new cycle regardless of ad availability or presentation.
+- At most one prepared interstitial is held. [The plan](plan.md#mediation-and-presentation) owns expiry and provider callbacks. Loss of eligibility or an incompatible change of choices invalidates preparation.
+- A presentation attempt can retain one sporting destination. Dismissal or presentation failure releases it once if still valid. When no ad is ready, the navigation proceeds immediately.
+- F09 supplies the current entitlement and F05 supplies the active session. These determine eligibility and continuation independently of the installation's consent flow.
 
 ## Legal document
 
@@ -31,4 +23,4 @@ Three stable types: `imprint`, `privacy`, `terms`. Each complete static HTML doc
 
 ## Existing independent owners
 
-F05 owns business-account erasure and original-target provider cleanup; F09 owns RevenueCat rights, F10 private reports/attachments, F07 server notification cutoff/purge and ordinary-event local filtering, and F13 safe diagnostics. Advertising age is not account seniority. Their existing deletion, retention and restoration meanings remain authoritative.
+F05 owns business-account erasure and original-target provider cleanup; F09 owns RevenueCat rights, F10 private reports/attachments, F07 server notification cutoff/purge and ordinary-event local filtering, and F13 safe diagnostics. Their existing deletion, retention and restoration meanings remain authoritative.

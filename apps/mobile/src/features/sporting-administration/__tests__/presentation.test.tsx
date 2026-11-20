@@ -1707,7 +1707,6 @@ async function openRoutes(initialUrl = "/") {
     {
       _layout: () => <RootLayout />,
       onboarding: OnboardingRoute,
-      "age-declaration": () => null,
       access: AccessProbe,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />

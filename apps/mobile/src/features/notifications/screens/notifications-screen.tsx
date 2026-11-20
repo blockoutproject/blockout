@@ -183,7 +183,7 @@ function Inbox({
     }
 
     command.mutate(id, { onError: reportFailure });
-    void sporting.navigate("match", matchId, reportFailure);
+    sporting.navigate("match", matchId, reportFailure);
   }
 
   /** Presents the list's empty state without changing Query ownership or starting reads. */

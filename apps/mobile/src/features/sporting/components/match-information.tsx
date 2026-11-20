@@ -73,7 +73,7 @@ export function MatchInformation({
             .filter(Boolean)
             .join(" · ") || undefined
         }
-        onPress={() => void sporting.navigate("pool", match.pool.pool.id)}
+        onPress={() => sporting.navigate("pool", match.pool.pool.id)}
       />
       {information ? (
         <InformationRow

@@ -17,10 +17,6 @@ import {
 import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
 import { SignInScreen } from "@/features/accounts/screens/sign-in-screen";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
-import {
-  readAgeDeclaration,
-  submitAgeDeclaration,
-} from "@/features/advertising/age-declaration";
 import { FollowTarget } from "@/features/following/test-support/follow-target";
 import { PersonalSeasonProvider } from "@/features/following/components/personal-season-provider";
 import { PersonalScreen } from "@/features/following/screens/personal-screen";
@@ -225,7 +221,7 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
   );
   await view.rerender(
     <Consumers>
-      <ProfileScreen admitted proEntry={null} privacyEntry={null} />
+      <ProfileScreen admitted proEntry={null} />
     </Consumers>,
   );
 
@@ -303,8 +299,6 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
 it("keeps A’s issued follow callback and private data outside guest, B and a later A lifetime", async () => {
   // Given: a pending real F06 mutation belongs to A’s original client, not the next person sharing its email.
   await AsyncStorage.setItem("blockout:v2-initialized", "true");
-  await submitAgeDeclaration(17);
-  const declaration = await readAgeDeclaration();
   established = true;
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const pending = Promise.withResolvers<Response>();
@@ -381,7 +375,6 @@ it("keeps A’s issued follow callback and private data outside guest, B and a l
   await expect(originalCredentials()).rejects.toMatchObject({
     kind: "cancelled",
   });
-  expect(await readAgeDeclaration()).toEqual(declaration);
 
   // When: a later A sign-in obtains current readers, without adopting the detached A client.
   await act(async () => {
@@ -405,7 +398,6 @@ it("keeps A’s issued follow callback and private data outside guest, B and a l
   ).toBeOnTheScreen();
   expect(fixture.client).not.toBe(originalClient);
   expect(fixture.client).not.toBe(bClient);
-  expect(await readAgeDeclaration()).toEqual(declaration);
   originalClient.clear();
 });
 

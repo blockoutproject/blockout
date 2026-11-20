@@ -144,7 +144,6 @@ async function openRoute(
       _layout: () => <RootLayout />,
       index: EntryRoute,
       onboarding: OnboardingRoute,
-      "age-declaration": () => <Text>Age declaration</Text>,
       "(ordinary)/_layout": OrdinaryLayout,
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,
@@ -155,8 +154,6 @@ async function openRoute(
         <Text>Ordinary home</Text>
       ),
       "(ordinary)/matches/[matchId]": MatchProbe,
-      "(ordinary)/privacy": () => null,
-      "(ordinary)/privacy-age": () => null,
       "(ordinary)/pro": () => null,
       "(ordinary)/sign-in-invitation": () => null,
       "(recovery)/support/_layout": SupportLayout,
