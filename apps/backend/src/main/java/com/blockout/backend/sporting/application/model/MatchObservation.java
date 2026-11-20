@@ -59,7 +59,7 @@ public record MatchObservation(UUID matchId, Context context, Facts facts) {
      * @param referees supplied referee labels
      * @param professionalStreamUrl qualified professional stream reference
      * @param informationSheet qualified information-sheet locator
-     * @param scoresheetUrl qualified professional scoresheet reference
+     * @param scoresheetUrl qualified official scoresheet reference
      * @param statisticsUrl qualified professional statistics reference
      */
     public Facts {

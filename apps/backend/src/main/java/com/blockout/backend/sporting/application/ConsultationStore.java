@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 public interface ConsultationStore {
   /**
-   * Reads the qualified calendar reference retained for the already admitted pool's source phase.
+   * Reads the qualified calendar reference retained for the already admitted pool.
    *
    * @param poolId current viewable owning pool
    * @return its published HTTP(S) calendar, or null when no usable reference is retained

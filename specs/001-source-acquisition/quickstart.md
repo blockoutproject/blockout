@@ -109,9 +109,9 @@ Run the opt-in suites together as documented in the runtime command. Use the nat
 
 ### FFVB match documents and published results
 
-Within a qualified pool and season, collect a match with a published numeric result and official scoresheet and a match with a published information form and no result. Check that the existing observation carries the exact document references and that only the published result is definitive. Reject an out-of-context or ambiguous form without withdrawing a previous reference or invalidating the result or match. Preserve an unclear special notation as unconfirmed.
+Within a qualified pool and season, collect a match with a published numeric result and official scoresheet and a match with a published information form and no result. Use `CollectorSportingReadIntegrationTest` to check the resulting Match actions through generated ingestion and public HTTP. Accept repeated scoresheet actions with equivalent query values. Ignore an out-of-context form or one with unqualified submitted fields without withdrawing a previous reference or invalidating the result or match. Preserve an unclear special notation as unconfirmed.
 
-A normal passage may present a previously known unconfirmed result as definitive for the first time. Qualify [F07’s existing notification rule](../011-notifications-delivery/spec.md#functional-requirements) with a test subscriber and a repeat passage. Check the affected active FFVB population before enabling this change in production.
+A normal passage may present a previously known unconfirmed result as definitive for the first time. As a deployment check, qualify [F07’s existing notification rule](../011-notifications-delivery/spec.md#functional-requirements) with a test subscriber and a repeat ordinary FFVB passage. Follow the [production population check](../../infra/operations/README.md#first-startup-and-explicit-migration) before rollout.
 
 ## Contract and native validation
 

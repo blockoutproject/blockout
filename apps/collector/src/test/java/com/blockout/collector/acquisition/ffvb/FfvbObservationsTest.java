@@ -210,9 +210,18 @@ class FfvbObservationsTest {
         .satisfies(slot -> assertThat(slot.kind()).isEqualTo(ContextSlotKindEnum.BYE));
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "",
+        """
+        <form method=post action="../resu/ffvolley_fdme.php?codmatch=TST001&amp;codent=ABCCS&amp;saison=2026%2F2027">
+          <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
+        </form>
+        """
+      })
   @DisplayName("Keeps the published scoresheet URI for the exact qualified match")
-  void readsPublishedScoresheet() throws IOException {
+  void readsPublishedScoresheet(String repeatedForm) throws IOException {
     // Given
     FfvbPage context =
         calendarWithDocumentForm(
@@ -220,7 +229,8 @@ class FfvbObservationsTest {
             <form method=post action="../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001">
               <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
             </form>
-            """);
+            """
+                + repeatedForm);
 
     // When
     SportingObservation.Calendar result =
@@ -270,6 +280,29 @@ class FfvbObservationsTest {
                           new SportingObservation.InformationSheet(
                               "2026/2027", "ABCCS", "TST001")));
             });
+  }
+
+  @Test
+  @DisplayName("Omits a scoresheet whose form supplies contradictory POST data")
+  void omitsScoresheetWithPostData() throws IOException {
+    // Given
+    FfvbPage context =
+        calendarWithDocumentForm(
+            """
+            <form method=post action="../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001">
+              <td><input type=hidden name=codmatch value=TST002></td>
+            </form>
+            """);
+
+    // When
+    SportingObservation.Calendar result =
+        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+
+    // Then
+    assertThat(result.complete()).isTrue();
+    assertThat(result.matches())
+        .singleElement()
+        .satisfies(match -> assertThat(match.facts().scoresheetUrl()).isNull());
   }
 
   @ParameterizedTest

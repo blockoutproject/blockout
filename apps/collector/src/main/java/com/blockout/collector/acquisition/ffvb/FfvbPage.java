@@ -188,7 +188,7 @@ public final class FfvbPage {
 
   /**
    * Reads official document forms from the exact match rows already attributed to this pool or
-   * group. Only their published identifiers may supply a proposal. Missing or ambiguous forms
+   * group. Only their published identifiers may supply a proposal. Missing or unqualified forms
    * supply no withdrawal and cannot invalidate the sporting row.
    *
    * @param reference qualified native match code in this group
@@ -196,7 +196,7 @@ public final class FfvbPage {
    */
   DocumentReferences documents(String reference) {
     InformationSheet information = null;
-    LinkedHashSet<URI> scoresheets = new LinkedHashSet<>();
+    URI scoresheet = null;
     for (Element row : matchRows.getOrDefault(reference, List.of())) {
       for (Element candidate : row.select("form[method=post][action]")) {
         if (!(candidate instanceof FormElement form)) {
@@ -211,14 +211,16 @@ public final class FfvbPage {
             && matchesDocumentFields(requestFields(form), "wss_saison", reference)) {
           information =
               new InformationSheet(scope.seasonLabel(), scope.organizerReference(), reference);
-        } else if (SCORESHEET_PATH.equals(action.getRawPath())
+        } else if (scoresheet == null
+            && SCORESHEET_PATH.equals(action.getRawPath())
+            && form.formData().isEmpty()
             && matchesDocumentFields(
                 new URIBuilder(action).getQueryParams(), "saison", reference)) {
-          scoresheets.add(action);
+          // The relay replays this empty form as GET. Repeats address the same qualified match.
+          scoresheet = action;
         }
       }
     }
-    URI scoresheet = scoresheets.size() == 1 ? scoresheets.getFirst() : null;
     return new DocumentReferences(information, scoresheet);
   }
 
