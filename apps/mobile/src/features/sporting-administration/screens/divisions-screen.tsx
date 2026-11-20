@@ -129,7 +129,10 @@ export function DivisionsScreen() {
             items.length > 0 &&
             !failed &&
             authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl onRefresh={refresh} />
+              <DataRefreshControl
+                onRefresh={refresh}
+                fetching={query.isFetching}
+              />
             ) : undefined
           }
           keyboardShouldPersistTaps="handled"

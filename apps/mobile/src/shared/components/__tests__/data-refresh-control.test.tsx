@@ -28,7 +28,11 @@ it("forwards the native scroll child and preserves it while refresh is disabled"
   const user = userEvent.setup();
   const view = (enabled: boolean) => (
     <ThemeProvider>
-      <DataRefreshControl onRefresh={refresh} enabled={enabled}>
+      <DataRefreshControl
+        onRefresh={refresh}
+        enabled={enabled}
+        fetching={false}
+      >
         <Draft />
       </DataRefreshControl>
     </ThemeProvider>
@@ -65,7 +69,7 @@ it("keeps native pull progress and the Android child until the explicit read com
   const user = userEvent.setup();
   await render(
     <ThemeProvider>
-      <DataRefreshControl onRefresh={refresh}>
+      <DataRefreshControl onRefresh={refresh} fetching>
         <Draft />
       </DataRefreshControl>
     </ThemeProvider>,

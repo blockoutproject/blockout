@@ -325,11 +325,11 @@ function ControlDashboard({
   const router = useRouter();
   const navigation = useNavigation();
   const [diagnostics, setDiagnostics] = useState(false);
-  const refreshing =
-    query.isRefetching ||
-    results.isRefetching ||
-    seasonFetching ||
-    authority.account.isRefetching;
+  const fetching = query.isFetching || results.isFetching || seasonFetching;
+  const commandPending =
+    editing.activity.isPending || editing.request.isPending;
+  const continuationBusy =
+    fetching || commandPending || authority.account.isRefetching;
   const current = query.data;
   const matches =
     !hasReadError(query) &&
@@ -354,13 +354,7 @@ function ControlDashboard({
 
   /** Refreshes displayed projections independently of collection commands. */
   async function refresh() {
-    if (
-      editing.activity.isPending ||
-      editing.request.isPending ||
-      query.isFetching ||
-      results.isFetching ||
-      seasonFetching
-    ) {
+    if (commandPending || fetching) {
       return;
     }
     await Promise.all([
@@ -379,12 +373,8 @@ function ControlDashboard({
       !results.hasNextPage ||
       isAccessDenied(query.error) ||
       isAccessDenied(results.error) ||
-      results.isFetching ||
       (results.isError && !results.isFetchNextPageError) ||
-      refreshing ||
-      query.isFetching ||
-      editing.activity.isPending ||
-      editing.request.isPending
+      continuationBusy
     ) {
       return;
     }
@@ -480,12 +470,7 @@ function ControlDashboard({
             leadingIcon={RefreshCw}
             onPress={() => void results.refetch({ cancelRefetch: false })}
             loading={results.isFetching}
-            disabled={
-              editing.activity.isPending ||
-              editing.request.isPending ||
-              query.isFetching ||
-              seasonFetching
-            }
+            disabled={commandPending || query.isFetching || seasonFetching}
           />
         </EmptyState>
       </ScreenState>
@@ -518,13 +503,9 @@ function ControlDashboard({
           refreshControl={
             authority.sessionStatus === "authenticated" ? (
               <DataRefreshControl
-                enabled={
-                  !editing.activity.isPending &&
-                  !editing.request.isPending &&
-                  !results.isFetchingNextPage
-                }
+                enabled={!commandPending && !results.isFetchingNextPage}
                 onRefresh={refresh}
-                fetching={refreshing}
+                fetching={fetching}
               />
             ) : undefined
           }
@@ -555,13 +536,7 @@ function ControlDashboard({
                 <ListContinuation
                   loading={results.isFetchingNextPage}
                   failed={results.isFetchNextPageError}
-                  disabled={
-                    results.isFetching ||
-                    refreshing ||
-                    query.isFetching ||
-                    editing.activity.isPending ||
-                    editing.request.isPending
-                  }
+                  disabled={continuationBusy}
                   onRetry={loadMore}
                 />
               ) : undefined}
