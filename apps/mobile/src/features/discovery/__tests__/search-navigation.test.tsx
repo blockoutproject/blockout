@@ -83,8 +83,8 @@ jest.mock("expo-constants", () => ({
     expoConfig: {
       extra: {
         advertising: {
-          iosInterstitialUnitId: "synthetic-unit",
-          androidInterstitialUnitId: "synthetic-unit",
+          ios: { adUnitId: "synthetic-unit" },
+          android: { adUnitId: "synthetic-unit" },
         },
         revenueCat: { iosApiKey: "test_public", androidApiKey: "test_public" },
       },

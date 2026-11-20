@@ -5,8 +5,12 @@ const production = variant === "production";
 const preview = variant === "preview";
 const release = production || preview;
 const googleDemoPublisher = "ca-app-pub-3940256099942544";
-const admobIosAppId = process.env.ADMOB_IOS_APP_ID;
-const admobAndroidAppId = process.env.ADMOB_ANDROID_APP_ID;
+// Google sample app IDs let the native SDK start without a configured provider app.
+const admobIosAppId =
+  process.env.ADMOB_IOS_APP_ID?.trim() || `${googleDemoPublisher}~1458002511`;
+const admobAndroidAppId =
+  process.env.ADMOB_ANDROID_APP_ID?.trim() ||
+  `${googleDemoPublisher}~3347511713`;
 const testStoreApiKey = process.env.REVENUECAT_TEST_STORE_API_KEY;
 const iosApiKey = process.env.REVENUECAT_IOS_API_KEY;
 const androidApiKey = process.env.REVENUECAT_ANDROID_API_KEY;
@@ -41,16 +45,16 @@ if (variant && !easSlug) {
   throw new Error("EAS profiles require the existing EXPO_PROJECT_SLUG.");
 }
 
-function interstitialUnit(appId?: string, unitId?: string) {
-  if (
-    production &&
-    (!appId ||
-      appId.startsWith(googleDemoPublisher) ||
-      unitId?.startsWith(googleDemoPublisher))
-  ) {
+/** A configured app can keep its UMP choices available without serving interstitials. */
+function platformAdvertising(appId: string, unitInput?: string) {
+  if (production && appId.startsWith(googleDemoPublisher)) {
     return undefined;
   }
-  return unitId || undefined;
+  const adUnitId = unitInput?.trim();
+  if (!adUnitId || (production && adUnitId.startsWith(googleDemoPublisher))) {
+    return {};
+  }
+  return { adUnitId };
 }
 
 /** Uses Expo's build-time variants and F14's retained production identity; no runtime selector. */
@@ -95,9 +99,8 @@ const config: ExpoConfig = {
     [
       "react-native-google-mobile-ads",
       {
-        // Google's sample apps allow native startup without configuring a provider account.
-        iosAppId: admobIosAppId || `${googleDemoPublisher}~1458002511`,
-        androidAppId: admobAndroidAppId || `${googleDemoPublisher}~3347511713`,
+        iosAppId: admobIosAppId,
+        androidAppId: admobAndroidAppId,
         delayAppMeasurementInit: true,
         // Google's buyer list includes Meta's two IDs; declare each identifier once.
         // https://developers.google.com/admob/ios/quick-start#update_your_infoplist_file
@@ -217,11 +220,11 @@ const config: ExpoConfig = {
   extra: {
     ...(expoProjectId ? { eas: { projectId: expoProjectId } } : {}),
     advertising: {
-      iosInterstitialUnitId: interstitialUnit(
+      ios: platformAdvertising(
         admobIosAppId,
         process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID,
       ),
-      androidInterstitialUnitId: interstitialUnit(
+      android: platformAdvertising(
         admobAndroidAppId,
         process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID,
       ),

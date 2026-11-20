@@ -99,8 +99,8 @@ jest.mock("expo-constants", () => {
             androidApiKey: "test_public",
           },
           advertising: {
-            iosInterstitialUnitId: "test-interstitial",
-            androidInterstitialUnitId: "test-interstitial",
+            ios: { adUnitId: "test-interstitial" },
+            android: { adUnitId: "test-interstitial" },
           },
         },
       },
@@ -112,7 +112,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",
-    OPENED: "opened",
     CLOSED: "closed",
     ERROR: "error",
   },

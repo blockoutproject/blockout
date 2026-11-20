@@ -6,7 +6,7 @@ const AD_MAX_AGE_MS = 60 * 60 * 1000;
 
 type Preparation = {
   ad: InterstitialAd;
-  loadedAt: number | null;
+  expiresAt: number | null;
   destination?: { open: () => void; isCurrent: () => boolean };
 };
 
@@ -35,16 +35,27 @@ export function createInterstitialLifecycle({
     }
   }
 
-  function finish(entry: Preparation, outcome: "closed" | "failed") {
+  function finish(entry: Preparation, failure?: string) {
     if (prepared !== entry) {
       return;
     }
     const destination = entry.destination;
+    if (
+      failure !== undefined &&
+      (destination ||
+        (failure !== "no-fill" && failure !== "mediation-no-fill"))
+    ) {
+      Sentry.captureException(
+        new Error(
+          destination ? "Interstitial show failed" : "Interstitial load failed",
+        ),
+      );
+    }
     remove(entry);
     if (destination?.isCurrent()) {
       destination.open();
     }
-    if (outcome === "closed") {
+    if (failure === undefined) {
       preload();
     }
   }
@@ -60,32 +71,16 @@ export function createInterstitialLifecycle({
     try {
       const entry: Preparation = {
         ad: InterstitialAd.createForAdRequest(adUnitId),
-        loadedAt: null,
+        expiresAt: null,
       };
       prepared = entry;
       entry.ad.addAdEventListener(AdEventType.LOADED, () => {
-        entry.loadedAt = Date.now();
+        entry.expiresAt = Date.now() + AD_MAX_AGE_MS;
       });
-      entry.ad.addAdEventListener(AdEventType.CLOSED, () =>
-        finish(entry, "closed"),
+      entry.ad.addAdEventListener(AdEventType.CLOSED, () => finish(entry));
+      entry.ad.addAdEventListener(AdEventType.ERROR, (error) =>
+        finish(entry, error?.reason ?? "unknown"),
       );
-      entry.ad.addAdEventListener(AdEventType.ERROR, (error) => {
-        if (prepared !== entry) {
-          return;
-        }
-        const noFill =
-          error?.reason === "no-fill" || error?.reason === "mediation-no-fill";
-        if (entry.destination || !noFill) {
-          Sentry.captureException(
-            new Error(
-              entry.destination
-                ? "Interstitial show failed"
-                : "Interstitial load failed",
-            ),
-          );
-        }
-        finish(entry, "failed");
-      });
       entry.ad.load();
     } catch {
       invalidate();
@@ -97,10 +92,7 @@ export function createInterstitialLifecycle({
     try {
       await entry.ad.show();
     } catch {
-      if (prepared === entry) {
-        Sentry.captureException(new Error("Interstitial show failed"));
-        finish(entry, "failed");
-      }
+      finish(entry, "show rejected");
     }
   }
 
@@ -108,7 +100,7 @@ export function createInterstitialLifecycle({
     if (!isCurrent() || prepared?.destination?.isCurrent()) {
       return;
     }
-    if (!isFree()) {
+    if (!adUnitId || !isFree()) {
       invalidate();
       open();
       return;
@@ -118,12 +110,11 @@ export function createInterstitialLifecycle({
       prepared &&
       !prepared.destination &&
       (!canLoad() ||
-        (prepared.loadedAt !== null &&
-          Date.now() - prepared.loadedAt >= AD_MAX_AGE_MS))
+        (prepared.expiresAt !== null && Date.now() >= prepared.expiresAt))
     ) {
       invalidate();
     }
-    if (count === 0 && prepared?.loadedAt != null && !prepared.destination) {
+    if (count === 0 && prepared?.expiresAt != null && !prepared.destination) {
       prepared.destination = { open, isCurrent };
       void present(prepared);
       return;

@@ -54,6 +54,7 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
+          advertising: { ios: {}, android: {} },
           revenueCat: {
             iosApiKey: "test_public",
             offeringIdentifier: "default",

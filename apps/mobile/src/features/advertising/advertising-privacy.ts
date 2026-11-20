@@ -22,28 +22,28 @@ type AdvertisingSnapshot = {
 };
 
 /** UMP owns installation consent; only live admission and entitlements can use it for an ad. */
-export function createAdvertisingPrivacy({ adUnitId }: { adUnitId?: string }) {
+export function createAdvertisingPrivacy(configuration?: {
+  adUnitId?: string;
+}) {
+  const adUnitId = configuration?.adUnitId;
   let context: AdvertisingContext | null = null;
   let session = 0;
   let consent: AdsConsentInfo | null = null;
-  let updated = false;
-  let formAttempted = false;
-  let initialized = false;
-  let initializing = false;
+  let consentStep: "update" | "form" | "complete" = "update";
+  let sdk: "idle" | "initializing" | "ready" = "idle";
   let disposed = false;
   let snapshot: AdvertisingSnapshot = {
     privacyOptionsRequired: false,
     privacyOptionsPending: false,
   };
   const listeners = new Set<() => void>();
-  const unit = adUnitId?.trim();
   const isFree = () => context?.ordinary === true && context.isFree();
   const canRequestAds = () =>
     !snapshot.privacyOptionsPending && consent?.canRequestAds === true;
   const interstitial = createInterstitialLifecycle({
-    adUnitId: unit,
+    adUnitId,
     isFree,
-    canLoad: () => initialized && canRequestAds(),
+    canLoad: () => sdk === "ready" && canRequestAds(),
   });
 
   function publish(pending: boolean) {
@@ -70,67 +70,70 @@ export function createAdvertisingPrivacy({ adUnitId }: { adUnitId?: string }) {
   }
 
   async function prepareAds() {
-    if (!unit || initializing || !isFree() || !canRequestAds()) {
+    if (!adUnitId || sdk === "initializing" || !isFree() || !canRequestAds()) {
       return;
     }
-    if (initialized) {
-      interstitial.preload();
-      return;
-    }
-    initializing = true;
-    try {
-      // UMP owns the IDFA prompt. Older Meta adapters need the actual system result.
-      if (
-        Platform.OS === "ios" &&
-        Number.parseInt(String(Platform.Version), 10) < 17
-      ) {
-        const { status } = await getTrackingPermissionsAsync();
-        if (!isFree() || !canRequestAds()) {
-          return;
+    if (sdk === "idle") {
+      sdk = "initializing";
+      try {
+        // UMP owns the IDFA prompt. On iOS 16, Meta needs the system result explicitly.
+        if (
+          Platform.OS === "ios" &&
+          Number.parseInt(String(Platform.Version), 10) < 17
+        ) {
+          const { status } = await getTrackingPermissionsAsync();
+          if (!isFree() || !canRequestAds()) {
+            return;
+          }
+          setAdvertiserTrackingEnabled(status === "granted");
         }
-        setAdvertiserTrackingEnabled(status === "granted");
+        await mobileAds().initialize();
+        sdk = "ready";
+      } catch {
+        Sentry.captureException(new Error("Mobile Ads initialization failed"));
+      } finally {
+        if (sdk === "initializing") {
+          sdk = "idle";
+        }
       }
-      await mobileAds().initialize();
-      initialized = true;
-    } catch {
-      Sentry.captureException(new Error("Mobile Ads initialization failed"));
-    } finally {
-      initializing = false;
     }
     interstitial.preload();
   }
 
   async function synchronize() {
-    if (disposed || !context?.ordinary || snapshot.privacyOptionsPending) {
+    if (
+      !configuration ||
+      disposed ||
+      !context?.ordinary ||
+      snapshot.privacyOptionsPending
+    ) {
       return;
     }
-    if (!updated || (unit && isFree() && !formAttempted)) {
+    if (
+      consentStep === "update" ||
+      (consentStep === "form" && adUnitId && isFree())
+    ) {
       publish(true);
       try {
-        if (!updated) {
-          updated = true;
-          try {
-            consent = await AdsConsent.requestInfoUpdate();
-          } catch {
-            // UMP may still authorize requests based on an earlier session.
-            formAttempted = true;
-            await readLastConsent();
-            Sentry.captureException(
-              new Error("Advertising consent update failed"),
-            );
-          }
+        if (consentStep === "update") {
+          consent = await AdsConsent.requestInfoUpdate();
+          consentStep = "form";
         }
-        if (unit && isFree() && !formAttempted) {
-          formAttempted = true;
-          try {
-            consent = await AdsConsent.loadAndShowConsentFormIfRequired();
-          } catch {
-            await readLastConsent();
-            Sentry.captureException(
-              new Error("Advertising consent form failed"),
-            );
-          }
+        if (adUnitId && isFree()) {
+          consent = await AdsConsent.loadAndShowConsentFormIfRequired();
+          consentStep = "complete";
         }
+      } catch {
+        Sentry.captureException(
+          new Error(
+            consentStep === "update"
+              ? "Advertising consent update failed"
+              : "Advertising consent form failed",
+          ),
+        );
+        consentStep = "complete";
+        // UMP can still authorize ads using permission from a prior launch.
+        await readLastConsent();
       } finally {
         publish(false);
       }
@@ -147,16 +150,15 @@ export function createAdvertisingPrivacy({ adUnitId }: { adUnitId?: string }) {
       };
     },
     setContext(next: AdvertisingContext | null) {
-      if (
+      const scopeChanged =
         next?.subject !== context?.subject ||
         next?.accountId !== context?.accountId ||
-        next?.ordinary !== context?.ordinary
-      ) {
-        session++;
-        interstitial.invalidate();
-      }
+        next?.ordinary !== context?.ordinary;
       context = next;
-      if (!isFree()) {
+      if (scopeChanged) {
+        session++;
+      }
+      if (scopeChanged || !isFree()) {
         interstitial.invalidate();
       }
     },
@@ -179,8 +181,8 @@ export function createAdvertisingPrivacy({ adUnitId }: { adUnitId?: string }) {
         throw new Error("Advertising privacy options failed");
       } finally {
         publish(false);
+        void prepareAds();
       }
-      void prepareAds();
     },
     openSportingDestination(open: () => void, isCurrent: () => boolean) {
       const origin = session;
@@ -201,10 +203,5 @@ export function createAdvertisingPrivacy({ adUnitId }: { adUnitId?: string }) {
 /** Shares the consent refresh and counter for the lifetime of the application root. */
 export function createInstallationAdvertisingPrivacy() {
   const advertising = Constants.expoConfig?.extra?.advertising;
-  return createAdvertisingPrivacy({
-    adUnitId:
-      Platform.OS === "ios"
-        ? advertising?.iosInterstitialUnitId
-        : advertising?.androidInterstitialUnitId,
-  });
+  return createAdvertisingPrivacy(advertising?.[Platform.OS]);
 }

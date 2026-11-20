@@ -11,14 +11,12 @@ import { useAccessAdmission } from "@/features/access/queries/use-access-admissi
 import { usePro } from "@/features/pro";
 import type { createInstallationAdvertisingPrivacy } from "./advertising-privacy";
 
-type AdvertisingActions = {
-  privacyOptionsRequired: boolean;
-  privacyOptionsPending: boolean;
-  showPrivacyOptions(): Promise<void>;
-  openSportingDestination(open: () => void, isCurrent: () => boolean): void;
-};
+type AdvertisingOwner = ReturnType<typeof createInstallationAdvertisingPrivacy>;
 
-const Advertising = createContext<AdvertisingActions | null>(null);
+const Advertising = createContext<Pick<
+  AdvertisingOwner,
+  "subscribe" | "getSnapshot" | "showPrivacyOptions" | "openSportingDestination"
+> | null>(null);
 
 export function AdvertisingProvider({
   children,
@@ -27,7 +25,7 @@ export function AdvertisingProvider({
 }: Readonly<
   PropsWithChildren<{
     enabled: boolean;
-    privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
+    privacy: AdvertisingOwner;
   }>
 >) {
   const { subject, accountId } = useAccountSession();
@@ -49,19 +47,7 @@ export function AdvertisingProvider({
   useEffect(() => {
     void privacy.synchronize();
   }, [privacy, ordinary, subject, accountId, pro.state.status]);
-  const options = useSyncExternalStore(privacy.subscribe, privacy.getSnapshot);
-
-  return (
-    <Advertising
-      value={{
-        ...options,
-        showPrivacyOptions: privacy.showPrivacyOptions,
-        openSportingDestination: privacy.openSportingDestination,
-      }}
-    >
-      {children}
-    </Advertising>
-  );
+  return <Advertising value={privacy}>{children}</Advertising>;
 }
 
 export function useAdvertising() {
@@ -70,4 +56,12 @@ export function useAdvertising() {
     throw new Error("useAdvertising requires AdvertisingProvider");
   }
   return value;
+}
+
+export function useAdvertisingChoices() {
+  const { subscribe, getSnapshot, showPrivacyOptions } = useAdvertising();
+  return {
+    ...useSyncExternalStore(subscribe, getSnapshot),
+    showPrivacyOptions,
+  };
 }

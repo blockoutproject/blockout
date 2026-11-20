@@ -103,6 +103,49 @@ it("keeps advertising options available to Pro without prompting or initializing
   expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
 });
 
+it("prepares ads after a failed choices form if UMP still permits requests and rights became free", async () => {
+  // Given
+  const result = Promise.withResolvers<AdsConsentInfo>();
+  jest
+    .mocked(AdsConsent.showPrivacyOptionsForm)
+    .mockReturnValueOnce(result.promise);
+  const { privacy, context } = admittedUser("test-unit");
+  privacy.setContext({ ...context, isFree: () => false });
+  await privacy.synchronize();
+  const opening = privacy.showPrivacyOptions();
+  const failure = expect(opening).rejects.toThrow(
+    "Advertising privacy options failed",
+  );
+
+  // When
+  privacy.setContext(context);
+  await privacy.synchronize();
+  result.reject(new Error("Synthetic UMP failure"));
+  await failure;
+
+  // Then
+  expect(mockInitialize).toHaveBeenCalledTimes(1);
+  expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit");
+});
+
+it("does not contact UMP when advertising is unconfigured on this platform", async () => {
+  // Given
+  const privacy = createAdvertisingPrivacy(undefined);
+  privacy.setContext({
+    ordinary: true,
+    subject: null,
+    accountId: null,
+    isFree: () => true,
+  });
+
+  // When
+  await privacy.synchronize();
+
+  // Then
+  expect(AdsConsent.requestInfoUpdate).not.toHaveBeenCalled();
+  expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
+});
+
 it("allows privacy options as soon as UMP is ready during SDK initialization", async () => {
   // Given
   const started = Promise.withResolvers<void>();

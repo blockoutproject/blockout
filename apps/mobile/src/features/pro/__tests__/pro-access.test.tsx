@@ -64,8 +64,8 @@ jest.mock("expo-constants", () => {
             offeringIdentifier: "default",
           },
           advertising: {
-            iosInterstitialUnitId: "synthetic-unit",
-            androidInterstitialUnitId: "synthetic-unit",
+            ios: { adUnitId: "synthetic-unit" },
+            android: { adUnitId: "synthetic-unit" },
           },
         },
       },
@@ -106,7 +106,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",
-    OPENED: "opened",
     CLOSED: "closed",
     ERROR: "error",
   },
@@ -490,7 +489,6 @@ it("presents the single F11 interstitial on the tenth sporting opening and relea
 
   // When
   await act(() => {
-    ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.CLOSED);
   });
@@ -606,10 +604,7 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await visitMappedTeam(9);
   await userEvent.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
-  await act(() => {
-    ad.emit(AdEventType.OPENED);
-    ad.emit(AdEventType.CLOSED);
-  });
+  await act(() => ad.emit(AdEventType.CLOSED));
   await waitFor(() => expect(screen).toHavePathname(`/teams/${sportingId}`));
   await act(() => router.back());
   await userEvent.press(screen.getByRole("button", { name: "Suivre" }));

@@ -120,7 +120,7 @@ export function SearchScene({
       resource={resource}
       onOpen={(kind, id) => {
         Keyboard.dismiss();
-        void sportingNavigation.navigate(kind, id);
+        sportingNavigation.navigate(kind, id);
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}

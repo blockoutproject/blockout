@@ -52,6 +52,7 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
+          advertising: { ios: {}, android: {} },
           revenueCat: {
             iosApiKey: "test_public",
             offeringIdentifier: "default",
@@ -475,6 +476,7 @@ it("opens sporting search directly when a guest skips discovery", async () => {
     await screen.findByPlaceholderText("Rechercher une équipe…"),
   ).toBeOnTheScreen();
   expect(screen).toHavePathname("/search");
+  await waitFor(() => expect(requestConsent).toHaveBeenCalledTimes(1));
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(true);
 });

@@ -41,6 +41,7 @@ jest.mock("expo-constants", () => ({
   default: {
     expoConfig: {
       extra: {
+        advertising: { ios: {}, android: {} },
         revenueCat: { iosApiKey: "test_public", androidApiKey: "test_public" },
       },
     },
@@ -142,6 +143,7 @@ async function mountProfile() {
       index: () => null,
       onboarding: () => null,
       "(operations)/_layout": () => <Stack />,
+      "(recovery)/_layout": () => <Stack />,
       "(recovery)/sign-in": () => null,
       "(ordinary)/_layout": OrdinaryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,

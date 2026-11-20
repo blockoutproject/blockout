@@ -1,20 +1,21 @@
 import { ShieldCheck } from "lucide-react-native";
-import { useAdvertising } from "@/features/advertising/advertising-provider";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { EntryRow } from "@/shared/components/entry-row";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-/** Opens the provider's form from Profile when UMP requires a privacy entry point. */
-export function AdvertisingChoicesEntry() {
-  const { privacyOptionsRequired, privacyOptionsPending, showPrivacyOptions } =
-    useAdvertising();
+type AdvertisingChoicesEntryProps = {
+  pending: boolean;
+  showPrivacyOptions(): Promise<void>;
+};
+
+/** Opens the provider's privacy options form directly from Profile. */
+export function AdvertisingChoicesEntry({
+  pending,
+  showPrivacyOptions,
+}: Readonly<AdvertisingChoicesEntryProps>) {
   const { colors } = useTheme();
   const feedback = useActionFeedback();
-
-  if (!privacyOptionsRequired) {
-    return null;
-  }
 
   async function openChoices() {
     feedback.clear();
@@ -31,7 +32,7 @@ export function AdvertisingChoicesEntry() {
     <EntryRow
       label="Choix publicitaires"
       disclosure
-      disabled={privacyOptionsPending}
+      disabled={pending}
       onPress={() => void openChoices()}
       icon={
         <ShieldCheck

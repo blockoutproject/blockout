@@ -91,7 +91,7 @@ Integrate at the existing in-app sporting page navigation boundary, including Se
 
 ### Mediation and presentation
 
-Use one standard V2 AdMob interstitial unit per platform and the matching Meta bidding placement in its mediation group. Existing mobile dependencies and supported native pins supply both networks. Keep Google demo IDs for local test builds and require real IDs for enabled production serving. A build without a configured production interstitial unit sends no production ad requests. V1 stays on its existing units until cutover.
+Use one standard V2 AdMob interstitial unit per platform and the matching Meta bidding placement in its mediation group. Existing mobile dependencies and supported native pins supply both networks. Google demo IDs support local testing. In production, a platform with a real AdMob app ID can keep its UMP choices available even with no interstitial unit. Serving requires a real app ID and a real unit. V1 stays on its existing units until cutover.
 
 Use the imperative `InterstitialAd` API. Preload one ad while eligible and check the documented one-hour expiry before use. Count eligible navigations in groups of ten. When the tenth cannot present a ready ad, open the destination immediately and start a new cycle. Save only the continuation for a presentation attempt. Consume it once on dismissal or presentation failure, including a rejected `show()`. After dismissal, preload the next ad if eligible. An ad loaded after navigation never presents by itself. [Research](research.md#advertising-lifecycle-and-failure-limits) explains the API choice.
 

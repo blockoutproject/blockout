@@ -69,7 +69,7 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 
 ## Phase 4: User Story 2 — Receive advertising consistent with entitlements and choices (Priority: P1)
 
-**Goal**: Use native UMP consent and privacy choices without age collection or access gates.
+**Goal**: Use native UMP consent and privacy choices without age collection or making advertising a condition for entry.
 
 **Scope**: A05–A11; FR-007–014; SC-003–004.
 
@@ -105,7 +105,7 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 
 - [x] T021 [P] [US3] Write failing HTML routing/security tests in `apps/backend/src/test/java/com/blockout/backend/legal/LegalDocumentsWebMvcTest.java`: GET `/legals/imprint`, `/legals/privacy`, `/legals/terms` returns 200 UTF-8 text/html with consistent title/version/body/date, absent content returns a truthful 404 page, and standalone access remains unauthenticated through maintenance. Add no document JSON schema, write permission or broad security bypass.
 - [x] T022 [P] [US3] Validate the three actual bundled resources in `apps/backend/src/test/java/com/blockout/backend/legal/LegalDocumentContentTest.java`: require complete content, consistent nonempty title, visible free-form version and a syntactically valid modification date, plus the external account-deletion direction. Their factual accuracy needs T024/T039 review. A version label imposes no increment rule or acceptance history.
-- [x] T023 [P] [US3] Protect locked native presentation and unusable backend configuration in `apps/mobile/src/features/privacy/__tests__/open-legal-document.test.ts`. The actual profile actions in `legal-entry.test.tsx` own the three named public URLs, safe opening failure feedback and another explicit link press. `accounts/__tests__/public-account-links.test.tsx` owns the sign-in footer handoff; `advertising/__tests__/sporting-ad-entry.test.tsx` proves legal actions do not consume an advertising opportunity. Reuse F12's root admission tests for blocked in-app entry instead of repeating its gate matrix through legal links. Standalone URLs remain public, reading creates no acceptance, and the sporting PDF reader is not reused for HTML legal content.
+- [x] T023 [P] [US3] Protect locked native presentation and unusable backend configuration in `apps/mobile/src/features/privacy/__tests__/open-legal-document.test.ts`. The actual profile actions in `legal-entry.test.tsx` own the three named public URLs, safe opening failure feedback and another explicit link press. `accounts/__tests__/public-account-links.test.tsx` owns the sign-in footer handoff. Reuse F12's root admission tests for blocked in-app entry instead of repeating its gate matrix through legal links. Standalone URLs remain public, reading creates no acceptance, and the sporting PDF reader is not reused for HTML legal content.
 
 ### Implementation and qualification for User Story 3
 

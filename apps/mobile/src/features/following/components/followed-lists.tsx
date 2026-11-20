@@ -392,10 +392,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         if (row.kind === "item") {
           content = (
             <View style={styles.card}>
-              <SportingEntityCard
-                {...row.item}
-                onOpen={(kind, id) => void sporting.navigate(kind, id)}
-              />
+              <SportingEntityCard {...row.item} onOpen={sporting.navigate} />
             </View>
           );
         } else if (!list.query.data) {
