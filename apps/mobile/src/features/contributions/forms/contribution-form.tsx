@@ -96,9 +96,6 @@ export function ContributionForm({
       // A reopened route may already own this control while the original callback is detached.
       finish(accepted.contribution.url);
     } catch (error) {
-      if (!mounted.current) {
-        return;
-      }
       if (error instanceof ApiError && error.status === 422) {
         setError("url", {
           message: "Le lien a été refusé. Votre saisie est conservée.",
@@ -134,9 +131,6 @@ export function ContributionForm({
       const accepted = await attempt;
       finish(accepted.contribution.url);
     } catch {
-      if (!mounted.current) {
-        return;
-      }
       feedback.error();
     }
   }

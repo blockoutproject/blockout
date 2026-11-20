@@ -11,7 +11,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Check } from "lucide-react-native";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import {
   Modal,
@@ -55,7 +55,6 @@ export function ApplicationVersionsForm({
   const actionFeedback = useActionFeedback();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
-  const mounted = useRef(false);
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
@@ -89,12 +88,6 @@ export function ApplicationVersionsForm({
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
   const busy = disabled || editing.content.isPending;
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
@@ -107,9 +100,7 @@ export function ApplicationVersionsForm({
         toApplicationVersionsRequest(draft, dirtyFields),
       );
       reset(applicationVersionsValues(accepted));
-      if (mounted.current) {
-        setAcknowledged(undefined);
-      }
+      setAcknowledged(undefined);
     } catch {
       actionFeedback.error();
     }

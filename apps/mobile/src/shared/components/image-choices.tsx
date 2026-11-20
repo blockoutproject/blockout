@@ -51,7 +51,7 @@ export function useImageChoices(options: ImageChoicesOptions) {
       }
       inFlight.current = undefined;
       const authorized = latest.current;
-      if (!mounted.current || authorized.disabled) {
+      if (authorized.disabled) {
         return;
       }
       if (action === "choose") {
