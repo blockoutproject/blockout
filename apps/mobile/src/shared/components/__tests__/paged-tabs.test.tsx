@@ -152,7 +152,7 @@ it("mounts the available previews up front and admits content at settlement", as
   ).toBeNull();
 });
 
-it("replaces only an invalidated scene and does not revive its earlier reading context", async () => {
+it("shows the preview of an invalidated scene until it is selected again", async () => {
   // Given
   const view = await render(<Example resetKey="criteria-a" />);
   await layoutNativeTabs();
@@ -163,6 +163,16 @@ it("replaces only an invalidated scene and does not revive its earlier reading c
 
   // When
   await view.rerender(<Example resetKey="criteria-b" />);
+
+  // Then: the replacement has not inherited the previous context's admission.
+  expect(
+    screen.getByText("Aperçu décoratif", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Note retenue", { includeHiddenElements: true }),
+  ).toBeNull();
+
+  // When
   await user.press(screen.getByRole("tab", { name: "Deuxième" }));
 
   // Then

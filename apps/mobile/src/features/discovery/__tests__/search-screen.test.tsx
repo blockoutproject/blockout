@@ -96,14 +96,14 @@ let publicClient = createQueryClient();
 
 /** Controls HTTP only; generation, response validation, Query, session and admission stay real. */
 function publicReads(url: string): Promise<Response> {
-  const path = new URL(url).pathname;
+  const { pathname: path, searchParams } = new URL(url);
   if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
   }
   if (path.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
-        resourceType: new URL(url).searchParams.get("resourceType"),
+        resourceType: searchParams.get("resourceType"),
         seasons: [season],
         divisions: [],
         formats: ["6x6", "4x4", "2x2"],
@@ -122,11 +122,16 @@ function publicReads(url: string): Promise<Response> {
     );
   }
   if (path.endsWith("/teams")) {
+    const name =
+      searchParams.get("q") === "Nouveau"
+        ? "Nouvelle équipe"
+        : "Volley professionnel";
+
     return Promise.resolve(
       Response.json({
         teams: [
           {
-            team: { id: firstId, name: "Volley professionnel" },
+            team: { id: firstId, name },
             season,
             classification: { format: "6x6", gender: "female" },
             professional: true,
@@ -415,17 +420,22 @@ it("reads changed text only for the selected resource and preserves equivalent n
   await screen.findByText("Championnat public · Phase finale");
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Volley professionnel");
+  const results = screen.getByLabelText("Résultats de recherche");
   mockFetch.mockClear();
-  // Equivalent normalized criteria retain the accepted scenes without another read.
+
+  // When: the user enters equivalent normalized criteria.
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "VOLLEY");
+
+  // Then: the same list and its results remain without another read.
   expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Résultats de recherche")).toBe(results);
   expect(screen.getByText("Volley professionnel")).toBeOnTheScreen();
 
-  // When: the common RHF text changes while Teams is selected.
+  // When: the shared text changes while Teams is selected.
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Nouveau");
-  await screen.findByText("Volley professionnel");
 
-  // Then: retained neighbour contexts perform no read for that new text.
+  // Then: only Teams reads and shows the new results.
+  expect(await screen.findByText("Nouvelle équipe")).toBeOnTheScreen();
   const reads = mockFetch.mock.calls
     .map(([url]) => new URL(String(url)))
     .filter((url) => /\/(clubs|teams|pools)$/.test(url.pathname));
