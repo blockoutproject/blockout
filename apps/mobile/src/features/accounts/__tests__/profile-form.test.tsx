@@ -1239,36 +1239,73 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
   expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
 });
 
-it("preserves the draft when native selection is cancelled or permission is refused", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mountProfile();
-  await screen.findByDisplayValue("Original");
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "My_draft");
+it.each<{
+  outcome: string;
+  select: () => Promise<ImagePicker.ImagePickerResult>;
+  failed: boolean;
+}>([
+  {
+    outcome: "cancellation",
+    select: async () => ({ canceled: true, assets: null }),
+    failed: false,
+  },
+  {
+    outcome: "permission refusal",
+    select: async () => {
+      throw new Error("Permission denied");
+    },
+    failed: true,
+  },
+  {
+    outcome: "confirmation without an image",
+    select: async () => ({ canceled: false, assets: [] }),
+    failed: true,
+  },
+])(
+  "preserves the profile photo draft after $outcome",
+  async ({ select, failed }) => {
+    // Given
+    const user = userEvent.setup();
+    jest
+      .mocked(ImagePicker.launchImageLibraryAsync)
+      .mockResolvedValueOnce({
+        canceled: false,
+        assets: [
+          {
+            uri: "file:///cache/ImagePicker/source.png",
+            width: 64,
+            height: 64,
+          },
+        ],
+      })
+      .mockImplementationOnce(select);
+    await mountProfile();
+    await user.clear(await screen.findByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "My_draft");
+    await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
+    await act(nativeImageChoiceAction("Choisir une photo"));
+    await screen.findByRole("image", { name: "Miniature : Photo de profil" });
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await act(nativeImageChoiceAction("Choisir une photo"));
-  jest
-    .mocked(ImagePicker.launchImageLibraryAsync)
-    .mockRejectedValue(new Error("Permission denied"));
-  await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await act(nativeImageChoiceAction("Choisir une photo"));
+    // When
+    await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
+    await act(nativeImageChoiceAction("Choisir une photo"));
 
-  // Then
-  await screen.findByText(TECHNICAL_ERROR);
-  expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
-  expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
-    expect.objectContaining({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-    }),
-  );
-  expect(
-    mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
-  ).toBe(false);
-});
+    // Then
+    if (failed) {
+      expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+    }
+    expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("image", { name: "Miniature : Photo de profil" }),
+    ).toBeOnTheScreen();
+    expect(mockFile.delete).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
+    ).toBe(false);
+  },
+);
 
 it("shows the size toast for a picked photo one byte over 5 MiB", async () => {
   // Given: the native picker delivers a PNG and the file reports its actual byte size.
@@ -1331,7 +1368,7 @@ it("keeps dirty input and ordinary failure feedback after a lost save response",
   expect(mockNavigate).not.toHaveBeenCalled();
 });
 
-it("submits prepared replacement then explicit removal without a username edit", async () => {
+it("saves the returned rectangular photo and then removes it on explicit saves", async () => {
   // Given
   const user = userEvent.setup();
   await mountProfile();
@@ -1339,12 +1376,23 @@ it("submits prepared replacement then explicit removal without a username edit",
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
-      { uri: "file:///cache/ImagePicker/source.png", width: 64, height: 64 },
+      { uri: "file:///cache/ImagePicker/source.png", width: 64, height: 96 },
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
   await act(nativeImageChoiceAction("Choisir une photo"));
   await screen.findByRole("image", { name: "Miniature : Photo de profil" });
+  expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(
+    expect.objectContaining({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      allowsMultipleSelection: false,
+    }),
+  );
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PATCH"),
+  ).toBe(false);
   const bodies: FormData[] = [];
   mockFetch.mockImplementation(async (_url, request) => {
     if (request?.method === "PATCH") {

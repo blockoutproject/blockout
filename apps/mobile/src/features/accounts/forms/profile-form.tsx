@@ -58,12 +58,9 @@ export function ProfileForm({
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
   const selection = useImageSelection({
+    mode: "crop",
     canSelect: () => !disabled && !save.isPending,
-    onSelect: async (assets) => {
-      const selected = assets[0];
-      if (!selected) {
-        return;
-      }
+    onSelect: async ([selected]) => {
       try {
         const prepared = await copySelectedImage(selected);
         if (active.current) {

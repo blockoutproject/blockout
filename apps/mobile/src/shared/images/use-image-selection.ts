@@ -11,13 +11,13 @@ import { useActionFeedback } from "@/shared/components/action-feedback";
  * Key or unmount the owner when its session/resource changes; feature callbacks also guard their identity.
  */
 export interface ImageSelectionOptions {
+  mode: "crop" | "single" | "multiple";
   /** Checks current authority/operations before native entry and again before delivering the selected files. */
   canSelect?: () => boolean;
   onSelect: (
     assets: ImagePicker.ImagePickerAsset[],
     replaceId?: string,
   ) => void | Promise<void>;
-  multiple?: boolean;
   /** Remaining native capacity for multiple additions; replacements always select one asset. */
   selectionLimit?: number;
 }
@@ -32,9 +32,9 @@ export interface ImageSelection {
 
 /** Owns one native selection/preparation loan, rejecting duplicate events before React rerenders. */
 export function useImageSelection({
+  mode,
   canSelect,
   onSelect,
-  multiple = false,
   selectionLimit = 1,
 }: ImageSelectionOptions): ImageSelection {
   const feedback = useActionFeedback();
@@ -56,14 +56,18 @@ export function useImageSelection({
   async function choose(replaceId?: string) {
     let assets: ImagePicker.ImagePickerAsset[] = [];
     try {
-      const allowsMultipleSelection = multiple && replaceId === undefined;
+      const allowsEditing = mode === "crop";
+      const allowsMultipleSelection =
+        mode === "multiple" && replaceId === undefined;
       // The image-only system library requires no broad photo permission request.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         preferredAssetRepresentationMode:
           ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        allowsEditing,
+        aspect: allowsEditing ? [1, 1] : undefined,
         allowsMultipleSelection,
-        selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
+        selectionLimit: allowsMultipleSelection ? selectionLimit : undefined,
       });
       assets = result.assets ?? [];
       if (
@@ -71,6 +75,10 @@ export function useImageSelection({
         !result.canceled &&
         current.current.canSelect?.() !== false
       ) {
+        if (allowsEditing && assets.length !== 1) {
+          feedback.error();
+          return;
+        }
         await current.current.onSelect(assets, replaceId);
       }
     } catch {
