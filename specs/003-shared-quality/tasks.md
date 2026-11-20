@@ -232,7 +232,7 @@ The existing application tasks own this proof: T015/T016 verify schema validatio
 
 - [ ] T077 [US6] Requalify live iOS system text enlargement when a supported Expo/React Native correction is available, using `specs/003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets`. Repeat the reproduced live size-change, keyboard-dismissal and later-layout sequence and compare cold launch at enlarged text. Record the actual compatible versions and result; add no remount, manual font/layout calculation or dependency patch. This qualification is not a prerequisite for T069, T070 or T071.
 
-- [ ] T252 [US6] Verify FR-030/A20, FR-039 and FR-043/A42 through [the reduced motion cases](quickstart.md#controls-appearance-and-accessibility). Use focused first-render checks for the shared Stack options and error toast, including the root’s splash override. Exercise representative iOS/Android cold launch and live preference changes across the Stack, toast, capsule, pager and initial content. Use compatible native clients and the affected README checks. Record observed and unavailable boundaries in delivery evidence.
+- [x] T252 [US6] Verify FR-030/A20, FR-039 and FR-043/A42 through [the reduced motion cases](quickstart.md#controls-appearance-and-accessibility). Use focused first-render checks for the shared Stack options and error toast, including the root’s splash override. Exercise representative iOS/Android cold launch and live preference changes across the Stack, toast, capsule, pager and initial content. Use compatible native clients and the affected README checks. Record observed and unavailable boundaries in delivery evidence.
 
 ### Native candidate preparation and qualification
 
