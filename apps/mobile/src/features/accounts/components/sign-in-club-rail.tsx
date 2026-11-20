@@ -11,7 +11,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 const marks = ["MV", "CO", "RC", "VB", "AS", "NV", "TL", "SC"];
 const markSize = 38;
@@ -19,10 +18,9 @@ const period = marks.length * (markSize + tokens.spacing.sm);
 
 /** Repeats one decorative motif toward the right; the existing live motion preference owns the loop. */
 export function SignInClubRail() {
-  const { colors, membership } = useTheme();
+  const { colors, membership, reducedMotion } = useTheme();
   const [width, setWidth] = useState(0);
   const progress = useSharedValue(0);
-  const reducedMotion = useReducedMotion();
   const copies = Math.ceil(width / period) + 2;
   const animation = useAnimatedStyle(() => ({
     transform: [{ translateX: (progress.get() - 1) * period }],

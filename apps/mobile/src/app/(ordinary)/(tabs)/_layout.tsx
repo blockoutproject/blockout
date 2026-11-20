@@ -47,7 +47,6 @@ import {
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import {
   NavigationAccentContext,
@@ -67,11 +66,9 @@ interface SelectionInk {
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
   const session = useAccountSession();
-  const { colors, membership } = useTheme();
+  const { colors, membership, reducedMotion } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
-  // Read the live setting instead of Reanimated's system preference captured at startup.
-  const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
   const [accent, setAccent] = useState<NavigationAccentSelection>();
@@ -150,7 +147,6 @@ export default function TabsLayout() {
             }}
             layout={selectionLayout}
             selectedFill={animatedFill}
-            reducedMotion={reducedMotion}
             style={{
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
@@ -164,7 +160,6 @@ export default function TabsLayout() {
                 icon={House}
                 hidden={guest}
                 style={columns}
-                reducedMotion={reducedMotion}
                 onFocusedLayout={setSelectionLayout}
               />
             </TabTrigger>
@@ -174,7 +169,6 @@ export default function TabsLayout() {
                 selectionInk={selectionInk}
                 icon={Search}
                 style={columns}
-                reducedMotion={reducedMotion}
                 onFocusedLayout={setSelectionLayout}
               />
             </TabTrigger>
@@ -185,7 +179,6 @@ export default function TabsLayout() {
                 icon={Bell}
                 hidden={guest}
                 style={columns}
-                reducedMotion={reducedMotion}
                 onFocusedLayout={setSelectionLayout}
               />
             </TabTrigger>
@@ -195,7 +188,6 @@ export default function TabsLayout() {
                 selectionInk={selectionInk}
                 icon={UserRound}
                 style={columns}
-                reducedMotion={reducedMotion}
                 onFocusedLayout={setSelectionLayout}
               />
             </TabTrigger>
@@ -211,20 +203,18 @@ interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   target: RefObject<ViewInstance | null>;
   layout?: LayoutRectangle;
   selectedFill: DerivedValue<string>;
-  reducedMotion: boolean;
 }
 
 /** Keeps the eligible Pro offer above the capsule inside one visibility, measurement and safe-area owner. */
 function NavigationCapsule({
   children,
   layout,
-  reducedMotion,
   selectedFill,
   target,
   style,
   ...props
 }: Readonly<NavigationCapsuleProps>) {
-  const { scheme, colors, membership } = useTheme();
+  const { scheme, colors, membership, reducedMotion } = useTheme();
   const indicatorFrame = useAnimatedStyle(() => {
     if (!layout) {
       return {};
@@ -284,7 +274,6 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   icon: LucideIcon;
   hidden?: boolean;
   selectionInk: SelectionInk;
-  reducedMotion: boolean;
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
 
@@ -296,13 +285,12 @@ function TabButton({
   isFocused,
   style,
   onLayout,
-  reducedMotion,
   selectionInk: { light, dark, lightMix, initialFill },
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {
     if (isFocused) {

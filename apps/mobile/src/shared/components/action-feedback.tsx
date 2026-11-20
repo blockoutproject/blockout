@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
+  ReduceMotion,
   withTiming,
   type EntryAnimationsValues,
   type ExitAnimationsValues,
@@ -26,7 +27,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FullWindowOverlay } from "react-native-screens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { TECHNICAL_ERROR } from "./error-copy";
 
 /** One safe error presentation; its lifetime never owns or releases command recovery. */
@@ -176,11 +176,10 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
   };
 }
 
-/** Applies the approved surface, icon, typography and reduced-motion-aware entry/exit without gestures. */
+/** Uses the live theme to enable motion because Reanimated's default uses the startup preference. */
 function ErrorToast({ message }: Readonly<{ message: string }>) {
-  const { colors } = useTheme();
-  const reducedMotion = useReducedMotion();
-  const duration = reducedMotion ? 1 : 240;
+  const { colors, reducedMotion } = useTheme();
+  const duration = 240;
 
   /** Reanimated receives the measured height, preserving the approved offscreen travel with text scaling. */
   function enter(values: EntryAnimationsValues) {
@@ -195,6 +194,7 @@ function ErrorToast({ message }: Readonly<{ message: string }>) {
             translateY: withTiming(0, {
               duration,
               easing: Easing.bezier(0, 0, 0.58, 1),
+              reduceMotion: ReduceMotion.Never,
             }),
           },
         ],
@@ -213,6 +213,7 @@ function ErrorToast({ message }: Readonly<{ message: string }>) {
             translateY: withTiming(-(values.currentHeight + 60), {
               duration,
               easing: Easing.bezier(0.42, 0, 1, 1),
+              reduceMotion: ReduceMotion.Never,
             }),
           },
         ],
@@ -222,8 +223,8 @@ function ErrorToast({ message }: Readonly<{ message: string }>) {
 
   return (
     <Animated.View
-      entering={enter}
-      exiting={exit}
+      entering={reducedMotion ? undefined : enter}
+      exiting={reducedMotion ? undefined : exit}
       style={[
         styles.surface,
         { backgroundColor: colors.surface, borderColor: colors.error },

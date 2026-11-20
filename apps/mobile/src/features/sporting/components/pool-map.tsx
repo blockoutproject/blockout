@@ -46,7 +46,6 @@ import { EmptyState } from "@/shared/components/state-card";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
@@ -241,9 +240,8 @@ function ParticipantMap({
   onRefresh: () => void;
   refreshing: boolean;
 }>) {
-  const { colors, scheme } = useTheme();
+  const { colors, reducedMotion, scheme } = useTheme();
   const bottomInset = useBottomContentInset();
-  const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
   const currentActive = useRef(active);
   useLayoutEffect(() => {

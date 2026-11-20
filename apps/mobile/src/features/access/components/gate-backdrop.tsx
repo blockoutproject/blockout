@@ -12,7 +12,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 const strips = [
   ["RVC", "25–19", "NVB", "REC", "LIEN", "ASV"],
@@ -83,7 +82,7 @@ function GateStrip({
 /** Compact diagonal rails share the foreground's center; native reduced motion keeps them still, including live changes. */
 export function GateBackdrop() {
   const [area, setArea] = useState({ width: 0, height: 0 });
-  const reducedMotion = useReducedMotion();
+  const { reducedMotion } = useTheme();
   const progress = useSharedValue(0);
   // Inverse rotation of the measured stage bounds supplies the horizontal coverage, without a fixed overscan.
   const coverageWidth =

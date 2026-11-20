@@ -21,7 +21,6 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { StandingTable, type StandingLayout } from "./standing-table";
 import { StandingsLoading } from "./standings-loading";
@@ -59,8 +58,7 @@ export function PoolStandings({
 }: Readonly<PoolStandingsProps>) {
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(poolId));
-  const { colors } = useTheme();
-  const reducedMotion = useReducedMotion();
+  const { colors, reducedMotion } = useTheme();
   const [layout, setLayout] = useState<StandingLayout>("list");
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);

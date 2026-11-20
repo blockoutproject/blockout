@@ -37,7 +37,7 @@ import { NavigationTabBar } from "./navigation-tab-bar";
 import { PageScrollContext } from "./page-scroll-binding";
 import { PagedTabHeaderOffsetContext } from "./paged-tab-context";
 import { tokens } from "@/shared/theme/tokens";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 export interface PagedTab {
   id: string;
@@ -96,7 +96,7 @@ export function PagedTabs({
 }: Readonly<PagedTabsProps>) {
   const horizontal = useRef<ScrollViewInstance>(null);
   const blurTarget = useRef<ViewInstance>(null);
-  const reducedMotion = useReducedMotion();
+  const { reducedMotion } = useTheme();
   const topInset = useContext(NavigationSafeAreaContext);
   const window = useWindowDimensions();
   const [{ width, height }, setViewport] = useState({
@@ -383,7 +383,6 @@ export function PagedTabs({
       selected={selectedIndex}
       position={position}
       onTabPress={goTo}
-      reducedMotion={reducedMotion}
       contextColor={contextColor}
     />
   );

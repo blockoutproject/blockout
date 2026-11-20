@@ -14,7 +14,6 @@ import Animated, {
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { IconButton } from "./icon-button";
-import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 /** Ordinary page chrome; tab roots omit Back, while details use history or their owning departure. */
 export interface PageHeaderProps {
@@ -42,9 +41,8 @@ export function PageHeader({
   revealOffset,
 }: Readonly<PageHeaderProps>) {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   const centered = titleAlignment === "center";
-  const reducedMotion = useReducedMotion();
   const visibility = useDerivedValue(() => {
     if (revealOffset === undefined) {
       return 1;

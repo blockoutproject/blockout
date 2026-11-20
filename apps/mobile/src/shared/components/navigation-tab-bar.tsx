@@ -20,7 +20,6 @@ interface NavigationTabBarProps {
   selected: number;
   position: SharedValue<number>;
   onTabPress: (index: number) => void;
-  reducedMotion: boolean;
   contextColor?: string;
 }
 
@@ -30,10 +29,9 @@ export function NavigationTabBar({
   selected,
   position,
   onTabPress,
-  reducedMotion,
   contextColor,
 }: Readonly<NavigationTabBarProps>) {
-  const { colors, membership } = useTheme();
+  const { colors, membership, reducedMotion } = useTheme();
   const selection = contextColor
     ? { fill: contextColor, content: solidForeground(contextColor) }
     : membership;
