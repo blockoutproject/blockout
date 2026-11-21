@@ -26,7 +26,7 @@ tags:
   - name: SportingPresentation
     description: Atomic sporting presentation and private contact correction.
   - name: SportingClassification
-    description: Atomic pack and pool acquisition classification corrections.
+    description: Pack and pool mapping and atomic acquisition classification corrections.
   - name: DivisionAdministration
     description: Configured divisions, creation and explicit activity commands.
   - name: Following
@@ -150,6 +150,12 @@ paths:
     $ref: ./sporting/paths.yaml#/TeamPresentation
   /administration/pools/{poolId}/presentation:
     $ref: ./sporting/paths.yaml#/PoolPresentation
+  /administration/packs:
+    $ref: ./sporting/paths.yaml#/MappingPacks
+  /administration/packs/filter-options:
+    $ref: ./sporting/paths.yaml#/MappingFilterOptions
+  /administration/packs/{packId}:
+    $ref: ./sporting/paths.yaml#/MappingPack
   /administration/packs/{packId}/classification:
     $ref: ./sporting/paths.yaml#/PackClassification
   /administration/pools/{poolId}/classification:

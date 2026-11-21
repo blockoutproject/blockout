@@ -16,6 +16,11 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
@@ -39,6 +44,15 @@ import java.util.UUID;
 
 /** Application-owned identity operations; managed entities never cross this port. */
 public interface SportingStore {
+  /** Reads a bounded slice after applying the search and filters to the mapping population. */
+  PackMappingPage mappingPacks(MappingPackFilters filters, long page, int size);
+
+  /** Reads the pack summary and a bounded slice of current catalogue children. */
+  Optional<PackMappingDetail> mappingPack(UUID packId, long page, int size);
+
+  /** Reads distinct options from the complete mapping population, independent of pack filters. */
+  MappingFilterOptions mappingFilterOptions(MappingFilterDimension dimension, long page, int size);
+
   /**
    * Reads one page of direct children within an exact source-season context.
    *

@@ -20,7 +20,17 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingStatus;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.service.ChangeSportingClassification;
 import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
@@ -36,6 +46,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -54,10 +65,215 @@ import org.springframework.test.web.servlet.ResultActions;
 class SportingClassificationWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000002");
+  private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000003");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000004");
   @Autowired private MockMvc mvc;
   @MockitoBean private ChangeSportingClassification classifications;
   @MockitoBean private ReadSportingConfiguration configurationReads;
   @MockitoBean private AccountAccess accounts;
+
+  @Test
+  @DisplayName("Binds every pack filter and returns the aggregate independently of the default")
+  void listsMappingPacks() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    MappingPackFilters filters =
+        new MappingPackFilters("tour ligue", MappingStatus.SOME, SOURCE, SEASON);
+    MappingPack pack =
+        new MappingPack(
+            ID,
+            "CFA",
+            SOURCE,
+            "FFVB / Ligue",
+            SEASON,
+            "2026–2027",
+            null,
+            null,
+            MappingStatus.SOME,
+            2);
+    when(configurationReads.mappingPacks(ACCOUNT, filters, 2, 1))
+        .thenReturn(new PackMappingPage(List.of(pack), 2, true));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            get("/administration/packs")
+                .with(mobileJwt())
+                .param("search", "tour ligue")
+                .param("status", "some")
+                .param("sourceId", SOURCE.toString())
+                .param("seasonId", SEASON.toString())
+                .param("page", "2")
+                .param("size", "1"));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.page").value(2))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andExpect(jsonPath("$.items[0].sourceId").value(SOURCE.toString()))
+        .andExpect(jsonPath("$.items[0].sourceLabel").value("FFVB / Ligue"))
+        .andExpect(jsonPath("$.items[0].seasonId").value(SEASON.toString()))
+        .andExpect(jsonPath("$.items[0].seasonLabel").value("2026–2027"))
+        .andExpect(jsonPath("$.items[0].status").value("some"))
+        .andExpect(jsonPath("$.items[0].poolCount").value(2))
+        .andExpect(jsonPath("$.items[0].defaultClassification").value(nullValue()));
+  }
+
+  @Test
+  @DisplayName("Reads the unfiltered first pack page with the shared defaults")
+  void readsFirstMappingPage() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    when(configurationReads.mappingPacks(
+            ACCOUNT, new MappingPackFilters(null, null, null, null), 0, 50))
+        .thenReturn(new PackMappingPage(List.of(), 0, false));
+
+    // When
+    ResultActions response = mvc.perform(get("/administration/packs").with(mobileJwt()));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.page").value(0))
+        .andExpect(jsonPath("$.items").isEmpty())
+        .andExpect(jsonPath("$.hasNext").value(false));
+  }
+
+  @Test
+  @DisplayName("Serializes a custom classification and an inherited pool without a classification")
+  void readsMappingPoolModes() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    UUID customPool = UUID.fromString("00000000-0000-4000-8000-000000000005");
+    UUID inheritedPool = UUID.fromString("00000000-0000-4000-8000-000000000006");
+    UUID division = UUID.fromString("00000000-0000-4000-8000-000000000007");
+    SportingClassification custom =
+        new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.FEMALE);
+    MappingPack pack =
+        new MappingPack(
+            ID,
+            "CFA",
+            SOURCE,
+            "FFVB / Ligue",
+            SEASON,
+            "2026–2027",
+            null,
+            null,
+            MappingStatus.SOME,
+            2);
+    when(configurationReads.mappingPack(ACCOUNT, ID, 0, 50))
+        .thenReturn(
+            new PackMappingDetail(
+                pack,
+                List.of(
+                    new MappingPool(customPool, "Tour 1", custom, "M18 Régionale", false),
+                    new MappingPool(inheritedPool, "Tour 2", null, null, true)),
+                0,
+                false));
+
+    // When
+    ResultActions response = mvc.perform(get("/administration/packs/{id}", ID).with(mobileJwt()));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.pack.id").value(ID.toString()))
+        .andExpect(jsonPath("$.items[0].id").value(customPool.toString()))
+        .andExpect(jsonPath("$.items[0].mode").value("custom"))
+        .andExpect(
+            jsonPath("$.items[0].effectiveClassification.divisionId").value(division.toString()))
+        .andExpect(
+            jsonPath("$.items[0].effectiveClassification.divisionName").value("M18 Régionale"))
+        .andExpect(jsonPath("$.items[0].effectiveClassification.format").value("6x6"))
+        .andExpect(jsonPath("$.items[0].effectiveClassification.gender").value("female"))
+        .andExpect(jsonPath("$.items[1].id").value(inheritedPool.toString()))
+        .andExpect(jsonPath("$.items[1].mode").value("inherited"))
+        .andExpect(jsonPath("$.items[1].effectiveClassification").value(nullValue()));
+  }
+
+  @Test
+  @DisplayName("Routes filter choices to their own bounded read under the same HTTP boundary")
+  void listsMappingFilterOptions() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    when(configurationReads.mappingFilterOptions(ACCOUNT, MappingFilterDimension.SEASON, 0, 1))
+        .thenReturn(
+            new MappingFilterOptions(
+                List.of(new MappingFilterOption(SEASON, "2026–2027")), 0, true));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            get("/administration/packs/filter-options")
+                .with(mobileJwt())
+                .param("dimension", "season")
+                .param("size", "1"));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.items[0].id").value(SEASON.toString()))
+        .andExpect(jsonPath("$.items[0].label").value("2026–2027"))
+        .andExpect(jsonPath("$.hasNext").value(true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/administration/packs",
+        "/administration/packs/00000000-0000-4000-8000-000000000001",
+        "/administration/packs/filter-options?dimension=source"
+      })
+  @DisplayName("Challenges visitors before reaching any mapping read")
+  void challengesMappingVisitor(String path) throws Exception {
+    // Given a visitor without a mobile access token.
+    // When
+    ResultActions response = mvc.perform(get(path));
+    // Then
+    response.andExpect(status().isUnauthorized()).andExpect(header().exists("WWW-Authenticate"));
+    verifyNoInteractions(configurationReads);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/administration/packs?status=SOME",
+        "/administration/packs/00000000-0000-4000-8000-000000000001?size=201",
+        "/administration/packs/filter-options?dimension=source&page=-1"
+      })
+  @DisplayName("Rejects invalid mapping criteria before reaching the catalogue")
+  void refusesInvalidMappingCriteria(String path) throws Exception {
+    // When
+    ResultActions response = mvc.perform(get(path).with(mobileJwt()));
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(configurationReads);
+  }
+
+  @Test
+  @DisplayName("Returns the existing sporting not-found response for an absent mapping pack")
+  void refusesMissingMappingPack() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    when(configurationReads.mappingPack(ACCOUNT, ID, 0, 50))
+        .thenThrow(new SportingResourceNotFoundException());
+    // When
+    ResultActions response = mvc.perform(get("/administration/packs/{id}", ID).with(mobileJwt()));
+    // Then
+    response
+        .andExpect(status().isNotFound())
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  private static JwtRequestPostProcessor mobileJwt() {
+    return jwt()
+        .jwt(
+            token -> token.issuer("https://identity.example.invalid/").claim("azp", "mobile-test"));
+  }
 
   @ParameterizedTest
   @ValueSource(strings = {"packs", "pools"})

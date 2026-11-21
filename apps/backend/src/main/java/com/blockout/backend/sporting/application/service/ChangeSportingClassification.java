@@ -79,7 +79,7 @@ public class ChangeSportingClassification {
     store.lockPoolSeason(poolId);
     PoolClassificationView pool = store.poolClassification(poolId).orElseThrow();
     PackView pack = store.pack(pool.pool().packId()).orElseThrow();
-    SportingClassification effective = setting == null ? pack.setting() : setting;
+    SportingClassification effective = SportingClassification.effective(setting, pack::setting);
     DivisionDetail division = lockDivision(effective);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     if (Objects.equals(setting, pool.setting())) {

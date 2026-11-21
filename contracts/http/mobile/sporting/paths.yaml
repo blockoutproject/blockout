@@ -335,6 +335,141 @@ PoolPresentation:
         application/json:
           schema:
             $ref: "./schemas.yaml#/SetPoolPresentationRequest"
+MappingPacks:
+  get:
+    operationId: listMappingPacks
+    tags:
+      - SportingClassification
+    summary: List packs for pool mapping
+    description: >-
+      Requires global sporting-classification permission. Includes discovered packs in preparing
+      seasons and packs with unclassified pools. Search and filters select packs before pagination.
+      Each pack's status and count cover its full current child population.
+    parameters:
+      - name: search
+        in: query
+        description: Each term must match a pack, source or current pool label, ignoring case and accents.
+        schema:
+          type: string
+          description: Literal search text, split into alphanumeric terms.
+          maxLength: 200
+      - name: status
+        in: query
+        description: Restrict packs by aggregate classification status.
+        schema:
+          $ref: ./schemas.yaml#/MappingStatusEnum
+      - name: sourceId
+        in: query
+        description: Restrict packs to the provider and organizer of this source binding across seasons.
+        schema:
+          type: string
+          description: An established source binding UUID, including a source filter option.
+          format: uuid
+      - name: seasonId
+        in: query
+        description: Restrict packs to this season. Omit to include all seasons.
+        schema:
+          type: string
+          description: An established season UUID.
+          format: uuid
+      - $ref: ../../common/parameters.yaml#/Page
+      - $ref: ../../common/parameters.yaml#/PageSize
+    responses:
+      "200":
+        description: The bounded page of matching packs.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MappingPackPageResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+MappingFilterOptions:
+  get:
+    operationId: listMappingFilterOptions
+    tags:
+      - SportingClassification
+    summary: List source or season choices for pool mapping
+    description: >-
+      Requires global sporting-classification permission. Returns distinct choices from the full
+      mapping population, independently of pack search, filters and page. A source option represents
+      its provider and organizer across seasons. Its UUID is the newest eligible source binding.
+    parameters:
+      - name: dimension
+        in: query
+        required: true
+        description: The filter whose options are requested.
+        schema:
+          $ref: ./schemas.yaml#/MappingFilterDimensionEnum
+      - $ref: ../../common/parameters.yaml#/Page
+      - $ref: ../../common/parameters.yaml#/PageSize
+    responses:
+      "200":
+        description: The bounded page of choices for the requested filter.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MappingFilterOptionPageResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+MappingPack:
+  get:
+    operationId: getMappingPack
+    tags:
+      - SportingClassification
+    summary: Read a pack and its pools for mapping
+    description: >-
+      Requires global sporting-classification permission. Returns the pack's own default and
+      aggregate status, plus a bounded page of its current pools and their effective acquisition
+      classifications. Index search and filters do not restrict the pack's pool page.
+    parameters:
+      - name: packId
+        in: path
+        required: true
+        description: The discovered pack to read.
+        schema:
+          type: string
+          description: Established catalogue pack UUID.
+          format: uuid
+      - $ref: ../../common/parameters.yaml#/Page
+      - $ref: ../../common/parameters.yaml#/PageSize
+    responses:
+      "200":
+        description: The authorized pack and bounded page of its pools.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MappingPackDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
 PackClassification:
   get:
     operationId: getPackClassification

@@ -148,7 +148,7 @@ public final class SportingViews {
       return new ClassificationView(
           pool.pool().id(),
           pool.setting(),
-          pool.setting() == null ? pack.setting() : pool.setting());
+          SportingClassification.effective(pool.setting(), pack::setting));
     }
   }
 

@@ -8,8 +8,28 @@ import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
 import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.LogoPresentationResponse;
+import com.blockout.backend.generated.mobile.model.MappingClassificationResponse;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterOptionPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingFilterOptionResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackDetailResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackResponse;
+import com.blockout.backend.generated.mobile.model.MappingPoolModeEnum;
+import com.blockout.backend.generated.mobile.model.MappingPoolResponse;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
+import com.blockout.backend.generated.mobile.model.SportFormatEnum;
+import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingStatus;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -22,6 +42,59 @@ import org.openapitools.jackson.nullable.JsonNullable;
 /** Mechanical generated-contract mappings, preserving required explicit nulls. */
 @Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface SportingAdministrationMapper {
+  MappingStatus toStatus(MappingStatusEnum source);
+
+  MappingFilterDimension toDimension(MappingFilterDimensionEnum source);
+
+  MappingStatusEnum toDto(MappingStatus source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingPackPageResponse toDto(PackMappingPage source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingPackDetailResponse toDto(PackMappingDetail source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingFilterOptionPageResponse toDto(MappingFilterOptions source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingFilterOptionResponse toDto(MappingFilterOption source);
+
+  /** Uses the generated constructor to emit the required null for an unset pack default. */
+  default MappingPackResponse toDto(MappingPack source) {
+    return new MappingPackResponse(
+        source.id(),
+        source.label(),
+        source.sourceId(),
+        source.sourceLabel(),
+        source.seasonId(),
+        source.seasonLabel(),
+        mappingClassification(source.defaultClassification(), source.defaultDivisionName()),
+        toDto(source.status()),
+        source.poolCount());
+  }
+
+  /** Uses the generated constructor to emit the required null for an unclassified pool. */
+  default MappingPoolResponse toDto(MappingPool source) {
+    return new MappingPoolResponse(
+        source.id(),
+        source.label(),
+        source.inherited() ? MappingPoolModeEnum.INHERITED : MappingPoolModeEnum.CUSTOM,
+        mappingClassification(source.effectiveClassification(), source.effectiveDivisionName()));
+  }
+
+  private static MappingClassificationResponse mappingClassification(
+      SportingClassification classification, String divisionName) {
+    if (classification == null) {
+      return null;
+    }
+    return new MappingClassificationResponse(
+        classification.divisionId(),
+        divisionName,
+        SportFormatEnum.fromValue(classification.format().getValue()),
+        SportGenderEnum.fromValue(classification.gender().getValue()));
+  }
+
   /**
    * Captures valid division metadata before decoding optional image content.
    *

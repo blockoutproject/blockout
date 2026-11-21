@@ -4,6 +4,11 @@ import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Contacts;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
@@ -16,6 +21,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Current sporting editor state under the exact action-specific read grants. */
@@ -24,6 +30,31 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReadSportingConfiguration {
   private final SportingStore store;
   private final CurrentPermissions permissions;
+
+  /** Reads catalogue packs under the classification grant, independent of collection access. */
+  @Transactional(readOnly = true)
+  public PackMappingPage mappingPacks(
+      UUID accountId, MappingPackFilters filters, long page, int size) {
+    permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
+    return store.mappingPacks(filters, page, size);
+  }
+
+  /** Keeps the pack summary and its page of current children on the same acquired snapshot. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public PackMappingDetail mappingPack(UUID accountId, UUID packId, long page, int size) {
+    permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
+    return store
+        .mappingPack(packId, page, size)
+        .orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  /** Reads source or season choices under the same grant as the catalogue they filter. */
+  @Transactional(readOnly = true)
+  public MappingFilterOptions mappingFilterOptions(
+      UUID accountId, MappingFilterDimension dimension, long page, int size) {
+    permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
+    return store.mappingFilterOptions(dimension, page, size);
+  }
 
   /**
    * Loads one coherent pool editor response within the caller transaction.
