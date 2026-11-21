@@ -273,7 +273,10 @@ class CalendarAcceptanceIntegrationTest {
     // Given
     CatalogObservation.Pool item = catalogPool("NEW", "New pool");
     ObservationOutcome.Catalog first =
-        catalogs.accept(SOURCE, new CatalogObservation(context(1), false, List.of(item, item)));
+        catalogs.accept(
+            SOURCE,
+            new CatalogObservation(
+                context(1), false, List.of(catalogPool("POOL", "Changed label"), item, item)));
     Boolean originalEligible =
         sql.queryForObject(
             "SELECT catalog_eligible FROM sporting_pool WHERE id=?", Boolean.class, pool);
@@ -291,12 +294,20 @@ class CalendarAcceptanceIntegrationTest {
                             item,
                             catalogPool("NEW", "Contradiction")))))
         .isInstanceOf(SportingConflictException.class);
-    assertThat(first.outcomes()).hasSize(2);
-    assertThat(first.outcomes().get(0).resourceId())
-        .isEqualTo(first.outcomes().get(1).resourceId());
+    assertThat(first.outcomes())
+        .extracting(ObservationOutcome::outcome)
+        .containsExactly(
+            ObservationOutcomeEnum.UNCHANGED,
+            ObservationOutcomeEnum.REJECTED,
+            ObservationOutcomeEnum.REJECTED);
+    assertThat(first.outcomes().getFirst().resourceId()).isEqualTo(pool);
+    assertThat(
+            sql.queryForObject(
+                "SELECT source_name FROM sporting_pool WHERE id=?", String.class, pool))
+        .isNotEqualTo("Changed label");
     assertThat(originalEligible).isTrue();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class))
-        .isEqualTo(2);
+        .isEqualTo(1);
     assertThat(
             sql.queryForObject(
                 "SELECT read_ordinal FROM sporting_catalog WHERE source_id=?", Long.class, SOURCE))

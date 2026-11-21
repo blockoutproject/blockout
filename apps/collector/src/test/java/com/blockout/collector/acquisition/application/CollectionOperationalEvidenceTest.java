@@ -23,6 +23,8 @@ import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
+import java.io.UncheckedIOException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -74,7 +76,7 @@ class CollectionOperationalEvidenceTest {
   @MethodSource("acquisitionFailures")
   @DisplayName("Reports structural and technical seasonless failures with fixed categories")
   void categorizesAcquisitionFailure(
-      RuntimeException failure, String category, CapturedOutput output) {
+      RuntimeException failure, String category, String reason, CapturedOutput output) {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -116,7 +118,7 @@ class CollectionOperationalEvidenceTest {
     assertThat(result.getValue().reasonType())
         .isEqualTo(URI.create("urn:blockout:acquisition:" + category));
     assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
-    assertThat(result.getValue().reason()).doesNotContain("private-provider-body");
+    assertThat(result.getValue().reason()).isEqualTo(reason);
     assertThat(result.getValue().scopeId()).isEqualTo(CLUB);
 
     verifyNoInteractions(sporting);
@@ -263,10 +265,19 @@ class CollectionOperationalEvidenceTest {
    */
   private static Stream<Arguments> acquisitionFailures() {
     return Stream.of(
-        Arguments.of(new IllegalArgumentException("private-provider-body"), "structure"),
-        Arguments.of(new IllegalStateException("private-provider-body"), "technical"),
+        Arguments.of(new IllegalArgumentException("private-provider-body"), "structure", null),
+        Arguments.of(new IllegalStateException("private-provider-body"), "technical", null),
         Arguments.of(
             new CompletionException(new java.io.IOException("private-provider-body")),
-            "technical"));
+            "technical",
+            null),
+        Arguments.of(
+            new UncheckedIOException(new HttpResponseException(503, "private-provider-body")),
+            "technical",
+            "Provider HTTP 503"),
+        Arguments.of(
+            new UncheckedIOException(new SocketTimeoutException("private-provider-body")),
+            "technical",
+            "Provider read timed out"));
   }
 }

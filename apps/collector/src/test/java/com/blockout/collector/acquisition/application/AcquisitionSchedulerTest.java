@@ -4,6 +4,7 @@ import static com.blockout.collector.acquisition.application.CollectionCycleFixt
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -26,10 +27,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
+import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
 
 /** Native trigger time and dispatch are controlled; provider interpretation has separate tests. */
@@ -186,10 +189,13 @@ class AcquisitionSchedulerTest {
     verifyNoInteractions(passages, qualification);
   }
 
-  @Test
+  @ParameterizedTest(name = "{0}")
+  @EnumSource(
+      value = CollectionSeasonStateEnum.class,
+      names = {"PREPARING", "ACTIVE"})
   @DisplayName(
       "Competition ticks admit fresh configuration and skip an overrun until the next ordinary tick")
-  void admitsCurrentRevisionAfterRunningWork() {
+  void admitsCurrentRevisionAfterRunningWork(CollectionSeasonStateEnum seasonState) {
     // Given
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
     when(backend.register(0, lifecycle.getIncarnationId()))
@@ -202,37 +208,26 @@ class AcquisitionSchedulerTest {
     scheduler.start();
     org.mockito.ArgumentCaptor<Runnable> scheduled =
         org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    List<Runnable> tasks = scheduled.getAllValues();
+    verify(timer)
+        .schedule(
+            scheduled.capture(),
+            argThat(
+                (Trigger trigger) ->
+                    trigger instanceof CronTrigger cron
+                        && "0 */5 * * * *".equals(cron.getExpression())));
     CollectionBackend.ControlWork running =
         new CollectionBackend.ControlWork(
-            CONTROL,
-            CollectionFamilyEnum.FFVB,
-            SEASON,
-            3,
-            true,
-            CollectionSeasonStateEnum.ACTIVE,
-            null,
-            null,
-            REQUEST);
+            CONTROL, CollectionFamilyEnum.FFVB, SEASON, 3, true, seasonState, null, null, REQUEST);
     CollectionBackend.ControlWork eligible =
         new CollectionBackend.ControlWork(
-            CONTROL,
-            CollectionFamilyEnum.FFVB,
-            SEASON,
-            4,
-            true,
-            CollectionSeasonStateEnum.ACTIVE,
-            null,
-            null,
-            null);
+            CONTROL, CollectionFamilyEnum.FFVB, SEASON, 4, true, seasonState, null, null, null);
     when(backend.work(lifecycle.getIncarnationId()))
         .thenReturn(
             new CollectionBackend.Work(List.of(running), List.of()),
             new CollectionBackend.Work(List.of(eligible), List.of()));
     // When
-    tasks.get(1).run();
-    tasks.get(1).run();
+    scheduled.getValue().run();
+    scheduled.getValue().run();
 
     // Then
     verify(backend)

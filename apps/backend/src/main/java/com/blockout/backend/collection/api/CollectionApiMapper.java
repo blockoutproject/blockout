@@ -30,12 +30,14 @@ import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
+import com.blockout.backend.generated.mobile.model.SourceCatalogReadResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import java.util.Arrays;
 import java.util.Objects;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -80,7 +82,7 @@ public interface CollectionApiMapper {
    * @return the generated collection envelope
    */
   default com.blockout.backend.generated.mobile.model.SourceBindingListResponse toSourcesDto(
-      java.util.List<CollectionState.Source> source) {
+      java.util.List<CollectionState.SourceCatalog> source) {
     return new com.blockout.backend.generated.mobile.model.SourceBindingListResponse(
         source.stream().map(this::toDto).toList());
   }
@@ -91,19 +93,9 @@ public interface CollectionApiMapper {
    * @param source application control projection
    * @return generated operator response with required absent evidence represented by null
    */
+  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = ".", source = "control")
-  @Mapping(
-      target = "pendingRequestId",
-      source = "control.requestId",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "lastAttemptAt",
-      source = "control.lastAttemptAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "lastSuccessAt",
-      source = "control.lastSuccessAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(target = "pendingRequestId", source = "control.requestId")
   @Mapping(target = "additionalProperties", ignore = true)
   com.blockout.backend.generated.mobile.model.CollectionControlResponse toDto(
       CollectionState.ControlView source);
@@ -136,15 +128,6 @@ public interface CollectionApiMapper {
   SeasonSourceInternalResponse toDto(ObserveCollectionSource.Resolved source);
 
   /**
-   * Reuses the shared contract-owned provider enum across generated API namespaces.
-   *
-   * @param source validated mobile provider
-   * @return the identical application provider
-   */
-  com.blockout.backend.generated.ingestion.model.CollectionProviderEnum toProvider(
-      com.blockout.backend.generated.mobile.model.CollectionProviderEnum source);
-
-  /**
    * Projects preparation state from its canonical sporting owner.
    *
    * @param source season preparation view
@@ -157,33 +140,21 @@ public interface CollectionApiMapper {
   /**
    * Projects source evidence, preserving every required nullable property.
    *
-   * @param source current source or honest interrupted-validation projection
-   * @return source preparation response, without mapping metadata
+   * @param view current binding with independent catalogue evidence
+   * @return catalogue response preserving the legacy binding fields
    */
+  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "label", expression = "java(source.label())")
-  @Mapping(target = "validation", source = "validationState")
-  @Mapping(
-      target = "candidateUrl",
-      source = "candidateUrl",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "acceptedUrl",
-      source = "acceptedUrl",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "validatedAt",
-      source = "validatedAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "seasonEvidence",
-      source = "seasonEvidence",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "reason",
-      source = "reason",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  SourceBindingResponse toDto(CollectionState.Source source);
+  @Mapping(target = ".", source = "source")
+  @Mapping(target = "label", expression = "java(view.source().label())")
+  @Mapping(target = "validation", source = "source.validationState")
+  SourceBindingResponse toDto(CollectionState.SourceCatalog view);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "observedAt", source = "lastReadAt")
+  @Mapping(target = "lastCompleteAt", source = "lastCompleteReadAt")
+  @Mapping(target = "reason", source = "evidence", qualifiedByName = "factualReason")
+  SourceCatalogReadResponse toDto(CollectionState.CatalogRead view);
 
   /**
    * Converts terminal evidence at the generated ingestion boundary.
@@ -266,10 +237,11 @@ public interface CollectionApiMapper {
   default String factualReason(CollectionResult result) {
     String text = Objects.toString(result.reason(), "").strip();
     if (text.isEmpty()
-        || text.equals(result.outcome().getValue())
         || text.equals(Objects.toString(result.reasonType(), ""))
         || text.matches("urn:blockout:[a-z0-9:-]+")
         || text.matches("[a-zA-Z0-9_$]+(?:Exception|Error)")
+        || Arrays.stream(CollectionOutcomeEnum.values())
+            .anyMatch(outcome -> text.equals(outcome.getValue()))
         || Arrays.stream(ObservationOutcomeEnum.values())
             .anyMatch(outcome -> text.equals(outcome.getValue()))) {
       return null;

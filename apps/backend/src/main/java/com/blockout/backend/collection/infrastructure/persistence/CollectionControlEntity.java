@@ -80,14 +80,15 @@ class CollectionControlEntity {
   private Set<UUID> scopeIds = new HashSet<>();
 
   /**
-   * Enables the family's first qualified periodic launch.
+   * Creates a competition control for ordinary collection or historical reconstruction.
    *
    * @param seasonId canonical season already locked by the caller
    * @param family competition family for this season
+   * @param enabled whether ordinary collection is enabled at creation
    */
-  CollectionControlEntity(UUID seasonId, CollectionFamilyEnum family) {
+  CollectionControlEntity(UUID seasonId, CollectionFamilyEnum family, boolean enabled) {
     this.seasonId = seasonId;
     this.family = family;
-    this.enabled = true;
+    this.enabled = enabled;
   }
 }

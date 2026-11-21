@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.model.CollectionResult;
-import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -21,7 +20,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
-import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
@@ -34,7 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,16 +48,12 @@ class RecordCollectionResultsTest {
   private static final Instant FIRST = Instant.parse("2026-10-25T00:00:00Z");
   @Mock private CollectionStore store;
   @Mock private CollectionCycleAccess cycleAccess;
-  @Mock private ReadSportingAcquisition sporting;
   @Mock private ApplicationEventPublisher events;
   private RecordCollectionResults service;
 
-  /** Uses real enum mapping while replacing only external application collaborators. */
   @BeforeEach
   void createService() {
-    service =
-        new RecordCollectionResults(
-            store, cycleAccess, sporting, events, Mappers.getMapper(CollectionStageMapper.class));
+    service = new RecordCollectionResults(store, cycleAccess, events);
   }
 
   @Test
@@ -68,9 +61,10 @@ class RecordCollectionResultsTest {
   void reportsFirstCompetitionFailure() {
     // Given
     when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
+    CollectionState.Cycle admitted = cycle(2);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.CALENDAR))
+        .thenReturn(target(CollectionTargetKindEnum.CALENDAR));
     RecordCollectionResult failure =
         evidence(
             CollectionStageEnum.CALENDAR,
@@ -108,9 +102,10 @@ class RecordCollectionResultsTest {
             ? CollectionFamilyEnum.CLUB_SHEETS
             : CollectionFamilyEnum.GEOCODING;
     when(store.lockControl(CONTROL)).thenReturn(control(null, family));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
-    CollectionTargetKindEnum kind = CollectionTargetKindEnum.fromValue(stage.getValue());
-    when(store.target(CYCLE, SCOPE, kind)).thenReturn(Optional.of(target(kind)));
+    CollectionState.Cycle admitted = cycle(3);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, stage))
+        .thenReturn(target(CollectionTargetKindEnum.fromValue(stage.getValue())));
     when(store.result(CONTROL, SCOPE, stage, CollectionPhaseEnum.ACQUISITION))
         .thenReturn(Optional.of(previous(stage, CollectionPhaseEnum.ACQUISITION, 2, 90)));
     RecordCollectionResult next =
@@ -136,9 +131,10 @@ class RecordCollectionResultsTest {
   void reportsRecoveryFromPreviousOutcome() {
     // Given
     when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
+    CollectionState.Cycle admitted = cycle(3);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.CALENDAR))
+        .thenReturn(target(CollectionTargetKindEnum.CALENDAR));
     when(store.result(
             CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION))
         .thenReturn(
@@ -182,9 +178,10 @@ class RecordCollectionResultsTest {
   @DisplayName("Ignores older cycles and duplicate ordinals without a recovery diagnostic")
   void ignoresStaleEvidence(long cycleOrder, long ordinal) {
     // Given
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(cycleOrder));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
+    CollectionState.Cycle admitted = cycle(cycleOrder);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.CALENDAR))
+        .thenReturn(target(CollectionTargetKindEnum.CALENDAR));
     when(store.result(
             CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION))
         .thenReturn(
@@ -212,9 +209,10 @@ class RecordCollectionResultsTest {
   void recoversExactPhase(CollectionPhaseEnum phase) {
     // Given
     when(store.lockControl(CONTROL)).thenReturn(control(null, CollectionFamilyEnum.GEOCODING));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.GEOCODING))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.GEOCODING)));
+    CollectionState.Cycle admitted = cycle(3);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.GEOCODING))
+        .thenReturn(target(CollectionTargetKindEnum.GEOCODING));
     when(store.result(CONTROL, SCOPE, CollectionStageEnum.GEOCODING, phase))
         .thenReturn(Optional.of(previous(CollectionStageEnum.GEOCODING, phase, 2, 5)));
     RecordCollectionResult empty =
@@ -268,9 +266,10 @@ class RecordCollectionResultsTest {
   void reportsAcceptedCatalog(CollectionOutcomeEnum outcome) {
     // Given
     when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
+    CollectionState.Cycle admitted = cycle(2);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.DISCOVERY))
+        .thenReturn(target(CollectionTargetKindEnum.DISCOVERY));
     RecordCollectionResult command =
         evidence(CollectionStageEnum.DISCOVERY, CollectionPhaseEnum.INTEGRATION, 1, FIRST, outcome);
 
@@ -293,9 +292,10 @@ class RecordCollectionResultsTest {
   void ignoresRejectedCatalog(CollectionOutcomeEnum outcome) {
     // Given
     when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
-    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
-    when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
-        .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
+    CollectionState.Cycle admitted = cycle(2);
+    when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(admitted);
+    when(cycleAccess.resultTarget(admitted, SCOPE, CollectionStageEnum.DISCOVERY))
+        .thenReturn(target(CollectionTargetKindEnum.DISCOVERY));
     RecordCollectionResult command =
         evidence(CollectionStageEnum.DISCOVERY, CollectionPhaseEnum.INTEGRATION, 1, FIRST, outcome);
 

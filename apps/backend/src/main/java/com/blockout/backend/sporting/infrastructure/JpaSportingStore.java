@@ -54,7 +54,9 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -90,22 +92,37 @@ public class JpaSportingStore implements SportingStore {
       int page,
       int size) {
     PageRequest request = PageRequest.of(page, size);
-    if (parentId == null) {
-      Slice<PackEntity> slice =
-          packs.findBySeasonIdAndProviderAndOrganizerReferenceOrderByReferenceAscIdAsc(
-              seasonId, provider, organizerReference, request);
-      return new SportingViews.CollectionResourcePage(
-          slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+    Slice<SportingViews.CollectionResource> resources;
+    if (parentId == null && provider != CollectionProviderEnum.LNV) {
+      resources =
+          packs
+              .catalogPacks(seasonId, provider, organizerReference, request)
+              .map(PackRepository.CatalogPack::toResource);
+    } else {
+      if (parentId != null
+          && !packs.existsByIdAndSeasonIdAndProviderAndOrganizerReference(
+              parentId, seasonId, provider, organizerReference)) {
+        throw new SportingResourceNotFoundException();
+      }
+      Slice<PoolEntity> children =
+          parentId == null
+              ? pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+                  seasonId,
+                  provider,
+                  organizerReference,
+                  request.withSort(Sort.by("sourceName", "reference", "id")))
+              : pools.findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
+                  parentId, request);
+      resources =
+          children.map(
+              pool ->
+                  mapper.toCollectionResource(
+                      pool,
+                      parentId,
+                      provider == CollectionProviderEnum.LNV ? pool.getReference() : null));
     }
-    PackEntity pack = packs.findById(parentId).orElseThrow(SportingResourceNotFoundException::new);
-    if (!seasonId.equals(pack.getSeason().getId())
-        || pack.getProvider() != provider
-        || !organizerReference.equals(pack.getOrganizerReference())) {
-      throw new SportingResourceNotFoundException();
-    }
-    Slice<PoolEntity> slice = pools.findByPackIdOrderBySourceNameAscIdAsc(parentId, request);
     return new SportingViews.CollectionResourcePage(
-        slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+        resources.getContent(), resources.getNumber(), resources.hasNext());
   }
 
   /** {@inheritDoc} */
@@ -340,6 +357,11 @@ public class JpaSportingStore implements SportingStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public PoolView createPool(
       PoolKey key, String packReference, String sourceName, SportingClassification classification) {
+    return mapper.toView(saveNewPool(key, packReference, sourceName, classification));
+  }
+
+  private PoolEntity saveNewPool(
+      PoolKey key, String packReference, String sourceName, SportingClassification classification) {
     SeasonEntity season = seasons.getReferenceById(key.seasonId());
     PackEntity pack =
         packs
@@ -350,23 +372,20 @@ public class JpaSportingStore implements SportingStore {
                     packs.save(
                         new PackEntity(
                             season, key.provider(), key.organizerReference(), packReference)));
-    return mapper.toView(
-        pools.save(
-            new PoolEntity(
-                season,
-                pack,
-                key.provider(),
-                key.organizerReference(),
-                key.competitionReference(),
-                key.tourReference(),
-                key.groupReference(),
-                key.reference(),
-                sourceName,
-                classification == null
-                    ? null
-                    : divisions.getReferenceById(classification.divisionId()),
-                classification == null ? null : classification.format(),
-                classification == null ? null : classification.gender())));
+    return pools.save(
+        new PoolEntity(
+            season,
+            pack,
+            key.provider(),
+            key.organizerReference(),
+            key.competitionReference(),
+            key.tourReference(),
+            key.groupReference(),
+            key.reference(),
+            sourceName,
+            classification == null ? null : divisions.getReferenceById(classification.divisionId()),
+            classification == null ? null : classification.format(),
+            classification == null ? null : classification.gender()));
   }
 
   /** {@inheritDoc} */
@@ -750,13 +769,21 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public Map<UUID, CatalogObservation.Evidence> catalogEvidence(List<UUID> sourceIds) {
+    return catalogs.findAllById(sourceIds).stream()
+        .collect(
+            Collectors.toUnmodifiableMap(CatalogEntity::getSourceId, mapper::toCatalogEvidence));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate) {
-    PoolEntity pool = pools.findByKey(key).orElse(null);
-    if (pool == null) {
-      UUID id = createPool(key, candidate.packReference(), candidate.sourceName(), null).id();
-      pool = pools.findById(id).orElseThrow();
-    }
+    PoolEntity pool =
+        pools
+            .findByKey(key)
+            .orElseGet(
+                () -> saveNewPool(key, candidate.packReference(), candidate.sourceName(), null));
     if (!pool.getPack().getReference().equals(candidate.packReference())) {
       throw new SportingConflictException("identity-conflict", List.of());
     }
@@ -790,8 +817,9 @@ public class JpaSportingStore implements SportingStore {
       MatchObservation.Context context) {
     if (complete) {
       for (PoolEntity pool :
-          pools.findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizer)) {
-        if (!presentIds.contains(pool.getId()) && pool.isCatalogEligible()) {
+          pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+              seasonId, provider, organizer, Pageable.unpaged())) {
+        if (!presentIds.contains(pool.getId())) {
           pool.setCatalogEligible(false);
           changes.submit(Kind.POOL, pool.getId());
         }
@@ -806,6 +834,10 @@ public class JpaSportingStore implements SportingStore {
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
     catalog.setProviderPublishedAt(context.providerPublishedAt());
+    catalog.setComplete(complete);
+    if (complete) {
+      catalog.setLastCompleteReadAt(context.observedAt());
+    }
     // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
     if (created) {
       entityManager.persist(catalog);

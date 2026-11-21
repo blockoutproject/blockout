@@ -1,7 +1,7 @@
 package com.blockout.backend.sporting.application.service;
 
+import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AcceptClubLocality {
   private final SportingStore store;
   private final CollectionCycleAccess cycleAccess;
-  private final ReadCollectionWork collectionWork;
 
   /**
    * Commits only a usable point or qualified unresolved state for the exact current context.
@@ -37,14 +36,14 @@ public class AcceptClubLocality {
   @Transactional
   public ObservationOutcome accept(UUID clubId, LocalityObservation observation) {
     validate(observation);
-    cycleAccess.requireTarget(
-        observation.context().cycleId(), clubId, CollectionTargetKindEnum.GEOCODING);
+    Cycle cycle =
+        cycleAccess
+            .requireTarget(
+                observation.context().cycleId(), clubId, CollectionTargetKindEnum.GEOCODING)
+            .cycle();
     store.lockPresentation(Kind.CLUB, clubId);
     Locality current = store.locality(clubId);
-    ObservationOrder order =
-        new ObservationOrder(
-            collectionWork.get(observation.context().cycleId()).cycleOrder(),
-            observation.context().readOrdinal());
+    ObservationOrder order = observation.context().order(cycle.cycleOrder());
     String reference = store.club(clubId).orElseThrow().reference();
     ObservationOutcomeEnum status;
     if (!current.revision().equals(observation.localityRevision())

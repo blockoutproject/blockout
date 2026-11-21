@@ -112,10 +112,8 @@ public class AdmitCollectionCycle {
     if (mode == null
         || isRunning(control.currentCycleId())
         || (season != null && season.collectionState() == CollectionSeasonStateEnum.CLOSED)
-        || (mode != CollectionModeEnum.INITIAL_IMPORT
-            && (!control.enabled()
-                || (season != null
-                    && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)))
+        || (mode != CollectionModeEnum.INITIAL_IMPORT && !control.enabled())
+        || (mode == CollectionModeEnum.MANUAL && !CollectionLifecycle.activeOrSeasonless(season))
         || (mode == CollectionModeEnum.INITIAL_IMPORT
             && (season == null
                 || season.collectionState() != CollectionSeasonStateEnum.PREPARING

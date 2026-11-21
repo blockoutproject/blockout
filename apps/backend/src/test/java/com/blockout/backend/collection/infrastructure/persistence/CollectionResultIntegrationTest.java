@@ -165,10 +165,21 @@ class CollectionResultIntegrationTest {
     source(season, CollectionProviderEnum.FFVB, "LIRA");
     UUID outside = source(oldSeason, CollectionProviderEnum.FFVB, "LIIDF");
     UUID otherProvider = source(season, CollectionProviderEnum.LNV, "LIIDF");
-    PoolView selected = pool(season, CollectionProviderEnum.FFVB, "LIIDF", null, "Poule Réserve");
+    PoolView selected =
+        pool(
+            new PoolKey(CollectionProviderEnum.FFVB, season, "LIIDF", "N2F", null, null, "A"),
+            "N2F",
+            "Poule Réserve");
     PoolView alternate =
-        pool(season, CollectionProviderEnum.FFVB, "LIRA", null, "Poule Réserve Est");
-    PoolView nonmatching = pool(season, CollectionProviderEnum.FFVB, "LIIDF", null, "Poule Élite");
+        pool(
+            new PoolKey(CollectionProviderEnum.FFVB, season, "LIRA", "N2F", null, null, "A"),
+            "N2F",
+            "Poule Réserve Est");
+    PoolView nonmatching =
+        pool(
+            new PoolKey(CollectionProviderEnum.FFVB, season, "LIIDF", "N2F", null, null, "B"),
+            "N2F",
+            "Poule Élite");
     seedResult(control, selected.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 1);
     seedResult(control, selected.id(), "CALENDAR", "INTEGRATION", "PARTIAL", 11);
     seedResult(control, selected.id(), "STANDINGS", "ACQUISITION", "FAILED", 10);
@@ -237,7 +248,11 @@ class CollectionResultIntegrationTest {
     UUID season = seasons.getOrCreate(2027).id();
     UUID control = competitionControl(season, CollectionProviderEnum.LNV);
     UUID source = source(season, CollectionProviderEnum.LNV, "LM");
-    PoolView pool = pool(season, CollectionProviderEnum.LNV, "LM", "0042", "Play-offs");
+    PoolView pool =
+        pool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "LM", "LM", null, "7", "0042"),
+            "LM",
+            "Play-offs");
     MatchView match =
         identities.identifyMatch(
             pool.id(),
@@ -832,7 +847,8 @@ class CollectionResultIntegrationTest {
 
       // When
       CollectionState.Target target =
-          transaction.execute(state -> cycleAccess.requireTeamLogo(cycle.id(), memberships));
+          transaction.execute(
+              state -> cycleAccess.requireTeamLogo(cycle.id(), memberships).scope());
 
       // Then
       assertThat(statistics.getPrepareStatementCount() - before).isEqualTo(singlePoolReads);
@@ -1015,16 +1031,15 @@ class CollectionResultIntegrationTest {
     return id;
   }
 
-  private PoolView pool(
-      UUID season, CollectionProviderEnum provider, String organizer, String phase, String name) {
+  private PoolView pool(PoolKey key, String packReference, String name) {
     UUID division = UUID.randomUUID();
     sql.update(
         "INSERT INTO sporting_division(id,name,active,color) VALUES (?, ?,TRUE,'#112233')",
         division,
         division.toString());
     return identities.createPool(
-        new PoolKey(provider, season, organizer, "TEST", phase, null, name),
-        "Bilan",
+        key,
+        packReference,
         name,
         new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.MALE));
   }

@@ -33,13 +33,13 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Qualifies generated preparation handlers under real F12 admission, current SQL grants and
- * committed application transactions. Only the validated JWT and source evidence are synthetic; no
- * provider, native client or minimum-version qualification is implied.
+ * Qualifies generated catalogue and activation handlers under real F12 admission, current SQL
+ * grants and committed application transactions. Only the validated JWT and source evidence are
+ * synthetic; no provider, native client or minimum-version qualification is implied.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@DisplayName("Source preparation under current maintenance")
+@DisplayName("Source catalogue and activation under current maintenance")
 @Import(PostgresTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SourcePreparationMaintenanceIntegrationTest {
@@ -106,6 +106,9 @@ class SourcePreparationMaintenanceIntegrationTest {
         // Then
         .andExpect(status().is(expectedStatus))
         .andExpect(header().string("Cache-Control", "no-store"));
+    if (expectedStatus == 409) {
+      assertUnchangedPreparation();
+    }
     assertThat(
             sql.queryForObject(
                 "SELECT active FROM access_settings WHERE id='maintenance'", Boolean.class))
@@ -295,7 +298,7 @@ class SourcePreparationMaintenanceIntegrationTest {
   /**
    * Lists valid generated requests so admission refusals cannot be attributed to malformed input.
    *
-   * @return every source-preparation method/resource, with its domain-valid success status
+   * @return active and retired preparation routes with their authorized response status
    */
   private static Stream<Arguments> preparationOperations() {
     String seasonPath = "/administration/collection-seasons/" + SEASON;
@@ -306,28 +309,29 @@ class SourcePreparationMaintenanceIntegrationTest {
         Arguments.of(HttpMethod.GET, seasonPath + "/source-bindings", "", 200),
         Arguments.of(HttpMethod.GET, sourcePath, "", 200),
         Arguments.of(HttpMethod.GET, sourcePath + "/children", "", 200),
+        Arguments.of(HttpMethod.POST, seasonPath + "/activation", "", 200),
         Arguments.of(
             HttpMethod.POST,
             seasonPath + "/source-bindings",
             """
             {"provider":"ffvb","organizerReference":"PTCA06","candidateUrl":"https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTCA06"}
             """,
-            201),
+            409),
         Arguments.of(
             HttpMethod.PUT,
             sourcePath + "/candidate",
             "{\"candidateUrl\":\"" + URL + "&saison=2026/2027\"}",
-            200),
-        Arguments.of(HttpMethod.POST, sourcePath + "/validations", "{}", 202),
+            409),
+        Arguments.of(HttpMethod.POST, sourcePath + "/validations", "{}", 409),
         Arguments.of(
             HttpMethod.PUT,
             sourcePath + "/season-confirmation",
             "{\"seasonLabel\":\"2026/2027\"}",
-            200),
+            409),
         Arguments.of(
             HttpMethod.POST,
             seasonPath + "/source-launches",
             "{\"sourceBindingIds\":[\"" + QUALIFIED + "\"]}",
-            200));
+            409));
   }
 }

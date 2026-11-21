@@ -95,7 +95,7 @@ class LnvObservationsTest {
             + " 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
 
     // When
-    String season = new LnvDiscovery().qualify(bytes(html), CALENDAR, "901");
+    String season = new LnvDiscovery().root(bytes(html), CALENDAR, "901").season();
 
     // Then
     assertThat(season).isEqualTo("2026/2027");
@@ -331,13 +331,14 @@ class LnvObservationsTest {
     // Given
     String html =
         """
+        <title>Marmara SpikeLigue</title>
         <a href="CompetitionMatches.aspx?ID=901&PID=902">Regular</a>
         <a href="CompetitionMatches.aspx?ID=901&PID=904">Playoffs</a>
         <a href="CompetitionMatches.aspx?ID=901&PID=905">Final</a>
         <a href="CompetitionMatches.aspx?ID=999&PID=999">Other competition</a>
         """;
     // When
-    List<URI> phases = new LnvDiscovery().phaseLinks(bytes(html), CALENDAR, "901");
+    List<URI> phases = new LnvDiscovery().root(bytes(html), CALENDAR, "901").phases();
 
     // Then
     assertThat(phases)

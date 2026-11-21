@@ -55,14 +55,7 @@ Season:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
 Closure:
   post:
     operationId: closeCollectionSeason
@@ -103,35 +96,62 @@ Closure:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
         application/json:
           schema:
             $ref: ./schemas.yaml#/CloseCollectionSeasonRequest
+Activation:
+  post:
+    operationId: activateCollectionSeason
+    tags:
+      - CollectionSources
+    summary: Activate collection for a season
+    description:
+      Requires current global collection-management permission. Authorizes periodic sporting
+      collection for eligible pools in the selected season. Catalogues continue refreshing
+      independently. Preserves provider pauses and other seasons. Repeating activation of an
+      active season returns its current state. Closure and an accepted historical request waiting
+      for admission block activation.
+    responses:
+      "200":
+        description: Active season.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
 Launch:
   post:
     operationId: launchCollectionSources
     tags:
       - CollectionSources
-    summary: Launch qualified sources
+    summary: Launch selected sources (retired)
+    deprecated: true
     description:
-      Requires current global collection-management permission. Atomically locks the selected
-      qualified sources in a preparing or active season and activates that season. Already
-      periodically launched sources are unchanged. References locked by initial reconstruction may
-      be activated without editing them. Mapping readiness is irrelevant; pauses are preserved.
-      Repeating already-launched selection has no extra effect. A failed or lost response permits explicit manual retry without a verification read.
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Activate the whole season through its activation operation.
     responses:
       "200":
-        description: Current season after activation of the selected sources.
+        description: Legacy success response from earlier servers.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -158,14 +178,7 @@ Launch:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
@@ -179,11 +192,11 @@ Sources:
       - CollectionSources
     summary: Read supported season sources
     description:
-      Requires current global collection-management permission. Lists source evidence and preparation
-      state, without classification readiness.
+      Requires current global collection-management permission. Lists official sources and their
+      catalogue health independently of classification and sporting imports.
     responses:
       "200":
-        description: Supported source bindings and their current qualification.
+        description: Known source bindings and their latest catalogue evidence.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -202,28 +215,19 @@ Sources:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
   post:
     operationId: createCollectionSource
     tags:
       - CollectionSources
-    summary: Add a missing supported source
+    summary: Add a source candidate (retired)
+    deprecated: true
     description:
-      Requires current global collection-management permission. Creates an unqualified
-      organizer/championship candidate only in an open season. The collector must qualify its
-      supported scope before launch. Rejects duplicate bindings; existing locked bindings are never
-      replaced. A failed or lost response permits
-      explicit manual retry without a verification read.
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Official sources are discovered automatically.
     responses:
       "201":
-        description: Missing supported source binding created.
+        description: Legacy success response from earlier servers.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -257,14 +261,7 @@ Sources:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
@@ -276,13 +273,13 @@ Source:
     operationId: getCollectionSource
     tags:
       - CollectionSources
-    summary: Read source qualification
+    summary: Read a source and its catalogue health
     description:
-      Requires current global collection-management permission. Returns current candidate,
-      accepted binding and qualification; reads do not fetch the provider.
+      Requires current global collection-management permission. Returns the retained
+      official reference and observed catalogue health. The read uses retained evidence.
     responses:
       "200":
-        description: Current source candidate, accepted reference and qualification.
+        description: Current source and catalogue evidence.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -301,28 +298,20 @@ Source:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
 Candidate:
   put:
     operationId: setCollectionSourceCandidate
     tags:
       - CollectionSources
-    summary: Replace an unlaunched source candidate
+    summary: Replace a candidate URL (retired)
+    deprecated: true
     description:
-      Requires current global collection-management permission. Replaces the URL and clears its old
-      qualification. Locked sources and closed seasons refuse changes; no provider call occurs in
-      this write. A failed or lost response permits
-      explicit manual retry without a verification read.
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Official catalogue references are read-only.
     responses:
       "200":
-        description: Candidate URL saved; prior qualification cleared when changed.
+        description: Legacy success response from earlier servers.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -349,14 +338,7 @@ Candidate:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
     requestBody:
       required: true
       content:
@@ -368,17 +350,14 @@ Validation:
     operationId: requestCollectionSourceValidation
     tags:
       - CollectionSources
-    summary: Request source qualification
+    summary: Request source qualification (retired)
+    deprecated: true
     description:
-      Requires current global collection-management permission. Accepts one pending validation for
-      the exact current candidate in an open season. It does not prove qualification or a start
-      time. Read the source binding to observe the result; repeated pending requests create no
-      duplicate. A failed or lost response permits
-      explicit manual retry without a verification read. A new explicit request replaces an obsolete
-      interrupted validation; it is not automatically replayed.
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Source discovery qualifies official references automatically.
     responses:
       "202":
-        description: Validation request accepted or already pending; qualification is not yet established.
+        description: Legacy success response from earlier servers.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -405,27 +384,20 @@ Validation:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
 Confirmation:
   put:
     operationId: confirmCollectionSourceSeason
     tags:
       - CollectionSources
-    summary: Confirm missing source season
+    summary: Confirm source attribution (retired)
+    deprecated: true
     description:
-      Requires current global collection-management permission. Accepts explicit attribution only
-      for compatible input lacking seasonal proof. Wrong host, format or contradictory season cannot
-      be overridden; locked/closed sources refuse changes. A failed or lost response permits explicit manual retry without a verification read.
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Ordinary discovery requires official seasonal attribution.
     responses:
       "200":
-        description: Missing seasonal attribution confirmed for the current candidate.
+        description: Legacy success response from earlier servers.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -452,14 +424,7 @@ Confirmation:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
     requestBody:
       required: true
       content:
@@ -532,14 +497,7 @@ Control:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
 Activity:
   put:
     operationId: setCollectionActivity
@@ -580,14 +538,7 @@ Activity:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
     requestBody:
       required: true
       content:
@@ -603,8 +554,8 @@ Requests:
     description:
       Requires current global collection-management permission. Returns 202 for an accepted or
       already pending request, 200 for an existing running cycle. Neither adds duplicate work.
-      Activity is checked before returning existing work. Paused, pausing, unlaunched or closed
-      competition scopes refuse the request. Read the control to observe admission/result; there is
+      Activity is checked before returning existing work. Competition scopes require an active
+      season and a provider enabled for ordinary collection. Read the control to observe admission/result; there is
       no individual pool or club rerun. A failed or lost
       response permits explicit manual retry without a verification read.
     responses:
@@ -645,14 +596,7 @@ Requests:
             schema:
               $ref: ./schemas.yaml#/CollectionControlResponse
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
 Results:
   get:
     operationId: listCollectionResults
@@ -685,14 +629,7 @@ Results:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
       - $ref: ../../common/parameters.yaml#/Page
       - $ref: ../../common/parameters.yaml#/PageSize
       - name: query
@@ -727,7 +664,8 @@ Children:
     summary: Read discovered source children
     description:
       Requires current global collection-management permission. Returns direct children of
-      the source, or a pack in that source. Does not fetch providers or expose mapping shortcuts.
+      the current official catalogue, independently of pool classification and sporting imports.
+      FFVB exposes packs and their pools. LNV exposes discovered phase references.
     responses:
       "200":
         description: Discovered direct children of the selected source or pack.
@@ -749,14 +687,7 @@ Children:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
       - name: parentId
         in: query
         required: false

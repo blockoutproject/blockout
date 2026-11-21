@@ -563,6 +563,9 @@ public interface SportingStore {
    */
   ObservationOrder catalogOrder(UUID sourceId);
 
+  /** Reads accepted catalogue evidence for the selected authorized source bindings. */
+  Map<UUID, CatalogObservation.Evidence> catalogEvidence(List<UUID> sourceIds);
+
   /**
    * Stores qualified native presence without inventing a classification or any team.
    *

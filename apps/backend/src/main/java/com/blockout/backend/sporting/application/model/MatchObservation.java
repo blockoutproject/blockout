@@ -27,7 +27,12 @@ public record MatchObservation(UUID matchId, Context context, Facts facts) {
    * @param providerPublishedAt supplied publication instant, or null when unknown
    */
   public record Context(
-      UUID cycleId, long readOrdinal, Instant observedAt, Instant providerPublishedAt) {}
+      UUID cycleId, long readOrdinal, Instant observedAt, Instant providerPublishedAt) {
+    /** Combines the backend-admitted cycle order with the original read ordinal. */
+    public ObservationOrder order(long cycleOrder) {
+      return new ObservationOrder(cycleOrder, readOrdinal);
+    }
+  }
 
   /**
    * Independent proposals rather than a replacement of accepted facts. Undefined preserves a fact;

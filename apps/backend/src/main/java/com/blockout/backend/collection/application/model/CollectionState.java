@@ -39,6 +39,24 @@ public final class CollectionState {
   /** Outcome counts over the complete current control, regardless of search or page. */
   public record ResultSummary(long success, long partial, long failed, long unconfirmed) {}
 
+  /** Health of the latest provider catalogue read, independent of sporting data import. */
+  public enum CatalogStatus {
+    NOT_READ,
+    COMPLETE,
+    PARTIAL,
+    UNAVAILABLE
+  }
+
+  /** Current catalogue attempt and the last complete authoritative read, when established. */
+  public record CatalogRead(
+      CatalogStatus status,
+      Instant lastReadAt,
+      Instant lastCompleteReadAt,
+      CollectionResult evidence) {}
+
+  /** Operator view; health does not change source binding or candidate validation. */
+  public record SourceCatalog(Source source, CatalogRead catalog) {}
+
   /** Bounded current evidence ordered latest first, with totals for the whole control. */
   public record ResultPage(
       List<ResultRow> items, long page, boolean hasNext, ResultSummary summary) {
@@ -139,6 +157,15 @@ public final class CollectionState {
       boolean launched,
       UUID currentCycleId,
       URI reasonType) {
+    /** Uses the immutable accepted URL after the first binding lock. */
+    public String referenceUrl() {
+      return locked ? acceptedUrl : candidateUrl;
+    }
+
+    public boolean hasQualifiedReference() {
+      return validationState == SourceValidationStateEnum.QUALIFIED && referenceUrl() != null;
+    }
+
     public String label() {
       return label(provider.name(), organizerReference);
     }
@@ -166,6 +193,15 @@ public final class CollectionState {
       Instant lastSuccessAt,
       Set<UUID> sourceBindingIds,
       Set<UUID> scopeIds) {
+    /** Seasonless families have no competition provider. */
+    public CollectionProviderEnum competitionProvider() {
+      return switch (family) {
+        case FFVB -> CollectionProviderEnum.FFVB;
+        case LNV -> CollectionProviderEnum.LNV;
+        case CLUB_SHEETS, GEOCODING -> null;
+      };
+    }
+
     /**
      * Detaches pending selections from managed collections.
      *

@@ -8,7 +8,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Control
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.util.UUID;
@@ -47,7 +47,7 @@ public class ChangeCollectionControls {
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
     if (enabled) {
-      requireLaunched(control, season);
+      requireOrdinarySource(control, season);
     }
     if (control.enabled() == enabled && (enabled || control.requestId() == null)) {
       return configurationReads.controlView(control);
@@ -79,11 +79,10 @@ public class ChangeCollectionControls {
     Control control = store.lockControl(id);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    if (!control.enabled()
-        || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)) {
+    if (!control.enabled() || !CollectionLifecycle.activeOrSeasonless(season)) {
       throw new CollectionConflictException("conflict");
     }
-    requireLaunched(control, season);
+    requireOrdinarySource(control, season);
     ControlView current = configurationReads.controlView(control);
     if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING) {
       return new RequestOutcome(current, true);
@@ -107,20 +106,18 @@ public class ChangeCollectionControls {
   public record RequestOutcome(ControlView view, boolean running) {}
 
   /**
-   * Refuses an unlaunched provider even when another provider has activated the same season.
+   * Keeps the ordinary control unavailable for a provider with only historical references.
    *
-   * @param control locked family whose launch is required
+   * @param control locked competition family or seasonless control
    * @param season locked canonical season, or null for seasonless controls
-   * @throws CollectionConflictException if the family has no launch in its active season
+   * @throws CollectionConflictException if the family has no ordinary catalogue in this season
    */
-  private void requireLaunched(Control control, CollectionSeasonView season) {
-    if (season != null
-        && (season.collectionState() != CollectionSeasonStateEnum.ACTIVE
-            || store.sources(season.id()).stream()
-                .noneMatch(
-                    source ->
-                        source.launched()
-                            && source.provider().getValue().equals(control.family().getValue())))) {
+  private void requireOrdinarySource(Control control, CollectionSeasonView season) {
+    if (season == null) {
+      return;
+    }
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider == null || !store.hasOrdinarySources(season.id(), provider)) {
       throw new CollectionConflictException("conflict");
     }
   }

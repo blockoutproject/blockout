@@ -56,7 +56,12 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @param pageable bounded direct-child request
    * @return stable source-name/identity slice
    */
-  Slice<PoolEntity> findByPackIdOrderBySourceNameAscIdAsc(UUID packId, Pageable pageable);
+  Slice<PoolEntity> findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
+      UUID packId, Pageable pageable);
+
+  /** Shares current source-season membership between catalogue reads and absence reconciliation. */
+  Slice<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference, Pageable pageable);
 
   /**
    * Selects qualified pools after the visited identity boundary despite concurrent division
@@ -120,17 +125,6 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @return its current pools, including overrides
    */
   List<PoolEntity> findByPackId(UUID packId);
-
-  /**
-   * Loads only the catalog's source-season scope for qualified absence reconciliation.
-   *
-   * @param seasonId canonical season
-   * @param provider designated authority
-   * @param organizerReference exact source organizer
-   * @return retained pools in that source-season scope
-   */
-  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReference(
-      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /** Canonical current pool eligibility for queries using the pool alias p. */
   String VISIBLE = SportingVisibilityPredicates.POOL;

@@ -1,20 +1,18 @@
 package com.blockout.collector.acquisition.ffvb;
 
+import com.blockout.collector.acquisition.application.AcquisitionFailure;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import org.apache.hc.client5.http.HttpResponseException;
-import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -49,7 +47,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
   @Override
   public URI resourceUrl(CollectionBackend.Target target) {
     try {
-      return new URIBuilder(target.url()).setParameter("calend", "COMPLET").build();
+      return FfvbPage.completeCalendarUrl(target.url());
     } catch (URISyntaxException invalid) {
       throw new FfvbAcquisitionException("Invalid FFVB acquisition URL");
     }
@@ -117,15 +115,8 @@ public class FfvbObservationReader implements FfvbAcquisition {
    * @return safe status/type diagnostic retaining the internal cause
    */
   private FfvbAcquisitionException readFailure(RuntimeException failure) {
-    Throwable cause =
-        failure instanceof UncheckedIOException && failure.getCause() != null
-            ? failure.getCause()
-            : failure;
-    String reason =
-        cause instanceof HttpResponseException response
-            ? "Provider HTTP " + response.getStatusCode()
-            : cause.getClass().getSimpleName();
-    return new FfvbAcquisitionException(reason, failure, FfvbAcquisitionException.Kind.TRANSPORT);
+    return new FfvbAcquisitionException(
+        AcquisitionFailure.reason(failure), failure, FfvbAcquisitionException.Kind.TRANSPORT);
   }
 
   /**

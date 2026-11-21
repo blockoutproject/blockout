@@ -19,11 +19,14 @@ import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.ChangeCollectionControls;
 import com.blockout.backend.collection.application.service.CloseCollectionSeason;
 import com.blockout.backend.collection.application.service.InitialReconstructionService;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
+import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -119,6 +122,7 @@ class InitialReconstructionIntegrationTest {
   @MockitoBean private Clock clock;
   @Autowired private InitialReconstructionService reconstruction;
   @Autowired private PrepareCollectionSources preparation;
+  @Autowired private ObserveCollectionSource officialSources;
   @Autowired private ReadCollectionSeasons seasonReads;
   @Autowired private RegisterCollectorRuntime runtime;
   @Autowired private AdmitCollectionCycle admission;
@@ -322,18 +326,109 @@ class InitialReconstructionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Initial admission refuses a season launched after request acceptance")
-  void refusesActivationBeforeInitialAdmission() {
+  @DisplayName(
+      "Current root discovery preserves a verified-reference validation already in progress")
+  void preservesConcurrentHistoricalValidation() {
+    // Given
+    URI archive = URI.create("https://www.ffvbbeach.org/archive");
+    Source historical =
+        reconstruction.prepare(OPERATOR, 2026, CollectionProviderEnum.FFVB, "ABCCS", archive);
+    Cycle validating =
+        admission
+            .admit(
+                new CollectionState.StartCycle(
+                    UUID.fromString("00000000-0000-4000-8000-000000001861"),
+                    STARTUP,
+                    null,
+                    historical.id(),
+                    historical.revision(),
+                    null))
+            .cycle();
+    URI current = URI.create("https://www.ffvbbeach.org/current");
+
+    // When
+    ObserveCollectionSource.Resolved observed =
+        officialSources.observe(
+            new ObserveCollectionSource.Proposal(
+                STARTUP, 2026, CollectionProviderEnum.FFVB, "ABCCS", current, current, NOW));
+    Source qualified =
+        validation.submitValidation(
+            historical.id(),
+            new CollectionState.SourceValidation(
+                validating.id(),
+                SourceValidationStateEnum.QUALIFIED,
+                NOW,
+                "2026/2027",
+                null,
+                null));
+
+    // Then
+    assertThat(observed.sourceBindingId()).isEqualTo(historical.id());
+    assertThat(qualified.candidateUrl()).isEqualTo(archive.toString());
+    assertThat(qualified.launched()).isFalse();
+  }
+
+  @Test
+  @DisplayName(
+      "A current official read qualifies the same unadmitted historical candidate after activation")
+  void admitsMatchingOfficialReferenceAfterActivation() {
+    // Given
+    URI url = URI.create("https://www.ffvbbeach.org/current?codent=ABCCS");
+    Source candidate =
+        reconstruction.prepare(OPERATOR, 2026, CollectionProviderEnum.FFVB, "ABCCS", url);
+    preparation.activate(OPERATOR, candidate.seasonId());
+
+    // When
+    officialSources.observe(
+        new ObserveCollectionSource.Proposal(
+            STARTUP, 2026, CollectionProviderEnum.FFVB, "ABCCS", url, url, NOW));
+
+    // Then
+    Source accepted = configuration.source(OPERATOR, candidate.id());
+    assertThat(accepted.acceptedUrl()).isEqualTo(url.toString());
+    assertThat(accepted.launched()).isTrue();
+    assertThat(work.work(STARTUP).validations()).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "First ordinary source enables a historical-only control and preserves its pending request")
+  void enablesOrdinaryDiscoveryOnExistingHistoricalControl() {
+    // Given
+    Source archive = qualified(2026, "ABCCS");
+    Control pending = request(archive, Set.of());
+    assertThat(pending.enabled()).isFalse();
+    URI url = URI.create("https://www.ffvbbeach.org/current?codent=LIRA");
+
+    // When
+    officialSources.observe(
+        new ObserveCollectionSource.Proposal(
+            STARTUP, 2026, CollectionProviderEnum.FFVB, "LIRA", url, url, NOW));
+
+    // Then
+    Control shared = configuration.control(OPERATOR, pending.id()).control();
+    assertThat(shared.enabled()).isTrue();
+    assertThat(shared.requestId()).isEqualTo(pending.requestId());
+    assertThat(shared.sourceBindingIds()).containsExactly(archive.id());
+    assertThat(admit(shared).mode()).isEqualTo(CollectionModeEnum.INITIAL_IMPORT);
+  }
+
+  @Test
+  @DisplayName("Activation waits for accepted historical intent to be admitted")
+  void preservesPendingHistoricalIntentDuringActivation() {
     // Given
     Source source = qualified(2023, "ABCCS");
     Control pending = request(source, Set.of());
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
-
     // When / Then
-    assertThatThrownBy(() -> admit(pending)).isInstanceOf(CollectionConflictException.class);
+    assertThatThrownBy(() -> preparation.activate(OPERATOR, season.id()))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(configuration.control(OPERATOR, pending.id()).control().requestId())
         .isEqualTo(pending.requestId());
+    Cycle admitted = admit(pending);
+    assertThat(preparation.activate(OPERATOR, season.id()).collectionState())
+        .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
+    assertThat(work.get(admitted.id()).state()).isEqualTo(CollectionCycleStateEnum.RUNNING);
   }
 
   @Test
@@ -868,7 +963,17 @@ class InitialReconstructionIntegrationTest {
     results.complete(first.id(), NOW.plusSeconds(60));
     InitialCoverage.Page before = reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200);
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
+    URI officialUrl = URI.create(configuration.source(OPERATOR, source.id()).acceptedUrl());
+    officialSources.observe(
+        new ObserveCollectionSource.Proposal(
+            STARTUP,
+            season.startYear(),
+            source.provider(),
+            source.organizerReference(),
+            officialUrl,
+            officialUrl,
+            NOW));
+    preparation.activate(OPERATOR, season.id());
     Control current = configuration.control(OPERATOR, initial.id()).control();
     controls.setActivity(OPERATOR, current.id(), true);
     current = configuration.control(OPERATOR, initial.id()).control();

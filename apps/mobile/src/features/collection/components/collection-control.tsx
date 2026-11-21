@@ -35,12 +35,19 @@ export function CollectionControl({
   const { authority } = editing;
   const mounted = useRef(false);
   const closed = season?.state === "closed";
-  const busy =
-    !authority.enabled ||
-    editing.activity.isPending ||
-    editing.request.isPending;
-  const refused = isCollectionReadRefused(editing.query.error);
   const running = control.cycle?.state === "running";
+  const canChangeActivity =
+    authority.enabled &&
+    !closed &&
+    !editing.activity.isPending &&
+    !editing.request.isPending &&
+    !isCollectionReadRefused(editing.query.error);
+  const canRequest =
+    canChangeActivity &&
+    control.enabled &&
+    (!season || season.state === "active") &&
+    !control.pendingRequestId &&
+    !running;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -56,10 +63,7 @@ export function CollectionControl({
   async function send(command: "activity" | "request") {
     if (
       !mounted.current ||
-      busy ||
-      closed ||
-      refused ||
-      (command === "request" && !control.enabled)
+      !(command === "request" ? canRequest : canChangeActivity)
     ) {
       return;
     }
@@ -91,7 +95,7 @@ export function CollectionControl({
 
   /** Native confirmation belongs to the mounted control; the backend rechecks current permission and eligibility. */
   async function confirmRequest() {
-    if (busy || closed || refused) {
+    if (!canRequest) {
       return;
     }
 
@@ -176,7 +180,7 @@ export function CollectionControl({
               fullWidth
               variant="secondary"
               label={control.enabled ? "Mettre en pause" : "Reprendre"}
-              disabled={busy || refused}
+              disabled={!canChangeActivity}
               loading={editing.activity.isPending}
               onPress={() => send("activity")}
             />
@@ -185,13 +189,7 @@ export function CollectionControl({
             <Button
               fullWidth
               label={requestLabel()}
-              disabled={
-                busy ||
-                refused ||
-                !control.enabled ||
-                !!control.pendingRequestId ||
-                running
-              }
+              disabled={!canRequest}
               loading={editing.request.isPending}
               onPress={confirmRequest}
             />

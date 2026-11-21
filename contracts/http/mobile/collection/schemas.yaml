@@ -39,9 +39,8 @@ SourceBindingResponse:
   title: SourceBindingResponse
   type: object
   description:
-    Root source candidate and current qualification, distinct from discovered child pools and
-    mappings. An unfinished validation from a replaced collector is exposed as unvalidated;
-    accepted qualification remains intact.
+    Official source reference and catalogue evidence within one season. The binding retains
+    legacy preparation fields for existing clients.
   additionalProperties: true
   properties:
     id:
@@ -61,7 +60,7 @@ SourceBindingResponse:
         zeros.
     label:
       type: string
-      description: Human-readable source name.
+      description: Source display label, using the provider and recorded native reference when only those are retained.
     candidateUrl:
       type: string
       description: Proposed HTTP URL without credentials; qualification verifies official scope. Null when missing.
@@ -69,14 +68,12 @@ SourceBindingResponse:
       nullable: true
     acceptedUrl:
       type: string
-      description: Accepted official URL; present once locked by periodic launch or initial-import admission, null before either event.
+      description: Qualified official reference, available before season activation when discovered. Null when no reference has been accepted.
       format: uri
       nullable: true
     locked:
       type: boolean
-      description:
-        Reference is immutable after periodic launch or first initial-import admission, including
-        during pause and after closure.
+      description: Retained reference is immutable, including during pause and after closure.
     validation:
       $ref: ../../common/collection-enums.yaml#/SourceValidationStateEnum
     validatedAt:
@@ -94,9 +91,9 @@ SourceBindingResponse:
       nullable: true
     launched:
       type: boolean
-      description:
-        Source has been enabled for periodic collection; initial reconstruction alone locks
-        but does not launch it.
+      description: Whether the source participates in ordinary catalogue refresh. Season state owns periodic sporting activation.
+    catalog:
+      $ref: "#/SourceCatalogReadResponse"
   required:
     - id
     - seasonId
@@ -111,6 +108,39 @@ SourceBindingResponse:
     - seasonEvidence
     - reason
     - launched
+SourceCatalogReadResponse:
+  title: SourceCatalogReadResponse
+  type: object
+  description: Latest official catalogue evidence. Partial or unavailable reads preserve the last known entries.
+  additionalProperties: true
+  properties:
+    status:
+      $ref: "#/SourceCatalogStatusEnum"
+    observedAt:
+      type: string
+      format: date-time
+      description: Time of the most recent catalogue read, omitted while waiting for the first read.
+    lastCompleteAt:
+      type: string
+      format: date-time
+      description: Time of the most recent authoritative complete read accepted for this source, omitted when unproven.
+    reason:
+      type: string
+      description: Safe factual explanation of an incomplete or unavailable read, omitted when unknown.
+  required:
+    - status
+SourceCatalogStatusEnum:
+  title: SourceCatalogStatusEnum
+  type: string
+  description: >
+    Not-read means there is no recorded read. Complete means the latest read established the
+    catalogue. Partial means the latest read supplied incomplete evidence. Unavailable means
+    there is no usable evidence from that read.
+  enum:
+    - not-read
+    - complete
+    - partial
+    - unavailable
 SourceBindingListResponse:
   title: SourceBindingListResponse
   type: object
@@ -478,6 +508,13 @@ DiscoveredCollectionResourceResponse:
       type: string
       description: Pack parent for a child pool; omitted for a root entry.
       format: uuid
+    phaseReference:
+      type: string
+      description: Published LNV phase reference when available, shared by any groups in the same phase.
+    poolCount:
+      type: integer
+      minimum: 1
+      description: Current number of discovered pools in a FFVB pack. Omitted for other entries.
   required:
     - id
     - label

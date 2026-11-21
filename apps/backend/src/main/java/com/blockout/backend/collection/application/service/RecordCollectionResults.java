@@ -2,7 +2,6 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
-import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
@@ -16,12 +15,9 @@ import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
-import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,9 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecordCollectionResults {
   private final CollectionStore store;
   private final CollectionCycleAccess cycleAccess;
-  private final ReadSportingAcquisition acquisitionReads;
   private final ApplicationEventPublisher events;
-  private final CollectionStageMapper stages;
 
   /**
    * Accepts only newer evidence for this scope/stage/phase without replaying any sporting write.
@@ -52,7 +46,7 @@ public class RecordCollectionResults {
     if (cycle.state() != CollectionCycleStateEnum.RUNNING) {
       throw CollectionConflictException.invalidContext();
     }
-    Target target = requireTarget(cycleId, command.scopeId(), command.stage());
+    Target target = cycleAccess.resultTarget(cycle, command.scopeId(), command.stage());
     Control control = store.lockControl(cycle.controlId());
     CollectionResult previous =
         store
@@ -205,40 +199,6 @@ public class RecordCollectionResults {
             command.readOrdinal(),
             command.obtainedCount(),
             command.rejectedCount()));
-  }
-
-  /**
-   * Resolves the admitted role once for authorization and initial attribution. Child identities
-   * come from their sporting owner, never from a caller's parent. Logo membership uses one bounded
-   * query over retained pools instead of one query per membership.
-   *
-   * @param cycleId current snapshot
-   * @param scopeId stable source or sporting identity
-   * @param stage exact acquisition role
-   * @return direct admitted role or its admitted calendar, retaining the original source binding
-   * @throws CollectionConflictException when the requested role has no admitted scope
-   */
-  private Target requireTarget(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
-    if (stage == CollectionStageEnum.LOGO) {
-      return store
-          .firstTarget(
-              cycleId, acquisitionReads.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR)
-          .orElseThrow(CollectionConflictException::invalidContext);
-    }
-    return store
-        .target(cycleId, scopeId, stages.toTargetKind(stage))
-        .or(
-            () ->
-                switch (stage) {
-                  case DETAILS ->
-                      acquisitionReads
-                          .matchPoolId(scopeId)
-                          .flatMap(
-                              pool ->
-                                  store.target(cycleId, pool, CollectionTargetKindEnum.CALENDAR));
-                  default -> Optional.empty();
-                })
-        .orElseThrow(CollectionConflictException::invalidContext);
   }
 
   /**

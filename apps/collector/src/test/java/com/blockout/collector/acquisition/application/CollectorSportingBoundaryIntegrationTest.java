@@ -5,13 +5,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
@@ -20,13 +26,17 @@ import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Clock;
@@ -160,6 +170,124 @@ class CollectorSportingBoundaryIntegrationTest {
     if (transport != null) {
       transport.close();
     }
+  }
+
+  @Test
+  @DisplayName(
+      "Discovers FFVB packs and the three LNV championships through admitted catalogue work before activation")
+  void discoversCataloguesBeforeActivation() {
+    // Given
+    URI ffvbEntry = URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux");
+    URI ffvbSource =
+        URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA");
+    ProviderPages http = mock(ProviderPages.class);
+    doThrow(new UncheckedIOException(new IOException("Unpublished synthetic entry")))
+        .when(http)
+        .page(any());
+    doReturn(providerPage(ffvbEntry, "<a href='" + ffvbSource + "'>Ligue</a>"))
+        .when(http)
+        .page(ffvbEntry);
+    doReturn(
+            providerPage(
+                ffvbSource,
+                """
+        <form><span>Regional</span><select>
+          <option value='vbspo_calendrier.php?saison=2027/2028&codent=LIRA&poule=AA'>Pool AA</option>
+        </select></form>
+        """))
+        .when(http)
+        .page(ffvbSource);
+    lnvCurrentEntry(http, "saforelle-volstar", "Saforelle VOLSTAR", "901", "911", "921");
+    lnvCurrentEntry(http, "alterna-volstar", "Alterna VOLSTAR", "902", "912", "922");
+    lnvCurrentEntry(http, "volstar-masculine-2", "VOLSTAR Masculine 2", "903", "913", "923");
+    Clock clock = Clock.systemUTC();
+    DiscoverSeasonSources discovery =
+        new DiscoverSeasonSources(
+            http, http, new FfvbDiscovery(), new LnvDiscovery(), backend, lifecycle, clock);
+    FfvbAcquisition ffvb = mock(FfvbAcquisition.class);
+    LnvAcquisition lnv = mock(LnvAcquisition.class);
+    CollectPassage passage =
+        new CollectPassage(
+            backend,
+            sporting,
+            ffvb,
+            lnv,
+            mock(ClubSheets.class),
+            mock(ClubGeocoder.class),
+            discovery,
+            lifecycle,
+            clock,
+            new CollectionStageMapperImpl());
+
+    // When
+    discovery.currentEntries();
+    List<CollectionBackend.ControlWork> preparation =
+        lifecycle.work().controls().stream()
+            .filter(control -> control.seasonState() == CollectionSeasonStateEnum.PREPARING)
+            .toList();
+    assertThat(preparation).hasSize(2).allMatch(CollectionBackend.ControlWork::enabled);
+    for (CollectionBackend.ControlWork control : preparation) {
+      CollectorLifecycle.AdmittedCycle cycle =
+          lifecycle.admit(control.id(), null, control.revision(), null);
+      assertThat(backend.targets(cycle.getCycle().id(), 0).items())
+          .isNotEmpty()
+          .allMatch(target -> target.kind() == CollectionTargetKindEnum.DISCOVERY);
+      passage.execute(cycle);
+    }
+
+    // Then
+    UUID season = preparation.getFirst().seasonId();
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT collection_state FROM sporting_season WHERE id=?", String.class, season))
+        .isEqualTo("PREPARING");
+    assertThat(
+            runtime.sql.queryForList(
+                """
+        SELECT p.reference FROM sporting_pool p JOIN sporting_pack k ON k.id=p.pack_id
+        WHERE p.season_id=? AND p.provider='FFVB' AND k.reference='Regional'
+        """,
+                String.class,
+                season))
+        .containsExactly("AA");
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT reference FROM sporting_pool WHERE season_id=? AND provider='LNV'",
+                String.class,
+                season))
+        .containsExactlyInAnyOrder("911", "912", "913");
+    verifyNoInteractions(ffvb, lnv);
+  }
+
+  private void lnvCurrentEntry(
+      ProviderPages http,
+      String slug,
+      String name,
+      String competition,
+      String phase,
+      String group) {
+    URI entry = URI.create("https://www.lnv.fr/competitions/" + slug);
+    URI root = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=" + competition);
+    URI calendar = root.resolve("CompetitionMatches.aspx?ID=" + competition + "&PID=" + phase);
+    doReturn(providerPage(entry, "<iframe src='" + root + "'></iframe>")).when(http).page(entry);
+    doReturn(
+            providerPage(
+                root,
+                "<title>" + name + " 2027/2028</title><a href='" + calendar + "'>Regular</a>"))
+        .when(http)
+        .page(root);
+    doReturn(
+            providerPage(
+                calendar,
+                "<div class='rmpView' id='Content_Main_"
+                    + group
+                    + "'><span id='group_lbl_title'>Regular</span></div>"))
+        .when(http)
+        .page(calendar);
+  }
+
+  private ProviderResponse providerPage(URI url, String html) {
+    return new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), url, true);
   }
 
   @Test
@@ -957,7 +1085,7 @@ class CollectorSportingBoundaryIntegrationTest {
    */
   private CollectPassage passage(FfvbAcquisition provider) {
     DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
-    when(discovery.catalog(any(), any(), any()))
+    when(discovery.catalog(any(), anyBoolean(), any(), any()))
         .thenThrow(new FfvbAcquisitionException("Synthetic unavailable discovery"));
     return new CollectPassage(
         backend,

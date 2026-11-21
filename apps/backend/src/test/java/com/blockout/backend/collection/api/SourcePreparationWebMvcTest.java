@@ -7,31 +7,36 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionResult;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogRead;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalog;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
-import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -73,14 +78,18 @@ class SourcePreparationWebMvcTest {
   @MockitoBean private PrepareCollectionSources preparation;
   @MockitoBean private ReadCollectionConfiguration configurationReads;
   @MockitoBean private AccountAccess accounts;
+  @MockitoBean private CurrentPermissions permissions;
 
   @Test
   @DisplayName("Source reads retain required nulls and expose no classification readiness")
   void readsSourceEvidence() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(configurationReads.source(ACCOUNT, SOURCE))
-        .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
+    when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
+        .thenReturn(
+            new SourceCatalog(
+                source(SourceValidationStateEnum.UNVALIDATED),
+                new CatalogRead(CatalogStatus.NOT_READ, null, null, null)));
 
     // When
     ResultActions response =
@@ -96,6 +105,9 @@ class SourcePreparationWebMvcTest {
         .andExpect(jsonPath("$.seasonEvidence").value(Matchers.nullValue()))
         .andExpect(jsonPath("$.reason").value(Matchers.nullValue()))
         .andExpect(jsonPath("$.validation").value("unvalidated"))
+        .andExpect(jsonPath("$.catalog.status").value("not-read"))
+        .andExpect(jsonPath("$.catalog.observedAt").doesNotExist())
+        .andExpect(jsonPath("$.catalog.lastCompleteAt").doesNotExist())
         .andExpect(jsonPath("$.classification").doesNotExist());
   }
 
@@ -121,100 +133,50 @@ class SourcePreparationWebMvcTest {
   }
 
   @Test
-  @DisplayName("Creating a candidate returns its location without implying qualification")
-  void createsUnqualifiedCandidate() throws Exception {
+  @DisplayName("The latest unavailable read keeps the official URL and last complete read visible")
+  void exposesUnavailableCatalogueWithRetainedEvidence() throws Exception {
     // Given
+    Instant lastAttempt = Instant.parse("2026-10-17T12:00:00Z");
+    CollectionResult failedRead =
+        new CollectionResult(
+            SOURCE,
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            1,
+            lastAttempt,
+            CollectionOutcomeEnum.FAILED,
+            null,
+            null,
+            "The source responded with HTTP 503.",
+            null,
+            null);
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.create(ACCOUNT, SEASON, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
-        .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
+    when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
+        .thenReturn(
+            new SourceCatalog(
+                source(SourceValidationStateEnum.QUALIFIED).toBuilder()
+                    .acceptedUrl(URL)
+                    .locked(true)
+                    .build(),
+                new CatalogRead(
+                    CatalogStatus.UNAVAILABLE,
+                    lastAttempt,
+                    Instant.parse("2026-10-16T11:48:00Z"),
+                    failedRead)));
 
     // When
     ResultActions response =
-        mvc.perform(
-            post("/administration/collection-seasons/{id}/source-bindings", SEASON)
-                .with(mobile())
-                .contentType("application/json")
-                .content(
-                    """
-        {"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
-        """
-                        .formatted(URL)));
+        mvc.perform(get("/administration/source-bindings/{id}", SOURCE).with(mobile()));
 
     // Then
     response
-        .andExpect(status().isCreated())
-        .andExpect(header().string("Location", "/administration/source-bindings/" + SOURCE))
-        .andExpect(jsonPath("$.validation").value("unvalidated"));
-  }
-
-  @Test
-  @DisplayName("Validation accepts pending intent with 202 rather than claiming qualification")
-  void acceptsPendingValidation() throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.requestValidation(ACCOUNT, SOURCE))
-        .thenReturn(source(SourceValidationStateEnum.PENDING));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post("/administration/source-bindings/{id}/validations", SOURCE)
-                .with(mobile())
-                .contentType("application/json")
-                .content("{}"));
-
-    // Then
-    response
-        .andExpect(status().isAccepted())
-        .andExpect(jsonPath("$.validation").value("pending"))
-        .andExpect(header().string("Cache-Control", "no-store"));
-  }
-
-  @Test
-  @DisplayName("Candidate replacement forwards the whole URL")
-  void replacesCandidate() throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.setCandidate(ACCOUNT, SOURCE, URI.create(URL)))
-        .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            put("/administration/source-bindings/{id}/candidate", SOURCE)
-                .with(mobile())
-                .contentType("application/json")
-                .content("{\"candidateUrl\":\"" + URL + "\"}"));
-
-    // Then
-    response.andExpect(status().isOk()).andExpect(jsonPath("$.validation").value("unvalidated"));
-    verify(preparation).setCandidate(ACCOUNT, SOURCE, URI.create(URL));
-  }
-
-  @Test
-  @DisplayName("Duplicate binding creation returns the existing canonical conflict")
-  void refusesDuplicateBinding() throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.create(ACCOUNT, SEASON, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
-        .thenThrow(new CollectionConflictException("conflict"));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post("/administration/collection-seasons/{id}/source-bindings", SEASON)
-                .with(mobile())
-                .contentType("application/json")
-                .content(
-                    """
-        {"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
-        """
-                        .formatted(URL)));
-
-    // Then
-    response
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.acceptedUrl").value(URL))
+        .andExpect(jsonPath("$.catalog.status").value("unavailable"))
+        .andExpect(jsonPath("$.catalog.observedAt").value("2026-10-17T12:00:00Z"))
+        .andExpect(jsonPath("$.catalog.lastCompleteAt").value("2026-10-16T11:48:00Z"))
+        .andExpect(jsonPath("$.catalog.reason").value("The source responded with HTTP 503."));
   }
 
   @Test
@@ -227,7 +189,7 @@ class SourcePreparationWebMvcTest {
             new CollectionResourcePage(
                 List.of(
                     new CollectionResource(
-                        SEASON, "National", CollectionResourceKindEnum.PACK, null)),
+                        SEASON, "National", CollectionResourceKindEnum.PACK, null, null, 2)),
                 0,
                 false));
 
@@ -240,71 +202,33 @@ class SourcePreparationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items[0].kind").value("pack"))
         .andExpect(jsonPath("$.items[0].parentId").doesNotExist())
+        .andExpect(jsonPath("$.items[0].poolCount").value(2))
         .andExpect(jsonPath("$.items[0].classification").doesNotExist())
         .andExpect(jsonPath("$.total").doesNotExist())
         .andExpect(jsonPath("$.hasNext").value(false));
   }
 
   @Test
-  @DisplayName("Season confirmation preserves the exact submitted label")
-  void preservesExactConfirmation() throws Exception {
+  @DisplayName("Activation targets only the season and returns its new lifecycle")
+  void activatesSeason() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.confirmSeason(ACCOUNT, SOURCE, " 2026/2027"))
-        .thenThrow(new CollectionConflictException("conflict"));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            put("/administration/source-bindings/{id}/season-confirmation", SOURCE)
-                .with(mobile())
-                .contentType("application/json")
-                .content("{\"seasonLabel\":\" 2026/2027\"}"));
-
-    // Then
-    response.andExpect(status().isConflict());
-    verify(preparation).confirmSeason(ACCOUNT, SOURCE, " 2026/2027");
-  }
-
-  @Test
-  @DisplayName("A selected launch is forwarded as one atomic command")
-  void forwardsCompleteSelection() throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.launch(ACCOUNT, SEASON, Set.of(SOURCE)))
+    when(preparation.activate(ACCOUNT, SEASON))
         .thenReturn(
             new CollectionSeasonView(SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.ACTIVE));
 
     // When
     ResultActions response =
         mvc.perform(
-            post("/administration/collection-seasons/{id}/source-launches", SEASON)
-                .with(mobile())
-                .contentType("application/json")
-                .content("{\"sourceBindingIds\":[\"" + SOURCE + "\"]}"));
+            post("/administration/collection-seasons/{id}/activation", SEASON).with(mobile()));
 
     // Then
-    response.andExpect(status().isOk()).andExpect(jsonPath("$.state").value("active"));
-    verify(preparation).launch(ACCOUNT, SEASON, Set.of(SOURCE));
-  }
-
-  @Test
-  @DisplayName("An oversized selection is refused without dispatching chunks")
-  void refusesOversizedCommand() throws Exception {
-    // Given
-    String body = " ".repeat(8 * 1024 * 1024 + 1);
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post("/administration/collection-seasons/{id}/source-launches", SEASON)
-                .with(mobile())
-                .contentType("application/json")
-                .content(body));
-
-    // Then
-    response.andExpect(status().isContentTooLarge());
-    verifyNoInteractions(preparation);
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.id").value(SEASON.toString()))
+        .andExpect(jsonPath("$.state").value("active"));
+    verify(preparation).activate(ACCOUNT, SEASON);
   }
 
   @ParameterizedTest
@@ -328,7 +252,7 @@ class SourcePreparationWebMvcTest {
   void requiresOperationalGrant() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(configurationReads.source(ACCOUNT, SOURCE))
+    when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenThrow(new AccessDeniedException("Collection management is not permitted"));
 
     // When

@@ -77,10 +77,7 @@ public class AcquisitionScheduler {
               && control.requestId() != null;
       if (control.runningCycleId() != null
           || control.seasonState() == CollectionSeasonStateEnum.CLOSED
-          || (!initial
-              && (!control.enabled()
-                  || (control.seasonId() != null
-                      && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) {
+          || (!initial && !control.enabled())) {
         continue;
       }
       boolean minuteWork = control.requestId() != null || control.seasonId() == null;

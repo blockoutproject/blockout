@@ -28,7 +28,8 @@ class LnvDiscoveryTest {
             + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Play-Offs</a>";
 
     // When
-    String season = new LnvDiscovery().qualify(html.getBytes(StandardCharsets.UTF_8), page, "901");
+    String season =
+        new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901").season();
 
     // Then
     assertThat(season).isNull();
@@ -46,7 +47,7 @@ class LnvDiscoveryTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().qualify(html.getBytes(StandardCharsets.UTF_8), page, "901"))
+            () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -60,10 +61,11 @@ class LnvDiscoveryTest {
   void resolvesPublishedPhaseLinks(String html) {
     // Given
     URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901");
+    byte[] championship =
+        ("<title>Marmara SpikeLigue</title>" + html).getBytes(StandardCharsets.UTF_8);
 
     // When
-    List<URI> links =
-        new LnvDiscovery().phaseLinks(html.getBytes(StandardCharsets.UTF_8), page, "901");
+    List<URI> links = new LnvDiscovery().root(championship, page, "901").phases();
 
     // Then
     assertThat(links)
@@ -77,11 +79,14 @@ class LnvDiscoveryTest {
     // Given
     URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901");
     String html =
-        "<base href='https://foreign.example/'><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
+        """
+        <title>Marmara SpikeLigue</title><base href='https://foreign.example/'>
+        <a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>
+        """;
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().phaseLinks(html.getBytes(StandardCharsets.UTF_8), page, "901"))
+            () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 }

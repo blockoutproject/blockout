@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
@@ -55,23 +56,21 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Control prepareInitialControl(
-      UUID seasonId, CollectionProviderEnum provider) {
+  public CollectionState.Control ensureSeasonControl(
+      UUID seasonId, CollectionProviderEnum provider, boolean enabledOnCreate) {
     CollectionFamilyEnum family =
-        provider == CollectionProviderEnum.FFVB
-            ? CollectionFamilyEnum.FFVB
-            : CollectionFamilyEnum.LNV;
+        switch (provider) {
+          case FFVB -> CollectionFamilyEnum.FFVB;
+          case LNV -> CollectionFamilyEnum.LNV;
+        };
     CollectionControlEntity entity =
-        controls.findBySeasonIdOrderById(seasonId).stream()
-            .filter(control -> control.getFamily() == family)
-            .findFirst()
-            .orElse(null);
-    if (entity == null) {
-      entity = new CollectionControlEntity(seasonId, family);
-      entity.setEnabled(false);
-      controls.saveAndFlush(entity);
-    }
-    return lockControl(entity.getId());
+        controls
+            .findBySeasonIdAndFamily(seasonId, family)
+            .orElseGet(
+                () ->
+                    controls.saveAndFlush(
+                        new CollectionControlEntity(seasonId, family, enabledOnCreate)));
+    return mapper.toView(entity);
   }
 
   /** {@inheritDoc} */
@@ -190,6 +189,14 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<CollectionResult> catalogResults(UUID seasonId, List<UUID> sourceIds) {
+    return sourceIds.isEmpty()
+        ? List.of()
+        : results.catalogResults(seasonId, sourceIds).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public CollectionState.ResultPage results(
       UUID controlId, CollectionState.ResultFilters filters, long page, int size) {
     CollectionState.ResultSummary summary =
@@ -277,16 +284,8 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider) {
-    CollectionFamilyEnum family =
-        switch (provider) {
-          case FFVB -> CollectionFamilyEnum.FFVB;
-          case LNV -> CollectionFamilyEnum.LNV;
-        };
-    if (!controls.existsBySeasonIdAndFamily(seasonId, family)) {
-      controls.save(new CollectionControlEntity(seasonId, family));
-    }
+  public boolean hasOrdinarySources(UUID seasonId, CollectionProviderEnum provider) {
+    return !sources.ordinarySources(seasonId, provider, Limit.of(1)).isEmpty();
   }
 
   /** {@inheritDoc} */
@@ -425,6 +424,15 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public List<CollectionState.Source> sources(UUID seasonId) {
     return sources.findBySeasonIdOrderByProviderAscOrganizerReferenceAscIdAsc(seasonId).stream()
+        .map(mapper::toView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<CollectionState.Source> ordinarySources(
+      UUID seasonId, CollectionProviderEnum provider) {
+    return sources.ordinarySources(seasonId, provider, Limit.unlimited()).stream()
         .map(mapper::toView)
         .toList();
   }

@@ -1,19 +1,17 @@
 package com.blockout.collector.acquisition.ffvb;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderQuery;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.FormElement;
@@ -26,21 +24,20 @@ import org.springframework.stereotype.Component;
 public class FfvbDiscovery {
   private static final Set<String> EXCLUDED =
       Set.of("LIGU", "LIGY", "LIMART", "LIMY", "LIRE", "AALNV");
-  private static final Charset ENCODING = Charset.forName("windows-1252");
+  private static final String CALENDAR_SCRIPT = "vbspo_calendrier.php";
 
   /**
    * Reads a complete native organizer menu or national selector, preserving partial-link evidence.
    *
-   * @param bytes complete bounded HTML body
-   * @param url response context
+   * @param page bounded native page
    * @param season expected canonical season label
    * @param organizer expected supported organizer
    * @return contextual references; incomplete input cannot prove absence
    * @throws FfvbAcquisitionException for unsupported structure or contradictory root scope
    */
-  public SportingObservation.Catalog parse(byte[] bytes, URI url, String season, String organizer) {
+  public SportingObservation.Catalog parse(Document page, String season, String organizer) {
+    URI url = URI.create(page.location());
     requireContext(url, season, organizer);
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
     SportingObservation.Catalog round = round(page, url, season, organizer);
     if (round != null) {
       return round;
@@ -52,8 +49,7 @@ public class FfvbDiscovery {
         menu != null && menu.text().contains("Compétitions")
             || links.stream()
                 .anyMatch(
-                    link ->
-                        link.attr("value").contains("vbspo_calendrier.php") && pack(link) != null);
+                    link -> link.attr("value").contains(CALENDAR_SCRIPT) && pack(link) != null);
     if (!recognized) {
       throw invalid();
     }
@@ -61,11 +57,11 @@ public class FfvbDiscovery {
     boolean seasonProven =
         page.select("select[name=saison] option[selected], input[name=saison]").stream()
             .anyMatch(element -> season.equals(element.attr("value")));
-    Map<String, SportingObservation.Pool> pools = new LinkedHashMap<>();
+    Map<List<String>, SportingObservation.Pool> pools = new LinkedHashMap<>();
     for (Element link : links) {
       String attribute = link.hasAttr("href") ? "href" : "value";
       String value = link.attr(attribute);
-      if (!value.contains("vbspo_calendrier.php")) {
+      if (!value.contains(CALENDAR_SCRIPT)) {
         continue;
       }
       String pack = pack(link);
@@ -74,42 +70,42 @@ public class FfvbDiscovery {
       }
       try {
         URI calendar = URI.create(link.absUrl(attribute));
+        if (!FfvbPage.hasOfficialResultsOrigin(calendar)
+            || !hasResultsPath(calendar)
+            || !calendar.getPath().endsWith("/" + CALENDAR_SCRIPT)) {
+          complete = false;
+          continue;
+        }
         Map<String, String> fields = query(calendar);
         if (EXCLUDED.contains(fields.getOrDefault("codent", ""))) {
           continue;
         }
-        if (season.equals(fields.get("saison"))
-            && organizer.equals(fields.get("codent"))
-            && !fields.getOrDefault("division", "").isBlank()
-            && !fields.getOrDefault("tour", "").isBlank()) {
+        if (!matchesSeasonAndOrganizer(fields, season, organizer)) {
+          complete = false;
+          continue;
+        }
+        if (sharedRound(fields)) {
           seasonProven = true;
           continue;
         }
-        if (!season.equals(fields.get("saison"))
-            || !organizer.equals(fields.get("codent"))
-            || fields.getOrDefault("poule", "").isBlank()) {
+        if (fields.getOrDefault("poule", "").isBlank()) {
           complete = false;
           continue;
         }
         seasonProven = true;
-        String tour = optional(fields.get("tour"));
-        String competition = optional(fields.get("coddiv"));
-        if (competition == null) {
-          competition = pack;
-        }
-        if (pack == null || competition == null) {
+        if (pack == null) {
           complete = false;
           continue;
         }
+        String tour = optional(fields.get("tour"));
+        String competition = Objects.requireNonNullElse(optional(fields.get("coddiv")), pack);
         String pool = fields.get("poule");
         String group = tour == null ? null : pool;
-        URI full = new URIBuilder(calendar).setParameter("calend", "COMPLET").build();
+        URI full = FfvbPage.completeCalendarUrl(calendar);
         SportingObservation.Pool candidate =
             new SportingObservation.Pool(
                 pack, competition, pool, tour, group, full, full, link.text());
-        String key =
-            List.of(competition == null ? "" : competition, tour == null ? "" : tour, pool)
-                .toString();
+        List<String> key = List.of(competition, tour == null ? "" : tour, pool);
         SportingObservation.Pool previous = pools.putIfAbsent(key, candidate);
         if (previous != null && !previous.equals(candidate)) {
           complete = false;
@@ -127,13 +123,11 @@ public class FfvbDiscovery {
   /**
    * Distinguishes a complete seasonal menu from a local calendar or round response.
    *
-   * @param bytes bounded native page
-   * @param url response base
+   * @param page bounded native page
    * @return whether this page supplies seasonal navigation rather than a child calendar
    */
-  public boolean seasonal(byte[] bytes, URI url) {
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
-    return page.selectFirst("form[action$=vbspo_calendrier_export.php]") == null;
+  public boolean seasonal(Document page) {
+    return page.selectFirst(FfvbPage.EXPORT_FORM) == null;
   }
 
   /**
@@ -166,8 +160,7 @@ public class FfvbDiscovery {
    */
   private SportingObservation.Catalog round(
       Document page, URI url, String season, String organizer) {
-    if (!(page.selectFirst("form[action$=vbspo_calendrier_export.php]")
-        instanceof FormElement form)) {
+    if (!(page.selectFirst(FfvbPage.EXPORT_FORM) instanceof FormElement form)) {
       return null;
     }
     Map<String, String> fields = new LinkedHashMap<>();
@@ -189,7 +182,7 @@ public class FfvbDiscovery {
     }
     URI calendar;
     try {
-      calendar = new URIBuilder(url).setParameter("calend", "COMPLET").build();
+      calendar = FfvbPage.completeCalendarUrl(url);
     } catch (URISyntaxException failure) {
       throw invalid();
     }
@@ -209,26 +202,22 @@ public class FfvbDiscovery {
   /**
    * Identifies published shared rounds that require their own group-context read.
    *
-   * @param bytes current catalog page
-   * @param url response base
+   * @param page current catalog page
    * @param season selected season, never a current fallback
    * @param organizer selected organizer
    * @return exact published round URLs in this catalog scope
    */
-  public List<URI> roundLinks(byte[] bytes, URI url, String season, String organizer) {
-    return navigation(bytes, url).stream()
+  public List<URI> roundLinks(Document page, String season, String organizer) {
+    return navigation(page).stream()
         .filter(
             link -> {
               Map<String, String> fields = query(link);
-              return season.equals(fields.get("saison"))
-                  && organizer.equals(fields.get("codent"))
-                  && !fields.getOrDefault("division", "").isBlank()
-                  && !fields.getOrDefault("tour", "").isBlank();
+              return matchesSeasonAndOrganizer(fields, season, organizer) && sharedRound(fields);
             })
         .map(
             link -> {
               try {
-                return new URIBuilder(link).setParameter("calend", "COMPLET").build();
+                return FfvbPage.completeCalendarUrl(link);
               } catch (URISyntaxException invalid) {
                 throw invalid();
               }
@@ -236,16 +225,25 @@ public class FfvbDiscovery {
         .toList();
   }
 
+  private boolean matchesSeasonAndOrganizer(
+      Map<String, String> fields, String season, String organizer) {
+    return season.equals(fields.get("saison")) && organizer.equals(fields.get("codent"));
+  }
+
+  private boolean sharedRound(Map<String, String> fields) {
+    return !fields.getOrDefault("division", "").isBlank()
+        && !fields.getOrDefault("tour", "").isBlank();
+  }
+
   /**
    * Selects only published navigation to native frames, selectors, menus and scoped archives,
-   * resolving attributes against jsoup's document base.
+   * resolving attributes against jsoup's document base. The transport owns origin rejection so a
+   * refused native branch can make the catalogue incomplete.
    *
-   * @param bytes bounded entry HTML
-   * @param url entry base
+   * @param page bounded entry HTML
    * @return deduplicated navigation, never a fabricated year or identifier
    */
-  public List<URI> navigation(byte[] bytes, URI url) {
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
+  public List<URI> navigation(Document page) {
     List<URI> result = new ArrayList<>();
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
       String attribute = "value";
@@ -256,10 +254,8 @@ public class FfvbDiscovery {
       }
       try {
         URI target = URI.create(link.absUrl(attribute));
-        String path = target.getPath();
-        if ("www.ffvbbeach.org".equalsIgnoreCase(target.getHost())
-            && path != null
-            && path.startsWith("/ffvbapp/resu/")
+        if (FfvbPage.RESULTS_HOST.equalsIgnoreCase(target.getHost())
+            && hasResultsPath(target)
             && !excludedCompetition(pack(link) + " " + link.text())
             && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) {
           result.add(target);
@@ -269,6 +265,11 @@ public class FfvbDiscovery {
       }
     }
     return result.stream().distinct().toList();
+  }
+
+  private boolean hasResultsPath(URI target) {
+    String path = target.getPath();
+    return path != null && path.startsWith("/ffvbapp/resu/");
   }
 
   /**
@@ -330,14 +331,7 @@ public class FfvbDiscovery {
    * @return exact query values
    */
   private Map<String, String> query(URI uri) {
-    Map<String, String> fields = new LinkedHashMap<>();
-    for (NameValuePair field : new URIBuilder(uri).getQueryParams()) {
-      String previous = fields.putIfAbsent(field.getName(), field.getValue());
-      if (previous != null && !previous.equals(field.getValue())) {
-        throw invalid();
-      }
-    }
-    return fields;
+    return ProviderQuery.fields(uri, this::invalid);
   }
 
   /**

@@ -14,14 +14,9 @@ import org.springframework.data.jpa.repository.Query;
 
 /** One current control per seasonal provider or seasonless family. */
 interface CollectionControlRepository extends JpaRepository<CollectionControlEntity, UUID> {
-  /**
-   * Finds whether this seasonal competition family is already configured.
-   *
-   * @param seasonId canonical season held by the caller
-   * @param family competition family
-   * @return whether a control already exists, including a paused control
-   */
-  boolean existsBySeasonIdAndFamily(UUID seasonId, CollectionFamilyEnum family);
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  Optional<CollectionControlEntity> findBySeasonIdAndFamily(
+      UUID seasonId, CollectionFamilyEnum family);
 
   /**
    * Resolves the immutable season without loading mutable state.

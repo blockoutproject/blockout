@@ -11,9 +11,12 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
@@ -39,8 +42,8 @@ class ObserveCollectionSourceTest {
       new ObserveCollectionSource(store, runtimes, seasons, events);
 
   @Test
-  @DisplayName("A repeated discovery preserves the operator candidate and active season")
-  void preservesOperatorCandidate() {
+  @DisplayName("Official discovery preserves a different reference reserved for historical import")
+  void preservesHistoricalCandidate() {
     // Given
     ObserveCollectionSource.Proposal proposal = proposal();
     when(seasons.getOrCreate(2026)).thenReturn(new SeasonView(SEASON, 2026, "2026/2027"));
@@ -53,10 +56,25 @@ class ObserveCollectionSourceTest {
             .seasonId(SEASON)
             .provider(CollectionProviderEnum.FFVB)
             .organizerReference("LIRA")
-            .candidateUrl("https://www.ffvbbeach.org/operator-choice")
+            .candidateUrl("https://www.ffvbbeach.org/historical-reference")
             .build();
     when(store.source(SEASON, CollectionProviderEnum.FFVB, "LIRA"))
         .thenReturn(Optional.of(existing));
+    when(store.initialCoverage(
+            SOURCE, SOURCE, CollectionStageEnum.DISCOVERY, CollectionPhaseEnum.ACQUISITION))
+        .thenReturn(
+            Optional.of(
+                new InitialCoverage(
+                    SOURCE,
+                    SOURCE,
+                    CollectionStageEnum.DISCOVERY,
+                    CollectionPhaseEnum.ACQUISITION,
+                    InitialCoverage.Status.REQUESTED,
+                    null,
+                    0,
+                    0,
+                    null,
+                    null)));
 
     // When
     ObserveCollectionSource.Resolved result = service.observe(proposal);
@@ -64,6 +82,8 @@ class ObserveCollectionSourceTest {
     // Then
     assertThat(result).isEqualTo(new ObserveCollectionSource.Resolved(SEASON, SOURCE));
     verify(store, never()).createSource(any(), any(), any(), any());
+    verify(store, never()).saveSource(any());
+    verifyNoInteractions(events);
   }
 
   @Test

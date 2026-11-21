@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
@@ -268,7 +269,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
     }
   }
 
@@ -434,7 +435,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
       return null;
     }
   }
@@ -518,7 +519,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
     }
   }
 
@@ -537,7 +538,12 @@ public class CollectPassage {
     long ordinal = context.nextReadOrdinal();
     DiscoverSeasonSources.Read read;
     try {
-      read = discovery.catalog(target, context::nextReadOrdinal, consume);
+      read =
+          discovery.catalog(
+              target,
+              context.getCycle().mode() == CollectionModeEnum.INITIAL_IMPORT,
+              context::nextReadOrdinal,
+              consume);
     } catch (CollectionBackendFailure failure) {
       throw failure;
     } catch (RuntimeException failure) {
@@ -546,14 +552,19 @@ public class CollectPassage {
     }
     record(
         context,
-        target,
-        ordinal,
-        CollectionPhaseEnum.ACQUISITION,
-        read.catalog().complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
-        (long) read.catalog().pools().size(),
-        null,
-        read.observedAt(),
-        null);
+        new CollectionBackend.Result(
+            target.scopeId(),
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            ordinal,
+            read.observedAt(),
+            read.catalog().complete()
+                ? CollectionOutcomeEnum.SUCCESS
+                : CollectionOutcomeEnum.PARTIAL,
+            read.reasonType(),
+            read.reason(),
+            (long) read.catalog().pools().size(),
+            null));
     try {
       SportingObservation.CatalogOutcome outcome =
           sporting.catalog(
@@ -599,7 +610,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
       return null;
     }
   }
@@ -707,7 +718,7 @@ public class CollectPassage {
               CollectionOutcomeEnum.FAILED,
               clock.instant(),
               AcquisitionFailure.reasonType(failure),
-              "Information-sheet index: " + failureReason(failure));
+              "Information-sheet index: " + AcquisitionFailure.diagnostic(failure));
         }
       }
       return;
@@ -766,7 +777,7 @@ public class CollectPassage {
             failed(failure),
             clock.instant(),
             null,
-            "Information-sheet association: " + failureReason(failure));
+            "Information-sheet association: " + AcquisitionFailure.diagnostic(failure));
       }
     }
   }
@@ -794,7 +805,7 @@ public class CollectPassage {
           CollectionOutcomeEnum.FAILED,
           clock.instant(),
           AcquisitionFailure.reasonType(failure),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
       return;
     }
     for (int part = 0; part < 3; part++) {
@@ -817,7 +828,7 @@ public class CollectPassage {
             CollectionOutcomeEnum.FAILED,
             clock.instant(),
             AcquisitionFailure.reasonType(failure),
-            failureReason(failure));
+            AcquisitionFailure.diagnostic(failure));
         continue;
       }
       if (read == null) {
@@ -857,7 +868,7 @@ public class CollectPassage {
             failed(failure),
             clock.instant(),
             null,
-            failureReason(failure));
+            AcquisitionFailure.diagnostic(failure));
       }
     }
   }
@@ -977,7 +988,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
       return;
     }
     if (read == null) {
@@ -1024,7 +1035,7 @@ public class CollectPassage {
           null,
           null,
           clock.instant(),
-          failureReason(failure));
+          AcquisitionFailure.diagnostic(failure));
     }
   }
 
@@ -1071,7 +1082,6 @@ public class CollectPassage {
       CollectionBackend.Target target,
       long ordinal,
       RuntimeException failure) {
-    String reason = failureReason(failure);
     URI reasonType = AcquisitionFailure.reasonType(failure);
     boolean confirmed =
         record(
@@ -1084,7 +1094,7 @@ public class CollectPassage {
                 clock.instant(),
                 CollectionOutcomeEnum.FAILED,
                 reasonType,
-                reason,
+                AcquisitionFailure.reason(failure),
                 null,
                 null));
     if (!confirmed) {
@@ -1093,25 +1103,9 @@ public class CollectPassage {
           .addKeyValue("cycleId", context.getCycle().id())
           .addKeyValue("scope", target.scopeId())
           .addKeyValue("stage", target.kind().getValue())
-          .addKeyValue("reason", reason)
+          .addKeyValue("reason", AcquisitionFailure.diagnostic(failure))
           .log("Failed source observation has no confirmed backend evidence");
     }
-  }
-
-  /**
-   * Keeps fixed parser diagnostics and native status/type information without exposing payloads.
-   *
-   * @param failure absorbed acquisition or backend failure
-   * @return bounded diagnostic from trusted categories, never an arbitrary exception message
-   */
-  private String failureReason(RuntimeException failure) {
-    if (failure instanceof FfvbAcquisitionException) {
-      return failure.getMessage();
-    }
-    if (failure instanceof CollectionBackendFailure backendFailure) {
-      return "Backend " + backendFailure.getKind();
-    }
-    return failure.getClass().getSimpleName();
   }
 
   /**

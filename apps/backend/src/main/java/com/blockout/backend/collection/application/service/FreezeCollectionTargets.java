@@ -16,10 +16,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
-import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
-import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,7 +39,6 @@ public class FreezeCollectionTargets {
   private final CollectionStore store;
   private final CollectionWorkMapper mapper;
   private final ReadSportingAcquisition acquisitionReads;
-  private final ChangeCollectionSeasons seasons;
   private final ReadClubAcquisition clubs;
   private final CollectionStageMapper stages;
 
@@ -79,30 +76,25 @@ public class FreezeCollectionTargets {
       }
       return;
     }
-    CollectionProviderEnum provider =
-        switch (control.family()) {
-          case FFVB -> CollectionProviderEnum.FFVB;
-          case LNV -> CollectionProviderEnum.LNV;
-          default -> throw invalid();
-        };
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider == null) {
+      throw invalid();
+    }
+    boolean initialImport = cycle.mode() == CollectionModeEnum.INITIAL_IMPORT;
     List<Source> sources =
-        store.sources(season.id()).stream()
-            .filter(source -> source.provider() == provider)
-            .filter(
-                source ->
-                    cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
-                        ? control.sourceBindingIds().contains(source.id())
-                        : source.launched())
-            .toList();
+        initialImport
+            ? store.sources(season.id()).stream()
+                .filter(source -> source.provider() == provider)
+                .filter(source -> control.sourceBindingIds().contains(source.id()))
+                .toList()
+            : store.ordinarySources(season.id(), provider);
     if (sources.isEmpty()
-        || (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
-            && sources.size() != control.sourceBindingIds().size())) {
+        || (initialImport && sources.size() != control.sourceBindingIds().size())) {
       throw invalid();
     }
     for (Source candidate : sources) {
       Source source;
-      if (candidate.validationState() != SourceValidationStateEnum.QUALIFIED
-          || (candidate.locked() ? candidate.acceptedUrl() : candidate.candidateUrl()) == null) {
+      if (!candidate.hasQualifiedReference()) {
         throw invalid();
       }
       if (!candidate.locked()) {
@@ -112,6 +104,9 @@ public class FreezeCollectionTargets {
         source = candidate;
       }
       retainDue(cycle, control, List.of(mapper.toDiscoveryTarget(source, season)));
+      if (!initialImport && !CollectionLifecycle.activeOrSeasonless(season)) {
+        continue;
+      }
       UUID afterPool = null;
       while (true) {
         List<AcquisitionReference> references =
@@ -119,7 +114,7 @@ public class FreezeCollectionTargets {
                 season.id(),
                 provider,
                 source.organizerReference(),
-                cycle.mode() == CollectionModeEnum.INITIAL_IMPORT,
+                initialImport,
                 cycle.startedAt(),
                 afterPool);
         if (references.isEmpty()) {

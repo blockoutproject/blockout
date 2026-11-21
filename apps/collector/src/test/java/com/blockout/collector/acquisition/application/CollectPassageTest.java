@@ -5,6 +5,7 @@ import static com.blockout.collector.acquisition.application.CollectionCycleFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -301,8 +302,8 @@ class CollectPassageTest {
       SportingObservation.Catalog empty = new SportingObservation.Catalog(true, List.of());
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, source), 0, false));
-      when(discovery.catalog(eq(source), any(), any()))
-          .thenReturn(new DiscoverSeasonSources.Read(empty, NOW));
+      when(discovery.catalog(eq(source), anyBoolean(), any(), any()))
+          .thenReturn(new DiscoverSeasonSources.Read(empty, NOW, null, null));
       when(sporting.catalog(eq(CONTROL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CatalogOutcome(List.of(), true));
       when(backend.complete(admitted.getCycle().id(), NOW))
@@ -337,7 +338,7 @@ class CollectPassageTest {
           target(CollectionTargetKindEnum.CALENDAR).toBuilder().sourceBindingId(CONTROL).build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
-      when(discovery.catalog(eq(source), any(), any()))
+      when(discovery.catalog(eq(source), anyBoolean(), any(), any()))
           .thenThrow(new FfvbAcquisitionException("Unavailable catalog"));
       when(ffvb.resourceUrl(calendar)).thenReturn(SOURCE);
       when(ffvb.read(SOURCE)).thenReturn(resource);
@@ -1024,7 +1025,7 @@ class CollectPassageTest {
     }
 
     @Test
-    @DisplayName("Retains only safe exception information when acquisition unexpectedly fails")
+    @DisplayName("An unexpected acquisition failure has no factual reason")
     void excludesUnsafeFailureMessage(CapturedOutput output) {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -1048,7 +1049,7 @@ class CollectPassageTest {
       ArgumentCaptor<CollectionBackend.Result> result =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend).record(eq(admitted.getCycle().id()), result.capture());
-      assertThat(result.getValue().reason()).isEqualTo("IllegalStateException");
+      assertThat(result.getValue().reason()).isNull();
       assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
       assertThat(output).doesNotContain("PRIVATE_PROVIDER_PAYLOAD");
       verifyNoInteractions(sporting);

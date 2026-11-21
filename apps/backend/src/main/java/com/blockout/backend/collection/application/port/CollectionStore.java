@@ -39,13 +39,15 @@ public interface CollectionStore {
   Control setInitialIntent(UUID id, UUID requestId, Set<UUID> sourceIds, Set<UUID> scopeIds);
 
   /**
-   * Establishes a disabled family for explicit initial work without periodic launch.
+   * Locks the existing family or establishes it for its first ordinary or historical use.
    *
-   * @param seasonId already locked PREPARING season
-   * @param provider explicitly requested authority
-   * @return existing control or newly created disabled control
+   * @param seasonId already locked canonical season
+   * @param provider selected authority
+   * @param enabledOnCreate initial ordinary activity, applied only when creating a control
+   * @return existing or newly created locked control
    */
-  Control prepareInitialControl(UUID seasonId, CollectionProviderEnum provider);
+  Control ensureSeasonControl(
+      UUID seasonId, CollectionProviderEnum provider, boolean enabledOnCreate);
 
   /**
    * Pages current initial evidence independently of operational results.
@@ -239,8 +241,12 @@ public interface CollectionStore {
    */
   List<Source> sources(UUID seasonId);
 
+  /** Lists the provider roots eligible for ordinary catalogue collection in stable source order. */
+  List<Source> ordinarySources(UUID seasonId, CollectionProviderEnum provider);
+
   /**
-   * Locks the accepted reference on its first initial use without launching it.
+   * Locks the accepted reference on its first initial use without admitting it to ordinary
+   * discovery.
    *
    * @param source qualified selected source in the locked season
    * @return locked source with its accepted URL and flushed revision
@@ -270,13 +276,8 @@ public interface CollectionStore {
    */
   Source saveSource(Source source);
 
-  /**
-   * Establishes the seasonal family on first launch without resuming an existing paused control.
-   *
-   * @param seasonId exclusively locked canonical season
-   * @param provider newly launched authority
-   */
-  void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider);
+  /** Checks whether ordinary discovery is already established for the selected provider. */
+  boolean hasOrdinarySources(UUID seasonId, CollectionProviderEnum provider);
 
   /**
    * Lists only validation requests not yet admitted.
@@ -390,6 +391,9 @@ public interface CollectionStore {
    * @param result newer evidence; unrelated keys remain unchanged
    */
   void saveResult(UUID controlId, CollectionResult result);
+
+  /** Reads current discovery acquisition and integration evidence for exact source identities. */
+  List<CollectionResult> catalogResults(UUID seasonId, List<UUID> sourceIds);
 
   /**
    * Pages matching current evidence and counts the whole control without a historical snapshot.

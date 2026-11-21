@@ -1,9 +1,15 @@
 package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.net.URI;
@@ -15,7 +21,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Resolves qualified entry proposals through canonical seasons and existing source preparation. */
+/** Associates qualified current official entries with canonical season and control owners. */
 @Service
 @RequiredArgsConstructor
 public class ObserveCollectionSource {
@@ -38,11 +44,11 @@ public class ObserveCollectionSource {
   public record Resolved(UUID seasonId, UUID sourceBindingId) {}
 
   /**
-   * Creates only a missing unvalidated candidate, preserving every existing operator choice. A
-   * newly created entry requests a preparation report after commit.
+   * Accepts a season-attributed official root for ordinary catalogue reads. An already locked
+   * reference is immutable; evidence for a different URL cannot replace or qualify it.
    *
    * @param proposal attributable entry evidence from the current authenticated collector
-   * @return canonical season and root binding; repeated proposals preserve stored choices
+   * @return canonical season and root binding; repeated proposals preserve accepted references
    * @throws CollectionConflictException when the incarnation is obsolete or the season is closed
    */
   @Transactional
@@ -55,22 +61,72 @@ public class ObserveCollectionSource {
     CollectionLifecycle.requireOpen(season);
     Optional<Source> existing =
         store.source(season.id(), proposal.provider(), proposal.organizerReference());
-    Source source;
-    if (existing.isPresent()) {
-      source = existing.orElseThrow();
-    } else {
-
-      source =
-          store.createSource(
-              season.id(),
-              proposal.provider(),
-              proposal.organizerReference(),
-              proposal.candidateUrl().toString());
-
+    String officialUrl = proposal.candidateUrl().toString();
+    Source source =
+        existing.orElseGet(
+            () ->
+                store.createSource(
+                    season.id(), proposal.provider(), proposal.organizerReference(), officialUrl));
+    if (!source.locked()
+        && (existing.isEmpty() || mayQualify(source, season.collectionState(), officialUrl))) {
+      admitOrdinarySource(
+          source.toBuilder()
+              .candidateUrl(officialUrl)
+              .acceptedUrl(officialUrl)
+              .locked(true)
+              .launched(true)
+              .validationState(SourceValidationStateEnum.QUALIFIED)
+              .validatedAt(proposal.observedAt())
+              .seasonEvidence(season.label())
+              .reason(null)
+              .reasonType(null)
+              .seasonConfirmed(false)
+              .currentCycleId(null)
+              .build());
+      store.discardCycle(source.currentCycleId());
+    } else if (source.locked() && !source.launched() && officialUrl.equals(source.acceptedUrl())) {
+      admitOrdinarySource(source.toBuilder().launched(true).build());
+    }
+    if (existing.isEmpty()) {
       events.publishEvent(
           new CollectionOperationalDiagnostics.SourceObserved(
               season.id(), proposal.provider(), proposal.observedAt()));
     }
     return new Resolved(season.id(), source.id());
+  }
+
+  /** First ordinary use of a historical-only control is independent of explicit later pauses. */
+  private void admitOrdinarySource(Source source) {
+    Control control = store.ensureSeasonControl(source.seasonId(), source.provider(), true);
+    if (!control.enabled() && !store.hasOrdinarySources(source.seasonId(), source.provider())) {
+      CollectionRevision.requireAdvance(control.revision());
+      store.setControlIntent(control.id(), true, control.requestId(), control.requestedMode());
+    }
+    CollectionRevision.requireAdvance(source.revision());
+    store.saveSource(source);
+  }
+
+  /** A reserved historical reference stays private to preparation until its season activates. */
+  private boolean mayQualify(
+      Source source, CollectionSeasonStateEnum seasonState, String officialUrl) {
+    if (store
+        .initialCoverage(
+            source.id(),
+            source.id(),
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION)
+        .isEmpty()) {
+      return true;
+    }
+    return seasonState == CollectionSeasonStateEnum.ACTIVE
+        && officialUrl.equals(source.candidateUrl())
+        && (source.currentCycleId() == null
+            || store
+                .cycle(source.currentCycleId())
+                .filter(
+                    cycle ->
+                        cycle.state() == CollectionCycleStateEnum.RUNNING
+                            && cycle.revision() == source.revision())
+                .isEmpty());
   }
 }

@@ -7,21 +7,21 @@ import com.blockout.backend.collection.application.exception.InvalidSourceExcept
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import java.net.URI;
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-/** Prepares immutable launch references using existing runtime, season and account transactions. */
+/** Prepares verified historical references and authorizes season-wide sporting activation. */
 @Service
 @RequiredArgsConstructor
 public class PrepareCollectionSources {
@@ -137,47 +137,28 @@ public class PrepareCollectionSources {
   }
 
   /**
-   * Locks all selected qualified references atomically without changing sporting mappings.
+   * Enables ordinary sporting acquisition in the canonical season. Source reads, mappings and
+   * independently paused providers keep their existing states. A pending historical request must be
+   * admitted first because activation would otherwise make it ineligible to start.
    *
    * @param accountId current local operator
    * @param seasonId canonical open season
-   * @param selected complete explicit selection; one invalid member refuses the entire command
    * @return resulting canonical season state
    */
   @Transactional
-  public CollectionSeasonView launch(UUID accountId, UUID seasonId, Set<UUID> selected) {
+  public CollectionSeasonView activate(UUID accountId, UUID seasonId) {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
-    List<Source> sources =
-        store.sources(seasonId).stream().filter(source -> selected.contains(source.id())).toList();
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    if (selected.isEmpty()
-        || sources.size() != selected.size()
-        || sources.stream()
-            .anyMatch(
-                source ->
-                    source.validationState() != SourceValidationStateEnum.QUALIFIED
-                        || (source.locked() ? source.acceptedUrl() : source.candidateUrl())
-                            == null)) {
+    if (season.collectionState() == CollectionSeasonStateEnum.ACTIVE) {
+      return season;
+    }
+    if (store.controls(seasonId).stream()
+        .anyMatch(control -> control.requestedMode() == CollectionModeEnum.INITIAL_IMPORT)) {
       throw new CollectionConflictException("conflict");
     }
-    boolean changed = false;
-    for (Source source : sources) {
-      if (source.launched()) {
-        continue;
-      }
-      CollectionRevision.requireAdvance(source.revision());
-      store.saveSource(
-          source.toBuilder()
-              .locked(true)
-              .launched(true)
-              .acceptedUrl(source.locked() ? source.acceptedUrl() : source.candidateUrl())
-              .build());
-      store.ensureSeasonControl(seasonId, source.provider());
-      changed = true;
-    }
-    return changed ? seasons.activateCollectionSeason(seasonId) : season;
+    return seasons.activateCollectionSeason(seasonId);
   }
 
   /**

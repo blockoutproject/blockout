@@ -73,7 +73,8 @@ Work:
     summary: Read current scheduling context
     description:
       Requires the current incarnation and collector credential. Returns current controls and
-      pending candidate validations; obsolete unfinished validation is not requeued. This read neither claims nor starts work.
+      pending historical reference validations; obsolete unfinished validation is not requeued.
+      Enabled preparing-season controls can refresh the catalogue. This read neither claims nor starts work.
     responses:
       "200":
         description: Current controls and pending candidate validations; no work started.
@@ -112,7 +113,9 @@ Cycles:
     description:
       Requires the current collector incarnation. Checks the selected control/candidate revision,
       lifecycle, pause and accepted pending intent; one concurrent cycle per control or candidate. Commits
-      running and freezes authorized context before provider reads. Only a successful admission response
+      running and freezes authorized context before provider reads. Periodic work in a preparing season
+      admits qualified catalogue reads. Ordinary sporting reads require an active season and eligible pools.
+      Only a successful admission response
       permits supplier work; a failed exchange ends this attempt without confirmation recovery. Later ordinary
       polling follows current backend eligibility. An existing matching cycle returns 200; conflicting identity/context
       returns 409.
@@ -357,7 +360,7 @@ Validation:
     operationId: submitCollectionSourceValidation
     tags:
       - CollectorOperations
-    summary: Apply candidate validation
+    summary: Apply historical reference validation
     description:
       Requires the exact admitted source-validation cycle. Accepts invalid, confirmation-required
       or qualified only. Qualified requires positive source structure/scope/season evidence; confirmation-required
@@ -411,12 +414,12 @@ SeasonDiscovery:
     operationId: observeCollectionSeasonSource
     tags:
       - Collection
-    summary: Propose a discovered seasonal source
+    summary: Observe a qualified seasonal source
     description:
       Requires the current collector incarnation. Reuses canonical season identity by qualified
-      start year and proposes a supported root reference. Never overwrites operator edits or accepted
-      bindings, activates collection, reopens history or assigns classification. Repeating a proposal
-      has no extra effect.
+      start year and binds an official root for ordinary catalogue reads. Already accepted
+      references and explicitly prepared historical references are preserved. Season activation
+      and classification are independent. Closed seasons reject observations.
     responses:
       "200":
         description: Canonical season and source binding resolved without activation.

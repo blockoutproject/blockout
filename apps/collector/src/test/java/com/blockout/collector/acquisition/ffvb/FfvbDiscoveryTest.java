@@ -7,16 +7,23 @@ import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.List;
+import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /** Synthetic native menu fixtures prove represented structures, not live or exhaustive coverage. */
 @DisplayName("Published FFVB catalog contexts")
 class FfvbDiscoveryTest {
+  private static final URI ROOT =
+      URI.create(
+          "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA&saison=2026/2027");
+
+  private final FfvbDiscovery discovery = new FfvbDiscovery();
+
   @Test
   @DisplayName(
       "A shared youth round discovers actual form-backed groups rather than one aggregate pool")
@@ -32,7 +39,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery().parse(html, round, "2026/2027", "LIIDF");
+        discovery.parse(FfvbPage.document(html, round), "2026/2027", "LIIDF");
 
     // Then
     assertThat(catalog.complete()).isTrue();
@@ -46,10 +53,6 @@ class FfvbDiscoveryTest {
         .extracting(SportingObservation.Pool::tourReference)
         .containsOnly("01");
   }
-
-  private static final URI ROOT =
-      URI.create(
-          "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA&saison=2026/2027");
 
   @Test
   @DisplayName("Published catalog links use the HTML document base")
@@ -65,12 +68,10 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse(
-                (html).getBytes(Charset.forName("windows-1252")),
-                URI.create("https://www.ffvbbeach.org/navigation/menu.html"),
-                "2026/2027",
-                "LIRA");
+        discovery.parse(
+            document(html, URI.create("https://www.ffvbbeach.org/navigation/menu.html")),
+            "2026/2027",
+            "LIRA");
 
     // Then
     assertThat(catalog.pools())
@@ -98,10 +99,7 @@ class FfvbDiscoveryTest {
 
     // When
     List<URI> links =
-        new FfvbDiscovery()
-            .navigation(
-                html.getBytes(Charset.forName("windows-1252")),
-                URI.create("https://www.ffvb.org/competitions"));
+        discovery.navigation(document(html, URI.create("https://www.ffvb.org/competitions")));
 
     // Then
     assertThat(links).containsExactly(ROOT);
@@ -115,11 +113,41 @@ class FfvbDiscoveryTest {
         "<base href='https://foreign.example/ffvbapp/resu/'><a href='vbspo_home.php'>Menu</a>";
 
     // When
-    List<URI> links =
-        new FfvbDiscovery().navigation(html.getBytes(Charset.forName("windows-1252")), ROOT);
+    List<URI> links = discovery.navigation(document(html, ROOT));
 
     // Then
     assertThat(links).isEmpty();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "foreign.example,poule=FOREIGN",
+    "foreign.example,division=YOUTH&tour=01",
+    "www.ffvbbeach.org:8443,poule=FOREIGN"
+  })
+  @DisplayName("Foreign pool or round references make the catalog partial")
+  void refusesForeignCatalogReferences(String authority, String scope) {
+    // Given
+    Document page =
+        document(
+            """
+            <base href="https://%s/ffvbapp/resu/">
+            <ul id=menu><li><a>Compétitions</a><ul><li><a>REGIONAL</a><ul>
+            <li><a href="vbspo_calendrier.php?saison=2026/2027&codent=LIRA&%s">Foreign</a></li>
+            <li><a href="https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA">Pool A</a></li>
+            </ul></li></ul></li></ul>
+            """
+                .formatted(authority, scope),
+            ROOT);
+
+    // When
+    SportingObservation.Catalog catalog = discovery.parse(page, "2026/2027", "LIRA");
+
+    // Then
+    assertThat(catalog.complete()).isFalse();
+    assertThat(catalog.pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("AA");
   }
 
   @Test
@@ -144,8 +172,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse((html).getBytes(Charset.forName("windows-1252")), round, "2026/2027", "LIRA");
+        discovery.parse(document(html, round), "2026/2027", "LIRA");
 
     // Then
     assertThat(catalog.complete()).isTrue();
@@ -174,12 +201,10 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse(
-                (html).getBytes(Charset.forName("windows-1252")),
-                URI.create("https://www.ffvbbeach.org/ffvbapp/resu/pbscript.htm"),
-                "2026/2027",
-                "ABCCS");
+        discovery.parse(
+            document(html, URI.create("https://www.ffvbbeach.org/ffvbapp/resu/pbscript.htm")),
+            "2026/2027",
+            "ABCCS");
 
     // Then
     assertThat(catalog.complete()).isTrue();
@@ -197,14 +222,7 @@ class FfvbDiscoveryTest {
         "<select name=saison><option selected value='2026/2027'>2026/2027</option></select>";
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                new FfvbDiscovery()
-                    .parse(
-                        (html).getBytes(Charset.forName("windows-1252")),
-                        ROOT,
-                        "2026/2027",
-                        "LIRA"))
+    assertThatThrownBy(() -> discovery.parse(document(html, ROOT), "2026/2027", "LIRA"))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -218,9 +236,7 @@ class FfvbDiscoveryTest {
             + "</ul></li></ul></li></ul>";
 
     // When
-    List<URI> rounds =
-        new FfvbDiscovery()
-            .roundLinks(html.getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+    List<URI> rounds = discovery.roundLinks(document(html, ROOT), "2026/2027", "LIRA");
 
     // Then
     assertThat(rounds).isEmpty();
@@ -235,8 +251,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+        discovery.parse(document(html, ROOT), "2026/2027", "LIRA");
 
     // Then
     assertThat(catalog.complete()).isTrue();
@@ -258,8 +273,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+        discovery.parse(document(html, ROOT), "2026/2027", "LIRA");
 
     // Then
     assertThat(catalog.pools())
@@ -285,8 +299,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+        discovery.parse(document(html, ROOT), "2026/2027", "LIRA");
 
     // Then
     assertThat(catalog.complete()).isTrue();
@@ -305,11 +318,10 @@ class FfvbDiscoveryTest {
   @DisplayName("Refuses a page without positive catalog evidence")
   void refusesFalseEmpty(String html) {
     // Given
-    FfvbDiscovery discovery = new FfvbDiscovery();
-    byte[] response = html.getBytes(Charset.forName("windows-1252"));
+    Document page = document(html, ROOT);
 
     // When / Then
-    assertThatThrownBy(() -> discovery.parse(response, ROOT, "2026/2027", "LIRA"))
+    assertThatThrownBy(() -> discovery.parse(page, "2026/2027", "LIRA"))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -321,14 +333,7 @@ class FfvbDiscoveryTest {
     String html = "<ul id=menu></ul>";
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                new FfvbDiscovery()
-                    .parse(
-                        (html).getBytes(Charset.forName("windows-1252")),
-                        ROOT,
-                        "2026/2027",
-                        organizer))
+    assertThatThrownBy(() -> discovery.parse(document(html, ROOT), "2026/2027", organizer))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -347,12 +352,15 @@ class FfvbDiscoveryTest {
         """;
     // When
     SportingObservation.Catalog catalog =
-        new FfvbDiscovery()
-            .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+        discovery.parse(document(html, ROOT), "2026/2027", "LIRA");
     // Then
     assertThat(catalog.complete()).isFalse();
     assertThat(catalog.pools())
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("AA");
+  }
+
+  private Document document(String html, URI url) {
+    return FfvbPage.document(html.getBytes(FfvbPage.CHARSET), url);
   }
 }

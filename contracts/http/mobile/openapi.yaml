@@ -12,7 +12,7 @@ tags:
   - name: Support
     description: Private problems and suggestions from guests or signed-in people.
   - name: CollectionSources
-    description: Candidate preparation, qualification evidence and qualified source launch.
+    description: Read-only official source catalogues and explicit season activation.
   - name: Collection
     description: Collection controls and current operational evidence.
   - name: ApplicationAccess
@@ -102,6 +102,8 @@ paths:
     $ref: ./collection/paths.yaml#/Season
   /administration/collection-seasons/{seasonId}/closure:
     $ref: ./collection/paths.yaml#/Closure
+  /administration/collection-seasons/{seasonId}/activation:
+    $ref: ./collection/paths.yaml#/Activation
   /administration/collection-seasons/{seasonId}/source-launches:
     $ref: ./collection/paths.yaml#/Launch
   /administration/collection-seasons/{seasonId}/source-bindings:

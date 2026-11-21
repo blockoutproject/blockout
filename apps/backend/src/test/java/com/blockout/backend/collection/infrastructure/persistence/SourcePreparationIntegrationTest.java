@@ -7,9 +7,14 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.InvalidSourceException;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogRead;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
+import com.blockout.backend.collection.application.model.CollectionState.ControlWork;
+import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.SourceValidation;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.AcceptSourceValidation;
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
@@ -17,14 +22,27 @@ import com.blockout.backend.collection.application.service.ObserveCollectionSour
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
@@ -37,7 +55,6 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -65,7 +82,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * fixtures.
  */
 @SpringBootTest
-@DisplayName("Source preparation and qualified launch")
+@DisplayName("Official catalogue preparation and verified historical references")
 @Import(PostgresTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SourcePreparationIntegrationTest {
@@ -89,6 +106,8 @@ class SourcePreparationIntegrationTest {
   @Autowired private RegisterCollectorRuntime runtimes;
   @Autowired private ReadCollectionWork collectionWork;
   @Autowired private AdmitCollectionCycle cycles;
+  @Autowired private AcceptCatalog catalogs;
+  @Autowired private RecordCollectionResults results;
 
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
@@ -98,11 +117,9 @@ class SourcePreparationIntegrationTest {
   private UUID season;
 
   @Test
-  @DisplayName(
-      "Current source proposals reuse the season while preserving operator-owned preparation")
-  void retainsSourcePreparationOnDiscovery() {
+  @DisplayName("A qualified current root reuses the canonical season and binding before activation")
+  void qualifiesOfficialSourceBeforeActivation() {
     // Given
-    Source before = store.source(SOURCE).orElseThrow();
     ObserveCollectionSource.Proposal proposal =
         new ObserveCollectionSource.Proposal(
             STARTUP,
@@ -119,7 +136,14 @@ class SourcePreparationIntegrationTest {
     // Then
     assertThat(resolved.seasonId()).isEqualTo(season);
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
-    assertThat(store.source(SOURCE).orElseThrow()).isEqualTo(before);
+    Source source = store.source(SOURCE).orElseThrow();
+    assertThat(source.acceptedUrl()).isEqualTo(URL + "&saison=2026/2027");
+    assertThat(store.ordinarySources(season, CollectionProviderEnum.FFVB))
+        .extracting(Source::id)
+        .containsExactly(SOURCE);
+    assertThat(seasonReads.collectionState(season).collectionState())
+        .isEqualTo(CollectionSeasonStateEnum.PREPARING);
+    assertThat(collectionWork.work(STARTUP).validations()).isEmpty();
   }
 
   @Test
@@ -466,51 +490,158 @@ class SourcePreparationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Launch freezes the qualified URL without requiring or creating mappings")
-  void launchesQualifiedSource() {
+  @DisplayName("Activation has no source or mapping prerequisite and is repeatable")
+  void activatesSeasonWithoutCatalogue() {
     // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog().status())
+        .isEqualTo(CatalogStatus.NOT_READ);
 
     // When
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
+    CollectionSeasonView activated = preparation.activate(ACCOUNT, season);
 
     // Then
-    Source launched = configurationReads.source(ACCOUNT, SOURCE);
-    assertThat(launched.acceptedUrl()).isEqualTo(URL);
-    assertThat(launched.locked()).isTrue();
-    assertThat(launched.launched()).isTrue();
-    assertThat(seasonReads.collectionState(season).collectionState())
-        .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class)).isZero();
+    assertThat(activated.collectionState()).isEqualTo(CollectionSeasonStateEnum.ACTIVE);
+    assertThat(preparation.activate(ACCOUNT, season)).isEqualTo(activated);
+    assertThat(configurationReads.source(ACCOUNT, SOURCE).locked()).isFalse();
     assertThat(collectionWork.work(STARTUP).controls())
-        .anySatisfy(control -> assertThat(control.seasonId()).isEqualTo(season));
+        .noneMatch(control -> season.equals(control.seasonId()));
   }
 
   @Test
-  @DisplayName("One unqualified selection rolls back the entire launch")
-  void refusesPartialSelection() {
+  @DisplayName("A classified FFVB pool enters collection only after season activation")
+  void gatesSportingWorkAtSeasonActivation() {
     // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
+    discovery.observe(officialFfvb(2026, URL));
+    Cycle preparing = admitOrdinary(CollectionFamilyEnum.FFVB, CYCLE);
+    CatalogObservation.Pool candidate =
+        new CatalogObservation.Pool(
+            "National", "N2", "A", null, null, URI.create(URL), null, "Pool A");
+    UUID pool =
+        submitCatalog(preparing, 1, true, List.of(candidate)).outcomes().getFirst().resourceId();
+    UUID division = UUID.fromString("00000000-0000-4000-8000-000000000181");
     sql.update(
-        "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'UNVALIDATED')",
-        OTHER,
-        season,
-        URL);
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Nationale 2', TRUE, '#ffffff')",
+        division);
+    sql.update(
+        "UPDATE sporting_pool SET setting_division_id=?, setting_format='_6X6', setting_gender='MALE' WHERE id=?",
+        division,
+        pool);
+    results.complete(preparing.id(), NOW.plusSeconds(15));
+    UUID nextCycle = UUID.fromString("00000000-0000-4000-8000-000000000182");
+    Cycle beforeActivation = admitOrdinary(CollectionFamilyEnum.FFVB, nextCycle);
+    assertThat(collectionWork.targets(beforeActivation.id(), 0, 50).items())
+        .extracting(target -> target.target().kind())
+        .containsExactly(CollectionTargetKindEnum.DISCOVERY);
+    results.complete(beforeActivation.id(), NOW.plusSeconds(16));
+
+    // When
+    preparation.activate(ACCOUNT, season);
+    Cycle active =
+        admitOrdinary(
+            CollectionFamilyEnum.FFVB, UUID.fromString("00000000-0000-4000-8000-000000000183"));
+
+    // Then
+    assertThat(collectionWork.targets(active.id(), 0, 50).items())
+        .anySatisfy(
+            target -> {
+              assertThat(target.target().kind()).isEqualTo(CollectionTargetKindEnum.CALENDAR);
+              assertThat(target.target().poolId()).isEqualTo(pool);
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "Catalogue health retains the last accepted full read after partial or unavailable reads")
+  void retainsLastCompleteCatalogue() {
+    // Given
+    discovery.observe(officialFfvb(2026, URL));
+    Cycle cycle = admitOrdinary(CollectionFamilyEnum.FFVB, CYCLE);
+    CatalogObservation.Pool prior =
+        new CatalogObservation.Pool(
+            "National", "N2", "A", null, null, URI.create(URL), null, "Pool A");
+    submitCatalog(cycle, 1, true, List.of(prior));
+    CatalogRead complete = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    assertThat(complete.status()).isEqualTo(CatalogStatus.COMPLETE);
+    assertThat(complete.lastCompleteReadAt()).isEqualTo(NOW.plusSeconds(1));
+
+    // When
+    submitCatalog(cycle, 2, false, List.of());
+    CatalogRead partial = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    URI reason = URI.create("urn:blockout:acquisition:technical");
+    results.record(
+        cycle.id(),
+        new RecordCollectionResult(
+            SOURCE,
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            3,
+            NOW.plusSeconds(3),
+            CollectionOutcomeEnum.FAILED,
+            reason,
+            null,
+            null,
+            null));
+
+    // Then
+    assertThat(partial.status()).isEqualTo(CatalogStatus.PARTIAL);
+    assertThat(partial.lastReadAt()).isEqualTo(NOW.plusSeconds(2));
+    assertThat(partial.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
+    CatalogRead unavailable = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    assertThat(unavailable.status()).isEqualTo(CatalogStatus.UNAVAILABLE);
+    assertThat(unavailable.lastReadAt()).isEqualTo(NOW.plusSeconds(3));
+    assertThat(unavailable.evidence().reasonType()).isEqualTo(reason);
+    assertThat(unavailable.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
+    assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
+        .extracting(CollectionResource::label)
+        .containsExactly("National");
+  }
+
+  @Test
+  @DisplayName("An admitted LNV root exposes direct phases and rejects a different championship")
+  void scopesLnvCatalogueToChampionship() {
+    // Given
+    URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=135");
+    UUID lnv =
+        discovery
+            .observe(
+                new ObserveCollectionSource.Proposal(
+                    STARTUP, 2026, CollectionProviderEnum.LNV, "135", url, url, NOW))
+            .sourceBindingId();
+    Cycle cycle = admitOrdinary(CollectionFamilyEnum.LNV, CYCLE);
+    CatalogObservation.Pool regular =
+        new CatalogObservation.Pool("135", "135", "193", null, "310", url, null, "Regular");
+    catalogs.accept(
+        lnv,
+        new CatalogObservation(
+            new MatchObservation.Context(cycle.id(), 1, NOW, null), true, List.of(regular)));
 
     // When / Then
-    assertThatThrownBy(() -> preparation.launch(ACCOUNT, season, Set.of(SOURCE, OTHER)))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThat(configurationReads.source(ACCOUNT, SOURCE).locked()).isFalse();
-    assertThat(seasonReads.collectionState(season).collectionState())
-        .isEqualTo(CollectionSeasonStateEnum.PREPARING);
+    CatalogObservation.Pool foreignStage =
+        new CatalogObservation.Pool("139", "139", "196", null, "313", url, null, "Foreign");
+    assertThatThrownBy(
+            () ->
+                catalogs.accept(
+                    lnv,
+                    new CatalogObservation(
+                        new MatchObservation.Context(cycle.id(), 2, NOW, null),
+                        true,
+                        List.of(foreignStage))))
+        .isInstanceOf(SportingConflictException.class);
+    assertThat(configurationReads.children(ACCOUNT, lnv, null, 0, 50).items())
+        .singleElement()
+        .satisfies(
+            resource -> {
+              assertThat(resource.phaseReference()).isEqualTo("193");
+              assertThat(resource.parentId()).isNull();
+            });
   }
 
   @Test
   @DisplayName("Pause never unlocks an accepted source while new roots remain preparable")
   void preservesLocksInActiveSeason() {
     // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
+    discovery.observe(officialFfvb(2026, URL));
+    preparation.activate(ACCOUNT, season);
     sql.update("UPDATE collection_control SET enabled = FALSE WHERE season_id = ?", season);
     sql.update(
         "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'UNVALIDATED')",
@@ -545,6 +676,10 @@ class SourcePreparationIntegrationTest {
     // When / Then
     assertThatThrownBy(() -> preparation.requestValidation(ACCOUNT, SOURCE))
         .isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> preparation.activate(ACCOUNT, season))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThat(seasonReads.collectionState(season).collectionState())
+        .isEqualTo(CollectionSeasonStateEnum.PREPARING);
     assertThat(
             sql.queryForObject(
                 "SELECT validation_state FROM collection_source_binding WHERE id = ?",
@@ -586,23 +721,6 @@ class SourcePreparationIntegrationTest {
     assertThat(configurationReads.source(ACCOUNT, SOURCE).candidateUrl()).isEqualTo(URL);
   }
 
-  @Test
-  @DisplayName("Launch applies the exact selected source even after another source is prepared")
-  void launchesOriginalSelection() {
-    // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    preparation.create(ACCOUNT, season, CollectionProviderEnum.FFVB, "LIRA", URI.create(URL));
-
-    // When
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
-
-    // Then
-    assertThat(configurationReads.source(ACCOUNT, SOURCE).launched()).isTrue();
-    assertThat(configurationReads.sources(ACCOUNT, season))
-        .filteredOn(source -> !source.id().equals(SOURCE))
-        .allSatisfy(source -> assertThat(source.launched()).isFalse());
-  }
-
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -628,8 +746,8 @@ class SourcePreparationIntegrationTest {
       "Preparing a later season cannot replace accepted references or reopen closed history")
   void preservesOlderSeason() {
     // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
+    discovery.observe(officialFfvb(2026, URL));
+    preparation.activate(ACCOUNT, season);
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
     UUID nextSeason = seasons.getOrCreate(2027).id();
 
@@ -656,47 +774,31 @@ class SourcePreparationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Two qualified seasons remain active with their own accepted organizer references")
+  @DisplayName("Activating a later season leaves the preceding active season and reference intact")
   void keepsSimultaneousActiveSeasons() {
     // Given
-    validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
-    UUID nextSeason = seasons.getOrCreate(2027).id();
-    URI nextUrl = URI.create(URL + "&saison=2027/2028");
-    Source candidate =
-        preparation.create(ACCOUNT, nextSeason, CollectionProviderEnum.FFVB, "ABCCS", nextUrl);
-    Source pending = preparation.requestValidation(ACCOUNT, candidate.id());
-    UUID validationCycle = UUID.fromString("00000000-0000-4000-8000-000000001181");
-    cycles.admit(
-        new StartCycle(validationCycle, STARTUP, null, candidate.id(), pending.revision(), null));
-    sourceValidation.submitValidation(
-        candidate.id(),
-        new SourceValidation(
-            validationCycle,
-            SourceValidationStateEnum.QUALIFIED,
-            NOW.plusSeconds(2),
-            "2027/2028",
-            null,
-            null));
+    discovery.observe(officialFfvb(2026, URL));
+    preparation.activate(ACCOUNT, season);
+    String nextUrl = URL + "&saison=2027/2028";
+    ObserveCollectionSource.Resolved next = discovery.observe(officialFfvb(2027, nextUrl));
 
     // When
-    preparation.launch(ACCOUNT, nextSeason, Set.of(candidate.id()));
+    preparation.activate(ACCOUNT, next.seasonId());
 
     // Then
     assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
-    assertThat(seasonReads.collectionState(nextSeason).collectionState())
+    assertThat(seasonReads.collectionState(next.seasonId()).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.ACTIVE);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
-    assertThat(configurationReads.source(ACCOUNT, candidate.id()).acceptedUrl())
-        .isEqualTo(nextUrl.toString());
-    assertThat(configurationReads.source(ACCOUNT, SOURCE).seasonId()).isEqualTo(season);
-    assertThat(configurationReads.source(ACCOUNT, candidate.id()).seasonId()).isEqualTo(nextSeason);
+    assertThat(configurationReads.source(ACCOUNT, next.sourceBindingId()).acceptedUrl())
+        .isEqualTo(nextUrl);
   }
 
   @Test
-  @DisplayName("Initial import freezes the candidate and permits a later unchanged periodic launch")
-  void launchesInitialImportReference() {
+  @DisplayName(
+      "Season activation does not promote a verified historical reference to ordinary work")
+  void preservesInitialImportReference() {
     // Given
     validate(SourceValidationStateEnum.QUALIFIED, "2026/2027", null);
     UUID control = UUID.fromString("00000000-0000-4000-8000-000000000172");
@@ -720,12 +822,12 @@ class SourcePreparationIntegrationTest {
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
 
     // When
-    preparation.launch(ACCOUNT, season, Set.of(SOURCE));
+    preparation.activate(ACCOUNT, season);
 
     // Then
     assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl())
         .isEqualTo(imported.acceptedUrl());
-    assertThat(configurationReads.source(ACCOUNT, SOURCE).launched()).isTrue();
+    assertThat(store.ordinarySources(season, CollectionProviderEnum.FFVB)).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT enabled FROM collection_control WHERE id = ?", Boolean.class, control))
@@ -773,9 +875,46 @@ class SourcePreparationIntegrationTest {
             });
     assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
         .singleElement()
-        .satisfies(child -> assertThat(child.id()).isEqualTo(pack));
+        .satisfies(
+            child -> {
+              assertThat(child.id()).isEqualTo(pack);
+              assertThat(child.poolCount()).isEqualTo(2);
+            });
     assertThatThrownBy(() -> configurationReads.children(ACCOUNT, SOURCE, foreignPack, 0, 50))
         .isInstanceOf(SportingResourceNotFoundException.class);
+  }
+
+  private ObserveCollectionSource.Proposal officialFfvb(long year, String url) {
+    return new ObserveCollectionSource.Proposal(
+        STARTUP,
+        year,
+        CollectionProviderEnum.FFVB,
+        "ABCCS",
+        URI.create(url),
+        URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
+        NOW);
+  }
+
+  private Cycle admitOrdinary(CollectionFamilyEnum family, UUID cycleId) {
+    ControlWork control =
+        collectionWork.work(STARTUP).controls().stream()
+            .filter(
+                candidate -> season.equals(candidate.seasonId()) && candidate.family() == family)
+            .findFirst()
+            .orElseThrow();
+    return cycles
+        .admit(new StartCycle(cycleId, STARTUP, control.id(), null, control.revision(), null))
+        .cycle();
+  }
+
+  private ObservationOutcome.Catalog submitCatalog(
+      Cycle cycle, long ordinal, boolean complete, List<CatalogObservation.Pool> pools) {
+    return catalogs.accept(
+        SOURCE,
+        new CatalogObservation(
+            new MatchObservation.Context(cycle.id(), ordinal, NOW.plusSeconds(ordinal), null),
+            complete,
+            pools));
   }
 
   /**

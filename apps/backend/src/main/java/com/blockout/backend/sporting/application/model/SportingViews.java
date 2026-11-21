@@ -14,7 +14,12 @@ import lombok.NoArgsConstructor;
 public final class SportingViews {
   /** Native pack or pool identity for preparation navigation, without classification metadata. */
   public record CollectionResource(
-      UUID id, String label, CollectionResourceKindEnum kind, UUID parentId) {}
+      UUID id,
+      String label,
+      CollectionResourceKindEnum kind,
+      UUID parentId,
+      String phaseReference,
+      Integer poolCount) {}
 
   /** Bounded direct children in stable label/identity order; no total-count query. */
   public record CollectionResourcePage(List<CollectionResource> items, long page, boolean hasNext) {

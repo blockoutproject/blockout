@@ -1,10 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createCollectionQueries } from "../api/collection-queries";
 import {
+  activateCollectionSeason,
   getCollectionControl,
+  getCollectionSource,
   listCollectionResults,
 } from "../../../../.generated/mobile";
 import type {
+  SourceBindingResponse,
   CollectionControlResponse,
   CollectionResultResponse,
   CollectionSeasonResponse,
@@ -111,6 +114,68 @@ it("reads legacy result pages and preserves new search criteria and evidence", a
     sourceId: source.id,
     stage: "calendar",
   });
+});
+
+it("reads a source both before and after catalogue evidence is available on the server", async () => {
+  // Given
+  const legacy: SourceBindingResponse = {
+    id: "00000000-0000-4000-8000-000000000005",
+    seasonId: "00000000-0000-4000-8000-000000000006",
+    provider: "ffvb",
+    organizerReference: "ABCCS",
+    label: "Championnats nationaux",
+    candidateUrl: null,
+    acceptedUrl: "https://provider.example.invalid/official",
+    locked: true,
+    validation: "qualified",
+    validatedAt: "2026-10-16T11:48:00Z",
+    seasonEvidence: "2026/2027",
+    reason: null,
+    launched: false,
+  };
+  const source: SourceBindingResponse = {
+    ...legacy,
+    catalog: {
+      status: "unavailable",
+      observedAt: "2026-10-17T12:00:00Z",
+      lastCompleteAt: "2026-10-16T11:48:00Z",
+      reason: "The source responded with HTTP 503.",
+    },
+  };
+  mockFetch
+    .mockResolvedValueOnce(Response.json(legacy))
+    .mockResolvedValueOnce(Response.json(source));
+
+  // When
+  const previousResponse = await getCollectionSource(legacy.id);
+  const currentResponse = await getCollectionSource(source.id);
+
+  // Then
+  expect(previousResponse).toEqual(legacy);
+  expect(currentResponse).toEqual(source);
+});
+
+it("activates the confirmed season through a bodyless command", async () => {
+  // Given
+  const season: CollectionSeasonResponse = {
+    id: "00000000-0000-4000-8000-000000000006",
+    label: "2026/2027",
+    startYear: 2026,
+    state: "active",
+  };
+  mockFetch.mockResolvedValue(Response.json(season));
+
+  // When
+  const activated = await activateCollectionSeason(season.id);
+
+  // Then
+  expect(activated).toEqual(season);
+  const [url, options] = mockFetch.mock.calls[0];
+  expect(new URL(String(url)).pathname).toBe(
+    `/administration/collection-seasons/${season.id}/activation`,
+  );
+  expect(options?.method).toBe("POST");
+  expect(options?.body).toBeUndefined();
 });
 
 it.each([

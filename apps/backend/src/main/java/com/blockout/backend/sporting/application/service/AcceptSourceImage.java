@@ -1,9 +1,9 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
-import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess.AdmittedScope;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AcceptSourceImage {
   private final SportingStore store;
   private final CollectionCycleAccess cycleAccess;
-  private final ReadCollectionWork collectionWork;
   private final CheckAcquisitionClassification acquisitionClassification;
 
   /**
@@ -39,7 +38,8 @@ public class AcceptSourceImage {
    */
   @Transactional
   public void requireSource(UUID teamId, MatchObservation.Context context) {
-    requireTarget(teamId, context);
+    admit(teamId, context);
+    requireProfessionalTeam(teamId);
   }
 
   /**
@@ -56,11 +56,9 @@ public class AcceptSourceImage {
   @Transactional
   public ObservationOutcome acceptSource(
       UUID teamId, MatchObservation.Context context, Image image) {
-    CollectionState.Target target = requireTarget(teamId, context);
-    TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
-    ObservationOrder order =
-        new ObservationOrder(
-            collectionWork.get(context.cycleId()).cycleOrder(), context.readOrdinal());
+    AdmittedScope<Target> admission = admit(teamId, context);
+    TeamView team = requireProfessionalTeam(teamId);
+    ObservationOrder order = context.order(admission.cycle().cycleOrder());
     ObservationOrder previous = store.sourceLogoOrder(teamId);
     ObservationOutcomeEnum status;
     if (previous != null && order.compareTo(previous) <= 0) {
@@ -68,7 +66,8 @@ public class AcceptSourceImage {
           order.compareTo(previous) < 0
               ? ObservationOutcomeEnum.STALE
               : ObservationOutcomeEnum.UNCHANGED;
-    } else if (!acquisitionClassification.acceptsObservation(target.poolId(), target)) {
+    } else if (!acquisitionClassification.acceptsObservation(
+        admission.scope().poolId(), admission.scope())) {
       status = ObservationOutcomeEnum.REJECTED;
     } else {
       status =
@@ -87,16 +86,16 @@ public class AcceptSourceImage {
    * @param context supplied cycle identity
    * @return admitted calendar membership
    * @throws CollectionConflictException when the cycle or parent membership is no longer admitted
-   * @throws SportingResourceNotFoundException when the authorized team no longer exists
-   * @throws AccessDeniedException when the team belongs to a non-LNV source
    */
-  private CollectionState.Target requireTarget(UUID teamId, MatchObservation.Context context) {
-    CollectionState.Target target =
-        cycleAccess.requireTeamLogo(context.cycleId(), store.teamPoolIds(teamId));
+  private AdmittedScope<Target> admit(UUID teamId, MatchObservation.Context context) {
+    return cycleAccess.requireTeamLogo(context.cycleId(), store.teamPoolIds(teamId));
+  }
+
+  private TeamView requireProfessionalTeam(UUID teamId) {
     TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
     if (team.provider() != CollectionProviderEnum.LNV) {
       throw new AccessDeniedException("Professional artwork is not permitted");
     }
-    return target;
+    return team;
   }
 }
