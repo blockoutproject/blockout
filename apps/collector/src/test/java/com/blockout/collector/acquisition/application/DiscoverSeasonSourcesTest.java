@@ -72,18 +72,23 @@ class DiscoverSeasonSourcesTest {
                     .isEqualTo(URI.create("urn:blockout:acquisition:technical")));
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
   @DisplayName("An unavailable frame preserves discovered siblings as a partial catalog")
-  void retainsPartialFrameCatalog() {
+  void retainsPartialFrameCatalog(boolean supportedOrigin) {
     // Given
     URI root = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/seniors/2026-2027/index.htm");
     URI selector = root.resolve("pbscript.htm");
-    URI missing = root.resolve("unavailable.htm");
+    URI missing =
+        supportedOrigin
+            ? root.resolve("unavailable.htm")
+            : URI.create("http://www.ffvbbeach.org/ffvbapp/resu/unavailable.htm");
     ProviderPages http = mock(ProviderPages.class);
     doReturn(
             response(
                 root,
-                "<frameset><frame src='pbscript.htm'><frame src='unavailable.htm'></frameset>"))
+                "<frameset><frame src='pbscript.htm'><frame src='%s'></frameset>"
+                    .formatted(missing)))
         .when(http)
         .page(root);
     doReturn(
@@ -94,7 +99,11 @@ class DiscoverSeasonSourcesTest {
         """))
         .when(http)
         .page(selector);
-    doThrow(new UncheckedIOException(new HttpResponseException(503, "Synthetic unavailable frame")))
+    doThrow(
+            supportedOrigin
+                ? new UncheckedIOException(
+                    new HttpResponseException(503, "Synthetic unavailable frame"))
+                : new IllegalArgumentException("Unsupported provider origin"))
         .when(http)
         .page(missing);
     DiscoverSeasonSources service =
@@ -123,7 +132,13 @@ class DiscoverSeasonSourcesTest {
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("EA");
     assertThat(read.observedAt()).isEqualTo(Instant.EPOCH);
-    assertThat(read.reason()).isEqualTo("Provider HTTP 503");
+    assertThat(read.reasonType())
+        .isEqualTo(
+            URI.create(
+                supportedOrigin
+                    ? "urn:blockout:acquisition:technical"
+                    : "urn:blockout:acquisition:structure"));
+    assertThat(read.reason()).isEqualTo(supportedOrigin ? "Provider HTTP 503" : null);
   }
 
   @Test

@@ -26,6 +26,7 @@ import org.jsoup.nodes.FormElement;
 public final class FfvbPage {
   static final Charset CHARSET = Charset.forName("windows-1252");
   static final String EXPORT_FORM = "form[action$=vbspo_calendrier_export.php]";
+  static final String RESULTS_HOST = "www.ffvbbeach.org";
   private static final String CALENDAR_MODE = "calend";
   private static final String COMPLETE_CALENDAR = "COMPLET";
   private static final String INFORMATION_PATH = "/ffvbapp/adressier/fiche_match_ffvb.php";
@@ -250,7 +251,7 @@ public final class FfvbPage {
 
   static boolean hasOfficialResultsOrigin(URI url) {
     return "https".equalsIgnoreCase(url.getScheme())
-        && "www.ffvbbeach.org".equalsIgnoreCase(url.getHost())
+        && RESULTS_HOST.equalsIgnoreCase(url.getHost())
         && (url.getPort() == -1 || url.getPort() == 443)
         && url.getRawUserInfo() == null
         && url.getRawFragment() == null;

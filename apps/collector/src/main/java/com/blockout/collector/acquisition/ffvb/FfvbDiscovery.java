@@ -70,7 +70,9 @@ public class FfvbDiscovery {
       }
       try {
         URI calendar = URI.create(link.absUrl(attribute));
-        if (!nativeResults(calendar) || !hasCalendarPath(calendar)) {
+        if (!FfvbPage.hasOfficialResultsOrigin(calendar)
+            || !hasResultsPath(calendar)
+            || !calendar.getPath().endsWith("/" + CALENDAR_SCRIPT)) {
           complete = false;
           continue;
         }
@@ -207,7 +209,6 @@ public class FfvbDiscovery {
    */
   public List<URI> roundLinks(Document page, String season, String organizer) {
     return navigation(page).stream()
-        .filter(this::hasCalendarPath)
         .filter(
             link -> {
               Map<String, String> fields = query(link);
@@ -236,7 +237,8 @@ public class FfvbDiscovery {
 
   /**
    * Selects only published navigation to native frames, selectors, menus and scoped archives,
-   * resolving attributes against jsoup's document base.
+   * resolving attributes against jsoup's document base. The transport owns origin rejection so a
+   * refused native branch can make the catalogue incomplete.
    *
    * @param page bounded entry HTML
    * @return deduplicated navigation, never a fabricated year or identifier
@@ -252,7 +254,8 @@ public class FfvbDiscovery {
       }
       try {
         URI target = URI.create(link.absUrl(attribute));
-        if (nativeResults(target)
+        if (FfvbPage.RESULTS_HOST.equalsIgnoreCase(target.getHost())
+            && hasResultsPath(target)
             && !excludedCompetition(pack(link) + " " + link.text())
             && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) {
           result.add(target);
@@ -264,15 +267,9 @@ public class FfvbDiscovery {
     return result.stream().distinct().toList();
   }
 
-  private boolean nativeResults(URI target) {
+  private boolean hasResultsPath(URI target) {
     String path = target.getPath();
-    return FfvbPage.hasOfficialResultsOrigin(target)
-        && path != null
-        && path.startsWith("/ffvbapp/resu/");
-  }
-
-  private boolean hasCalendarPath(URI target) {
-    return target.getPath().endsWith("/" + CALENDAR_SCRIPT);
+    return path != null && path.startsWith("/ffvbapp/resu/");
   }
 
   /**
