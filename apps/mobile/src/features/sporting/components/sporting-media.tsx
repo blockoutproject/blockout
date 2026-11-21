@@ -63,7 +63,7 @@ export function SportingMedia({
   /** Expo Image reloads when its bounds change. Resize the display with the wrapping view. */
   function renderArtwork() {
     const fixedSize = nativeSize !== undefined;
-    const radius = artworkScale < 1 ? mediaRadius(imageSize) : 0;
+    const radius = artworkScale < 1 ? mediaRadius(size * artworkScale) : 0;
     const artwork = (
       <Image
         key={image.attemptKey}
@@ -119,56 +119,42 @@ export function SportingMedia({
         ? "Logo indisponible"
         : "Logo absent";
   const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
-  const imageSize = size * artworkScale;
   const nativeImageSize = (nativeSize ?? size) * artworkScale;
   const logo = (
     <View
+      accessible={!available}
+      accessibilityRole={available ? undefined : "image"}
+      accessibilityLabel={available ? undefined : `${label} : ${identity.name}`}
+      accessibilityState={{ busy: !available && busy }}
       style={[
-        styles.media,
-        // IdentityCard clips its entire artwork slot. Only standalone media needs its own radius.
+        styles.slot,
         {
           width: size,
+          height: size,
+          // IdentityCard already clips its artwork slot.
           borderRadius: identityPlate ? undefined : mediaRadius(size),
+          backgroundColor: busy ? undefined : colors.logoSurface,
         },
       ]}
     >
-      <View
-        accessible={!available}
-        accessibilityRole={available ? undefined : "image"}
-        accessibilityLabel={
-          available ? undefined : `${label} : ${identity.name}`
-        }
-        accessibilityState={{ busy: !available && busy }}
-        style={[
-          styles.slot,
-          {
-            width: size,
-            height: size,
-            backgroundColor: busy ? undefined : colors.logoSurface,
-          },
-        ]}
-      >
-        {available && renderArtwork()}
-        {!available && !busy && (
-          <ImageFallback
-            color={colors.logoInk}
-            size={
-              presentation === "logo"
-                ? tokens.size.icon.md
-                : tokens.size.icon.lg
-            }
-          />
-        )}
-        {busy && (
-          <View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: colors.skeleton },
-            ]}
-          />
-        )}
-      </View>
+      {available && renderArtwork()}
+      {!available && !busy && (
+        <ImageFallback
+          color={colors.logoInk}
+          size={
+            presentation === "logo" ? tokens.size.icon.md : tokens.size.icon.lg
+          }
+        />
+      )}
+      {busy && (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.skeleton },
+          ]}
+        />
+      )}
     </View>
   );
   if (!renderWithAtmosphere) {
@@ -366,14 +352,11 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     opacity: tokens.sporting.coverOpacity,
   },
-  media: {
-    alignItems: "center",
-    flexShrink: 1,
-    maxWidth: "100%",
-    overflow: "hidden",
-  },
   slot: {
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 1,
+    maxWidth: "100%",
+    overflow: "hidden",
   },
 });

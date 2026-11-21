@@ -1,4 +1,4 @@
-import { Image, type ImageProps } from "expo-image";
+import { Image } from "expo-image";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -9,7 +9,6 @@ export interface IdentityArtworkProps {
   loading?: boolean;
   label: string;
   fallback: ReactNode;
-  cachePolicy?: ImageProps["cachePolicy"];
 }
 
 /** Fills the clipped IdentityCard slot and covers a new source until native display. */
@@ -18,7 +17,6 @@ export function IdentityArtwork({
   loading = false,
   label,
   fallback,
-  cachePolicy,
 }: Readonly<IdentityArtworkProps>) {
   const { colors } = useTheme();
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
@@ -41,7 +39,6 @@ export function IdentityArtwork({
           source={{ uri }}
           contentFit="contain"
           style={StyleSheet.absoluteFill}
-          cachePolicy={cachePolicy}
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}
         />
