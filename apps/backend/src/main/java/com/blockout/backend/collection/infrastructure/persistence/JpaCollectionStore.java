@@ -189,12 +189,37 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  public CollectionState.ResultPage results(UUID controlId, int page, int size) {
-    Slice<CollectionResultEntity> slice =
-        results.findByControlIdOrderByScopeIdAscStageAscPhaseAsc(
-            controlId, PageRequest.of(page, size));
+  public CollectionState.ResultPage results(
+      UUID controlId, CollectionState.ResultFilters filters, long page, int size) {
+    CollectionState.ResultSummary summary =
+        results.summary(controlId).orElseThrow(CollectionNotFoundException::new);
+    if (page > Integer.MAX_VALUE / size) {
+      return new CollectionState.ResultPage(List.of(), page, false, summary);
+    }
+    Slice<CollectionResultRepository.CurrentResult> slice =
+        results.currentResults(
+            controlId,
+            filters.query(),
+            filters.status() == null ? null : filters.status().name(),
+            filters.sourceId(),
+            filters.stage() == null ? null : filters.stage().name(),
+            PageRequest.of((int) page, size));
     return new CollectionState.ResultPage(
-        slice.stream().map(mapper::toView).toList(), page, slice.hasNext());
+        slice.stream().map(this::resultRow).toList(), page, slice.hasNext(), summary);
+  }
+
+  /** Keeps a catalogue link absent when the result has no established source binding. */
+  private CollectionState.ResultRow resultRow(CollectionResultRepository.CurrentResult row) {
+    CollectionState.ResultSource source =
+        row.getSourceId() == null
+            ? null
+            : new CollectionState.ResultSource(
+                row.getSourceId(),
+                row.getSourceLabel(),
+                row.getPackId(),
+                row.getPoolId(),
+                row.getPhaseReference());
+    return new CollectionState.ResultRow(mapper.toView(row), row.getScopeLabel(), source);
   }
 
   /** {@inheritDoc} */

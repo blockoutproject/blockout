@@ -117,6 +117,22 @@ A normal passage may present a previously known unconfirmed result as definitive
 
 Use JUnit for source interpretation and clock-driven eligibility, Spring MVC for contract/authorization behavior, and Testcontainers PostgreSQL for real transaction ordering, incarnation replacement and constraints. Generate and compile Java server/client and mobile outputs; check enums, date/absence/null semantics, unknown request fields, additive response fields, deterministic regeneration and no generated files in Git. Carry the nullable validation failure category through both generated HTTP boundaries.
 
+For the current result read, run the [workspace verification](../../README.md#verification) for contract generation and the existing mobile consumer. Exercise the generated HTTP boundary and real PostgreSQL result projection with controlled inputs:
+
+```sh
+npm run lint:contracts
+npm run generate
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=CollectionResultsWebMvcTest,RecordCollectionResultsTest \
+  -Dit.test=CollectionResultIntegrationTest,CollectionControlIntegrationTest,CollectionOperationalEvidenceIntegrationTest
+npm run test --workspace=@blockout/mobile -- --runInBand \
+  src/features/collection/__tests__/collection-contract.test.ts
+```
+
+- Submit repeated and older observations for the same key alongside independent acquisition and integration results. Read equal-time rows over multiple small pages and verify one newest row per key, preserved useful success and stable order on unchanged data.
+- Use combined text, outcome, source and stage criteria that match beyond the unfiltered first page. Check human labels, case and accents, known source/pack/pool/phase attribution and seasonless club/geocoding results. Check omissions for unestablished relationships and evidence. A machine category supplies no inferred reason or timeout.
+- Compare whole-control outcome totals across unfiltered, filtered and empty pages. Exercise another provider and season, the independent seasonless controls, unavailable controls and missing or unrelated grants. Check the existing unfiltered response shape and independent command authorization. Only the native Suivi/Bilan qualification exercises the new screen journeys.
+
 On native iOS/Android builds, use the [F13 runtime matrix and native procedure](../003-shared-quality/quickstart.md#native-ui-and-approved-design) to verify preparation, dashboard and closure through their actual routes: pending versus running, season-attribution and selected-source launch commitments, direct pause/resume/save, exact typed closure, retained input and ordinary feedback after refusal or failed/lost response, and later explicit action without a verification read. Preserve permissions, original target, dirty-exit guards, light/dark, narrow widths and enlarged text. Identify simulator/emulator evidence separately from physical-device evidence and retain the untested iOS floor. Remove/restore admission during a draft and pending write; expect original-session ownership and no newly selected sources. Back/cancel creates no new write. Reuse deterministic obsolete-callback proofs and prior native evidence at their demonstrated scope; representative route/keyboard/read compositions suffice for the changed boundary.
 
 Load the Collection landing menu, then exhaust a full seasons reread. The body contains only the common card; header/Back remain, and Competitions/Clubs links are masked while authorized cache stays in Query. Explicit Retry keeps that card and its actual active button progress, sends only the seasons GET and exposes no competing pull. Repeat failure, then restore success and verify the menu returns. The initial active read retains the existing skeleton. This landing case does not replace the independent collection-control result/command case below.

@@ -7,6 +7,7 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.ControlView;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
+import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
@@ -234,17 +235,15 @@ public class ReadCollectionConfiguration {
    *
    * @param accountId original local account
    * @param controlId independent control
+   * @param filters optional criteria within the authorized control
    * @param page validated zero-based page
    * @param size validated bounded size
-   * @return canonical current evidence without a total count
+   * @return latest-first matching results and an unfiltered current summary
    */
   @Transactional(readOnly = true)
-  public CollectionState.ResultPage results(UUID accountId, UUID controlId, long page, int size) {
+  public CollectionState.ResultPage results(
+      UUID accountId, UUID controlId, ResultFilters filters, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
-    store.control(controlId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) {
-      return new CollectionState.ResultPage(List.of(), page, false);
-    }
-    return store.results(controlId, (int) page, size);
+    return store.results(controlId, filters, page, size);
   }
 }

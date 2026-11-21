@@ -1,7 +1,10 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionState.ResultSummary;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -25,14 +28,150 @@ interface CollectionResultRepository
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
 
   /**
-   * Pages current evidence in canonical order without counting all results.
+   * Searches displayable labels and localized stage/phase, using PostgreSQL text normalization and
+   * term matching. Joins resolve only stable, in-scope identities because superseded cycle
+   * snapshots are discarded while their latest results are retained.
    *
    * @param controlId independent owner
+   * @param query optional literal search text
+   * @param outcome optional exact persisted outcome
+   * @param sourceId optional authorized source binding
+   * @param stage optional exact persisted stage
    * @param page bounded native page
-   * @return current scope/stage/phase ordered slice
+   * @return latest evidence with stable ties and any known catalogue attribution
    */
-  Slice<CollectionResultEntity> findByControlIdOrderByScopeIdAscStageAscPhaseAsc(
-      UUID controlId, Pageable page);
+  @Query(
+      value =
+          """
+          WITH terms AS (
+            SELECT value FROM regexp_split_to_table(
+              regexp_replace(LOWER(normalize(CAST(:query AS TEXT), NFD)) COLLATE "C",
+                U&'[\\0300-\\036f]', '', 'g') COLLATE "default",
+              '[^[:alnum:]]+') AS term(value)
+            WHERE value <> ''
+          ), attributed AS (
+            SELECT r.*,
+              CASE
+                WHEN r.stage = 'DETAILS' THEN CONCAT_WS(' – ', COALESCE(home.manual_name, home.source_name),
+                  COALESCE(away.manual_name, away.source_name))
+                WHEN r.stage = 'LOGO' THEN COALESCE(team.manual_name, team.source_name)
+                WHEN r.stage IN ('CLUB_SHEET', 'GEOCODING') THEN COALESCE(club.manual_name, club.source_name)
+                ELSE COALESCE(p.manual_name, p.source_name)
+              END AS scope_label,
+              s.id AS source_id,
+              CASE WHEN s.id IS NOT NULL THEN CONCAT(s.provider, ' / ', s.organizer_reference)
+              END AS source_label,
+              CASE WHEN s.provider = 'FFVB' THEN p.pack_id END AS pack_id,
+              CASE WHEN s.provider = 'FFVB' THEN p.id END AS pool_id,
+              CASE WHEN s.provider = 'LNV' THEN p.tour_reference END AS phase_reference
+            FROM collection_result r JOIN collection_control c ON c.id = r.control_id
+            LEFT JOIN sporting_match m ON r.stage = 'DETAILS' AND m.id = r.scope_id
+            LEFT JOIN sporting_pool p ON
+              p.id = CASE WHEN r.stage = 'DETAILS' THEN m.pool_id
+                WHEN r.stage IN ('CALENDAR', 'STANDINGS') THEN r.scope_id END
+              AND p.season_id = c.season_id AND p.provider = c.family
+            LEFT JOIN sporting_team home ON p.id IS NOT NULL AND home.id = m.home_team_id
+              AND home.season_id = c.season_id AND home.provider = c.family
+            LEFT JOIN sporting_team away ON p.id IS NOT NULL AND away.id = m.away_team_id
+              AND away.season_id = c.season_id AND away.provider = c.family
+            LEFT JOIN sporting_team team ON r.stage = 'LOGO' AND team.id = r.scope_id
+              AND team.season_id = c.season_id AND team.provider = c.family
+            LEFT JOIN sporting_club club ON c.season_id IS NULL AND club.provider = 'FFVB'
+              AND club.id = r.scope_id AND (
+                (r.stage = 'CLUB_SHEET' AND c.family = 'CLUB_SHEETS') OR
+                (r.stage = 'GEOCODING' AND c.family = 'GEOCODING'))
+            LEFT JOIN collection_source_binding s ON s.season_id = c.season_id
+              AND s.provider = c.family AND (
+                (r.stage = 'DISCOVERY' AND s.id = r.scope_id) OR
+                s.organizer_reference = COALESCE(p.organizer_reference,
+                  CASE WHEN team.provider = 'LNV' THEN team.organizer_reference END))
+            WHERE r.control_id = :controlId
+              AND (CAST(:outcome AS TEXT) IS NULL OR r.outcome = :outcome)
+              AND (CAST(:stage AS TEXT) IS NULL OR r.stage = :stage)
+              AND (CAST(:sourceId AS UUID) IS NULL OR s.id = :sourceId)
+          )
+          SELECT scope_id AS "scopeId", stage, phase, cycle_order AS "cycleOrder",
+            read_ordinal AS "readOrdinal", last_attempt_at AS "observedAt",
+            outcome, last_success_at AS "lastSuccessAt", reason_type AS "reasonType", reason,
+            obtained_count AS "obtainedCount", rejected_count AS "rejectedCount",
+            CASE WHEN stage = 'DISCOVERY' THEN source_label ELSE NULLIF(scope_label, '')
+              END AS "scopeLabel", source_id AS "sourceId",
+            source_label AS "sourceLabel", pack_id AS "packId", pool_id AS "poolId",
+            phase_reference AS "phaseReference"
+          FROM attributed
+          WHERE NOT EXISTS (
+            SELECT 1 FROM terms
+            WHERE POSITION(terms.value IN regexp_replace(
+              LOWER(normalize(CONCAT_WS(' ', scope_label, source_label,
+                CASE stage
+                  WHEN 'DISCOVERY' THEN 'Découverte'
+                  WHEN 'CALENDAR' THEN 'Calendrier'
+                  WHEN 'DETAILS' THEN 'Détails'
+                  WHEN 'STANDINGS' THEN 'Classement'
+                  WHEN 'CLUB_SHEET' THEN 'Fiche club'
+                  WHEN 'GEOCODING' THEN 'Géocodage'
+                  WHEN 'LOGO' THEN 'Logo'
+                END,
+                CASE phase WHEN 'ACQUISITION' THEN 'Acquisition' ELSE 'Intégration' END
+              ), NFD)) COLLATE "C", U&'[\\0300-\\036f]', '', 'g')) = 0
+          )
+          ORDER BY last_attempt_at DESC NULLS LAST, scope_id, stage, phase
+          """,
+      nativeQuery = true)
+  Slice<CurrentResult> currentResults(
+      UUID controlId, String query, String outcome, UUID sourceId, String stage, Pageable page);
+
+  /** Counts every current outcome for an existing control, including an empty one. */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.collection.application.model.CollectionState$ResultSummary(
+        COUNT(*) FILTER (WHERE r.outcome = CollectionOutcomeEnum.SUCCESS),
+        COUNT(*) FILTER (WHERE r.outcome = CollectionOutcomeEnum.PARTIAL),
+        COUNT(*) FILTER (WHERE r.outcome = CollectionOutcomeEnum.FAILED),
+        COUNT(*) FILTER (WHERE r.outcome = CollectionOutcomeEnum.UNCONFIRMED))
+      FROM CollectionControlEntity c LEFT JOIN CollectionResultEntity r ON r.controlId = c.id
+      WHERE c.id = :controlId GROUP BY c.id
+      """)
+  Optional<ResultSummary> summary(UUID controlId);
+
+  /** Scalar result and scoped labels from the same bounded query. */
+  interface CurrentResult {
+    UUID getScopeId();
+
+    String getStage();
+
+    String getPhase();
+
+    long getCycleOrder();
+
+    long getReadOrdinal();
+
+    Instant getObservedAt();
+
+    String getOutcome();
+
+    Instant getLastSuccessAt();
+
+    String getReasonType();
+
+    String getReason();
+
+    Long getObtainedCount();
+
+    Long getRejectedCount();
+
+    String getScopeLabel();
+
+    UUID getSourceId();
+
+    String getSourceLabel();
+
+    UUID getPackId();
+
+    UUID getPoolId();
+
+    String getPhaseReference();
+  }
 
   /**
    * Qualifies success from both phases of every selected target and any additional child results.

@@ -10,6 +10,9 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import com.blockout.backend.collection.application.model.CollectionResult;
+import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
+import com.blockout.backend.collection.application.model.CollectionState.ResultPage;
+import com.blockout.backend.collection.application.model.CollectionState.ResultRow;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionOperationalDiagnostics;
@@ -548,7 +551,7 @@ class CollectionOperationalEvidenceIntegrationTest {
   }
 
   @Test
-  @DisplayName("Current evidence pages use stable scope, stage and phase ordering")
+  @DisplayName("Equal attempt times use stable scope, stage and phase ties across pages")
   void ordersCurrentEvidenceByStableKey() {
     // Given
     UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR);
@@ -596,26 +599,28 @@ class CollectionOperationalEvidenceIntegrationTest {
             null));
 
     // When
-    List<CollectionResult> page =
-        new TransactionTemplate(transactions)
-            .execute(status -> store.results(COMPETITIONS, 0, 10).items());
-    List<CollectionResult> unrelated =
-        new TransactionTemplate(transactions)
-            .execute(status -> store.results(CLUBS, 0, 10).items());
+    ResultFilters filters = new ResultFilters(null, null, null, null);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    ResultPage first = transaction.execute(status -> store.results(COMPETITIONS, filters, 0, 2));
+    ResultPage next = transaction.execute(status -> store.results(COMPETITIONS, filters, 1, 2));
+    ResultPage unrelated = transaction.execute(status -> store.results(CLUBS, filters, 0, 2));
 
     // Then
-    assertThat(page)
+    assertThat(first.items())
+        .extracting(ResultRow::result)
         .extracting(CollectionResult::scopeId, CollectionResult::stage, CollectionResult::phase)
         .containsExactly(
-            org.assertj.core.groups.Tuple.tuple(
-                SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION),
-            org.assertj.core.groups.Tuple.tuple(
-                SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION),
-            org.assertj.core.groups.Tuple.tuple(
-                SCOPE, CollectionStageEnum.STANDINGS, CollectionPhaseEnum.ACQUISITION),
-            org.assertj.core.groups.Tuple.tuple(
-                OTHER, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
-    assertThat(unrelated).isEmpty();
+            tuple(SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION),
+            tuple(SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
+    assertThat(first.hasNext()).isTrue();
+    assertThat(next.items())
+        .extracting(ResultRow::result)
+        .extracting(CollectionResult::scopeId, CollectionResult::stage, CollectionResult::phase)
+        .containsExactly(
+            tuple(SCOPE, CollectionStageEnum.STANDINGS, CollectionPhaseEnum.ACQUISITION),
+            tuple(OTHER, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
+    assertThat(next.hasNext()).isFalse();
+    assertThat(unrelated.items()).isEmpty();
   }
 
   @Test

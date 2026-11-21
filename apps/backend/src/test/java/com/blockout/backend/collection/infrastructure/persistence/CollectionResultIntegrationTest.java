@@ -7,6 +7,11 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
+import com.blockout.backend.collection.application.model.CollectionState.ResultPage;
+import com.blockout.backend.collection.application.model.CollectionState.ResultRow;
+import com.blockout.backend.collection.application.model.CollectionState.ResultSource;
+import com.blockout.backend.collection.application.model.CollectionState.ResultSummary;
 import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -25,11 +30,13 @@ import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -63,6 +70,7 @@ class CollectionResultIntegrationTest {
   private static final Instant OBSERVED = Instant.parse("2026-10-19T16:00:00Z");
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID SCOPE = UUID.fromString("00000000-0000-4000-8000-000000000153");
+  private static final ResultFilters UNFILTERED = new ResultFilters(null, null, null, null);
   @MockitoBean private Clock clock;
   @Autowired private RegisterCollectorRuntime runtimes;
   @Autowired private ReadCollectionWork collectionWork;
@@ -96,6 +104,9 @@ class CollectionResultIntegrationTest {
     // Given
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000154");
     sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, source_name) VALUES (?, 'FFVB', 'RESULT-READ', 'Étoile Volley')",
+        other);
+    sql.update(
         "INSERT INTO collection_target(cycle_id,scope_id,kind) VALUES (?,?,'CLUB_SHEET')",
         cycle.id(),
         other);
@@ -122,14 +133,141 @@ class CollectionResultIntegrationTest {
         .isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).observedAt())
         .isEqualTo(OBSERVED.plusSeconds(1));
-    CollectionState.ResultPage first = store.results(CONTROL, 0, 1);
+    ResultPage first = store.results(CONTROL, UNFILTERED, 0, 1);
     assertThat(first.items())
         .singleElement()
-        .satisfies(item -> assertThat(item.scopeId()).isEqualTo(SCOPE));
+        .satisfies(
+            item -> {
+              assertThat(item.result().scopeId()).isEqualTo(other);
+              assertThat(item.scopeLabel()).isEqualTo("Étoile Volley");
+              assertThat(item.source()).isNull();
+            });
     assertThat(first.hasNext()).isTrue();
-    assertThat(store.results(CONTROL, 1, 1).items())
+    assertThat(store.results(CONTROL, UNFILTERED, 1, 1).items())
         .singleElement()
-        .satisfies(item -> assertThat(item.scopeId()).isEqualTo(other));
+        .satisfies(
+            item -> {
+              assertThat(item.result().scopeId()).isEqualTo(SCOPE);
+              assertThat(item.scopeLabel()).isNull();
+              assertThat(item.source()).isNull();
+            });
+    assertThat(first.summary()).isEqualTo(new ResultSummary(1, 0, 1, 0));
+  }
+
+  @Test
+  @DisplayName("Filters the full authorized population before paging without filtering its totals")
+  void filtersBeforePaging() {
+    // Given
+    UUID season = seasons.getOrCreate(2029).id();
+    UUID oldSeason = seasons.getOrCreate(2028).id();
+    UUID control = competitionControl(season, CollectionProviderEnum.FFVB);
+    UUID previous = competitionControl(oldSeason, CollectionProviderEnum.FFVB);
+    UUID professional = competitionControl(season, CollectionProviderEnum.LNV);
+    UUID source = source(season, CollectionProviderEnum.FFVB, "Île-de-France");
+    source(season, CollectionProviderEnum.FFVB, "Île-de-France Est");
+    UUID outside = source(oldSeason, CollectionProviderEnum.FFVB, "Île-de-France");
+    UUID otherProvider = source(season, CollectionProviderEnum.LNV, "Île-de-France");
+    PoolView selected =
+        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve");
+    PoolView alternate =
+        pool(season, CollectionProviderEnum.FFVB, "Île-de-France Est", null, "Poule Réserve Est");
+    PoolView failed =
+        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve Sud");
+    PoolView nonmatching =
+        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Élite");
+    PoolView historical =
+        pool(oldSeason, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve");
+    seedResult(control, selected.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 1);
+    seedResult(control, selected.id(), "CALENDAR", "INTEGRATION", "PARTIAL", 6);
+    seedResult(control, selected.id(), "STANDINGS", "ACQUISITION", "FAILED", 5);
+    seedResult(control, selected.id(), "CALENDAR", "ACQUISITION", "UNCONFIRMED", 3);
+    seedResult(control, source, "DISCOVERY", "INTEGRATION", "SUCCESS", 4);
+    seedResult(control, alternate.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 7);
+    seedResult(control, failed.id(), "STANDINGS", "INTEGRATION", "FAILED", 9);
+    seedResult(control, nonmatching.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 8);
+    seedResult(previous, historical.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 8);
+    seedResult(professional, otherProvider, "DISCOVERY", "INTEGRATION", "SUCCESS", 10);
+
+    // When
+    ResultPage filtered =
+        store.results(
+            control,
+            new ResultFilters(
+                "RESERVE, ile intégration",
+                CollectionOutcomeEnum.PARTIAL,
+                source,
+                CollectionStageEnum.STANDINGS),
+            0,
+            1);
+    ResultPage foreignSource =
+        store.results(control, new ResultFilters(null, null, outside, null), 0, 1);
+    ResultPage foreignProvider =
+        store.results(control, new ResultFilters(null, null, otherProvider, null), 0, 1);
+    ResultPage byStageLabel =
+        store.results(control, new ResultFilters("CLASSEMENT", null, source, null), 0, 1);
+    ResultPage beyondEnd = store.results(control, UNFILTERED, 9_007_199_254_740_991L, 1);
+
+    // Then
+    assertThat(filtered.items())
+        .singleElement()
+        .satisfies(
+            row -> {
+              assertThat(row.result().scopeId()).isEqualTo(selected.id());
+              assertThat(row.result().stage()).isEqualTo(CollectionStageEnum.STANDINGS);
+              assertThat(row.result().phase()).isEqualTo(CollectionPhaseEnum.INTEGRATION);
+              assertThat(row.scopeLabel()).isEqualTo("Poule Réserve");
+              assertThat(row.source())
+                  .isEqualTo(
+                      new ResultSource(
+                          source, "FFVB / Île-de-France", selected.packId(), selected.id(), null));
+            });
+    assertThat(filtered.hasNext()).isFalse();
+    assertThat(filtered.summary()).isEqualTo(new ResultSummary(1, 4, 2, 1));
+    assertThat(foreignSource.items()).isEmpty();
+    assertThat(foreignSource.summary()).isEqualTo(filtered.summary());
+    assertThat(foreignProvider.items()).isEmpty();
+    assertThat(foreignProvider.summary()).isEqualTo(filtered.summary());
+    assertThat(byStageLabel.items())
+        .singleElement()
+        .extracting(ResultRow::result)
+        .extracting(CollectionResult::scopeId)
+        .isEqualTo(failed.id());
+    assertThat(byStageLabel.hasNext()).isTrue();
+    assertThat(beyondEnd.items()).isEmpty();
+    assertThat(beyondEnd.summary()).isEqualTo(filtered.summary());
+  }
+
+  @Test
+  @DisplayName("Links an LNV match to its published phase and a team only to its source")
+  void projectsProfessionalSourceAttribution() {
+    // Given
+    UUID season = seasons.getOrCreate(2027).id();
+    UUID control = competitionControl(season, CollectionProviderEnum.LNV);
+    UUID source = source(season, CollectionProviderEnum.LNV, "LM");
+    PoolView pool = pool(season, CollectionProviderEnum.LNV, "LM", "0042", "Play-offs");
+    MatchView match =
+        identities.identifyMatch(
+            pool.id(),
+            "M-7",
+            new TeamCandidate("HOME", "Équipe locale", null, null),
+            new TeamCandidate("AWAY", "Équipe visiteuse", null, null));
+    seedResult(control, source, "DISCOVERY", "ACQUISITION", "SUCCESS", 1);
+    seedResult(control, match.homeTeamId(), "LOGO", "INTEGRATION", "SUCCESS", 2);
+    seedResult(control, match.id(), "DETAILS", "INTEGRATION", "PARTIAL", 3);
+
+    // When
+    ResultPage page = store.results(control, new ResultFilters(null, null, source, null), 0, 3);
+
+    // Then
+    assertThat(page.items())
+        .extracting(ResultRow::scopeLabel)
+        .containsExactly("Équipe locale – Équipe visiteuse", "Équipe locale", "LNV / LM");
+    assertThat(page.items())
+        .extracting(ResultRow::source)
+        .containsExactly(
+            new ResultSource(source, "LNV / LM", null, null, "0042"),
+            new ResultSource(source, "LNV / LM", null, null, null),
+            new ResultSource(source, "LNV / LM", null, null, null));
   }
 
   @Test
@@ -275,8 +413,14 @@ class CollectionResultIntegrationTest {
     assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
         .isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).lastSuccessAt()).isNull();
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
-        .isEqualTo(1);
+    assertThat(store.results(CONTROL, UNFILTERED, 0, 2).items())
+        .singleElement()
+        .extracting(ResultRow::result)
+        .satisfies(
+            row -> {
+              assertThat(row.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
+              assertThat(row.observedAt()).isEqualTo(OBSERVED.plusSeconds(3));
+            });
   }
 
   @Test
@@ -857,6 +1001,59 @@ class CollectionResultIntegrationTest {
         .filter(name -> name.startsWith("com.blockout.backend.sporting."))
         .mapToLong(name -> statistics.getEntityStatistics(name).getLoadCount())
         .sum();
+  }
+
+  private UUID competitionControl(UUID season, CollectionProviderEnum provider) {
+    UUID id = UUID.randomUUID();
+    sql.update(
+        "INSERT INTO collection_control(id, season_id, family, enabled) VALUES (?, ?, ?, TRUE)",
+        id,
+        season,
+        provider.name());
+    return id;
+  }
+
+  private UUID source(UUID season, CollectionProviderEnum provider, String organizer) {
+    UUID id = UUID.randomUUID();
+    sql.update(
+        "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, validation_state, locked, launched) VALUES (?, ?, ?, ?, 'QUALIFIED', TRUE, TRUE)",
+        id,
+        season,
+        provider.name(),
+        organizer);
+    return id;
+  }
+
+  private PoolView pool(
+      UUID season, CollectionProviderEnum provider, String organizer, String phase, String name) {
+    UUID division = UUID.randomUUID();
+    sql.update(
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, ?,TRUE,'#112233')",
+        division,
+        division.toString());
+    return identities.createPool(
+        new PoolKey(provider, season, organizer, "TEST", phase, null, name),
+        "Bilan",
+        name,
+        new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.MALE));
+  }
+
+  /** Seeds current read fixtures independently of the admission/replacement tests in this suite. */
+  private void seedResult(
+      UUID control, UUID scope, String stage, String phase, String outcome, long seconds) {
+    sql.update(
+        """
+        INSERT INTO collection_result(control_id, scope_id, stage, phase, cycle_order, read_ordinal,
+          outcome, last_attempt_at)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+        """,
+        control,
+        scope,
+        stage,
+        phase,
+        seconds,
+        outcome,
+        Timestamp.from(OBSERVED.plusSeconds(seconds)));
   }
 
   /**

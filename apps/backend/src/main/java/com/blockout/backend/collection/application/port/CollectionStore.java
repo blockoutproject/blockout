@@ -392,14 +392,16 @@ public interface CollectionStore {
   void saveResult(UUID controlId, CollectionResult result);
 
   /**
-   * Pages current evidence without a total count or historical snapshot.
+   * Pages matching current evidence and counts the whole control without a historical snapshot.
    *
    * @param controlId independent owner
-   * @param page zero-based native page
+   * @param filters optional search terms, outcome, source and stage
+   * @param page zero-based requested page
    * @param size bounded page size
-   * @return canonical scope/stage/phase order
+   * @return latest-first evidence with stable ties, and totals independent of filters or page
    */
-  CollectionState.ResultPage results(UUID controlId, int page, int size);
+  CollectionState.ResultPage results(
+      UUID controlId, CollectionState.ResultFilters filters, long page, int size);
 
   /**
    * Ends an exclusively locked cycle without implying successful collection.
