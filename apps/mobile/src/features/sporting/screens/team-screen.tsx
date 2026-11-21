@@ -109,6 +109,7 @@ function TeamPage({
                   />
                 }
                 identity={data.team.team}
+                division={data.team.classification.division}
                 kind="team"
               />
             )

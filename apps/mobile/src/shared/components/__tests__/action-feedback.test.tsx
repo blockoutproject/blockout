@@ -20,6 +20,8 @@ import { ActionFeedbackProvider, useActionFeedback } from "../action-feedback";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TECHNICAL_ERROR } from "../error-copy";
 
+const SAVED_MESSAGE = "Modifications enregistrées";
+
 jest.mock("react-native-reanimated", () => {
   const actual = jest.requireActual("react-native-reanimated");
   const { useLayoutEffect, useState } =
@@ -70,7 +72,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Exercises actual presentation events; the optional promise controls only the remote failure boundary. */
+/** Exercises actual presentation events; the optional promise controls only the remote write boundary. */
 function Actions({
   response,
   retainOnUnmount,
@@ -100,6 +102,21 @@ function Actions({
         onPress={() => feedback.error("Cette action est indisponible.")}
       >
         <Text>Functional failure</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          if (response) {
+            void response.then(
+              () => feedback.success(SAVED_MESSAGE),
+              () => feedback.error(),
+            );
+          } else {
+            feedback.success(SAVED_MESSAGE);
+          }
+        }}
+      >
+        <Text>Save</Text>
       </Pressable>
     </>
   );
@@ -207,6 +224,60 @@ it("keeps page actions accessible while transient errors replace and expire", as
     screen.getByRole("button", { name: "Functional failure" }),
   ).toBeEnabled();
 });
+
+it("replaces the previous notice with one accessible success through expiry", async () => {
+  // Given
+  const user = userEvent.setup();
+  await render(<Surface />);
+  await user.press(screen.getByRole("button", { name: "Technical failure" }));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Save" }));
+
+  // Then
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByRole("alert", { name: SAVED_MESSAGE })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+
+  // When
+  await act(() => jest.advanceTimersByTime(4_000));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+});
+
+it.each([
+  {
+    boundary: "the interaction unmounts",
+    showActions: false,
+    scope: "original",
+  },
+  { boundary: "the session changes", showActions: true, scope: "replacement" },
+])(
+  "ignores an acknowledgement after $boundary",
+  async ({ showActions, scope }) => {
+    // Given
+    const response = Promise.withResolvers<void>();
+    const user = userEvent.setup();
+    const view = await render(<Surface response={response.promise} />);
+    await user.press(screen.getByRole("button", { name: "Save" }));
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+    // When
+    await view.rerender(
+      <Surface
+        showActions={showActions}
+        scope={scope}
+        response={response.promise}
+      />,
+    );
+    await act(() => response.resolve());
+
+    // Then
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  },
+);
 
 it("ignores a delayed failure after its originating interaction unmounts", async () => {
   // Given

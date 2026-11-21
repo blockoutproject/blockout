@@ -52,7 +52,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: mockBack, push: mockPush }),
-  useNavigation: () => ({ isFocused: mockIsFocused }),
+  useNavigation: () => mockNavigation,
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -65,6 +65,16 @@ const mockFetch = jest.fn<
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockIsFocused = jest.fn(() => true);
+const mockBlurListeners = new Set<() => void>();
+const mockNavigation = {
+  isFocused: mockIsFocused,
+  addListener(_event: "blur", callback: () => void) {
+    mockBlurListeners.add(callback);
+    return () => {
+      mockBlurListeners.delete(callback);
+    };
+  },
+};
 const environment = { ...process.env };
 let peer: ReturnType<typeof collectionPeer>;
 let client = createQueryClient();
@@ -602,6 +612,7 @@ it("refreshes only reads and retains uncertain integration and absent measuremen
     ),
   ).toBe(true);
   expect(screen.queryByText(/classement|classification|mapping/i)).toBeNull();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
 it("leaves native pull progress quiet while dashboard reads are paused and only the account is fetching", async () => {
@@ -701,6 +712,9 @@ it.each([202, 200])(
       ),
     ).toBeOnTheScreen();
     expect(
+      screen.queryAllByRole("alert", { name: "Relance demandée." }),
+    ).toHaveLength(status === 202 ? 1 : 0);
+    expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
     const write = mockFetch.mock.calls.find(
@@ -749,6 +763,9 @@ it("pauses and resumes the selected control directly against current server stat
   ).toBeEnabled();
   expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
   expect(Alert.alert).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("alert", { name: "Collecte mise en pause." }),
+  ).toBeOnTheScreen();
 
   // When
   await waitFor(() => expect(privateClient.isFetching()).toBe(0));
@@ -759,6 +776,10 @@ it("pauses and resumes the selected control directly against current server stat
     await screen.findByRole("button", { name: "Mettre en pause" }),
   ).toBeEnabled();
   expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(
+    screen.getByRole("alert", { name: "Collecte réactivée." }),
+  ).toBeOnTheScreen();
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PUT",
   );
@@ -804,6 +825,7 @@ it("keeps the activity target after response loss and waits for a later explicit
   await screen.findByRole("alert", {
     name: "Une erreur est survenue. Veuillez réessayer plus tard.",
   });
+  expect(screen.queryByText("Collecte mise en pause.")).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Mettre en pause" })).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(mockFetch.mock.calls[0][1]?.method).toBe("PUT");
@@ -855,6 +877,7 @@ it.each([409, "lost"])(
     await user.press(await screen.findByRole("button", { name: "Relancer" }));
     await act(async () => nativeAlertAction("Relancer")());
     await screen.findByRole("alert");
+    expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
     await waitFor(() => expect(privateClient.isFetching()).toBe(0));
     peer.controls = [control({})];
     await view.rerender(<></>);
@@ -1044,7 +1067,68 @@ it("ignores an old-session command response without presenting a new success", a
 
   // Then
   expect(screen.queryByText("En attente de démarrage")).toBeNull();
+  expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
 });
+
+it.each([
+  { timing: "before", acknowledgedBeforeNavigation: true },
+  { timing: "after", acknowledgedBeforeNavigation: false },
+])(
+  "keeps the accepted pause while retiring its toast when acknowledged $timing Sources opens",
+  async ({ acknowledgedBeforeNavigation }) => {
+    // Given: the Sources route covers the control without unmounting it.
+    const user = userEvent.setup();
+    const response = Promise.withResolvers<Response>();
+    const accepted = control({ enabled: false });
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "PUT" ? response.promise : peer.reads(url, options),
+    );
+    mockPush.mockImplementationOnce(() => {
+      mockIsFocused.mockReturnValue(false);
+      for (const listener of mockBlurListeners) {
+        listener();
+      }
+    });
+    await renderCollection(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+      client,
+      (cache) => {
+        privateClient = cache;
+      },
+    );
+    await user.press(
+      await screen.findByRole("button", { name: "Mettre en pause" }),
+    );
+    if (acknowledgedBeforeNavigation) {
+      peer.controls = [accepted];
+      await act(() => response.resolve(json(accepted)));
+      expect(
+        await screen.findByRole("alert", { name: "Collecte mise en pause." }),
+      ).toBeOnTheScreen();
+    }
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Préparer les sources" }),
+    );
+    if (!acknowledgedBeforeNavigation) {
+      peer.controls = [accepted];
+      await act(() => response.resolve(json(accepted)));
+    }
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/collection/[seasonId]/[provider]",
+      params: { seasonId, provider: "ffvb" },
+    });
+    expect(
+      await screen.findByRole("button", { name: "Reprendre" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("alert", { name: "Collecte mise en pause." }),
+    ).not.toBeOnTheScreen();
+  },
+);
 
 it("keeps a closed season navigable with no collection command", async () => {
   // Given
@@ -1100,6 +1184,7 @@ it.each(["club-sheets", "geocoding"] as const)(
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled(),
     );
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.some(
         ([url]) =>
@@ -1151,6 +1236,11 @@ it("retains running evidence while pause cancels an unstarted request", async ()
 
   // Then
   expect(await screen.findByText("Mise en pause en cours")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", {
+      name: "Pause demandée. Le cycle en cours se termine.",
+    }),
+  ).toBeOnTheScreen();
   expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
   expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
@@ -1504,6 +1594,7 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
   await user.press(await screen.findByRole("button", { name: "Relancer" }));
   await act(async () => nativeAlertAction("Relancer")());
   await screen.findByRole("alert");
+  expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
   await waitFor(() => expect(privateClient.isFetching()).toBe(0));
   readAvailable = false;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
@@ -1604,12 +1695,14 @@ it("disables the empty-result refresh action while a collection command is await
 
   // When
   await user.press(screen.getByRole("button", { name: "Relancer" }));
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   await act(async () => nativeAlertAction("Relancer")());
 
   // Then
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Actualiser" })).toBeDisabled(),
   );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   mockFetch.mockClear();
 
   // When
@@ -1629,6 +1722,9 @@ it("disables the empty-result refresh action while a collection command is await
   // Then
   expect(
     await screen.findByRole("button", { name: "Actualiser", disabled: false }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Relance demandée." }),
   ).toBeOnTheScreen();
 });
 

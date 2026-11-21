@@ -1,3 +1,4 @@
+import { useNavigation } from "expo-router";
 import { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
@@ -28,7 +29,8 @@ export function CollectionControl({
   season,
 }: Readonly<CollectionControlProps>) {
   const { colors } = useTheme();
-  const actionFeedback = useActionFeedback();
+  const { clear, error, success } = useActionFeedback();
+  const navigation = useNavigation();
   const confirmAction = useActionConfirmation();
   const { authority } = editing;
   const mounted = useRef(false);
@@ -45,8 +47,12 @@ export function CollectionControl({
       mounted.current = false;
     };
   }, []);
+  useEffect(
+    () => navigation.addListener("blur", () => clear("success")),
+    [clear, navigation],
+  );
 
-  /** Sends the desired state; native mutation callbacks own invalidation. */
+  /** Confirms the accepted season command; mutation callbacks own its read invalidation. */
   async function send(command: "activity" | "request") {
     if (
       !mounted.current ||
@@ -64,10 +70,22 @@ export function CollectionControl({
               enabled: !control.enabled,
             })
           : editing.request.mutateAsync();
-      actionFeedback.clear();
-      await attempt;
+      clear();
+      const accepted = await attempt;
+      if (!season || !navigation.isFocused()) {
+        return;
+      }
+      if (command === "activity") {
+        success(activityConfirmation(accepted));
+      } else if (
+        accepted.pendingRequestId &&
+        accepted.cycle?.state !== "running"
+      ) {
+        // An already running cycle acknowledges no new request.
+        success("Relance demandée.");
+      }
     } catch {
-      actionFeedback.error();
+      error();
     }
   }
 
@@ -215,6 +233,16 @@ export function CollectionControl({
       </Text>
     </Surface>
   );
+}
+
+/** Acknowledging pause does not interrupt a cycle that has already started. */
+function activityConfirmation(accepted: CollectionControlResponse) {
+  if (accepted.enabled) {
+    return "Collecte réactivée.";
+  }
+  return accepted.cycle?.state === "running"
+    ? "Pause demandée. Le cycle en cours se termine."
+    : "Collecte mise en pause.";
 }
 
 const styles = StyleSheet.create({
