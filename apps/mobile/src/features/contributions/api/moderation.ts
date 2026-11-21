@@ -203,7 +203,10 @@ export function useModerationVersions(
     enabled: (query) =>
       authority.canRetain && enabled && query.state.status !== "error",
   });
-  const query = useInfiniteQuery(options);
+  // A retained History tab re-enables within the same visit and stays fresh until invalidated.
+  const query = useInfiniteQuery(
+    state === "historical" ? { ...options, staleTime: Infinity } : options,
+  );
 
   /** Restarts this traversal at page zero without discarding an accepted page on read failure. */
   async function refresh() {

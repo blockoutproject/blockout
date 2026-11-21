@@ -217,6 +217,18 @@ function moderationVersionsResponse(page: string | null) {
   });
 }
 
+function moderationReadPages(state: "active" | "historical") {
+  const [path] = getListModeratedStreamContributionsQueryKey(sporting.id);
+  return mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter(
+      (request) =>
+        request.pathname === path &&
+        request.searchParams.get("state") === state,
+    )
+    .map((request) => request.searchParams.get("page"));
+}
+
 /** Selects the real screen for each shared admission/loading scenario; providers remain owned by mount. */
 function moderationView(
   kind: "queue" | "active" | "pending" | "filters" | "reports",
@@ -1487,7 +1499,7 @@ it.each([
   },
 );
 
-it("continues historical versions without losing the loaded source page", async () => {
+it("keeps both loaded history pages on tab return and rereads them after invalidation", async () => {
   // Given
   historyPaged = true;
   detail.items = [
@@ -1500,29 +1512,94 @@ it("continues historical versions without losing the loaded source page", async 
   ];
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
+  await screen.findByDisplayValue("https://youtu.be/retained");
   await user.press(await screen.findByRole("tab", { name: "Historique" }));
-
-  // When
-  await fireEvent(screen.getByLabelText("Historique des liens"), "endReached");
-
-  // Then
-  expect(
+  await fireEvent(
+    await screen.findByLabelText("Historique des liens"),
+    "endReached",
+  );
+  await user.press(
     await screen.findByRole("button", {
       name: "YouTube, Proposition remplacée",
     }),
-  ).toBeOnTheScreen();
+  );
+  await screen.findByText("https://youtu.be/second-history");
+  expect(moderationReadPages("historical")).toEqual(["0", "1"]);
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Actif" }));
+  await user.press(screen.getByRole("tab", { name: "Historique" }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByText("https://youtu.be/second-history")).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Twitch, Refusé" }),
   ).toBeOnTheScreen();
+  expect(moderationReadPages("historical")).toEqual(["0", "1"]);
+
+  // When: a relevant invalidation arrives while this traversal is inactive.
+  await user.press(screen.getByRole("tab", { name: "Actif" }));
+  const queryKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "historical",
+  });
+  await act(() => client.invalidateQueries({ queryKey, exact: true }));
+  expect(moderationReadPages("historical")).toEqual(["0", "1"]);
+  await user.press(screen.getByRole("tab", { name: "Historique" }));
+
+  // Then
+  await waitFor(() =>
+    expect(moderationReadPages("historical")).toEqual(["0", "1", "0", "1"]),
+  );
+});
+
+it("reads the active context again on a new detail visit and starts a new history traversal", async () => {
+  // Given: the same authorized account has previously visited both tabs.
+  const user = userEvent.setup();
+  const view = await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await screen.findByDisplayValue("https://youtu.be/retained");
+  await user.press(screen.getByRole("tab", { name: "Historique" }));
+  await screen.findByLabelText("Historique des liens");
+  const activeKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "active",
+  });
+  const historicalKey = getListModeratedStreamContributionsQueryKey(
+    sporting.id,
+    { state: "historical" },
+  );
+  const activeCache = client.getQueryData(activeKey);
+  expect(activeCache).toBeDefined();
+  await view.rerender(<></>);
+  await waitFor(() =>
+    expect(client.getQueryData(historicalKey)).toBeUndefined(),
+  );
+  client.setQueryDefaults(activeKey, { staleTime: Infinity });
+  client.setQueryData(activeKey, activeCache);
+  expect(client.getQueryData(activeKey)).toBe(activeCache);
+  const newAddress = "https://youtu.be/new-moderation-visit";
+  detail.activeContribution = version({
+    ...detail.activeContribution,
+    url: newAddress,
+  });
+  mockFetch.mockClear();
+
+  // When: the detail route mounts again with a fresh active-context cache entry.
+  await view.rerender(<ModerationMatchScreen matchId={sporting.id} />);
+  await layoutNativeTabs();
+
+  // Then
+  expect(await screen.findByDisplayValue(newAddress)).toBeOnTheScreen();
+  expect(moderationReadPages("active")).toEqual(["0"]);
+  expect(moderationReadPages("historical")).toEqual([]);
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Historique" }));
+
+  // Then
   expect(
-    mockFetch.mock.calls.some(([url]) => {
-      const request = new URL(String(url));
-      return (
-        request.searchParams.get("state") === "historical" &&
-        request.searchParams.get("page") === "1"
-      );
-    }),
-  ).toBe(true);
+    await screen.findByLabelText("Historique des liens"),
+  ).toBeOnTheScreen();
+  expect(moderationReadPages("historical")).toEqual(["0"]);
 });
 
 it("opens the exact active version's report page without loading reports in the editor", async () => {
@@ -2253,46 +2330,72 @@ it("reports the current 503 after a missing private target without restoring its
   expect(writes).toHaveLength(0);
 });
 
-it("presents an explicit refusal on another already loaded moderation screen", async () => {
-  // Given: the report reader and visible queue share only the existing native private cache.
-  const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) {
-    throw new Error("Missing controlled HTTP boundary");
-  }
-  let finish!: (response: Response) => void;
-  const held = new Promise<Response>((resolve) => {
-    finish = resolve;
-  });
-  mockFetch.mockImplementation((url, init) =>
-    String(url).endsWith("/reports?page=0") ? held : ordinary(url, init),
-  );
+it.each(["queue", "historical"] as const)(
+  "withdraws private %s content when another moderation read is refused",
+  async (surface) => {
+    // Given: the report reader and visible resource share the existing private QueryClient.
+    detail.items = [
+      version({ state: "rejected", canApprove: false, canReject: false }),
+    ];
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Missing controlled HTTP boundary");
+    }
+    const report = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, init) =>
+      String(url).endsWith("/reports?page=0")
+        ? report.promise
+        : ordinary(url, init),
+    );
 
-  /** Keeps the refusing HTTP resource observed without inventing a second presentation store. */
-  function ReportReader() {
-    useModerationReports(sporting.id, versionId, true);
-    return null;
-  }
+    /** Keeps the refusing HTTP resource observed without inventing a second presentation store. */
+    function ReportReader() {
+      useModerationReports(sporting.id, versionId, true);
+      return null;
+    }
 
-  await mount(
-    <>
-      <ModerationScreen filters={{}} />
-      <ReportReader />
-    </>,
-  );
-  await screen.findByRole("link", {
-    name: `${detail.match.home.name} – ${detail.match.away.name}`,
-  });
+    await mount(
+      <>
+        {surface === "queue" ? (
+          <ModerationScreen filters={{}} />
+        ) : (
+          <ModerationMatchScreen matchId={sporting.id} />
+        )}
+        <ReportReader />
+      </>,
+    );
+    if (surface === "historical") {
+      await userEvent.press(screen.getByRole("tab", { name: "Historique" }));
+    }
+    const row =
+      surface === "queue"
+        ? await screen.findByRole("link", {
+            name: `${detail.match.home.name} – ${detail.match.away.name}`,
+          })
+        : await screen.findByRole("button", { name: "Twitch, Refusé" });
+    const queryKey =
+      surface === "queue"
+        ? getListStreamModerationQueryKey({ state: "to-review" })
+        : getListModeratedStreamContributionsQueryKey(sporting.id, {
+            state: "historical",
+          });
 
-  // When
-  await act(async () => {
-    finish(Response.json({ title: "Forbidden", status: 403 }, { status: 403 }));
-  });
+    // When
+    await act(async () => {
+      report.resolve(
+        Response.json({ title: "Forbidden", status: 403 }, { status: 403 }),
+      );
+    });
 
-  // Then
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-  expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
-});
+    // Then
+    expect(
+      await screen.findByText("Une erreur est survenue"),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(row).not.toBeOnTheScreen();
+    expect(client.getQueryData(queryKey)).toBeUndefined();
+  },
+);
 
 it("refreshes retained report reasons on their page even when the total is unchanged", async () => {
   // Given: the fictional HTTP erasure changes only the nullable reason, not its counted fact.
@@ -2509,14 +2612,21 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
 
 it("resumes a paused history pull and shows progress until its active context finishes", async () => {
   // Given: authorized history has loaded, and only the next active-context response is held.
+  historyPaged = true;
   detail.items = [
     version({ state: "rejected", canApprove: false, canReject: false }),
   ];
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await screen.findByDisplayValue("https://youtu.be/retained");
   await userEvent.press(await screen.findByRole("tab", { name: "Historique" }));
   const retainedVersion = await screen.findByRole("button", {
     name: "Twitch, Refusé",
   });
+  await fireEvent(screen.getByLabelText("Historique des liens"), "endReached");
+  const continuation = await screen.findByRole("button", {
+    name: "YouTube, Proposition remplacée",
+  });
+  mockFetch.mockClear();
   const historyKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
     state: "historical",
   });
@@ -2574,6 +2684,9 @@ it("resumes a paused history pull and shows progress until its active context fi
       expect(refreshControl()).not.toBeBusy();
       expect(refreshControl()).toHaveProp("refreshing", false);
     });
+    expect(moderationReadPages("historical")).toEqual(["0"]);
+    expect(moderationReadPages("active")).toEqual(["0"]);
+    expect(continuation).not.toBeOnTheScreen();
   } finally {
     await act(() => {
       onlineManager.setOnline(true);
