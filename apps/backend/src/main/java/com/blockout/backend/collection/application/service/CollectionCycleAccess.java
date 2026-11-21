@@ -139,31 +139,6 @@ public class CollectionCycleAccess {
   }
 
   /**
-   * Acquires the running capability in runtime-first lock order.
-   *
-   * @param id retained context
-   * @return running context under runtime, season and shared cycle locks, in that order
-   * @throws CollectionConflictException when the incarnation is superseded or the cycle is terminal
-   * @throws CollectionNotFoundException when the retained cycle is unknown
-   */
-  private Cycle requireRunning(UUID id) {
-    CycleScope scope = store.cycleScope(id);
-    runtimeAccess.requireCurrent(scope.incarnationId());
-    UUID seasonId =
-        scope.controlId() == null
-            ? store.sourceSeason(scope.sourceBindingId())
-            : store.controlSeason(scope.controlId());
-    if (seasonId != null) {
-      seasons.lockCollectionState(seasonId);
-    }
-    Cycle cycle = store.lockCycle(id);
-    if (cycle.state() != CollectionCycleStateEnum.RUNNING) {
-      throw CollectionConflictException.invalidContext();
-    }
-    return cycle;
-  }
-
-  /**
    * Locks a control passage for result recording or idempotent completion.
    *
    * @param id retained control context
@@ -173,6 +148,12 @@ public class CollectionCycleAccess {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public Cycle lockControlPassage(UUID id) {
+    lockRuntimeAndSeason(id);
+    return store.lockCycleForUpdate(id);
+  }
+
+  /** Fences the current runtime before acquiring the competition season, when present. */
+  private void lockRuntimeAndSeason(UUID id) {
     CycleScope scope = store.cycleScope(id);
     runtimeAccess.requireCurrent(scope.incarnationId());
     if (scope.controlId() == null) {
@@ -182,11 +163,10 @@ public class CollectionCycleAccess {
     if (seasonId != null) {
       seasons.lockCollectionState(seasonId);
     }
-    return store.lockCycleForUpdate(id);
   }
 
   /**
-   * Supplies a runtime-first, transaction-held capability to sporting/result owners.
+   * Supplies a transaction-held running capability for sporting writes and target reads.
    *
    * @param id admitted cycle; caller must invoke this before taking domain/account locks
    * @return running control context; validation contexts cannot authorize sporting writes
@@ -195,8 +175,9 @@ public class CollectionCycleAccess {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public Cycle requireRunningControl(UUID id) {
-    Cycle cycle = requireRunning(id);
-    if (cycle.controlId() == null) {
+    lockRuntimeAndSeason(id);
+    Cycle cycle = store.lockCycle(id);
+    if (cycle.state() != CollectionCycleStateEnum.RUNNING) {
       throw CollectionConflictException.invalidContext();
     }
     return cycle;

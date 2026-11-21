@@ -48,8 +48,7 @@ public class FfvbClubSheets implements ClubSheets {
       throw invalid();
     }
     ProviderResponse response = http.page(LOOKUP);
-    Document document =
-        Jsoup.parse(new String(response.body(), FfvbPage.CHARSET), response.url().toString());
+    Document document = FfvbPage.document(response.body(), response.url());
     List<FormElement> forms =
         document.select("form").stream()
             .filter(FormElement.class::isInstance)

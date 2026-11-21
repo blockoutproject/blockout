@@ -59,15 +59,8 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   Slice<PoolEntity> findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
       UUID packId, Pageable pageable);
 
-  /** Lists currently present LNV phase groups directly under their bound championship. */
-  @Query(
-      """
-      SELECT p FROM PoolEntity p
-      WHERE p.season.id = :seasonId AND p.provider = :provider
-        AND p.organizerReference = :organizerReference AND p.catalogEligible = TRUE
-      ORDER BY p.sourceName, p.reference, p.id
-      """)
-  Slice<PoolEntity> catalogPools(
+  /** Shares current source-season membership between catalogue reads and absence reconciliation. */
+  Slice<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference, Pageable pageable);
 
   /**
@@ -132,17 +125,6 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @return its current pools, including overrides
    */
   List<PoolEntity> findByPackId(UUID packId);
-
-  /**
-   * Loads only the catalog's source-season scope for qualified absence reconciliation.
-   *
-   * @param seasonId canonical season
-   * @param provider designated authority
-   * @param organizerReference exact source organizer
-   * @return currently present pools that may be withdrawn by a complete observation
-   */
-  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /** Canonical current pool eligibility for queries using the pool alias p. */
   String VISIBLE = SportingVisibilityPredicates.POOL;

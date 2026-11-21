@@ -54,7 +54,9 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,7 +106,11 @@ public class JpaSportingStore implements SportingStore {
       }
       Slice<PoolEntity> children =
           parentId == null
-              ? pools.catalogPools(seasonId, provider, organizerReference, request)
+              ? pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+                  seasonId,
+                  provider,
+                  organizerReference,
+                  request.withSort(Sort.by("sourceName", "reference", "id")))
               : pools.findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
                   parentId, request);
       resources =
@@ -812,7 +818,7 @@ public class JpaSportingStore implements SportingStore {
     if (complete) {
       for (PoolEntity pool :
           pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-              seasonId, provider, organizer)) {
+              seasonId, provider, organizer, Pageable.unpaged())) {
         if (!presentIds.contains(pool.getId())) {
           pool.setCatalogEligible(false);
           changes.submit(Kind.POOL, pool.getId());

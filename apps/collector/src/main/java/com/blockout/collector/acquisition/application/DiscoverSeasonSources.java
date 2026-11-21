@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
+import com.blockout.collector.acquisition.ffvb.FfvbPage;
 import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.Championship;
@@ -20,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -209,26 +211,18 @@ public class DiscoverSeasonSources {
         observedAt = read.observedAt();
         ffvb.requireContext(response.url(), target.seasonLabel(), target.organizerReference());
         consume.accept(read);
+        Document page = FfvbPage.document(response.body(), response.url());
         try {
           SportingObservation.Catalog found =
-              ffvb.parse(
-                  response.body(),
-                  response.url(),
-                  target.seasonLabel(),
-                  target.organizerReference());
-          recognized |= ffvb.seasonal(response.body(), response.url());
+              ffvb.parse(page, target.seasonLabel(), target.organizerReference());
+          recognized |= ffvb.seasonal(page);
           if (!found.complete() && firstFailure == null) {
             firstFailure = new FfvbAcquisitionException("Unqualified FFVB catalog entries");
           }
           pools.addAll(found.pools());
-          pending.addAll(
-              ffvb.roundLinks(
-                  response.body(),
-                  response.url(),
-                  target.seasonLabel(),
-                  target.organizerReference()));
+          pending.addAll(ffvb.roundLinks(page, target.seasonLabel(), target.organizerReference()));
         } catch (FfvbAcquisitionException unsupported) {
-          List<URI> links = ffvb.navigation(response.body(), response.url());
+          List<URI> links = ffvb.navigation(page);
           if (links.isEmpty()) {
             if (firstFailure == null) {
               firstFailure = unsupported;
@@ -329,9 +323,10 @@ public class DiscoverSeasonSources {
     boolean usable = false;
     boolean complete = true;
     try {
-      ProviderResponse page = ffvbHttp.page(entry);
+      ProviderResponse root = ffvbHttp.page(entry);
       Set<URI> seen = new LinkedHashSet<>();
-      ArrayDeque<URI> pending = new ArrayDeque<>(ffvb.navigation(page.body(), page.url()));
+      ArrayDeque<URI> pending =
+          new ArrayDeque<>(ffvb.navigation(FfvbPage.document(root.body(), root.url())));
       while (!pending.isEmpty()) {
         URI candidate = pending.removeFirst();
         if (!seen.add(candidate)) {
@@ -343,7 +338,8 @@ public class DiscoverSeasonSources {
         lifecycle.requireActive();
         try {
           ProviderResponse source = ffvbHttp.page(candidate);
-          List<URI> links = ffvb.navigation(source.body(), source.url());
+          Document page = FfvbPage.document(source.body(), source.url());
+          List<URI> links = ffvb.navigation(page);
           List<Map<String, String>> fields = links.stream().map(this::query).toList();
           List<String> organizers =
               fields.stream()
@@ -365,7 +361,7 @@ public class DiscoverSeasonSources {
             for (String organizer : organizers) {
               try {
                 SportingObservation.Catalog catalog =
-                    ffvb.parse(source.body(), source.url(), seasons.getFirst(), organizer);
+                    ffvb.parse(page, seasons.getFirst(), organizer);
                 complete &= catalog.complete();
                 if (catalog.complete()) {
                   boolean accepted =

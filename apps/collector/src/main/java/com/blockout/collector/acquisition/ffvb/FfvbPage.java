@@ -25,6 +25,7 @@ import org.jsoup.nodes.FormElement;
 /** Contextual HTML qualification shared by FFVB calendar and official standings interpretation. */
 public final class FfvbPage {
   static final Charset CHARSET = Charset.forName("windows-1252");
+  static final String EXPORT_FORM = "form[action$=vbspo_calendrier_export.php]";
   private static final String CALENDAR_MODE = "calend";
   private static final String COMPLETE_CALENDAR = "COMPLET";
   private static final String INFORMATION_PATH = "/ffvbapp/adressier/fiche_match_ffvb.php";
@@ -42,6 +43,11 @@ public final class FfvbPage {
     return new URIBuilder(url).setParameter(CALENDAR_MODE, COMPLETE_CALENDAR).build();
   }
 
+  /** Decodes bounded FFVB HTML with its response URL and native document base. */
+  public static Document document(byte[] body, URI url) {
+    return Jsoup.parse(new String(body, CHARSET), url.toString());
+  }
+
   /**
    * Checks the actual published export form and associates tables using published pool context.
    *
@@ -57,9 +63,9 @@ public final class FfvbPage {
     if (!COMPLETE_CALENDAR.equals(query.get(CALENDAR_MODE))) {
       throw new FfvbAcquisitionException("A complete FFVB calendar is required");
     }
-    Document page = Jsoup.parse(new String(body, CHARSET), url.toString());
+    Document page = document(body, url);
     export =
-        page.select("form[action$=vbspo_calendrier_export.php]").stream()
+        page.select(EXPORT_FORM).stream()
             .filter(FormElement.class::isInstance)
             .map(FormElement.class::cast)
             .filter(form -> "E".equals(fields(form).get("typ_edition")))
@@ -239,14 +245,15 @@ public final class FfvbPage {
     } catch (IllegalArgumentException invalid) {
       return null;
     }
-    if ("https".equalsIgnoreCase(action.getScheme())
-        && "www.ffvbbeach.org".equalsIgnoreCase(action.getHost())
-        && (action.getPort() == -1 || action.getPort() == 443)
-        && action.getRawUserInfo() == null
-        && action.getRawFragment() == null) {
-      return action;
-    }
-    return null;
+    return hasOfficialResultsOrigin(action) ? action : null;
+  }
+
+  static boolean hasOfficialResultsOrigin(URI url) {
+    return "https".equalsIgnoreCase(url.getScheme())
+        && "www.ffvbbeach.org".equalsIgnoreCase(url.getHost())
+        && (url.getPort() == -1 || url.getPort() == 443)
+        && url.getRawUserInfo() == null
+        && url.getRawFragment() == null;
   }
 
   /** Matches the three published identifiers once each, regardless of their order. */

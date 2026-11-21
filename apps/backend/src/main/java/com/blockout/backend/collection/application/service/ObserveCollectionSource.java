@@ -97,9 +97,8 @@ public class ObserveCollectionSource {
 
   /** First ordinary use of a historical-only control is independent of explicit later pauses. */
   private void admitOrdinarySource(Source source) {
-    boolean first = !store.hasOrdinarySources(source.seasonId(), source.provider());
     Control control = store.ensureSeasonControl(source.seasonId(), source.provider(), true);
-    if (first && !control.enabled()) {
+    if (!control.enabled() && !store.hasOrdinarySources(source.seasonId(), source.provider())) {
       CollectionRevision.requireAdvance(control.revision());
       store.setControlIntent(control.id(), true, control.requestId(), control.requestedMode());
     }
