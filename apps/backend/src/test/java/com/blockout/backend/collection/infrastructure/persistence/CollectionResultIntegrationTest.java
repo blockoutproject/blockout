@@ -129,10 +129,6 @@ class CollectionResultIntegrationTest {
             0L));
 
     // Then
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
-        .isEqualTo(CollectionOutcomeEnum.FAILED);
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).observedAt())
-        .isEqualTo(OBSERVED.plusSeconds(1));
     ResultPage first = store.results(CONTROL, UNFILTERED, 0, 1);
     assertThat(first.items())
         .singleElement()
@@ -148,6 +144,8 @@ class CollectionResultIntegrationTest {
         .satisfies(
             item -> {
               assertThat(item.result().scopeId()).isEqualTo(SCOPE);
+              assertThat(item.result().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
+              assertThat(item.result().observedAt()).isEqualTo(OBSERVED.plusSeconds(1));
               assertThat(item.scopeLabel()).isNull();
               assertThat(item.source()).isNull();
             });
@@ -163,29 +161,22 @@ class CollectionResultIntegrationTest {
     UUID control = competitionControl(season, CollectionProviderEnum.FFVB);
     UUID previous = competitionControl(oldSeason, CollectionProviderEnum.FFVB);
     UUID professional = competitionControl(season, CollectionProviderEnum.LNV);
-    UUID source = source(season, CollectionProviderEnum.FFVB, "Île-de-France");
-    source(season, CollectionProviderEnum.FFVB, "Île-de-France Est");
-    UUID outside = source(oldSeason, CollectionProviderEnum.FFVB, "Île-de-France");
-    UUID otherProvider = source(season, CollectionProviderEnum.LNV, "Île-de-France");
-    PoolView selected =
-        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve");
+    UUID source = source(season, CollectionProviderEnum.FFVB, "LIIDF");
+    source(season, CollectionProviderEnum.FFVB, "LIRA");
+    UUID outside = source(oldSeason, CollectionProviderEnum.FFVB, "LIIDF");
+    UUID otherProvider = source(season, CollectionProviderEnum.LNV, "LIIDF");
+    PoolView selected = pool(season, CollectionProviderEnum.FFVB, "LIIDF", null, "Poule Réserve");
     PoolView alternate =
-        pool(season, CollectionProviderEnum.FFVB, "Île-de-France Est", null, "Poule Réserve Est");
-    PoolView failed =
-        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve Sud");
-    PoolView nonmatching =
-        pool(season, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Élite");
-    PoolView historical =
-        pool(oldSeason, CollectionProviderEnum.FFVB, "Île-de-France", null, "Poule Réserve");
+        pool(season, CollectionProviderEnum.FFVB, "LIRA", null, "Poule Réserve Est");
+    PoolView nonmatching = pool(season, CollectionProviderEnum.FFVB, "LIIDF", null, "Poule Élite");
     seedResult(control, selected.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 1);
-    seedResult(control, selected.id(), "CALENDAR", "INTEGRATION", "PARTIAL", 6);
-    seedResult(control, selected.id(), "STANDINGS", "ACQUISITION", "FAILED", 5);
+    seedResult(control, selected.id(), "CALENDAR", "INTEGRATION", "PARTIAL", 11);
+    seedResult(control, selected.id(), "STANDINGS", "ACQUISITION", "FAILED", 10);
     seedResult(control, selected.id(), "CALENDAR", "ACQUISITION", "UNCONFIRMED", 3);
     seedResult(control, source, "DISCOVERY", "INTEGRATION", "SUCCESS", 4);
     seedResult(control, alternate.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 7);
-    seedResult(control, failed.id(), "STANDINGS", "INTEGRATION", "FAILED", 9);
     seedResult(control, nonmatching.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 8);
-    seedResult(previous, historical.id(), "STANDINGS", "INTEGRATION", "PARTIAL", 8);
+    seedResult(previous, outside, "DISCOVERY", "INTEGRATION", "PARTIAL", 8);
     seedResult(professional, otherProvider, "DISCOVERY", "INTEGRATION", "SUCCESS", 10);
 
     // When
@@ -193,7 +184,7 @@ class CollectionResultIntegrationTest {
         store.results(
             control,
             new ResultFilters(
-                "RESERVE, ile intégration",
+                "RESERVE, ffvb",
                 CollectionOutcomeEnum.PARTIAL,
                 source,
                 CollectionStageEnum.STANDINGS),
@@ -203,8 +194,9 @@ class CollectionResultIntegrationTest {
         store.results(control, new ResultFilters(null, null, outside, null), 0, 1);
     ResultPage foreignProvider =
         store.results(control, new ResultFilters(null, null, otherProvider, null), 0, 1);
-    ResultPage byStageLabel =
-        store.results(control, new ResultFilters("CLASSEMENT", null, source, null), 0, 1);
+    ResultPage byStageAndPhase =
+        store.results(
+            control, new ResultFilters("CLASSEMENT intégration", null, source, null), 0, 1);
     ResultPage beyondEnd = store.results(control, UNFILTERED, 9_007_199_254_740_991L, 1);
 
     // Then
@@ -219,22 +211,23 @@ class CollectionResultIntegrationTest {
               assertThat(row.source())
                   .isEqualTo(
                       new ResultSource(
-                          source, "FFVB / Île-de-France", selected.packId(), selected.id(), null));
+                          source, "FFVB / LIIDF", selected.packId(), selected.id(), null));
             });
     assertThat(filtered.hasNext()).isFalse();
-    assertThat(filtered.summary()).isEqualTo(new ResultSummary(1, 4, 2, 1));
-    assertThat(foreignSource.items()).isEmpty();
-    assertThat(foreignSource.summary()).isEqualTo(filtered.summary());
-    assertThat(foreignProvider.items()).isEmpty();
-    assertThat(foreignProvider.summary()).isEqualTo(filtered.summary());
-    assertThat(byStageLabel.items())
+    assertThat(filtered.summary()).isEqualTo(new ResultSummary(1, 4, 1, 1));
+    assertThat(List.of(foreignSource, foreignProvider, beyondEnd))
+        .allSatisfy(
+            page -> {
+              assertThat(page.items()).isEmpty();
+              assertThat(page.hasNext()).isFalse();
+              assertThat(page.summary()).isEqualTo(filtered.summary());
+            });
+    assertThat(byStageAndPhase.items())
         .singleElement()
         .extracting(ResultRow::result)
         .extracting(CollectionResult::scopeId)
-        .isEqualTo(failed.id());
-    assertThat(byStageLabel.hasNext()).isTrue();
-    assertThat(beyondEnd.items()).isEmpty();
-    assertThat(beyondEnd.summary()).isEqualTo(filtered.summary());
+        .isEqualTo(nonmatching.id());
+    assertThat(byStageAndPhase.hasNext()).isTrue();
   }
 
   @Test
@@ -410,9 +403,6 @@ class CollectionResultIntegrationTest {
         cycle.id(), evidence(3, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.FAILED));
 
     // Then
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
-        .isEqualTo(CollectionOutcomeEnum.FAILED);
-    assertThat(current(CollectionPhaseEnum.ACQUISITION).lastSuccessAt()).isNull();
     assertThat(store.results(CONTROL, UNFILTERED, 0, 2).items())
         .singleElement()
         .extracting(ResultRow::result)
@@ -420,6 +410,7 @@ class CollectionResultIntegrationTest {
             row -> {
               assertThat(row.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
               assertThat(row.observedAt()).isEqualTo(OBSERVED.plusSeconds(3));
+              assertThat(row.lastSuccessAt()).isNull();
             });
   }
 

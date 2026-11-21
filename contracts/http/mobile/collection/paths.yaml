@@ -698,12 +698,13 @@ Results:
       - name: query
         in: query
         description:
-          Case- and accent-insensitive search across the scope, source, stage and phase labels.
+          Case- and accent-insensitive search across known scope and source labels and the stage and phase labels.
           Every search term must match. Blank means no text filter.
         schema:
           type: string
-          description: Search text split into letter and number terms without wildcard operators.
-          maxLength: 120
+          description: Up to 200 Unicode characters split into letter and number terms without wildcard operators.
+          # Matches the Discovery query limit without counting surrogate pairs twice.
+          pattern: '^[\p{L}\P{L}]{0,200}(?![\p{L}\P{L}])'
       - name: status
         in: query
         description: Restrict results to this outcome.

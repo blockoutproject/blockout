@@ -348,7 +348,7 @@ CollectionResultResponse:
       format: uri
     reason:
       type: string
-      description: Safe concise diagnostic, excluding raw documents and personal data.
+      description: Known safe factual explanation. A structured category is available separately in reasonType when supplied.
     obtainedCount:
       type: integer
       format: int64

@@ -63,6 +63,7 @@ it("accepts explicit nullable evidence and additive fields through the generated
 
 it("reads legacy result pages and preserves new search criteria and evidence", async () => {
   // Given
+  const controlId = "00000000-0000-4000-8000-000000000004";
   const row: CollectionResultResponse = {
     scopeId: "00000000-0000-4000-8000-000000000002",
     scopeLabel: "D1 masculine · Saison régulière",
@@ -90,8 +91,8 @@ it("reads legacy result pages and preserves new search criteria and evidence", a
     .mockResolvedValueOnce(Response.json(filtered));
 
   // When
-  const previousPage = await listCollectionResults(control.id, { size: 1 });
-  const filteredPage = await listCollectionResults(control.id, {
+  const previousPage = await listCollectionResults(controlId, { size: 1 });
+  const filteredPage = await listCollectionResults(controlId, {
     size: 1,
     query: "régulière calendrier",
     status: "failed",

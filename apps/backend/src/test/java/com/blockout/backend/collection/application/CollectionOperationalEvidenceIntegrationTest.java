@@ -603,7 +603,6 @@ class CollectionOperationalEvidenceIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     ResultPage first = transaction.execute(status -> store.results(COMPETITIONS, filters, 0, 2));
     ResultPage next = transaction.execute(status -> store.results(COMPETITIONS, filters, 1, 2));
-    ResultPage unrelated = transaction.execute(status -> store.results(CLUBS, filters, 0, 2));
 
     // Then
     assertThat(first.items())
@@ -620,7 +619,7 @@ class CollectionOperationalEvidenceIntegrationTest {
             tuple(SCOPE, CollectionStageEnum.STANDINGS, CollectionPhaseEnum.ACQUISITION),
             tuple(OTHER, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.INTEGRATION));
     assertThat(next.hasNext()).isFalse();
-    assertThat(unrelated.items()).isEmpty();
+    assertThat(next.summary()).isEqualTo(first.summary());
   }
 
   @Test

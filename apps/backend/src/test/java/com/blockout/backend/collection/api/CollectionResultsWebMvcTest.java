@@ -42,7 +42,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -83,7 +82,8 @@ class CollectionResultsWebMvcTest {
       strings = {
         "urn:blockout:acquisition:technical",
         "urn:blockout:acquisition:structure",
-        "UncheckedIOException"
+        "UncheckedIOException",
+        "rejected"
       })
   @DisplayName("Preserves unknown details for callers using the original unfiltered request")
   void preservesResultPresence(String machineReason) throws Exception {
@@ -94,12 +94,12 @@ class CollectionResultsWebMvcTest {
     CollectionResult result =
         new CollectionResult(
             ID,
-            CollectionStageEnum.CALENDAR,
+            CollectionStageEnum.CLUB_SHEET,
             CollectionPhaseEnum.INTEGRATION,
             1,
             2,
             time,
-            CollectionOutcomeEnum.UNCONFIRMED,
+            CollectionOutcomeEnum.FAILED,
             null,
             reasonType,
             machineReason,
@@ -112,7 +112,7 @@ class CollectionResultsWebMvcTest {
                 List.of(new CollectionState.ResultRow(result, null, null)),
                 0,
                 false,
-                new CollectionState.ResultSummary(0, 0, 0, 1)));
+                new CollectionState.ResultSummary(0, 0, 1, 0)));
 
     // When
     ResultActions response =
@@ -131,7 +131,7 @@ class CollectionResultsWebMvcTest {
         .andExpect(jsonPath("$.items[0].obtainedCount").doesNotExist())
         .andExpect(jsonPath("$.items[0].rejectedCount").doesNotExist())
         .andExpect(jsonPath("$.items[0].lastSuccessAt").value(Matchers.nullValue()))
-        .andExpect(jsonPath("$.summary.unconfirmed").value(1));
+        .andExpect(jsonPath("$.summary.failed").value(1));
   }
 
   @Test
@@ -237,22 +237,21 @@ class CollectionResultsWebMvcTest {
   }
 
   @Test
-  @DisplayName("Refuses current results after collection-management permission is withdrawn")
-  void refusesRevokedPermission() throws Exception {
+  @DisplayName("Rejects search beyond the supported Unicode character limit")
+  void rejectsLongSearch() throws Exception {
     // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(configurationReads.results(
-            ACCOUNT, ID, new CollectionState.ResultFilters(null, null, null, null), 0, 50))
-        .thenThrow(new AccessDeniedException("Collection management is not permitted"));
+    String query = "é".repeat(201);
 
     // When
     ResultActions response =
-        mvc.perform(get("/administration/collection-controls/{id}/results", ID).with(mobile()));
+        mvc.perform(
+            get("/administration/collection-controls/{id}/results", ID)
+                .queryParam("query", query)
+                .with(mobile()));
 
     // Then
-    response
-        .andExpect(status().isForbidden())
-        .andExpect(header().string("Cache-Control", "no-store"));
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(configurationReads);
   }
 
   @Test

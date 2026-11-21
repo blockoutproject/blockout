@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObserveSeasonSourceInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.SeasonSourceInternalResponse;
@@ -33,6 +34,8 @@ import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
+import java.util.Arrays;
+import java.util.Objects;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -260,19 +263,17 @@ public interface CollectionApiMapper {
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   CollectionResultResponse toDto(CollectionState.ResultRow source);
 
-  /** Retained collector reasons can contain only a machine category or exception class. */
+  /** Retained collector reasons may consist of a bare result code or an exception class. */
   @Named("factualReason")
   default String factualReason(CollectionResult result) {
-    String reason = result.reason();
-    if (reason == null) {
-      return null;
-    }
-    String text = reason.strip();
+    String text = Objects.toString(result.reason(), "").strip();
     if (text.isEmpty()
         || text.equals(result.outcome().getValue())
+        || text.equals(Objects.toString(result.reasonType(), ""))
         || text.matches("urn:blockout:[a-z0-9:-]+")
         || text.matches("[a-zA-Z0-9_$]+(?:Exception|Error)")
-        || (result.reasonType() != null && text.equals(result.reasonType().toString()))) {
+        || Arrays.stream(ObservationOutcomeEnum.values())
+            .anyMatch(outcome -> text.equals(outcome.getValue()))) {
       return null;
     }
     return text;

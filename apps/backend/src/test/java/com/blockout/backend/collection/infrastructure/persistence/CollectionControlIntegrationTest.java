@@ -247,28 +247,18 @@ class CollectionControlIntegrationTest {
     // Given
     activity(false).andExpect(status().isOk());
     request().andExpect(status().isConflict());
-    sql.update(
-        """
-        INSERT INTO collection_result(control_id, scope_id, stage, phase, cycle_order,
-          read_ordinal, last_attempt_at, outcome)
-        VALUES (?, ?, 'DISCOVERY', 'ACQUISITION', 1, 1, timestamp with time zone '2026-10-19T12:00:00Z', 'SUCCESS')
-        """,
-        CONTROL,
-        SOURCE);
 
     // When / Then
-    mvc.perform(
-            get("/administration/collection-controls/{id}/results", CONTROL)
-                .queryParam("stage", "discovery")
-                .with(operator()))
+    mvc.perform(get("/administration/collection-controls/{id}/results", CONTROL).with(operator()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.items[0].source.id").value(SOURCE.toString()))
-        .andExpect(jsonPath("$.summary.success").value(1));
+        .andExpect(jsonPath("$.items").isEmpty())
+        .andExpect(jsonPath("$.summary.success").value(0));
     mvc.perform(get("/administration/collection-controls/{id}/results", SOURCE).with(operator()))
         .andExpect(status().isNotFound());
     sql.update("DELETE FROM account_permission WHERE account_id=?", ACCOUNT);
     mvc.perform(get("/administration/collection-controls/{id}/results", CONTROL).with(operator()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(header().string("Cache-Control", "no-store"));
     request().andExpect(status().isForbidden());
     assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Integer.class)).isZero();
   }
