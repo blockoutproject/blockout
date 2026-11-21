@@ -2,7 +2,7 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess.AdmittedScope;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
@@ -32,7 +32,6 @@ public class AcceptStandings {
   private final SportingStore store;
   private final SportingModelMapper mapper;
   private final CollectionCycleAccess cycleAccess;
-  private final ReadCollectionWork collectionWork;
   private final CheckAcquisitionClassification acquisitionClassification;
 
   /**
@@ -46,13 +45,12 @@ public class AcceptStandings {
    */
   @Transactional
   public ObservationOutcome accept(UUID poolId, StandingsObservation observation) {
-    CollectionState.Target target =
+    AdmittedScope<CollectionState.Target> admission =
         cycleAccess.requireTarget(
             observation.context().cycleId(), poolId, CollectionTargetKindEnum.STANDINGS);
     SportingViews.PoolView pool = store.pool(poolId).orElseThrow();
-    CollectionState.Cycle cycle = collectionWork.get(observation.context().cycleId());
-    ObservationOrder order =
-        new ObservationOrder(cycle.cycleOrder(), observation.context().readOrdinal());
+    CollectionState.Cycle cycle = admission.cycle();
+    ObservationOrder order = observation.context().order(cycle.cycleOrder());
     StandingsView previous = store.standings(poolId).orElse(null);
     if (previous != null) {
       int comparison =
@@ -64,7 +62,7 @@ public class AcceptStandings {
         return outcome(pool, false);
       }
     }
-    if (!acquisitionClassification.acceptsObservation(poolId, target)) {
+    if (!acquisitionClassification.acceptsObservation(poolId, admission.scope())) {
       return ObservationOutcome.refused(pool.key().reference(), false);
     }
     Instant observed = observation.context().observedAt();

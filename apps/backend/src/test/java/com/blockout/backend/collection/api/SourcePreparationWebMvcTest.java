@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState.CatalogRead;
 import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
@@ -22,8 +23,11 @@ import com.blockout.backend.collection.application.service.PrepareCollectionSour
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
@@ -85,7 +89,7 @@ class SourcePreparationWebMvcTest {
         .thenReturn(
             new SourceCatalog(
                 source(SourceValidationStateEnum.UNVALIDATED),
-                new CatalogRead(CatalogStatus.NOT_READ, null, null, null, null)));
+                new CatalogRead(CatalogStatus.NOT_READ, null, null, null)));
 
     // When
     ResultActions response =
@@ -132,6 +136,21 @@ class SourcePreparationWebMvcTest {
   @DisplayName("The latest unavailable read keeps the official URL and last complete read visible")
   void exposesUnavailableCatalogueWithRetainedEvidence() throws Exception {
     // Given
+    Instant lastAttempt = Instant.parse("2026-10-17T12:00:00Z");
+    CollectionResult failedRead =
+        new CollectionResult(
+            SOURCE,
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            1,
+            lastAttempt,
+            CollectionOutcomeEnum.FAILED,
+            null,
+            null,
+            "The source responded with HTTP 503.",
+            null,
+            null);
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
@@ -142,10 +161,9 @@ class SourcePreparationWebMvcTest {
                     .build(),
                 new CatalogRead(
                     CatalogStatus.UNAVAILABLE,
-                    Instant.parse("2026-10-17T12:00:00Z"),
+                    lastAttempt,
                     Instant.parse("2026-10-16T11:48:00Z"),
-                    null,
-                    "The source responded with HTTP 503.")));
+                    failedRead)));
 
     // When
     ResultActions response =

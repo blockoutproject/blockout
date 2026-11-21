@@ -2,7 +2,7 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess.AdmittedScope;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
@@ -38,7 +38,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AcceptMatchObservation {
   private final SportingStore store;
   private final CollectionCycleAccess cycleAccess;
-  private final ReadCollectionWork collectionWork;
   private final EstablishMatchIdentity identities;
   private final CheckAcquisitionClassification acquisitionClassification;
   private final MatchContributionAccess contributionContext;
@@ -57,8 +56,9 @@ public class AcceptMatchObservation {
    */
   @Transactional
   public ObservationOrder begin(UUID poolId, MatchObservation.Context context) {
-    cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
-    ObservationOrder order = order(context);
+    AdmittedScope<CollectionState.Target> admission =
+        cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
+    ObservationOrder order = context.order(admission.cycle().cycleOrder());
     CalendarState state = store.calendarState(poolId);
     if (state.current() == null || order.compareTo(state.current()) > 0) {
       store.beginCalendar(poolId, order);
@@ -81,16 +81,18 @@ public class AcceptMatchObservation {
       MatchObservation.Context context,
       ObservationOrder expected,
       CalendarObservation.Match candidate) {
-    CollectionState.Target target =
+    AdmittedScope<CollectionState.Target> admission =
         cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
-    if (!expected.equals(store.calendarState(poolId).current())) {
+    CollectionState.Target target = admission.scope();
+    CalendarState state = store.calendarState(poolId);
+    if (!expected.equals(state.current())) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
     }
     ObservationOrder previous = store.matchOrder(poolId, candidate.nativeMatchReference());
     if (previous != null && expected.compareTo(previous) < 0) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
     }
-    if (expected.equals(store.calendarState(poolId).completed()) && !expected.equals(previous)) {
+    if (expected.equals(state.completed()) && !expected.equals(previous)) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
     }
     if (!acquisitionClassification.acceptsObservation(poolId, target)) {
@@ -128,7 +130,13 @@ public class AcceptMatchObservation {
     boolean restored = store.restoreCalendarPresence(match.id());
     boolean changed =
         acceptSchedule(
-            schedule, expected, context, candidate.facts(), candidate.detailUrl(), created);
+            schedule,
+            expected,
+            context,
+            candidate.facts(),
+            candidate.detailUrl(),
+            created,
+            admission.cycle().mode());
     ObservationOutcome result = success(match, created || namesChanged || changed || restored);
     return new ObservationOutcome(
         result.sourceReference(),
@@ -158,15 +166,14 @@ public class AcceptMatchObservation {
       ObservationOrder expected,
       Set<String> presentReferences,
       boolean empty) {
-    CollectionState.Target target =
+    AdmittedScope<CollectionState.Target> admission =
         cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
     CalendarState state = store.calendarState(poolId);
     if (!expected.equals(state.current())
-        || !acquisitionClassification.acceptsObservation(poolId, target)) {
+        || !acquisitionClassification.acceptsObservation(poolId, admission.scope())) {
       return false;
     }
-    if (empty
-        && collectionWork.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT) {
+    if (empty && admission.cycle().mode() == CollectionModeEnum.INITIAL_IMPORT) {
       return false;
     }
     if (expected.equals(state.completed())) {
@@ -174,17 +181,6 @@ public class AcceptMatchObservation {
     }
     store.completeCalendar(poolId, expected, presentReferences, empty);
     return true;
-  }
-
-  /**
-   * Resolves precedence from the admitted backend cycle rather than client-supplied timestamps.
-   *
-   * @param context validated context
-   * @return authoritative logical token
-   */
-  private ObservationOrder order(MatchObservation.Context context) {
-    return new ObservationOrder(
-        collectionWork.get(context.cycleId()).cycleOrder(), context.readOrdinal());
   }
 
   /**
@@ -213,6 +209,7 @@ public class AcceptMatchObservation {
    * @param facts independent submitted proposals
    * @param firstObservation whether this transaction identified the encounter
    * @param detailUrl qualified reference, null preserves
+   * @param mode admitted cycle mode controlling result announcements
    * @return whether sporting schedule/reference values changed
    */
   private boolean acceptSchedule(
@@ -221,7 +218,8 @@ public class AcceptMatchObservation {
       MatchObservation.Context context,
       MatchObservation.Facts facts,
       URI detailUrl,
-      boolean firstObservation) {
+      boolean firstObservation,
+      CollectionModeEnum mode) {
     MatchSchedule.MatchScheduleBuilder next =
         previous.toBuilder()
             .acceptedCycleOrder(order.cycleOrder())
@@ -253,7 +251,7 @@ public class AcceptMatchObservation {
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
-    return acceptDetails(previous.id(), context, facts, firstObservation) || changed;
+    return acceptDetails(previous.id(), context, facts, firstObservation, mode) || changed;
   }
 
   /**
@@ -269,18 +267,18 @@ public class AcceptMatchObservation {
         store
             .matchPoolId(observation.matchId())
             .orElseThrow(SportingResourceNotFoundException::new);
-    CollectionState.Target target =
+    AdmittedScope<CollectionState.Target> admission =
         cycleAccess.requireDetail(observation.context().cycleId(), observation.matchId(), poolId);
     SportingViews.MatchView match =
         store.match(observation.matchId()).orElseThrow(SportingResourceNotFoundException::new);
-    ObservationOrder expected = order(observation.context());
+    ObservationOrder expected = observation.context().order(admission.cycle().cycleOrder());
     ObservationOrder current = store.calendarState(match.poolId()).current();
     ObservationOrder previous = store.matchOrder(match.poolId(), match.reference());
     if ((current != null && expected.compareTo(current) < 0)
         || (previous != null && expected.compareTo(previous) < 0)) {
       return ObservationOutcome.refused(match.reference(), true);
     }
-    if (!acquisitionClassification.acceptsObservation(match.poolId(), target)) {
+    if (!acquisitionClassification.acceptsObservation(match.poolId(), admission.scope())) {
       return ObservationOutcome.refused(match.reference(), false);
     }
     if (expected.equals(previous)) {
@@ -295,7 +293,8 @@ public class AcceptMatchObservation {
             observation.context(),
             observation.facts(),
             null,
-            false));
+            false,
+            admission.cycle().mode()));
   }
 
   /**
@@ -306,13 +305,15 @@ public class AcceptMatchObservation {
    * @param context source attribution, never precedence
    * @param firstObservation trusted encounter-discovery context
    * @param facts supplied proposals with native presence semantics
+   * @param mode admitted cycle mode controlling result announcements
    * @return whether accepted values changed, independently of refreshed provenance
    */
   private boolean acceptDetails(
       UUID matchId,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
-      boolean firstObservation) {
+      boolean firstObservation,
+      CollectionModeEnum mode) {
     MatchDetails previous = store.matchDetails(matchId);
     MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
     Instant observed = context.observedAt();
@@ -434,7 +435,7 @@ public class AcceptMatchObservation {
                 previous.result(),
                 result,
                 firstObservation,
-                collectionWork.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT,
+                mode == CollectionModeEnum.INITIAL_IMPORT,
                 current.viewable(),
                 publicLinks.read(matchId).isPresent(),
                 clock.instant())));

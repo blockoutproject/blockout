@@ -8,7 +8,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Control
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import java.util.UUID;
@@ -79,8 +79,7 @@ public class ChangeCollectionControls {
     Control control = store.lockControl(id);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    if (!control.enabled()
-        || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)) {
+    if (!control.enabled() || !CollectionLifecycle.activeOrSeasonless(season)) {
       throw new CollectionConflictException("conflict");
     }
     requireOrdinarySource(control, season);
@@ -114,12 +113,11 @@ public class ChangeCollectionControls {
    * @throws CollectionConflictException if the family has no ordinary catalogue in this season
    */
   private void requireOrdinarySource(Control control, CollectionSeasonView season) {
-    if (season != null
-        && store.sources(season.id()).stream()
-            .noneMatch(
-                source ->
-                    source.ordinaryCatalogEligible()
-                        && source.provider().getValue().equals(control.family().getValue()))) {
+    if (season == null) {
+      return;
+    }
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider == null || !store.hasOrdinarySources(season.id(), provider)) {
       throw new CollectionConflictException("conflict");
     }
   }

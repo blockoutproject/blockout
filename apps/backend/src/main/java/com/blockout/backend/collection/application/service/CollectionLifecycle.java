@@ -8,6 +8,10 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 @lombok.NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class CollectionLifecycle {
 
+  static boolean activeOrSeasonless(CollectionSeasonView season) {
+    return season == null || season.collectionState() == CollectionSeasonStateEnum.ACTIVE;
+  }
+
   /**
    * Refuses immutable closed history without claiming that an admitted cycle must stop.
    *

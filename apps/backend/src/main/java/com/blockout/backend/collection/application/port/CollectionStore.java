@@ -241,6 +241,9 @@ public interface CollectionStore {
    */
   List<Source> sources(UUID seasonId);
 
+  /** Lists the provider roots eligible for ordinary catalogue collection in stable source order. */
+  List<Source> ordinarySources(UUID seasonId, CollectionProviderEnum provider);
+
   /**
    * Locks the accepted reference on its first initial use without admitting it to ordinary
    * discovery.

@@ -95,7 +95,7 @@ class LnvObservationsTest {
             + " 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
 
     // When
-    String season = new LnvDiscovery().qualify(bytes(html), CALENDAR, "901");
+    String season = new LnvDiscovery().root(bytes(html), CALENDAR, "901").season();
 
     // Then
     assertThat(season).isEqualTo("2026/2027");

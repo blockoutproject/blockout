@@ -73,40 +73,29 @@ public class InitialReconstructionService {
     List<Source> selected =
         store.sources(seasonId).stream().filter(source -> sourceIds.contains(source.id())).toList();
     List<Control> configured =
-        new ArrayList<>(
-            store.controls(seasonId).stream()
-                .map(control -> store.lockControl(control.id()))
-                .toList());
-    for (CollectionProviderEnum provider :
-        selected.stream().map(Source::provider).distinct().sorted().toList()) {
-      if (configured.stream()
-          .noneMatch(control -> control.family().getValue().equals(provider.getValue()))) {
-        configured.add(store.ensureSeasonControl(seasonId, provider, false));
-      }
-    }
+        selected.stream()
+            .map(Source::provider)
+            .distinct()
+            .sorted()
+            .map(provider -> store.ensureSeasonControl(seasonId, provider, false))
+            .sorted(Comparator.comparing(Control::id))
+            .toList();
     authorization.require(operator, Permission.MANAGE_COLLECTION);
     if (season.collectionState() != CollectionSeasonStateEnum.PREPARING
         || sourceIds.isEmpty()
         || selected.size() != sourceIds.size()
-        || selected.stream()
-            .anyMatch(
-                source ->
-                    source.validationState() != SourceValidationStateEnum.QUALIFIED
-                        || (source.locked() ? source.acceptedUrl() : source.candidateUrl())
-                            == null)) {
+        || selected.stream().anyMatch(source -> !source.hasQualifiedReference())) {
       throw new CollectionConflictException("conflict");
     }
     Map<UUID, Set<UUID>> retries = retryScopes(seasonId, selected, scopeIds);
     List<Control> accepted = new ArrayList<>();
-    for (Control control : configured.stream().sorted(Comparator.comparing(Control::id)).toList()) {
+    for (Control control : configured) {
+      CollectionProviderEnum provider = control.competitionProvider();
       Set<UUID> roots =
           selected.stream()
-              .filter(source -> source.provider().getValue().equals(control.family().getValue()))
+              .filter(source -> source.provider() == provider)
               .map(Source::id)
               .collect(Collectors.toSet());
-      if (roots.isEmpty()) {
-        continue;
-      }
       if (control.currentCycleId() != null
           && store
               .cycle(control.currentCycleId())
@@ -249,8 +238,7 @@ public class InitialReconstructionService {
     if (existing == null) {
       source = preparation.create(operator, seasonId, provider, organizer, url);
     } else {
-      if (!Objects.equals(
-          existing.locked() ? existing.acceptedUrl() : existing.candidateUrl(), url.toString())) {
+      if (!Objects.equals(existing.referenceUrl(), url.toString())) {
         if (existing.locked()) {
           throw new CollectionConflictException("conflict");
         }

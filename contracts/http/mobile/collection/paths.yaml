@@ -55,14 +55,7 @@ Season:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
 Closure:
   post:
     operationId: closeCollectionSeason
@@ -103,14 +96,7 @@ Closure:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
@@ -152,14 +138,7 @@ Activation:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Canonical collection season to activate.
-        schema:
-          type: string
-          description: Stable season identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
 Launch:
   post:
     operationId: launchCollectionSources
@@ -199,14 +178,7 @@ Launch:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
@@ -243,14 +215,7 @@ Sources:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
   post:
     operationId: createCollectionSource
     tags:
@@ -296,14 +261,7 @@ Sources:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: seasonId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SeasonId
     requestBody:
       required: true
       content:
@@ -340,14 +298,7 @@ Source:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
 Candidate:
   put:
     operationId: setCollectionSourceCandidate
@@ -387,14 +338,7 @@ Candidate:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
     requestBody:
       required: true
       content:
@@ -440,14 +384,7 @@ Validation:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
 Confirmation:
   put:
     operationId: confirmCollectionSourceSeason
@@ -487,14 +424,7 @@ Confirmation:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
     requestBody:
       required: true
       content:
@@ -567,14 +497,7 @@ Control:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
 Activity:
   put:
     operationId: setCollectionActivity
@@ -615,14 +538,7 @@ Activity:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
     requestBody:
       required: true
       content:
@@ -680,14 +596,7 @@ Requests:
             schema:
               $ref: ./schemas.yaml#/CollectionControlResponse
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
 Results:
   get:
     operationId: listCollectionResults
@@ -720,14 +629,7 @@ Results:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: controlId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/ControlId
       - $ref: ../../common/parameters.yaml#/Page
       - $ref: ../../common/parameters.yaml#/PageSize
       - name: query
@@ -785,14 +687,7 @@ Children:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
     parameters:
-      - name: sourceBindingId
-        in: path
-        required: true
-        description: Stable resource identity.
-        schema:
-          type: string
-          description: Stable resource identity.
-          format: uuid
+      - $ref: ./parameters.yaml#/SourceBindingId
       - name: parentId
         in: query
         required: false

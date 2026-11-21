@@ -1,8 +1,10 @@
 package com.blockout.collector.acquisition.ffvb;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderQuery;
 import com.blockout.collector.acquisition.application.SportingObservation.InformationSheet;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +25,8 @@ import org.jsoup.nodes.FormElement;
 /** Contextual HTML qualification shared by FFVB calendar and official standings interpretation. */
 public final class FfvbPage {
   static final Charset CHARSET = Charset.forName("windows-1252");
+  private static final String CALENDAR_MODE = "calend";
+  private static final String COMPLETE_CALENDAR = "COMPLET";
   private static final String INFORMATION_PATH = "/ffvbapp/adressier/fiche_match_ffvb.php";
   private static final String SCORESHEET_PATH = "/ffvbapp/resu/ffvolley_fdme.php";
   private final FfvbScope scope;
@@ -33,6 +37,11 @@ public final class FfvbPage {
   private final boolean calendarPresent;
   private final boolean qualifiedEmpty;
 
+  /** Requests the full calendar in discovery and in subsequent eligible sporting reads. */
+  static URI completeCalendarUrl(URI url) throws URISyntaxException {
+    return new URIBuilder(url).setParameter(CALENDAR_MODE, COMPLETE_CALENDAR).build();
+  }
+
   /**
    * Checks the actual published export form and associates tables using published pool context.
    *
@@ -42,12 +51,10 @@ public final class FfvbPage {
    */
   public FfvbPage(byte[] body, URI url, FfvbScope scope) {
     this.scope = scope;
-    if (new URIBuilder(url)
-        .getQueryParams().stream()
-            .noneMatch(
-                parameter ->
-                    parameter.getName().equals("calend")
-                        && parameter.getValue().equals("COMPLET"))) {
+    Map<String, String> query =
+        ProviderQuery.fields(
+            url, () -> new FfvbAcquisitionException("Contradictory FFVB calendar URL fields"));
+    if (!COMPLETE_CALENDAR.equals(query.get(CALENDAR_MODE))) {
       throw new FfvbAcquisitionException("A complete FFVB calendar is required");
     }
     Document page = Jsoup.parse(new String(body, CHARSET), url.toString());

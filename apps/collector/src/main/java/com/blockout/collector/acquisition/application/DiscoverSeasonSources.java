@@ -11,7 +11,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.slf4j.event.Level;
@@ -132,10 +130,7 @@ public class DiscoverSeasonSources {
             Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
                 .select("iframe[src]")) {
           URI candidate = URI.create(frame.absUrl("src"));
-          if (!"lnv-web.dataproject.com".equalsIgnoreCase(candidate.getHost())) {
-            continue;
-          }
-          String competition = query(candidate).get("ID");
+          String competition = lnv.championshipReference(candidate);
           if (competition == null) {
             continue;
           }
@@ -209,11 +204,11 @@ public class DiscoverSeasonSources {
       }
       lifecycle.requireActive();
       try {
-        long ordinal = nextOrdinal.getAsLong();
-        ProviderResponse response = ffvbHttp.page(url);
-        observedAt = clock.instant();
+        PageRead read = readPage(ffvbHttp, url, nextOrdinal);
+        ProviderResponse response = read.response();
+        observedAt = read.observedAt();
         ffvb.requireContext(response.url(), target.seasonLabel(), target.organizerReference());
-        consume.accept(new PageRead(response, observedAt, ordinal));
+        consume.accept(read);
         try {
           SportingObservation.Catalog found =
               ffvb.parse(
@@ -277,11 +272,11 @@ public class DiscoverSeasonSources {
       boolean verifiedHistorical,
       LongSupplier nextOrdinal,
       Consumer<PageRead> consume) {
-    long rootOrdinal = nextOrdinal.getAsLong();
-    ProviderResponse root = lnvHttp.page(target.url());
-    Instant rootObservedAt = clock.instant();
-    Instant observedAt = rootObservedAt;
-    LnvDiscovery.Root qualified = lnv.root(root.body(), root.url(), target.organizerReference());
+    PageRead root = readPage(lnvHttp, target.url(), nextOrdinal);
+    ProviderResponse rootResponse = root.response();
+    Instant observedAt = root.observedAt();
+    LnvDiscovery.Root qualified =
+        lnv.root(rootResponse.body(), rootResponse.url(), target.organizerReference());
     if (qualified.season() == null && !verifiedHistorical) {
       throw new LnvAcquisitionException("LNV championship has no published season");
     }
@@ -293,17 +288,14 @@ public class DiscoverSeasonSources {
     for (URI phase : qualified.phases()) {
       lifecycle.requireActive();
       try {
-        ProviderResponse page = root;
-        long ordinal = rootOrdinal;
-        Instant pageObservedAt = rootObservedAt;
-        if (!phase.equals(root.url())) {
-          ordinal = nextOrdinal.getAsLong();
-          page = lnvHttp.page(phase);
-          observedAt = clock.instant();
-          pageObservedAt = observedAt;
+        PageRead read = root;
+        if (!phase.equals(rootResponse.url())) {
+          read = readPage(lnvHttp, phase, nextOrdinal);
+          observedAt = read.observedAt();
         }
+        ProviderResponse page = read.response();
         pools.addAll(lnv.phasePools(page.body(), page.url(), phase, target.seasonLabel()));
-        consume.accept(new PageRead(page, pageObservedAt, ordinal));
+        consume.accept(read);
       } catch (CollectionBackendFailure failure) {
         throw failure;
       } catch (RuntimeException failure) {
@@ -318,6 +310,12 @@ public class DiscoverSeasonSources {
     }
     return new Read(
         new SportingObservation.Catalog(firstFailure == null, pools), observedAt, firstFailure);
+  }
+
+  private PageRead readPage(ProviderPages provider, URI url, LongSupplier nextOrdinal) {
+    long ordinal = nextOrdinal.getAsLong();
+    ProviderResponse response = provider.page(url);
+    return new PageRead(response, clock.instant(), ordinal);
   }
 
   /**
@@ -346,17 +344,16 @@ public class DiscoverSeasonSources {
         try {
           ProviderResponse source = ffvbHttp.page(candidate);
           List<URI> links = ffvb.navigation(source.body(), source.url());
+          List<Map<String, String>> fields = links.stream().map(this::query).toList();
           List<String> organizers =
-              links.stream()
-                  .map(this::query)
-                  .map(fields -> fields.get("codent"))
+              fields.stream()
+                  .map(link -> link.get("codent"))
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
           List<String> seasons =
-              links.stream()
-                  .map(this::query)
-                  .map(fields -> fields.get("saison"))
+              fields.stream()
+                  .map(link -> link.get("saison"))
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
@@ -439,11 +436,8 @@ public class DiscoverSeasonSources {
    * @return exact native query fields
    */
   private Map<String, String> query(URI uri) {
-    Map<String, String> values = new LinkedHashMap<>();
-    new URIBuilder(uri)
-        .getQueryParams()
-        .forEach(field -> values.put(field.getName(), field.getValue()));
-    return values;
+    return ProviderQuery.fields(
+        uri, () -> new IllegalArgumentException("Contradictory official entry URL"));
   }
 
   /**

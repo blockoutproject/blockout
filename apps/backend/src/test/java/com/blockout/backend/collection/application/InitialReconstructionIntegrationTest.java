@@ -365,7 +365,7 @@ class InitialReconstructionIntegrationTest {
     // Then
     assertThat(observed.sourceBindingId()).isEqualTo(historical.id());
     assertThat(qualified.candidateUrl()).isEqualTo(archive.toString());
-    assertThat(qualified.ordinaryCatalogEligible()).isFalse();
+    assertThat(qualified.launched()).isFalse();
   }
 
   @Test
@@ -386,7 +386,7 @@ class InitialReconstructionIntegrationTest {
     // Then
     Source accepted = configuration.source(OPERATOR, candidate.id());
     assertThat(accepted.acceptedUrl()).isEqualTo(url.toString());
-    assertThat(accepted.ordinaryCatalogEligible()).isTrue();
+    assertThat(accepted.launched()).isTrue();
     assertThat(work.work(STARTUP).validations()).isEmpty();
   }
 

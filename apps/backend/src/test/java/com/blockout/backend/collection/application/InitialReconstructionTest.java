@@ -119,8 +119,7 @@ class InitialReconstructionTest {
         .thenReturn(season(CollectionSeasonStateEnum.PREPARING));
     when(store.sources(SEASON)).thenReturn(List.of(source(SourceValidationStateEnum.QUALIFIED)));
     Control pending = control(Set.of(SOURCE));
-    when(store.controls(SEASON)).thenReturn(List.of(pending));
-    when(store.lockControl(CONTROL)).thenReturn(pending);
+    when(store.ensureSeasonControl(SEASON, CollectionProviderEnum.FFVB, false)).thenReturn(pending);
 
     // When
     List<Control> result = service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of());
@@ -138,8 +137,7 @@ class InitialReconstructionTest {
         .thenReturn(season(CollectionSeasonStateEnum.PREPARING));
     when(store.sources(SEASON)).thenReturn(List.of(source(SourceValidationStateEnum.QUALIFIED)));
     Control pending = control(Set.of(UUID.fromString("00000000-0000-4000-8000-000000000261")));
-    when(store.controls(SEASON)).thenReturn(List.of(pending));
-    when(store.lockControl(CONTROL)).thenReturn(pending);
+    when(store.ensureSeasonControl(SEASON, CollectionProviderEnum.FFVB, false)).thenReturn(pending);
 
     // When / Then
     assertThatThrownBy(() -> service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of()))

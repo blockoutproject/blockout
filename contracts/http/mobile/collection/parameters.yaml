@@ -1,0 +1,27 @@
+SeasonId:
+  name: seasonId
+  in: path
+  required: true
+  description: Stable identity of the selected collection season.
+  schema:
+    type: string
+    format: uuid
+    description: Canonical collection season UUID.
+SourceBindingId:
+  name: sourceBindingId
+  in: path
+  required: true
+  description: Stable identity of the selected official source binding.
+  schema:
+    type: string
+    format: uuid
+    description: Source binding UUID.
+ControlId:
+  name: controlId
+  in: path
+  required: true
+  description: Stable identity of the selected collection control.
+  schema:
+    type: string
+    format: uuid
+    description: Collection control UUID.

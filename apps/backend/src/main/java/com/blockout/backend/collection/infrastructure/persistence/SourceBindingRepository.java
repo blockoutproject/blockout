@@ -2,11 +2,11 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -24,8 +24,17 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
   Optional<SourceBindingEntity> findBySeasonIdAndProviderAndOrganizerReference(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
-  boolean existsBySeasonIdAndProviderAndLaunchedTrueAndValidationStateAndAcceptedUrlIsNotNull(
-      UUID seasonId, CollectionProviderEnum provider, SourceValidationStateEnum validation);
+  @Query(
+      """
+      SELECT s FROM SourceBindingEntity s
+      WHERE s.seasonId = :seasonId AND s.provider = :provider
+        AND s.launched = TRUE
+        AND s.validationState = com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum.QUALIFIED
+        AND s.acceptedUrl IS NOT NULL
+      ORDER BY s.organizerReference, s.id
+      """)
+  List<SourceBindingEntity> ordinarySources(
+      UUID seasonId, CollectionProviderEnum provider, Limit limit);
 
   /**
    * Resolves the canonical season without loading mutable state.

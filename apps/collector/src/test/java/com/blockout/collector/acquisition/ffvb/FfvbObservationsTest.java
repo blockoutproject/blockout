@@ -462,15 +462,16 @@ class FfvbObservationsTest {
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
-  @Test
-  @DisplayName("Rejects a recent-only calendar URL before producing observations")
-  void rejectsRecentOnlyCalendar() throws IOException {
+  @ParameterizedTest
+  @ValueSource(strings = {"", "?calend=COMPLET&calend="})
+  @DisplayName("Requires an unambiguous full calendar URL before producing observations")
+  void requiresCompleteCalendar(String query) throws IOException {
     // Given
     byte[] html = bytes(fixture("calendar.html"));
-    URI recent = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php");
+    URI url = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php" + query);
 
     // When / Then
-    assertThatThrownBy(() -> new FfvbPage(html, recent, SCOPE))
+    assertThatThrownBy(() -> new FfvbPage(html, url, SCOPE))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 

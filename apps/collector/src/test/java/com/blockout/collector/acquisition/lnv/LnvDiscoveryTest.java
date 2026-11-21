@@ -28,7 +28,8 @@ class LnvDiscoveryTest {
             + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Play-Offs</a>";
 
     // When
-    String season = new LnvDiscovery().qualify(html.getBytes(StandardCharsets.UTF_8), page, "901");
+    String season =
+        new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901").season();
 
     // Then
     assertThat(season).isNull();
@@ -46,7 +47,7 @@ class LnvDiscoveryTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().qualify(html.getBytes(StandardCharsets.UTF_8), page, "901"))
+            () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 

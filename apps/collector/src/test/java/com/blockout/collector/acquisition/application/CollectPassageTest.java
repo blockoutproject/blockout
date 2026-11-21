@@ -1025,7 +1025,7 @@ class CollectPassageTest {
     }
 
     @Test
-    @DisplayName("Retains only safe exception information when acquisition unexpectedly fails")
+    @DisplayName("An unexpected acquisition failure has no factual reason")
     void excludesUnsafeFailureMessage(CapturedOutput output) {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -1049,7 +1049,7 @@ class CollectPassageTest {
       ArgumentCaptor<CollectionBackend.Result> result =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend).record(eq(admitted.getCycle().id()), result.capture());
-      assertThat(result.getValue().reason()).isEqualTo("IllegalStateException");
+      assertThat(result.getValue().reason()).isNull();
       assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
       assertThat(output).doesNotContain("PRIVATE_PROVIDER_PAYLOAD");
       verifyNoInteractions(sporting);

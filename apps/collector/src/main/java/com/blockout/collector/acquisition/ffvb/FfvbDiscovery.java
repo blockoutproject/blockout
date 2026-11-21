@@ -1,18 +1,16 @@
 package com.blockout.collector.acquisition.ffvb;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderQuery;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -26,7 +24,6 @@ import org.springframework.stereotype.Component;
 public class FfvbDiscovery {
   private static final Set<String> EXCLUDED =
       Set.of("LIGU", "LIGY", "LIMART", "LIMY", "LIRE", "AALNV");
-  private static final Charset ENCODING = Charset.forName("windows-1252");
 
   /**
    * Reads a complete native organizer menu or national selector, preserving partial-link evidence.
@@ -40,7 +37,7 @@ public class FfvbDiscovery {
    */
   public SportingObservation.Catalog parse(byte[] bytes, URI url, String season, String organizer) {
     requireContext(url, season, organizer);
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
+    Document page = Jsoup.parse(new String(bytes, FfvbPage.CHARSET), url.toString());
     SportingObservation.Catalog round = round(page, url, season, organizer);
     if (round != null) {
       return round;
@@ -78,16 +75,15 @@ public class FfvbDiscovery {
         if (EXCLUDED.contains(fields.getOrDefault("codent", ""))) {
           continue;
         }
-        if (season.equals(fields.get("saison"))
-            && organizer.equals(fields.get("codent"))
-            && !fields.getOrDefault("division", "").isBlank()
-            && !fields.getOrDefault("tour", "").isBlank()) {
+        if (!matchesSeasonAndOrganizer(fields, season, organizer)) {
+          complete = false;
+          continue;
+        }
+        if (sharedRound(fields)) {
           seasonProven = true;
           continue;
         }
-        if (!season.equals(fields.get("saison"))
-            || !organizer.equals(fields.get("codent"))
-            || fields.getOrDefault("poule", "").isBlank()) {
+        if (fields.getOrDefault("poule", "").isBlank()) {
           complete = false;
           continue;
         }
@@ -103,7 +99,7 @@ public class FfvbDiscovery {
         }
         String pool = fields.get("poule");
         String group = tour == null ? null : pool;
-        URI full = new URIBuilder(calendar).setParameter("calend", "COMPLET").build();
+        URI full = FfvbPage.completeCalendarUrl(calendar);
         SportingObservation.Pool candidate =
             new SportingObservation.Pool(
                 pack, competition, pool, tour, group, full, full, link.text());
@@ -132,7 +128,7 @@ public class FfvbDiscovery {
    * @return whether this page supplies seasonal navigation rather than a child calendar
    */
   public boolean seasonal(byte[] bytes, URI url) {
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
+    Document page = Jsoup.parse(new String(bytes, FfvbPage.CHARSET), url.toString());
     return page.selectFirst("form[action$=vbspo_calendrier_export.php]") == null;
   }
 
@@ -189,7 +185,7 @@ public class FfvbDiscovery {
     }
     URI calendar;
     try {
-      calendar = new URIBuilder(url).setParameter("calend", "COMPLET").build();
+      calendar = FfvbPage.completeCalendarUrl(url);
     } catch (URISyntaxException failure) {
       throw invalid();
     }
@@ -220,20 +216,27 @@ public class FfvbDiscovery {
         .filter(
             link -> {
               Map<String, String> fields = query(link);
-              return season.equals(fields.get("saison"))
-                  && organizer.equals(fields.get("codent"))
-                  && !fields.getOrDefault("division", "").isBlank()
-                  && !fields.getOrDefault("tour", "").isBlank();
+              return matchesSeasonAndOrganizer(fields, season, organizer) && sharedRound(fields);
             })
         .map(
             link -> {
               try {
-                return new URIBuilder(link).setParameter("calend", "COMPLET").build();
+                return FfvbPage.completeCalendarUrl(link);
               } catch (URISyntaxException invalid) {
                 throw invalid();
               }
             })
         .toList();
+  }
+
+  private boolean matchesSeasonAndOrganizer(
+      Map<String, String> fields, String season, String organizer) {
+    return season.equals(fields.get("saison")) && organizer.equals(fields.get("codent"));
+  }
+
+  private boolean sharedRound(Map<String, String> fields) {
+    return !fields.getOrDefault("division", "").isBlank()
+        && !fields.getOrDefault("tour", "").isBlank();
   }
 
   /**
@@ -245,7 +248,7 @@ public class FfvbDiscovery {
    * @return deduplicated navigation, never a fabricated year or identifier
    */
   public List<URI> navigation(byte[] bytes, URI url) {
-    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
+    Document page = Jsoup.parse(new String(bytes, FfvbPage.CHARSET), url.toString());
     List<URI> result = new ArrayList<>();
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
       String attribute = "value";
@@ -330,14 +333,7 @@ public class FfvbDiscovery {
    * @return exact query values
    */
   private Map<String, String> query(URI uri) {
-    Map<String, String> fields = new LinkedHashMap<>();
-    for (NameValuePair field : new URIBuilder(uri).getQueryParams()) {
-      String previous = fields.putIfAbsent(field.getName(), field.getValue());
-      if (previous != null && !previous.equals(field.getValue())) {
-        throw invalid();
-      }
-    }
-    return fields;
+    return ProviderQuery.fields(uri, this::invalid);
   }
 
   /**

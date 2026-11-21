@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.lnv;
 
+import com.blockout.collector.acquisition.application.ProviderQuery;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
@@ -12,13 +13,10 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -46,14 +44,7 @@ final class LnvPage {
    * @return exact provider values
    */
   static Map<String, String> query(URI uri) {
-    Map<String, String> values = new LinkedHashMap<>();
-    for (NameValuePair field : new URIBuilder(uri).getQueryParams()) {
-      String previous = values.putIfAbsent(field.getName(), field.getValue());
-      if (previous != null && !previous.equals(field.getValue())) {
-        throw invalid();
-      }
-    }
-    return values;
+    return ProviderQuery.fields(uri, LnvPage::invalid);
   }
 
   /**

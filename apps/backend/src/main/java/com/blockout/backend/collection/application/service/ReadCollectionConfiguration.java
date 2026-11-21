@@ -260,14 +260,13 @@ public class ReadCollectionConfiguration {
     if (accepted != null
         && (attemptOrder == null || accepted.order().compareTo(attemptOrder) >= 0)) {
       if (Boolean.TRUE.equals(accepted.complete())) {
-        return new CatalogRead(
-            CatalogStatus.COMPLETE, accepted.observedAt(), lastComplete, null, null);
+        return new CatalogRead(CatalogStatus.COMPLETE, accepted.observedAt(), lastComplete, null);
       }
       CollectionResult matched = accepted.order().equals(attemptOrder) ? attempt : null;
-      return catalogRead(CatalogStatus.PARTIAL, accepted.observedAt(), lastComplete, matched);
+      return new CatalogRead(CatalogStatus.PARTIAL, accepted.observedAt(), lastComplete, matched);
     }
     if (attempt == null) {
-      return new CatalogRead(CatalogStatus.NOT_READ, null, null, null, null);
+      return new CatalogRead(CatalogStatus.NOT_READ, null, null, null);
     }
     CatalogStatus status =
         attempt.outcome() == CollectionOutcomeEnum.PARTIAL
@@ -284,21 +283,11 @@ public class ReadCollectionConfiguration {
               .findFirst()
               .orElse(attempt);
     }
-    return catalogRead(status, attempt.observedAt(), lastComplete, evidence);
+    return new CatalogRead(status, attempt.observedAt(), lastComplete, evidence);
   }
 
   private ObservationOrder order(CollectionResult result) {
     return new ObservationOrder(result.cycleOrder(), result.readOrdinal());
-  }
-
-  private CatalogRead catalogRead(
-      CatalogStatus status, Instant time, Instant lastComplete, CollectionResult reason) {
-    return new CatalogRead(
-        status,
-        time,
-        lastComplete,
-        reason == null ? null : reason.reasonType(),
-        reason == null ? null : reason.reason());
   }
 
   /**

@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 
 /** One current control per seasonal provider or seasonless family. */
 interface CollectionControlRepository extends JpaRepository<CollectionControlEntity, UUID> {
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   Optional<CollectionControlEntity> findBySeasonIdAndFamily(
       UUID seasonId, CollectionFamilyEnum family);
 

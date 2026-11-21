@@ -41,6 +41,9 @@ interface PackRepository extends JpaRepository<PackEntity, UUID> {
     }
   }
 
+  boolean existsByIdAndSeasonIdAndProviderAndOrganizerReference(
+      UUID id, UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
   /**
    * Finds the native grouping in its qualified season/source context.
    *

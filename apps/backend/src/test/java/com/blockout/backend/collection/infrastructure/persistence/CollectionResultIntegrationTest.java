@@ -847,7 +847,8 @@ class CollectionResultIntegrationTest {
 
       // When
       CollectionState.Target target =
-          transaction.execute(state -> cycleAccess.requireTeamLogo(cycle.id(), memberships));
+          transaction.execute(
+              state -> cycleAccess.requireTeamLogo(cycle.id(), memberships).scope());
 
       // Then
       assertThat(statistics.getPrepareStatementCount() - before).isEqualTo(singlePoolReads);

@@ -2,7 +2,7 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess.AdmittedScope;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
@@ -12,12 +12,13 @@ import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AcceptCatalog {
   private final CollectionCycleAccess cycleAccess;
-  private final ReadCollectionWork collectionWork;
   private final SportingStore store;
 
   /**
@@ -39,11 +39,11 @@ public class AcceptCatalog {
    */
   @Transactional
   public ObservationOutcome.Catalog accept(UUID sourceId, CatalogObservation observation) {
-    CollectionState.Source source =
+    AdmittedScope<CollectionState.Source> admission =
         cycleAccess.requireCatalogSource(observation.context().cycleId(), sourceId);
-    CollectionState.Cycle cycle = collectionWork.get(observation.context().cycleId());
-    ObservationOrder order =
-        new ObservationOrder(cycle.cycleOrder(), observation.context().readOrdinal());
+    CollectionState.Source source = admission.scope();
+    CollectionState.Cycle cycle = admission.cycle();
+    ObservationOrder order = observation.context().order(cycle.cycleOrder());
     Map<PoolKey, CatalogObservation.Pool> unique = new LinkedHashMap<>();
     for (CatalogObservation.Pool candidate : observation.pools()) {
       if (source.provider() == CollectionProviderEnum.LNV
@@ -58,57 +58,57 @@ public class AcceptCatalog {
       }
     }
     ObservationOrder previous = store.catalogOrder(sourceId);
-    if (previous != null && order.compareTo(previous) < 0) {
+    int precedence = previous == null ? 1 : order.compareTo(previous);
+    if (precedence < 0) {
       return new ObservationOutcome.Catalog(
           observation.pools().stream()
               .map(pool -> ObservationOutcome.refused(pool.poolReference(), true))
               .toList(),
           false);
     }
-    boolean repeated = order.equals(previous);
-    boolean complete =
-        observation.complete()
+    boolean reconcile =
+        precedence > 0
+            && observation.complete()
             && !(observation.pools().isEmpty()
                 && cycle.mode() == CollectionModeEnum.INITIAL_IMPORT);
-    Map<PoolKey, ObservationOutcome> outcomes = new LinkedHashMap<>();
+    Map<CatalogObservation.Pool, ObservationOutcome> outcomes = new HashMap<>();
     for (Map.Entry<PoolKey, CatalogObservation.Pool> entry : unique.entrySet()) {
-      UUID id;
-      if (repeated || !complete) {
-        id = store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
-      } else {
-        id = store.acceptCatalogPool(entry.getKey(), entry.getValue());
-      }
+      CatalogObservation.Pool candidate = entry.getValue();
+      UUID id =
+          reconcile
+              ? store.acceptCatalogPool(entry.getKey(), candidate)
+              : store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
       outcomes.put(
-          entry.getKey(),
+          candidate,
           id == null
-              ? ObservationOutcome.refused(entry.getValue().poolReference(), false)
+              ? ObservationOutcome.refused(candidate.poolReference(), false)
               : new ObservationOutcome(
-                  entry.getValue().poolReference(),
-                  repeated || !complete
-                      ? ObservationOutcomeEnum.UNCHANGED
-                      : ObservationOutcomeEnum.ACCEPTED,
+                  candidate.poolReference(),
+                  reconcile ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED,
                   id,
                   null,
                   null,
                   null));
     }
-    if (!repeated) {
+    if (precedence > 0) {
+      Set<UUID> presentIds =
+          reconcile
+              ? outcomes.values().stream()
+                  .map(ObservationOutcome::resourceId)
+                  .collect(Collectors.toSet())
+              : Set.of();
       store.finishCatalog(
           sourceId,
           source.seasonId(),
           source.provider(),
           source.organizerReference(),
-          complete
-              ? new LinkedHashSet<>(
-                  outcomes.values().stream().map(ObservationOutcome::resourceId).toList())
-              : Set.of(),
-          complete,
+          presentIds,
+          reconcile,
           order,
           observation.context());
     }
     return new ObservationOutcome.Catalog(
-        observation.pools().stream().map(pool -> outcomes.get(key(source, pool))).toList(),
-        !repeated && complete);
+        observation.pools().stream().map(outcomes::get).toList(), reconcile);
   }
 
   /**

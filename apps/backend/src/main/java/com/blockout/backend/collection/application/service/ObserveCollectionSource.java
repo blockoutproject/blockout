@@ -69,9 +69,7 @@ public class ObserveCollectionSource {
                     season.id(), proposal.provider(), proposal.organizerReference(), officialUrl));
     if (!source.locked()
         && (existing.isEmpty() || mayQualify(source, season.collectionState(), officialUrl))) {
-      prepareOrdinaryControl(season.id(), source.provider());
-      CollectionRevision.requireAdvance(source.revision());
-      store.saveSource(
+      admitOrdinarySource(
           source.toBuilder()
               .candidateUrl(officialUrl)
               .acceptedUrl(officialUrl)
@@ -87,9 +85,7 @@ public class ObserveCollectionSource {
               .build());
       store.discardCycle(source.currentCycleId());
     } else if (source.locked() && !source.launched() && officialUrl.equals(source.acceptedUrl())) {
-      prepareOrdinaryControl(season.id(), source.provider());
-      CollectionRevision.requireAdvance(source.revision());
-      store.saveSource(source.toBuilder().launched(true).build());
+      admitOrdinarySource(source.toBuilder().launched(true).build());
     }
     if (existing.isEmpty()) {
       events.publishEvent(
@@ -100,13 +96,15 @@ public class ObserveCollectionSource {
   }
 
   /** First ordinary use of a historical-only control is independent of explicit later pauses. */
-  private void prepareOrdinaryControl(UUID seasonId, CollectionProviderEnum provider) {
-    boolean first = !store.hasOrdinarySources(seasonId, provider);
-    Control control = store.ensureSeasonControl(seasonId, provider, true);
+  private void admitOrdinarySource(Source source) {
+    boolean first = !store.hasOrdinarySources(source.seasonId(), source.provider());
+    Control control = store.ensureSeasonControl(source.seasonId(), source.provider(), true);
     if (first && !control.enabled()) {
       CollectionRevision.requireAdvance(control.revision());
       store.setControlIntent(control.id(), true, control.requestId(), control.requestedMode());
     }
+    CollectionRevision.requireAdvance(source.revision());
+    store.saveSource(source);
   }
 
   /** A reserved historical reference stays private to preparation until its season activates. */

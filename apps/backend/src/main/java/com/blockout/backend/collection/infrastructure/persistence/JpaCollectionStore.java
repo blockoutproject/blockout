@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
@@ -63,13 +64,13 @@ class JpaCollectionStore implements CollectionStore {
           case LNV -> CollectionFamilyEnum.LNV;
         };
     CollectionControlEntity entity =
-        controls.findBySeasonIdAndFamily(seasonId, family).orElse(null);
-    if (entity == null) {
-      entity = new CollectionControlEntity(seasonId, family);
-      entity.setEnabled(enabledOnCreate);
-      controls.saveAndFlush(entity);
-    }
-    return lockControl(entity.getId());
+        controls
+            .findBySeasonIdAndFamily(seasonId, family)
+            .orElseGet(
+                () ->
+                    controls.saveAndFlush(
+                        new CollectionControlEntity(seasonId, family, enabledOnCreate)));
+    return mapper.toView(entity);
   }
 
   /** {@inheritDoc} */
@@ -284,9 +285,7 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   public boolean hasOrdinarySources(UUID seasonId, CollectionProviderEnum provider) {
-    return sources
-        .existsBySeasonIdAndProviderAndLaunchedTrueAndValidationStateAndAcceptedUrlIsNotNull(
-            seasonId, provider, SourceValidationStateEnum.QUALIFIED);
+    return !sources.ordinarySources(seasonId, provider, Limit.of(1)).isEmpty();
   }
 
   /** {@inheritDoc} */
@@ -425,6 +424,15 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public List<CollectionState.Source> sources(UUID seasonId) {
     return sources.findBySeasonIdOrderByProviderAscOrganizerReferenceAscIdAsc(seasonId).stream()
+        .map(mapper::toView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<CollectionState.Source> ordinarySources(
+      UUID seasonId, CollectionProviderEnum provider) {
+    return sources.ordinarySources(seasonId, provider, Limit.unlimited()).stream()
         .map(mapper::toView)
         .toList();
   }

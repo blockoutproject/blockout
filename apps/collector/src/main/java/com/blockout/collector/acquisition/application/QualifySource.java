@@ -95,7 +95,7 @@ public class QualifySource {
         season = candidate.seasonLabel();
       } else {
         ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
-        season = lnv.qualify(response.body(), response.url(), candidate.organizerReference());
+        season = lnv.root(response.body(), response.url(), candidate.organizerReference()).season();
       }
       if (season == null) {
         return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);

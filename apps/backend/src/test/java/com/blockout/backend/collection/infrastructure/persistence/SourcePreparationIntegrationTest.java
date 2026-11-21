@@ -138,7 +138,9 @@ class SourcePreparationIntegrationTest {
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     Source source = store.source(SOURCE).orElseThrow();
     assertThat(source.acceptedUrl()).isEqualTo(URL + "&saison=2026/2027");
-    assertThat(source.ordinaryCatalogEligible()).isTrue();
+    assertThat(store.ordinarySources(season, CollectionProviderEnum.FFVB))
+        .extracting(Source::id)
+        .containsExactly(SOURCE);
     assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
     assertThat(collectionWork.work(STARTUP).validations()).isEmpty();
@@ -587,7 +589,7 @@ class SourcePreparationIntegrationTest {
     CatalogRead unavailable = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
     assertThat(unavailable.status()).isEqualTo(CatalogStatus.UNAVAILABLE);
     assertThat(unavailable.lastReadAt()).isEqualTo(NOW.plusSeconds(3));
-    assertThat(unavailable.reasonType()).isEqualTo(reason);
+    assertThat(unavailable.evidence().reasonType()).isEqualTo(reason);
     assertThat(unavailable.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
     assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
         .extracting(CollectionResource::label)
@@ -825,7 +827,7 @@ class SourcePreparationIntegrationTest {
     // Then
     assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl())
         .isEqualTo(imported.acceptedUrl());
-    assertThat(configurationReads.source(ACCOUNT, SOURCE).ordinaryCatalogEligible()).isFalse();
+    assertThat(store.ordinarySources(season, CollectionProviderEnum.FFVB)).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT enabled FROM collection_control WHERE id = ?", Boolean.class, control))

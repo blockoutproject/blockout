@@ -33,16 +33,9 @@ public class LnvDiscovery {
   /** Qualified championship root with a distinct, published set of phase references. */
   public record Root(Championship championship, String season, List<URI> phases) {}
 
-  /**
-   * Verifies the expected supported championship and returns only explicit seasonal evidence.
-   *
-   * @param bytes complete candidate HTML
-   * @param url final response URL after supported redirects
-   * @param competition expected native championship reference
-   * @return published season label, or null when explicit operator confirmation is needed
-   */
-  public String qualify(byte[] bytes, URI url, String competition) {
-    return root(bytes, url, competition).season();
+  /** The native championship ID in a supported DataProject reference, or null if absent. */
+  public String championshipReference(URI url) {
+    return HOST.equalsIgnoreCase(url.getHost()) ? LnvPage.query(url).get("ID") : null;
   }
 
   /**
@@ -54,8 +47,7 @@ public class LnvDiscovery {
    * @return the bounded root evidence; season is absent only when the page omits it
    */
   public Root root(byte[] bytes, URI url, String competition) {
-    if (!HOST.equalsIgnoreCase(url.getHost())
-        || !competition.equals(LnvPage.query(url).get("ID"))) {
+    if (!competition.equals(championshipReference(url))) {
       throw new LnvAcquisitionException("LNV championship does not match the source reference");
     }
     Document page = LnvPage.parse(bytes, url);

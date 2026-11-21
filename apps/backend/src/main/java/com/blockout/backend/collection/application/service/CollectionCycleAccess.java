@@ -2,16 +2,21 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
-import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.CycleScope;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,6 +29,11 @@ public class CollectionCycleAccess {
   private final CollectionStore store;
   private final CollectorRuntimeAccess runtimeAccess;
   private final ChangeCollectionSeasons seasons;
+  private final ReadSportingAcquisition acquisitionReads;
+  private final CollectionStageMapper stages;
+
+  /** The authorized scope and the cycle already read under the caller's transaction fence. */
+  public record AdmittedScope<T>(Cycle cycle, T scope) {}
 
   /**
    * Authorizes source artwork only through an existing admitted calendar membership. The sporting
@@ -33,17 +43,15 @@ public class CollectionCycleAccess {
    *
    * @param id current cycle
    * @param poolIds memberships read by the sporting owner, never supplied by the HTTP caller
-   * @return exact admitted parent-calendar capability
+   * @return locked cycle and exact admitted parent-calendar capability
    * @throws CollectionConflictException when the cycle is obsolete, terminal or candidate-only, or
    *     none of these memberships is admitted
    * @throws CollectionNotFoundException when the retained cycle is unknown
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Target requireTeamLogo(UUID id, List<UUID> poolIds) {
-    requireRunningControl(id);
-    return store
-        .firstTarget(id, poolIds, CollectionTargetKindEnum.CALENDAR)
-        .orElseThrow(CollectionConflictException::invalidContext);
+  public AdmittedScope<Target> requireTeamLogo(UUID id, List<UUID> poolIds) {
+    Cycle cycle = requireRunningControl(id);
+    return new AdmittedScope<>(cycle, teamLogoTarget(id, poolIds));
   }
 
   /**
@@ -52,18 +60,15 @@ public class CollectionCycleAccess {
    * @param id current cycle
    * @param matchId known match identity resolved by the sporting owner
    * @param poolId immutable owning pool resolved by the sporting owner
-   * @return frozen detail or parent calendar context, never caller-supplied parent authority
+   * @return locked cycle and frozen detail or parent calendar context
    * @throws CollectionConflictException when the cycle is obsolete, terminal or candidate-only, or
    *     neither the match detail nor its parent calendar is admitted
    * @throws CollectionNotFoundException when the retained cycle is unknown
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Target requireDetail(UUID id, UUID matchId, UUID poolId) {
-    requireRunningControl(id);
-    return store
-        .target(id, matchId, CollectionTargetKindEnum.DETAILS)
-        .or(() -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
-        .orElseThrow(CollectionConflictException::invalidContext);
+  public AdmittedScope<Target> requireDetail(UUID id, UUID matchId, UUID poolId) {
+    Cycle cycle = requireRunningControl(id);
+    return new AdmittedScope<>(cycle, detailTarget(id, matchId, () -> Optional.of(poolId)));
   }
 
   /**
@@ -71,15 +76,17 @@ public class CollectionCycleAccess {
    *
    * @param id current control cycle
    * @param sourceId exact source-season binding
-   * @return current source identity; caller retains the transaction fence
+   * @return locked cycle and current source identity
    * @throws CollectionConflictException when the cycle is not an active control, catalog discovery
    *     is outside its admitted scope, or the source binding is absent
    * @throws CollectionNotFoundException when the retained cycle is unknown
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public Source requireCatalogSource(UUID id, UUID sourceId) {
-    requireTarget(id, sourceId, CollectionTargetKindEnum.DISCOVERY);
-    return store.source(sourceId).orElseThrow(CollectionConflictException::invalidContext);
+  public AdmittedScope<Source> requireCatalogSource(UUID id, UUID sourceId) {
+    Cycle cycle = requireRunningControl(id);
+    exactTarget(id, sourceId, CollectionTargetKindEnum.DISCOVERY);
+    Source source = store.source(sourceId).orElseThrow(CollectionConflictException::invalidContext);
+    return new AdmittedScope<>(cycle, source);
   }
 
   /**
@@ -89,16 +96,46 @@ public class CollectionCycleAccess {
    * @param id current control cycle
    * @param scopeId addressed source or pool identity
    * @param kind required acquisition role
-   * @return frozen admitted target
+   * @return locked cycle and frozen admitted target
    * @throws CollectionConflictException when the cycle is not an active control or the exact
    *     scope/role was not admitted
    * @throws CollectionNotFoundException when the retained cycle is unknown
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Target requireTarget(
-      UUID id, UUID scopeId, CollectionTargetKindEnum kind) {
-    requireRunningControl(id);
+  public AdmittedScope<Target> requireTarget(UUID id, UUID scopeId, CollectionTargetKindEnum kind) {
+    Cycle cycle = requireRunningControl(id);
+    return new AdmittedScope<>(cycle, exactTarget(id, scopeId, kind));
+  }
+
+  /** Resolves result attribution under the exclusive passage lock held by the result writer. */
+  Target resultTarget(Cycle cycle, UUID scopeId, CollectionStageEnum stage) {
+    UUID id = cycle.id();
+    return switch (stage) {
+      case LOGO -> teamLogoTarget(id, acquisitionReads.teamPools(scopeId));
+      case DETAILS -> detailTarget(id, scopeId, () -> acquisitionReads.matchPoolId(scopeId));
+      default -> exactTarget(id, scopeId, stages.toTargetKind(stage));
+    };
+  }
+
+  private Target exactTarget(UUID id, UUID scopeId, CollectionTargetKindEnum kind) {
     return store.target(id, scopeId, kind).orElseThrow(CollectionConflictException::invalidContext);
+  }
+
+  private Target teamLogoTarget(UUID id, List<UUID> poolIds) {
+    return store
+        .firstTarget(id, poolIds, CollectionTargetKindEnum.CALENDAR)
+        .orElseThrow(CollectionConflictException::invalidContext);
+  }
+
+  private Target detailTarget(UUID id, UUID matchId, Supplier<Optional<UUID>> parentPool) {
+    return store
+        .target(id, matchId, CollectionTargetKindEnum.DETAILS)
+        .or(
+            () ->
+                parentPool
+                    .get()
+                    .flatMap(pool -> store.target(id, pool, CollectionTargetKindEnum.CALENDAR)))
+        .orElseThrow(CollectionConflictException::invalidContext);
   }
 
   /**

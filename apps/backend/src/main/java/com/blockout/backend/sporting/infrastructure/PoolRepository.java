@@ -139,9 +139,9 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @param seasonId canonical season
    * @param provider designated authority
    * @param organizerReference exact source organizer
-   * @return retained pools in that source-season scope
+   * @return currently present pools that may be withdrawn by a complete observation
    */
-  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReference(
+  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /** Canonical current pool eligibility for queries using the pool alias p. */

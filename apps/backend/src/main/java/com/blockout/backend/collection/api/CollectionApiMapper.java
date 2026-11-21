@@ -35,9 +35,9 @@ import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Objects;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -93,19 +93,9 @@ public interface CollectionApiMapper {
    * @param source application control projection
    * @return generated operator response with required absent evidence represented by null
    */
+  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = ".", source = "control")
-  @Mapping(
-      target = "pendingRequestId",
-      source = "control.requestId",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "lastAttemptAt",
-      source = "control.lastAttemptAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "lastSuccessAt",
-      source = "control.lastSuccessAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(target = "pendingRequestId", source = "control.requestId")
   @Mapping(target = "additionalProperties", ignore = true)
   com.blockout.backend.generated.mobile.model.CollectionControlResponse toDto(
       CollectionState.ControlView source);
@@ -153,42 +143,18 @@ public interface CollectionApiMapper {
    * @param view current binding with independent catalogue evidence
    * @return catalogue response preserving the legacy binding fields
    */
+  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = ".", source = "source")
   @Mapping(target = "label", expression = "java(view.source().label())")
   @Mapping(target = "validation", source = "source.validationState")
-  @Mapping(
-      target = "candidateUrl",
-      source = "source.candidateUrl",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "acceptedUrl",
-      source = "source.acceptedUrl",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "validatedAt",
-      source = "source.validatedAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "seasonEvidence",
-      source = "source.seasonEvidence",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  @Mapping(
-      target = "reason",
-      source = "source.reason",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   SourceBindingResponse toDto(CollectionState.SourceCatalog view);
 
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = "observedAt", source = "lastReadAt")
   @Mapping(target = "lastCompleteAt", source = "lastCompleteReadAt")
-  @Mapping(target = "reason", source = "view", qualifiedByName = "catalogReason")
+  @Mapping(target = "reason", source = "evidence", qualifiedByName = "factualReason")
   SourceCatalogReadResponse toDto(CollectionState.CatalogRead view);
-
-  @Named("catalogReason")
-  default String catalogReason(CollectionState.CatalogRead view) {
-    return factualReason(view.reason(), view.reasonType());
-  }
 
   /**
    * Converts terminal evidence at the generated ingestion boundary.
@@ -269,13 +235,9 @@ public interface CollectionApiMapper {
   /** Retained collector reasons may consist of a bare result code or an exception class. */
   @Named("factualReason")
   default String factualReason(CollectionResult result) {
-    return factualReason(result.reason(), result.reasonType());
-  }
-
-  private static String factualReason(String reason, URI reasonType) {
-    String text = Objects.toString(reason, "").strip();
+    String text = Objects.toString(result.reason(), "").strip();
     if (text.isEmpty()
-        || text.equals(Objects.toString(reasonType, ""))
+        || text.equals(Objects.toString(result.reasonType(), ""))
         || text.matches("urn:blockout:[a-z0-9:-]+")
         || text.matches("[a-zA-Z0-9_$]+(?:Exception|Error)")
         || Arrays.stream(CollectionOutcomeEnum.values())

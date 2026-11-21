@@ -52,8 +52,7 @@ public final class CollectionState {
       CatalogStatus status,
       Instant lastReadAt,
       Instant lastCompleteReadAt,
-      URI reasonType,
-      String reason) {}
+      CollectionResult evidence) {}
 
   /** Operator view; health does not change source binding or candidate validation. */
   public record SourceCatalog(Source source, CatalogRead catalog) {}
@@ -158,11 +157,13 @@ public final class CollectionState {
       boolean launched,
       UUID currentCycleId,
       URI reasonType) {
-    /** Ordinary discovery includes qualified roots admitted before season activation. */
-    public boolean ordinaryCatalogEligible() {
-      return launched
-          && validationState == SourceValidationStateEnum.QUALIFIED
-          && acceptedUrl != null;
+    /** Uses the immutable accepted URL after the first binding lock. */
+    public String referenceUrl() {
+      return locked ? acceptedUrl : candidateUrl;
+    }
+
+    public boolean hasQualifiedReference() {
+      return validationState == SourceValidationStateEnum.QUALIFIED && referenceUrl() != null;
     }
 
     public String label() {
@@ -192,6 +193,15 @@ public final class CollectionState {
       Instant lastSuccessAt,
       Set<UUID> sourceBindingIds,
       Set<UUID> scopeIds) {
+    /** Seasonless families have no competition provider. */
+    public CollectionProviderEnum competitionProvider() {
+      return switch (family) {
+        case FFVB -> CollectionProviderEnum.FFVB;
+        case LNV -> CollectionProviderEnum.LNV;
+        case CLUB_SHEETS, GEOCODING -> null;
+      };
+    }
+
     /**
      * Detaches pending selections from managed collections.
      *

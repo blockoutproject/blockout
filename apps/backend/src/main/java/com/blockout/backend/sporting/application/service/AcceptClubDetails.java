@@ -1,5 +1,7 @@
 package com.blockout.backend.sporting.application.service;
 
+import com.blockout.backend.collection.application.model.CollectionState.Cycle;
+import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
@@ -9,6 +11,7 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.Club
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactValue;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Contacts;
+import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.net.URI;
 import java.util.EnumMap;
@@ -26,10 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AcceptClubDetails {
   private final SportingStore store;
-  private final com.blockout.backend.collection.application.service.CollectionCycleAccess
-      cycleAccess;
-  private final com.blockout.backend.collection.application.service.ReadCollectionWork
-      collectionWork;
+  private final CollectionCycleAccess cycleAccess;
   private final ClubContactValues values;
 
   /**
@@ -55,18 +55,18 @@ public class AcceptClubDetails {
    */
   @Transactional
   public ObservationOutcome accept(UUID clubId, ClubObservation observation) {
-    cycleAccess.requireTarget(
-        observation.context().cycleId(), clubId, CollectionTargetKindEnum.CLUB_SHEET);
+    Cycle cycle =
+        cycleAccess
+            .requireTarget(
+                observation.context().cycleId(), clubId, CollectionTargetKindEnum.CLUB_SHEET)
+            .cycle();
     store.lockPresentation(Kind.CLUB, clubId);
-    ObservationOrder order =
-        new ObservationOrder(
-            collectionWork.get(observation.context().cycleId()).cycleOrder(),
-            observation.context().readOrdinal());
+    ObservationOrder order = observation.context().order(cycle.cycleOrder());
     Contacts current = store.clubContacts(clubId);
-    String reference = store.club(clubId).orElseThrow().reference();
+    ClubView club = store.club(clubId).orElseThrow();
     if (current.order() != null && order.compareTo(current.order()) <= 0) {
       return outcome(
-          reference,
+          club.reference(),
           clubId,
           order.compareTo(current.order()) < 0
               ? ObservationOutcomeEnum.STALE
@@ -92,7 +92,6 @@ public class AcceptClubDetails {
         observation.sourceName() == null || observation.sourceName().isBlank()
             ? null
             : observation.sourceName();
-    String previousName = store.club(clubId).orElseThrow().sourceName();
     store.saveClubContacts(
         new Contacts(
             clubId,
@@ -102,9 +101,9 @@ public class AcceptClubDetails {
             observation.context().providerPublishedAt()),
         name);
     boolean changed =
-        !fields.equals(current.fields()) || name != null && !name.equals(previousName);
+        !fields.equals(current.fields()) || name != null && !name.equals(club.sourceName());
     return new ObservationOutcome(
-        reference,
+        club.reference(),
         changed ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED,
         clubId,
         rejectedFields ? URI.create("urn:blockout:problem:unprocessable-content") : null,

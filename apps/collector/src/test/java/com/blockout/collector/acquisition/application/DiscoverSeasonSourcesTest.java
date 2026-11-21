@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 /** Native navigation over controlled HTTP responses; no external provider or backend write. */
@@ -390,6 +392,38 @@ class DiscoverSeasonSourcesTest {
     verify(backend).observeSource(proposal.capture());
     assertThat(proposal.getValue().organizerReference()).isEqualTo("LIRA");
     assertThat(proposal.getValue().startYear()).isEqualTo(2026);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ID=901&ID=902", "ID&ID=902"})
+  @DisplayName("An ambiguous LNV entry cannot select a championship to fetch")
+  void refusesConflictingChampionshipReference(String parameters) {
+    // Given
+    URI entry = URI.create("https://www.lnv.fr/competitions/saforelle-volstar");
+    URI ambiguous =
+        URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?" + parameters);
+    ProviderPages http = mock(ProviderPages.class);
+    doThrow(new UncheckedIOException(new IOException("Unpublished fixture")))
+        .when(http)
+        .page(any());
+    doReturn(response(entry, "<iframe src='" + ambiguous + "'></iframe>")).when(http).page(entry);
+    CollectionBackend backend = mock(CollectionBackend.class);
+    DiscoverSeasonSources service =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
+            backend,
+            mock(CollectorLifecycle.class),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+
+    // When
+    service.currentEntries();
+
+    // Then
+    verify(http, never()).page(ambiguous);
+    verifyNoInteractions(backend);
   }
 
   /**
