@@ -1,4 +1,4 @@
-import { CircleAlert } from "lucide-react-native";
+import { Check, CircleAlert } from "lucide-react-native";
 import {
   createContext,
   useCallback,
@@ -29,17 +29,23 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { TECHNICAL_ERROR } from "./error-copy";
 
-/** One safe error presentation; its lifetime never owns or releases command recovery. */
-interface ErrorNotice {
+/** One transient action notice; its lifetime never owns or releases command recovery. */
+interface Notice {
   owner: object;
   scopeKey: string;
   message: string;
+  tone: "error" | "success";
 }
 
 /** Internal root presentation boundary; feature hooks supply a mounted interaction owner. */
 interface ActionFeedbackContext {
-  error(owner: object, message: string, nextScope?: string): void;
-  clear(owner: object): void;
+  show(
+    owner: object,
+    message: string,
+    tone: Notice["tone"],
+    nextScope?: string,
+  ): void;
+  clear(owner: object, tone?: Notice["tone"]): void;
 }
 
 const FeedbackContext = createContext<ActionFeedbackContext | null>(null);
@@ -50,34 +56,43 @@ export interface ActionFeedbackProviderProps extends PropsWithChildren {
 }
 
 /**
- * Projects UI Library Error Toast 3326:321 above native navigation without moving content or focus.
- * The newest failure replaces the previous toast. Presentation expiry and unmount never change a mutation.
+ * Projects action notices above native navigation without moving content or focus.
+ * The newest event replaces the previous toast. Presentation expiry and unmount never change a mutation.
  * The iOS window overlay stays non-modal so VoiceOver can reach the page even when no toast is visible.
  */
 export function ActionFeedbackProvider({
   children,
   scopeKey,
 }: Readonly<ActionFeedbackProviderProps>) {
-  const [notice, setNotice] = useState<ErrorNotice>();
+  const [notice, setNotice] = useState<Notice>();
   const currentScope = useRef(scopeKey);
   useLayoutEffect(() => {
     currentScope.current = scopeKey;
   }, [scopeKey]);
 
   /** Shows only a current-scope event and leaves the existing request/form owners untouched. */
-  const error = useCallback(
-    (owner: object, message: string, nextScope?: string) => {
+  const show = useCallback(
+    (
+      owner: object,
+      message: string,
+      tone: Notice["tone"],
+      nextScope?: string,
+    ) => {
       if (nextScope === undefined && currentScope.current !== scopeKey) {
         return;
       }
-      setNotice({ owner, scopeKey: nextScope ?? scopeKey, message });
+      setNotice({ owner, scopeKey: nextScope ?? scopeKey, message, tone });
     },
     [scopeKey],
   );
 
-  /** An old route cannot dismiss a newer route's error. */
-  const clear = useCallback((owner: object) => {
-    setNotice((current) => (current?.owner === owner ? undefined : current));
+  /** An old route cannot dismiss a newer route's notice. */
+  const clear = useCallback((owner: object, tone?: Notice["tone"]) => {
+    setNotice((current) =>
+      current?.owner === owner && (tone === undefined || current.tone === tone)
+        ? undefined
+        : current,
+    );
   }, []);
 
   useEffect(() => {
@@ -86,7 +101,10 @@ export function ActionFeedbackProvider({
     }
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const duration = Math.max(6_000, notice.message.length * 60);
+    const duration = Math.max(
+      notice.tone === "success" ? 4_000 : 6_000,
+      notice.message.length * 60,
+    );
 
     /** Uses the native accessibility timeout where supported; failure retains the approved duration. */
     function expireAfter(milliseconds: number) {
@@ -117,12 +135,14 @@ export function ActionFeedbackProvider({
   const overlay = (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <SafeAreaView edges={["top", "left", "right"]}>
-        {visible && <ErrorToast message={visible.message} />}
+        {visible && (
+          <ActionToast message={visible.message} tone={visible.tone} />
+        )}
       </SafeAreaView>
     </View>
   );
   return (
-    <FeedbackContext value={{ error, clear }}>
+    <FeedbackContext value={{ show, clear }}>
       {children}
       {Platform.OS === "ios" ? (
         <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
@@ -136,7 +156,7 @@ export function ActionFeedbackProvider({
 }
 
 /**
- * Supplies event-only technical/functional failure feedback for the mounted original interaction.
+ * Supplies event-only feedback for the mounted original interaction.
  * Pass safe product copy; field validation and domain outcome presentation remain with their owners.
  * A native handoff may retain an already-published notice after closing its route; late events
  * remain ignored, and the root still owns session invalidation and the ordinary toast timeout.
@@ -149,6 +169,10 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
   const owner = useRef({});
   const mounted = useRef(false);
   const { clear } = context;
+  const clearFeedback = useCallback(
+    (tone?: Notice["tone"]) => clear(owner.current, tone),
+    [clear],
+  );
   useLayoutEffect(() => {
     mounted.current = true;
     const identity = owner.current;
@@ -166,19 +190,32 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
      */
     error(message = TECHNICAL_ERROR, nextScope?: string) {
       if (mounted.current) {
-        context.error(owner.current, message, nextScope);
+        context.show(owner.current, message, "error", nextScope);
       }
     },
-    /** Retires this interaction's previous feedback when a new explicit action begins. */
-    clear() {
-      context.clear(owner.current);
+    /** Confirms an acknowledged write from its live owner in the current session. */
+    success(message: string) {
+      if (mounted.current) {
+        context.show(owner.current, message, "success");
+      }
     },
+    /** Retires this interaction's previous feedback, optionally only the supplied tone. */
+    clear: clearFeedback,
   };
 }
 
 /** Uses the live theme to enable motion because Reanimated's default uses the startup preference. */
-function ErrorToast({ message }: Readonly<{ message: string }>) {
+function ActionToast({
+  message,
+  tone,
+}: Readonly<Pick<Notice, "message" | "tone">>) {
   const { colors, reducedMotion } = useTheme();
+  const success = tone === "success";
+  const ink = success ? colors.onSuccessSubtle : colors.error;
+  const tint = success ? colors.successToastSubtle : colors.errorToastSubtle;
+  const Icon = success ? Check : CircleAlert;
+  const iconSize = success ? tokens.size.icon.sm : tokens.size.icon.md;
+  const iconColor = success ? colors.text : ink;
   const duration = 240;
 
   /** Reanimated receives the measured height, preserving the approved offscreen travel with text scaling. */
@@ -227,21 +264,25 @@ function ErrorToast({ message }: Readonly<{ message: string }>) {
       exiting={reducedMotion ? undefined : exit}
       style={[
         styles.surface,
-        { backgroundColor: colors.surface, borderColor: colors.error },
+        success && styles.successSurface,
+        { backgroundColor: colors.surface, borderColor: ink },
       ]}
     >
       <View
-        style={[styles.message, { backgroundColor: colors.errorToastSubtle }]}
+        style={[
+          styles.message,
+          success && styles.successMessage,
+          { backgroundColor: tint },
+        ]}
       >
-        <CircleAlert
-          accessible={false}
-          size={tokens.size.icon.md}
-          color={colors.error}
-        />
+        <Icon accessible={false} size={iconSize} color={iconColor} />
         <Text
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
-          style={[styles.copy, { color: colors.error }]}
+          style={[
+            success ? styles.successCopy : styles.errorCopy,
+            { color: ink },
+          ]}
         >
           {message}
         </Text>
@@ -258,11 +299,21 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.lg,
     overflow: "hidden",
   },
+  successSurface: {
+    alignSelf: "center",
+    borderRadius: tokens.radius.panelInset,
+  },
   message: {
     padding: tokens.spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.compact,
   },
-  copy: { ...tokens.typography.body, flex: 1 },
+  successMessage: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    gap: tokens.spacing.sm,
+  },
+  errorCopy: { ...tokens.typography.body, flex: 1 },
+  successCopy: { ...tokens.typography.label, flexShrink: 1 },
 });

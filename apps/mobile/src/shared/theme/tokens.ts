@@ -87,6 +87,8 @@ export const appearanceColors = {
     errorSubtle: "#B4234014",
     // UI Library Error Toast 3326:321 layers this semantic fill over the ordinary surface.
     errorToastSubtle: "#B4234010",
+    // The top confirmation layers its tint over an opaque surface and keeps 4.5:1 text contrast.
+    successToastSubtle: "#287E6311",
   },
   dark: {
     canvas: "#0D0D0E",
@@ -146,6 +148,7 @@ export const appearanceColors = {
     onInfo: reference.neutral900,
     errorSubtle: "#FFB3C314",
     errorToastSubtle: "#FFB3C314",
+    successToastSubtle: "#76BCA614",
   },
 };
 

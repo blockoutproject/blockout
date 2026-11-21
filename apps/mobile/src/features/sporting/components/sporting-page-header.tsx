@@ -1,11 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
 import type {
   SportingDivisionResponse,
   SportingIdentityResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { PageHeader } from "@/shared/components/page-header";
-import { useTheme } from "@/shared/theme/theme-provider";
-import { tokens } from "@/shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 import { SportingPresentationAction } from "./sporting-actions";
@@ -20,33 +17,21 @@ export interface SportingPageHeaderProps {
   action?: ReactNode;
 }
 
-/** Native collapse reveals the compact identity, with up to two lines for pool names; editing and support remain independent. */
+/** Native collapse reveals the logo and available division while editing and support stay reachable. */
 export function SportingPageHeader({
   identity,
   kind,
   division,
   action,
 }: Readonly<SportingPageHeaderProps>) {
-  const { colors } = useTheme();
   const offset = usePagedTabHeaderOffset();
   return (
     <PageHeader
       title={identity.name}
-      titleAlignment="start"
+      subtitle={division?.name}
+      titleAlignment={kind === "club" ? "start" : "center"}
       revealOffset={offset}
-      action={
-        <>
-          <SportingPresentationAction target={{ kind, id: identity.id }} />
-          {action}
-        </>
-      }
-    >
-      <View
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={styles.identity}
-      >
+      titleArtwork={
         <SportingLogo
           identity={
             kind === "pool"
@@ -56,25 +41,13 @@ export function SportingPageHeader({
           kind={kind === "pool" ? "division" : kind}
           size={28}
         />
-        <Text
-          numberOfLines={kind === "pool" ? 2 : 1}
-          ellipsizeMode="tail"
-          style={[styles.name, { color: colors.text }]}
-        >
-          {identity.name}
-        </Text>
-      </View>
-    </PageHeader>
+      }
+      action={
+        <>
+          <SportingPresentationAction target={{ kind, id: identity.id }} />
+          {action}
+        </>
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  identity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  name: { ...tokens.typography.navigation, flexShrink: 1 },
-});

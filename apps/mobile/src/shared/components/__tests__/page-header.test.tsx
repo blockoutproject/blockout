@@ -34,6 +34,7 @@ it("returns home when a direct entry has no previous destination", async () => {
   // Given
   await renderRouter(routes, { initialUrl: "/detail" });
   const user = userEvent.setup();
+  expect(screen.getByRole("header", { name: "Détail" })).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
@@ -60,3 +61,33 @@ it("keeps the accessible heading when compact content replaces the visual title"
   expect(screen.getByRole("header", { name: "Équipe" })).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
 });
+
+it.each(["start", "center"] as const)(
+  "presents the title and subtitle as one accessible %s heading",
+  async (titleAlignment) => {
+    // Given
+    const contextualRoutes = {
+      ...routes,
+      detail: () => (
+        <PageHeader
+          title="Levallois Paris Saint-Cloud"
+          subtitle="Ligue A féminine"
+          titleAlignment={titleAlignment}
+          titleArtwork={<Text accessibilityRole="image">Écusson</Text>}
+        />
+      ),
+    };
+
+    // When
+    await renderRouter(contextualRoutes, { initialUrl: "/detail" });
+
+    // Then
+    expect(
+      screen.getByRole("header", {
+        name: "Levallois Paris Saint-Cloud, Ligue A féminine",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Ligue A féminine")).toBeOnTheScreen();
+    expect(screen.queryByRole("image")).not.toBeOnTheScreen();
+  },
+);

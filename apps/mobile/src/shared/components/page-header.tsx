@@ -1,8 +1,8 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   clamp,
   Easing,
@@ -18,12 +18,14 @@ import { IconButton } from "./icon-button";
 /** Ordinary page chrome; tab roots omit Back, while details use history or their owning departure. */
 export interface PageHeaderProps {
   title?: string;
-  /** A composed compact identity may replace the plain title between the navigation rails. */
+  subtitle?: string;
+  /** Decorative artwork and the title stack align together between the navigation rails. */
+  titleArtwork?: ReactNode;
+  /** A composed compact identity may replace the title stack between the navigation rails. */
   children?: ReactNode;
-  /** Trailing controls remain available independently of the detail read. Centered headers reserve one control. */
+  /** Trailing controls remain available independently of the detail read. */
   action?: ReactNode;
   back?: boolean;
-  /** Single-entity details can start beside Back; plain titles without Back start at the page inset. */
   titleAlignment?: "start" | "center";
   /** A nested destination can leave through its own stack instead of the global tab history. */
   onBack?: () => void;
@@ -33,6 +35,8 @@ export interface PageHeaderProps {
 
 export function PageHeader({
   title,
+  subtitle,
+  titleArtwork,
   children,
   action,
   back = true,
@@ -43,8 +47,14 @@ export function PageHeader({
   const router = useRouter();
   const { colors, reducedMotion } = useTheme();
   const centered = titleAlignment === "center";
+  const collapsible = revealOffset !== undefined;
+  // Mirror the intrinsic trailing rail so a second authorized action keeps the heading centered.
+  const [railWidth, setRailWidth] = useState<number>(
+    tokens.size.control.default,
+  );
+  const heading = subtitle && title ? `${title}, ${subtitle}` : title;
   const visibility = useDerivedValue(() => {
-    if (revealOffset === undefined) {
+    if (!collapsible) {
       return 1;
     }
     const progress = clamp(
@@ -59,45 +69,13 @@ export function PageHeader({
   const accessibility = useAnimatedProps(() => {
     const hidden = visibility.get() <= 0;
     return {
-      accessible: !hidden && Boolean(title),
+      accessible: !hidden && Boolean(heading),
       accessibilityElementsHidden: hidden,
       importantForAccessibility: hidden
         ? ("no-hide-descendants" as const)
         : ("auto" as const),
     };
   });
-  let identity = <View style={styles.identity} />;
-  if (children) {
-    identity = (
-      <Animated.View
-        accessible={Boolean(title)}
-        accessibilityRole="header"
-        accessibilityLabel={title}
-        animatedProps={accessibility}
-        style={[styles.identity, centered && styles.centeredIdentity, reveal]}
-      >
-        {children}
-      </Animated.View>
-    );
-  } else if (title) {
-    identity = (
-      <Animated.Text
-        accessibilityRole="header"
-        accessibilityLabel={title}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        animatedProps={accessibility}
-        style={[
-          styles.title,
-          centered && styles.centeredTitle,
-          { color: colors.text },
-          reveal,
-        ]}
-      >
-        {title}
-      </Animated.Text>
-    );
-  }
   const backButton = back ? (
     <IconButton
       label="Retour"
@@ -116,13 +94,63 @@ export function PageHeader({
   return (
     <View style={[styles.header, !centered && styles.startHeader]}>
       {centered ? (
-        <View style={[styles.centeredRail, styles.backRail]}>{backButton}</View>
+        <View style={{ width: railWidth }}>{backButton}</View>
       ) : (
         backButton
       )}
-      {identity}
+      <Animated.View
+        accessible={Boolean(heading)}
+        accessibilityRole={heading ? "header" : undefined}
+        accessibilityLabel={heading}
+        animatedProps={accessibility}
+        style={[styles.identity, centered && styles.centeredIdentity, reveal]}
+      >
+        {children ||
+          (title ? (
+            <>
+              {titleArtwork && (
+                <View pointerEvents="none" aria-hidden>
+                  {titleArtwork}
+                </View>
+              )}
+              <View aria-hidden={collapsible} style={styles.copy}>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={[
+                    styles.title,
+                    centered && styles.centeredText,
+                    { color: colors.text },
+                  ]}
+                >
+                  {title}
+                </Text>
+                {!!subtitle && (
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[
+                      styles.subtitle,
+                      centered && styles.centeredText,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
+                    {subtitle}
+                  </Text>
+                )}
+              </View>
+            </>
+          ) : null)}
+      </Animated.View>
       {(action || centered) && (
-        <View style={[styles.actions, centered && styles.centeredRail]}>
+        <View
+          onLayout={
+            centered
+              ? ({ nativeEvent: { layout } }) => setRailWidth(layout.width)
+              : undefined
+          }
+          style={[styles.actions, centered && styles.centeredRail]}
+        >
           {action}
         </View>
       )}
@@ -138,15 +166,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   startHeader: { gap: tokens.spacing.sm },
-  backRail: { alignItems: "flex-start" },
   actions: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
   },
-  centeredRail: { width: tokens.size.control.default },
-  identity: { flex: 1, minWidth: 0 },
-  centeredIdentity: { alignItems: "center" },
-  title: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
-  centeredTitle: { textAlign: "center" },
+  centeredRail: { minWidth: tokens.size.control.default },
+  identity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  centeredIdentity: { justifyContent: "center" },
+  copy: { flexShrink: 1, minWidth: 0, gap: tokens.spacing.optical },
+  title: tokens.typography.navigation,
+  subtitle: tokens.typography.metadata,
+  centeredText: { textAlign: "center" },
 });

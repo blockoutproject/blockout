@@ -98,6 +98,10 @@ On the Team standings scene, use two complete published pool titles with a commo
 
 Use the native map cases above. Refresh address-derived points from singleton to coincident and back: preserve every participant, expose the choice rail only for a shared resulting point and keep exact selected-team navigation. Check selection, Close, camera controls, the complete team identity, optional published statistics and attribution with Map open and with/without eligible bottom offer. Fail only standings, then participants; verify the simple unavailable-record line versus the Map card and keep a surviving selected UUID through failed refresh/Retry. Reuse cached success/error or an active standings attempt without a mount GET, and exercise the first-ever read and explicit two-resource refresh at enlarged text. Framing waits for native readiness and nonzero layout in either callback order. A readiness event does not prove tile availability. Verify physical-device and Android credential/provider behavior separately from controlled map checks.
 
+### Compact sporting headers
+
+Scroll through the [centered Team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=8795-26616) and [centered Pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=8795-26640) headers and return to the top. Compare the sharp logo and the text as one centered group, with the known division under the title. Verify complete accessible labels when narrow or enlarged text truncates. Exercise Return and the authorized edit and support actions. Club’s artwork and one-line title stay beside Return.
+
 ### Match recap and missing facts
 
 Check top, partial scroll, fully revealed and return-to-top behavior against [FR-005](spec.md#consultation-relationships-and-seasons): the full body summary remains; the compact center reveals ordered logos with accepted final totals/exact notation or the current nonfinal status. Return and authorized actions remain visible. Include final zero, unknown totals, missing referee/venue `-`, no pool icon, one-line ellipsis and full accessible names.
