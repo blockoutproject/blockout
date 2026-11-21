@@ -178,6 +178,7 @@ export function MatchScreen({
         ) : (
           <PageHeader
             title="Le match"
+            titleAlignment="center"
             action={
               <SportingSupportAction target={{ type: "match", id: matchId }} />
             }

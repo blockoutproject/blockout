@@ -1,6 +1,6 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -26,6 +26,7 @@ export interface PageHeaderProps {
   /** Trailing controls remain available independently of the detail read. */
   action?: ReactNode;
   back?: boolean;
+  /** Center reserves one control on each side of the Match recap or fallback title. */
   titleAlignment?: "start" | "center";
   /** A nested destination can leave through its own stack instead of the global tab history. */
   onBack?: () => void;
@@ -40,7 +41,7 @@ export function PageHeader({
   children,
   action,
   back = true,
-  titleAlignment = back ? "center" : "start",
+  titleAlignment = "start",
   onBack,
   revealOffset,
 }: Readonly<PageHeaderProps>) {
@@ -48,10 +49,6 @@ export function PageHeader({
   const { colors, reducedMotion } = useTheme();
   const centered = titleAlignment === "center";
   const collapsible = revealOffset !== undefined;
-  // Mirror the intrinsic trailing rail so a second authorized action keeps the heading centered.
-  const [railWidth, setRailWidth] = useState<number>(
-    tokens.size.control.default,
-  );
   const heading = subtitle && title ? `${title}, ${subtitle}` : title;
   const visibility = useDerivedValue(() => {
     if (!collapsible) {
@@ -94,7 +91,7 @@ export function PageHeader({
   return (
     <View style={[styles.header, !centered && styles.startHeader]}>
       {centered ? (
-        <View style={{ width: railWidth }}>{backButton}</View>
+        <View style={styles.centeredRail}>{backButton}</View>
       ) : (
         backButton
       )}
@@ -143,14 +140,7 @@ export function PageHeader({
           ) : null)}
       </Animated.View>
       {(action || centered) && (
-        <View
-          onLayout={
-            centered
-              ? ({ nativeEvent: { layout } }) => setRailWidth(layout.width)
-              : undefined
-          }
-          style={[styles.actions, centered && styles.centeredRail]}
-        >
+        <View style={[styles.actions, centered && styles.centeredRail]}>
           {action}
         </View>
       )}
@@ -171,7 +161,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
   },
-  centeredRail: { minWidth: tokens.size.control.default },
+  centeredRail: { width: tokens.size.control.default },
   identity: {
     flex: 1,
     minWidth: 0,

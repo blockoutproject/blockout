@@ -29,7 +29,6 @@ export function SportingPageHeader({
     <PageHeader
       title={identity.name}
       subtitle={division?.name}
-      titleAlignment={kind === "club" ? "start" : "center"}
       revealOffset={offset}
       titleArtwork={
         <SportingLogo

@@ -25,6 +25,7 @@ export function MatchPageHeader({
   return (
     <PageHeader
       title={`${match.home.name} · ${label} · ${match.away.name}`}
+      titleAlignment="center"
       revealOffset={offset ?? null}
       action={action}
     >
