@@ -80,7 +80,7 @@ class CollectionControlEntity {
   private Set<UUID> scopeIds = new HashSet<>();
 
   /**
-   * Enables the family's first qualified periodic launch.
+   * Creates a competition control, initially enabled for ordinary collection.
    *
    * @param seasonId canonical season already locked by the caller
    * @param family competition family for this season

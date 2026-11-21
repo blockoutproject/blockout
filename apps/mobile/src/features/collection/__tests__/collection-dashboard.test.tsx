@@ -615,6 +615,27 @@ it("refreshes only reads and retains uncertain integration and absent measuremen
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
+it("allows pausing catalogue refresh before activation while a sporting rerun is unavailable", async () => {
+  // Given
+  peer.season = { ...peer.season, state: "preparing" };
+  peer.controls = [control({ enabled: true })];
+
+  // When
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+});
+
 it("leaves native pull progress quiet while dashboard reads are paused and only the account is fetching", async () => {
   // Given: a loaded dashboard and a separate account read held at the HTTP boundary.
   const selected = control();

@@ -91,11 +91,22 @@ public class JpaSportingStore implements SportingStore {
       int size) {
     PageRequest request = PageRequest.of(page, size);
     if (parentId == null) {
-      Slice<PackEntity> slice =
-          packs.findBySeasonIdAndProviderAndOrganizerReferenceOrderByReferenceAscIdAsc(
-              seasonId, provider, organizerReference, request);
+      if (provider == CollectionProviderEnum.LNV) {
+        Slice<PoolEntity> phases =
+            pools.catalogPools(seasonId, provider, organizerReference, request);
+        return new SportingViews.CollectionResourcePage(
+            phases.stream()
+                .map(pool -> mapper.toCollectionResource(pool, null, pool.getReference()))
+                .toList(),
+            page,
+            phases.hasNext());
+      }
+      Slice<PackRepository.CatalogPack> slice =
+          packs.catalogPacks(seasonId, provider, organizerReference, request);
       return new SportingViews.CollectionResourcePage(
-          slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+          slice.stream().map(PackRepository.CatalogPack::toResource).toList(),
+          page,
+          slice.hasNext());
     }
     PackEntity pack = packs.findById(parentId).orElseThrow(SportingResourceNotFoundException::new);
     if (!seasonId.equals(pack.getSeason().getId())
@@ -103,9 +114,19 @@ public class JpaSportingStore implements SportingStore {
         || !organizerReference.equals(pack.getOrganizerReference())) {
       throw new SportingResourceNotFoundException();
     }
-    Slice<PoolEntity> slice = pools.findByPackIdOrderBySourceNameAscIdAsc(parentId, request);
+    Slice<PoolEntity> slice =
+        pools.findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(parentId, request);
     return new SportingViews.CollectionResourcePage(
-        slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+        slice.stream()
+            .map(
+                pool ->
+                    mapper.toCollectionResource(
+                        pool,
+                        parentId,
+                        provider == CollectionProviderEnum.LNV ? pool.getReference() : null))
+            .toList(),
+        page,
+        slice.hasNext());
   }
 
   /** {@inheritDoc} */
@@ -750,6 +771,14 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public Map<UUID, CatalogObservation.Evidence> catalogEvidence(List<UUID> sourceIds) {
+    return catalogs.findAllById(sourceIds).stream()
+        .collect(
+            Collectors.toUnmodifiableMap(CatalogEntity::getSourceId, mapper::toCatalogEvidence));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate) {
     PoolEntity pool = pools.findByKey(key).orElse(null);
@@ -806,6 +835,10 @@ public class JpaSportingStore implements SportingStore {
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
     catalog.setProviderPublishedAt(context.providerPublishedAt());
+    catalog.setComplete(complete);
+    if (complete) {
+      catalog.setLastCompleteReadAt(context.observedAt());
+    }
     // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
     if (created) {
       entityManager.persist(catalog);

@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,9 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    */
   Optional<SourceBindingEntity> findBySeasonIdAndProviderAndOrganizerReference(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  boolean existsBySeasonIdAndProviderAndLaunchedTrueAndValidationStateAndAcceptedUrlIsNotNull(
+      UUID seasonId, CollectionProviderEnum provider, SourceValidationStateEnum validation);
 
   /**
    * Resolves the canonical season without loading mutable state.

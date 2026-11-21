@@ -455,7 +455,7 @@ CatalogObservationInternalRequest:
   description: >-
     Complete or partial catalog within a known source-season binding, at most 8388608 bytes of JSON.
     The catalog is accepted atomically. Identical qualified identities collapse for writing;
-    conflicting duplicates reject the entire request. Partial discovery never proves absence.
+    conflicting duplicates reject the entire request. Partial discovery leaves retained entries unchanged.
     Catalog observations create no teams.
   additionalProperties: false
   properties:
@@ -463,9 +463,7 @@ CatalogObservationInternalRequest:
       $ref: "#/ObservationContextInternalRequest"
     complete:
       type: boolean
-      description:
-        Authoritative seasonal catalog fully qualified; false allows attributable presence
-        only.
+      description: True when the observation can establish the full catalog in this source and season.
     pools:
       type: array
       description: Discovered pool/phase references; conflicting native duplicates reject the catalog.
@@ -488,8 +486,8 @@ CatalogOutcomeInternalResponse:
       description: >-
         Exactly one outcome for each input pools element in the same order, including duplicates;
         array position correlates the full compound identity. sourceReference is the submitted
-        poolReference, not a globally unique key. A current successful catalog contains only
-        accepted/unchanged outcomes; an older catalog returns stale outcomes without changes.
+        poolReference, not a globally unique key. Partial observations can return retained resource
+        identities when known. An older catalog returns stale outcomes without changes.
       items:
         $ref: "#/ObservationOutcomeInternalResponse"
     absenceReconciled:

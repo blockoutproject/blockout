@@ -18,6 +18,7 @@ import com.blockout.backend.collection.application.service.AcceptSourceValidatio
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.ChangeCollectionControls;
 import com.blockout.backend.collection.application.service.InitialReconstructionService;
+import com.blockout.backend.collection.application.service.ObserveCollectionSource;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.collection.application.service.RecordCollectionResults;
@@ -101,6 +102,7 @@ class TransitionAnnouncementIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private InitialReconstructionService reconstruction;
   @Autowired private PrepareCollectionSources preparation;
+  @Autowired private ObserveCollectionSource officialSources;
   @Autowired private AcceptSourceValidation validation;
   @Autowired private AdmitCollectionCycle admission;
   @Autowired private RegisterCollectorRuntime runtime;
@@ -363,13 +365,23 @@ class TransitionAnnouncementIntegrationTest {
   }
 
   /**
-   * Launches the source, enables its ordinary control and explicitly requests one manual cycle.
+   * Activates the season, enables its ordinary control and explicitly requests one manual cycle.
    *
    * @return normal V2 work after initial reconstruction, using the same sporting identities
    */
   private Cycle ordinaryCycle() {
     CollectionSeasonView season = seasons.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
+    URI officialUrl = URI.create(configuration.source(OPERATOR, source.id()).acceptedUrl());
+    officialSources.observe(
+        new ObserveCollectionSource.Proposal(
+            STARTUP,
+            season.startYear(),
+            source.provider(),
+            source.organizerReference(),
+            officialUrl,
+            officialUrl,
+            NOW));
+    preparation.activate(OPERATOR, season.id());
     Control current = configuration.control(OPERATOR, initial.controlId()).control();
     controls.setActivity(OPERATOR, current.id(), true);
     current = configuration.control(OPERATOR, current.id()).control();

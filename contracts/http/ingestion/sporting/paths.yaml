@@ -7,8 +7,9 @@ CatalogObservations:
     description: >-
       Accepts pool references atomically within the authorized source-season binding. An invalid or
       unauthorized entry refuses the whole catalog without changes. Only a complete current catalog
-      may reconcile absence; partial discovery preserves unobserved references. Absence never
-      withdraws pools from another season. Results follow the input pool order, including duplicates.
+      can add, withdraw or restore pool references. Partial discovery preserves the known catalog.
+      Reconciliation is limited to this source and season. Results follow the input pool order,
+      including duplicates.
     responses:
       "415":
         $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType

@@ -25,6 +25,15 @@ interface CollectionResultRepository
       "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt, r.outcome, r.cycleOrder, r.readOrdinal) FROM CollectionResultEntity r WHERE r.controlId = :controlId AND r.scopeId IN :scopeIds AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
 
+  @Query(
+      """
+      SELECT r FROM CollectionResultEntity r
+      WHERE r.controlId IN (SELECT c.id FROM CollectionControlEntity c WHERE c.seasonId = :seasonId)
+        AND r.scopeId IN :sourceIds
+        AND r.stage = com.blockout.backend.generated.ingestion.model.CollectionStageEnum.DISCOVERY
+      """)
+  List<CollectionResultEntity> catalogResults(UUID seasonId, List<UUID> sourceIds);
+
   /**
    * Searches displayable labels and localized stage/phase, using PostgreSQL text normalization and
    * term matching. Joins resolve only stable, in-scope identities because superseded cycle
@@ -63,7 +72,7 @@ interface CollectionResultRepository
               s.organizer_reference AS "organizerReference",
               CASE WHEN s.provider = 'FFVB' THEN p.pack_id END AS "packId",
               CASE WHEN s.provider = 'FFVB' THEN p.id END AS "poolId",
-              CASE WHEN s.provider = 'LNV' THEN p.tour_reference END AS "phaseReference"
+              CASE WHEN s.provider = 'LNV' THEN p.reference END AS "phaseReference"
             FROM collection_result r JOIN collection_control c ON c.id = r.control_id
             LEFT JOIN sporting_match m ON r.stage = 'DETAILS' AND m.id = r.scope_id
             LEFT JOIN sporting_pool p ON

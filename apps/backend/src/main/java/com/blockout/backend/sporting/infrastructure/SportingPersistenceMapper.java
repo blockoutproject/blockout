@@ -7,6 +7,7 @@ import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
 import com.blockout.backend.sporting.application.ConsultationViews.Schedule;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.MatchDetails;
@@ -47,16 +48,10 @@ import org.mapstruct.NullValueMappingStrategy;
 /** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class, uses = TemporalMapping.class)
 interface SportingPersistenceMapper {
-  /**
-   * Exposes native grouping identity without any mapping state.
-   *
-   * @param source retained native pack
-   * @return root preparation entry
-   */
-  @Mapping(target = "label", source = "reference")
-  @Mapping(target = "kind", constant = "PACK")
-  @Mapping(target = "parentId", ignore = true)
-  SportingViews.CollectionResource toCollectionResource(PackEntity source);
+  @Mapping(
+      target = "order",
+      expression = "java(toOrder(source.getCycleOrder(), source.getReadOrdinal()))")
+  CatalogObservation.Evidence toCatalogEvidence(CatalogEntity source);
 
   /**
    * Exposes a pool's original label and parent without classification readiness.
@@ -64,10 +59,13 @@ interface SportingPersistenceMapper {
    * @param source retained contextual pool
    * @return direct child preparation entry
    */
-  @Mapping(target = "label", source = "sourceName")
+  @Mapping(target = "label", source = "source.sourceName")
   @Mapping(target = "kind", constant = "POOL")
-  @Mapping(target = "parentId", source = "pack.id")
-  SportingViews.CollectionResource toCollectionResource(PoolEntity source);
+  @Mapping(target = "parentId", source = "parentId")
+  @Mapping(target = "phaseReference", source = "phaseReference")
+  @Mapping(target = "poolCount", ignore = true)
+  SportingViews.CollectionResource toCollectionResource(
+      PoolEntity source, UUID parentId, String phaseReference);
 
   /**
    * Projects acquisition lifecycle without exposing the managed season.

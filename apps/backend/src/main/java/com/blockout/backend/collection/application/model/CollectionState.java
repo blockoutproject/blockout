@@ -39,6 +39,25 @@ public final class CollectionState {
   /** Outcome counts over the complete current control, regardless of search or page. */
   public record ResultSummary(long success, long partial, long failed, long unconfirmed) {}
 
+  /** Health of the latest provider catalogue read, independent of sporting data import. */
+  public enum CatalogStatus {
+    NOT_READ,
+    COMPLETE,
+    PARTIAL,
+    UNAVAILABLE
+  }
+
+  /** Current catalogue attempt and the last complete authoritative read, when established. */
+  public record CatalogRead(
+      CatalogStatus status,
+      Instant lastReadAt,
+      Instant lastCompleteReadAt,
+      URI reasonType,
+      String reason) {}
+
+  /** Operator view; health does not change source binding or candidate validation. */
+  public record SourceCatalog(Source source, CatalogRead catalog) {}
+
   /** Bounded current evidence ordered latest first, with totals for the whole control. */
   public record ResultPage(
       List<ResultRow> items, long page, boolean hasNext, ResultSummary summary) {
@@ -139,6 +158,13 @@ public final class CollectionState {
       boolean launched,
       UUID currentCycleId,
       URI reasonType) {
+    /** Ordinary discovery includes qualified roots admitted before season activation. */
+    public boolean ordinaryCatalogEligible() {
+      return launched
+          && validationState == SourceValidationStateEnum.QUALIFIED
+          && acceptedUrl != null;
+    }
+
     public String label() {
       return label(provider.name(), organizerReference);
     }

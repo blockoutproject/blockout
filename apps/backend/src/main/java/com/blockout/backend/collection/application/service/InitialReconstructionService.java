@@ -81,7 +81,7 @@ public class InitialReconstructionService {
         selected.stream().map(Source::provider).distinct().sorted().toList()) {
       if (configured.stream()
           .noneMatch(control -> control.family().getValue().equals(provider.getValue()))) {
-        configured.add(store.prepareInitialControl(seasonId, provider));
+        configured.add(store.ensureSeasonControl(seasonId, provider, false));
       }
     }
     authorization.require(operator, Permission.MANAGE_COLLECTION);

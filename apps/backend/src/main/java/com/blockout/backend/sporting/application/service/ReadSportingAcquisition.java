@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
@@ -66,6 +67,11 @@ public class ReadSportingAcquisition {
    */
   public Optional<PoolView> pool(UUID id) {
     return store.pool(id);
+  }
+
+  /** Reads current accepted catalogue evidence without contacting the provider. */
+  public Map<UUID, CatalogObservation.Evidence> catalogEvidence(List<UUID> sourceIds) {
+    return store.catalogEvidence(sourceIds);
   }
 
   /**

@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
@@ -537,7 +538,12 @@ public class CollectPassage {
     long ordinal = context.nextReadOrdinal();
     DiscoverSeasonSources.Read read;
     try {
-      read = discovery.catalog(target, context::nextReadOrdinal, consume);
+      read =
+          discovery.catalog(
+              target,
+              context.getCycle().mode() == CollectionModeEnum.INITIAL_IMPORT,
+              context::nextReadOrdinal,
+              consume);
     } catch (CollectionBackendFailure failure) {
       throw failure;
     } catch (RuntimeException failure) {
@@ -546,14 +552,19 @@ public class CollectPassage {
     }
     record(
         context,
-        target,
-        ordinal,
-        CollectionPhaseEnum.ACQUISITION,
-        read.catalog().complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
-        (long) read.catalog().pools().size(),
-        null,
-        read.observedAt(),
-        null);
+        new CollectionBackend.Result(
+            target.scopeId(),
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            ordinal,
+            read.observedAt(),
+            read.catalog().complete()
+                ? CollectionOutcomeEnum.SUCCESS
+                : CollectionOutcomeEnum.PARTIAL,
+            read.reasonType(),
+            read.reason(),
+            (long) read.catalog().pools().size(),
+            null));
     try {
       SportingObservation.CatalogOutcome outcome =
           sporting.catalog(
@@ -1071,7 +1082,10 @@ public class CollectPassage {
       CollectionBackend.Target target,
       long ordinal,
       RuntimeException failure) {
-    String reason = failureReason(failure);
+    String reason =
+        target.kind() == CollectionTargetKindEnum.DISCOVERY
+            ? AcquisitionFailure.reason(failure)
+            : failureReason(failure);
     URI reasonType = AcquisitionFailure.reasonType(failure);
     boolean confirmed =
         record(

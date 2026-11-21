@@ -28,6 +28,8 @@ import java.util.UUID;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 
 /** Native navigation over controlled HTTP responses; no external provider or backend write. */
@@ -90,7 +92,7 @@ class DiscoverSeasonSourcesTest {
         """))
         .when(http)
         .page(selector);
-    doThrow(new java.io.UncheckedIOException(new IOException("Synthetic unavailable frame")))
+    doThrow(new UncheckedIOException(new HttpResponseException(503, "Synthetic unavailable frame")))
         .when(http)
         .page(missing);
     DiscoverSeasonSources service =
@@ -119,6 +121,7 @@ class DiscoverSeasonSourcesTest {
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("EA");
     assertThat(read.observedAt()).isEqualTo(Instant.EPOCH);
+    assertThat(read.reason()).isEqualTo("Provider HTTP 503");
   }
 
   @Test
@@ -191,8 +194,8 @@ class DiscoverSeasonSourcesTest {
     List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
     // When / Then
-    assertThatThrownBy(() -> service.catalog(target, () -> 1, consumed::add))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> service.catalog(target, false, () -> 1, consumed::add))
+        .hasMessage("LNV championship belongs to a different season");
     assertThat(consumed).isEmpty();
   }
 
@@ -231,6 +234,119 @@ class DiscoverSeasonSourcesTest {
     // Then
     assertThat(read.catalog().pools().getFirst().standingsUrl())
         .isEqualTo(url.resolve("CompetitionStandings.aspx?ID=901"));
+  }
+
+  @Test
+  @DisplayName("An updated qualified LNV championship publishes its newly listed playoffs")
+  void discoversLaterPublishedPhase() {
+    // Given
+    URI root = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    URI regular = root.resolve("CompetitionMatches.aspx?ID=901&PID=902");
+    URI playoffs = root.resolve("CompetitionMatches.aspx?ID=901&PID=904");
+    String title = "<title>Alterna VOLSTAR 2026/2027</title>";
+    String regularLink = "<a href='" + regular + "'>Regular</a>";
+    String playoffsLink = "<a href='" + playoffs + "'>Playoffs</a>";
+    ProviderPages http = mock(ProviderPages.class);
+    when(http.page(root))
+        .thenReturn(
+            response(root, title + regularLink),
+            response(root, title + regularLink + playoffsLink));
+    when(http.page(regular)).thenReturn(response(regular, lnvGroup("903", "Regular")));
+    when(http.page(playoffs)).thenReturn(response(playoffs, lnvGroup("905", "Playoffs")));
+    DiscoverSeasonSources service = discovery(http);
+    CollectionBackend.Target target = lnvTarget(root);
+
+    // When
+    DiscoverSeasonSources.Read first = service.catalog(target);
+    DiscoverSeasonSources.Read updated = service.catalog(target);
+
+    // Then
+    assertThat(first.catalog().complete()).isTrue();
+    assertThat(first.catalog().pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("902");
+    assertThat(updated.catalog().complete()).isTrue();
+    assertThat(updated.catalog().pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("902", "904");
+    assertThat(updated.catalog().pools().getLast().sourceName()).isEqualTo("Playoffs");
+  }
+
+  @ParameterizedTest
+  @EnumSource(PhaseContextMismatch.class)
+  @DisplayName("An LNV phase with contradictory context cannot establish a phase or absence")
+  void refusesMisattributedPhase(PhaseContextMismatch mismatch) {
+    // Given
+    URI root = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    URI regular = root.resolve("CompetitionMatches.aspx?ID=901&PID=902");
+    URI other = root.resolve("CompetitionMatches.aspx?ID=901&PID=904");
+    URI actual =
+        switch (mismatch) {
+          case CHAMPIONSHIP -> root.resolve("CompetitionMatches.aspx?ID=999&PID=904");
+          case PHASE -> root.resolve("CompetitionMatches.aspx?ID=901&PID=999");
+          case SEASON -> other;
+        };
+    String phaseMarkup =
+        (mismatch == PhaseContextMismatch.SEASON ? "<title>Alterna VOLSTAR 2027/2028</title>" : "")
+            + lnvGroup("905", "Unexpected phase");
+    ProviderPages http = mock(ProviderPages.class);
+    when(http.page(root))
+        .thenReturn(
+            response(
+                root,
+                "<title>Alterna VOLSTAR 2026/2027</title><a href='"
+                    + regular
+                    + "'>Regular</a>"
+                    + "<a href='"
+                    + other
+                    + "'>Playoffs</a>"));
+    when(http.page(regular)).thenReturn(response(regular, lnvGroup("903", "Regular")));
+    when(http.page(other)).thenReturn(response(actual, phaseMarkup));
+    List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
+
+    // When
+    DiscoverSeasonSources.Read read =
+        discovery(http).catalog(lnvTarget(root), false, () -> 1, consumed::add);
+
+    // Then
+    assertThat(read.catalog().complete()).isFalse();
+    assertThat(read.catalog().pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("902");
+    assertThat(read.reason()).startsWith("LNV phase ");
+    assertThat(consumed).extracting(page -> page.response().url()).containsExactly(regular);
+  }
+
+  private enum PhaseContextMismatch {
+    CHAMPIONSHIP,
+    PHASE,
+    SEASON
+  }
+
+  @Test
+  @DisplayName("Only verified historical use can supply the season omitted by an LNV root")
+  void retainsVerifiedHistoricalScope() {
+    // Given
+    URI phase =
+        URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    ProviderPages http = mock(ProviderPages.class);
+    when(http.page(phase))
+        .thenReturn(
+            response(
+                phase,
+                "<title>Marmara SpikeLigue</title><a href='?ID=901&PID=902'>Regular</a>"
+                    + lnvGroup("903", "Regular")));
+    DiscoverSeasonSources service = discovery(http);
+    CollectionBackend.Target target = lnvTarget(phase);
+
+    // When / Then
+    assertThatThrownBy(() -> service.catalog(target))
+        .hasMessage("LNV championship has no published season");
+    DiscoverSeasonSources.Read historical = service.catalog(target, true, () -> 1, ignored -> {});
+    assertThat(historical.catalog().complete()).isTrue();
+    assertThat(historical.catalog().pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("902");
   }
 
   @Test
@@ -309,7 +425,7 @@ class DiscoverSeasonSourcesTest {
     doReturn(
             response(
                 firstCandidate,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
+                "<title>Saforelle VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
         .when(http)
         .page(firstCandidate);
     doReturn(
@@ -371,7 +487,7 @@ class DiscoverSeasonSourcesTest {
     doReturn(
             response(
                 candidate,
-                "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
+                "<title>Saforelle VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=903'>Phase</a>"))
         .when(http)
         .page(candidate);
     doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
@@ -403,5 +519,33 @@ class DiscoverSeasonSourcesTest {
    */
   private ProviderResponse response(URI url, String html) {
     return new ProviderResponse(html.getBytes(Charset.forName("windows-1252")), url, true);
+  }
+
+  private DiscoverSeasonSources discovery(ProviderPages http) {
+    return new DiscoverSeasonSources(
+        http,
+        http,
+        new FfvbDiscovery(),
+        new LnvDiscovery(),
+        mock(CollectionBackend.class),
+        mock(CollectorLifecycle.class),
+        Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+  }
+
+  private CollectionBackend.Target lnvTarget(URI root) {
+    return CollectionBackend.Target.builder()
+        .provider(CollectionProviderEnum.LNV)
+        .url(root)
+        .seasonLabel("2026/2027")
+        .organizerReference("901")
+        .build();
+  }
+
+  private String lnvGroup(String id, String label) {
+    return "<div class='rmpView' id='Content_Main_"
+        + id
+        + "'><span id='group_lbl_title'>"
+        + label
+        + "</span></div>";
   }
 }

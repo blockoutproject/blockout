@@ -245,6 +245,7 @@ public class SecurityConfiguration {
             HttpMethod.POST,
             "/administration/collection-seasons/{seasonId}/closure",
             "/administration/collection-seasons/{seasonId}/source-launches",
+            "/administration/collection-seasons/{seasonId}/activation",
             "/administration/collection-seasons/{seasonId}/source-bindings",
             "/administration/source-bindings/{sourceBindingId}/validations",
             "/administration/collection-controls/{controlId}/requests",

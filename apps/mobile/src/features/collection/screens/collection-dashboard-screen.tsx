@@ -249,8 +249,8 @@ function ControlScope({
     query.data?.items.find(
       (control) => control.family === family && control.seasonId === season?.id,
     );
-  // A provider control is created by launch or reconstruction, after source preparation.
-  // Reuse that preparation screen while a successful current read confirms no control exists.
+  // A provider control may have yet to be created by discovery or historical reconstruction.
+  // Keep the existing source route accessible when the current read confirms no control exists.
   if (
     authority.enabled &&
     season &&

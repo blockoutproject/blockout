@@ -30,10 +30,12 @@ import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
+import com.blockout.backend.generated.mobile.model.SourceCatalogReadResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Objects;
 import org.mapstruct.Mapper;
@@ -80,7 +82,7 @@ public interface CollectionApiMapper {
    * @return the generated collection envelope
    */
   default com.blockout.backend.generated.mobile.model.SourceBindingListResponse toSourcesDto(
-      java.util.List<CollectionState.Source> source) {
+      java.util.List<CollectionState.SourceCatalog> source) {
     return new com.blockout.backend.generated.mobile.model.SourceBindingListResponse(
         source.stream().map(this::toDto).toList());
   }
@@ -136,15 +138,6 @@ public interface CollectionApiMapper {
   SeasonSourceInternalResponse toDto(ObserveCollectionSource.Resolved source);
 
   /**
-   * Reuses the shared contract-owned provider enum across generated API namespaces.
-   *
-   * @param source validated mobile provider
-   * @return the identical application provider
-   */
-  com.blockout.backend.generated.ingestion.model.CollectionProviderEnum toProvider(
-      com.blockout.backend.generated.mobile.model.CollectionProviderEnum source);
-
-  /**
    * Projects preparation state from its canonical sporting owner.
    *
    * @param source season preparation view
@@ -157,33 +150,45 @@ public interface CollectionApiMapper {
   /**
    * Projects source evidence, preserving every required nullable property.
    *
-   * @param source current source or honest interrupted-validation projection
-   * @return source preparation response, without mapping metadata
+   * @param view current binding with independent catalogue evidence
+   * @return catalogue response preserving the legacy binding fields
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "label", expression = "java(source.label())")
-  @Mapping(target = "validation", source = "validationState")
+  @Mapping(target = ".", source = "source")
+  @Mapping(target = "label", expression = "java(view.source().label())")
+  @Mapping(target = "validation", source = "source.validationState")
   @Mapping(
       target = "candidateUrl",
-      source = "candidateUrl",
+      source = "source.candidateUrl",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(
       target = "acceptedUrl",
-      source = "acceptedUrl",
+      source = "source.acceptedUrl",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(
       target = "validatedAt",
-      source = "validatedAt",
+      source = "source.validatedAt",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(
       target = "seasonEvidence",
-      source = "seasonEvidence",
+      source = "source.seasonEvidence",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   @Mapping(
       target = "reason",
-      source = "reason",
+      source = "source.reason",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  SourceBindingResponse toDto(CollectionState.Source source);
+  SourceBindingResponse toDto(CollectionState.SourceCatalog view);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "observedAt", source = "lastReadAt")
+  @Mapping(target = "lastCompleteAt", source = "lastCompleteReadAt")
+  @Mapping(target = "reason", source = "view", qualifiedByName = "catalogReason")
+  SourceCatalogReadResponse toDto(CollectionState.CatalogRead view);
+
+  @Named("catalogReason")
+  default String catalogReason(CollectionState.CatalogRead view) {
+    return factualReason(view.reason(), view.reasonType());
+  }
 
   /**
    * Converts terminal evidence at the generated ingestion boundary.
@@ -264,12 +269,17 @@ public interface CollectionApiMapper {
   /** Retained collector reasons may consist of a bare result code or an exception class. */
   @Named("factualReason")
   default String factualReason(CollectionResult result) {
-    String text = Objects.toString(result.reason(), "").strip();
+    return factualReason(result.reason(), result.reasonType());
+  }
+
+  private static String factualReason(String reason, URI reasonType) {
+    String text = Objects.toString(reason, "").strip();
     if (text.isEmpty()
-        || text.equals(result.outcome().getValue())
-        || text.equals(Objects.toString(result.reasonType(), ""))
+        || text.equals(Objects.toString(reasonType, ""))
         || text.matches("urn:blockout:[a-z0-9:-]+")
         || text.matches("[a-zA-Z0-9_$]+(?:Exception|Error)")
+        || Arrays.stream(CollectionOutcomeEnum.values())
+            .anyMatch(outcome -> text.equals(outcome.getValue()))
         || Arrays.stream(ObservationOutcomeEnum.values())
             .anyMatch(outcome -> text.equals(outcome.getValue()))) {
       return null;

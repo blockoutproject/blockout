@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application.model;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 
 /** One atomic source-season discovery, independent from sporting classification. */
@@ -10,6 +11,10 @@ public record CatalogObservation(
   public CatalogObservation {
     pools = List.copyOf(pools);
   }
+
+  /** Accepted source-scoped read and last independently established complete catalogue. */
+  public record Evidence(
+      ObservationOrder order, Instant observedAt, Boolean complete, Instant lastCompleteReadAt) {}
 
   /** Qualified native pool references; missing URLs preserve previously qualified values. */
   public record Pool(

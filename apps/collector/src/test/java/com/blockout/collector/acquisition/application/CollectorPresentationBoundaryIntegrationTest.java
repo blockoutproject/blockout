@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -871,7 +872,7 @@ class CollectorPresentationBoundaryIntegrationTest {
   private CollectPassage passageWithStubbedDiscovery(
       LnvAcquisition lnv, ClubSheets sheets, ClubGeocoder geocoder) {
     DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
-    when(discovery.catalog(any(), any(), any()))
+    when(discovery.catalog(any(), anyBoolean(), any(), any()))
         .thenThrow(new FfvbAcquisitionException("Synthetic discovery unavailable"));
     return new CollectPassage(
         backend,

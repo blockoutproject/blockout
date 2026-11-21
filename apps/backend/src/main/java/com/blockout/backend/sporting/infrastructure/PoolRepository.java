@@ -56,7 +56,19 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @param pageable bounded direct-child request
    * @return stable source-name/identity slice
    */
-  Slice<PoolEntity> findByPackIdOrderBySourceNameAscIdAsc(UUID packId, Pageable pageable);
+  Slice<PoolEntity> findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
+      UUID packId, Pageable pageable);
+
+  /** Lists currently present LNV phase groups directly under their bound championship. */
+  @Query(
+      """
+      SELECT p FROM PoolEntity p
+      WHERE p.season.id = :seasonId AND p.provider = :provider
+        AND p.organizerReference = :organizerReference AND p.catalogEligible = TRUE
+      ORDER BY p.sourceName, p.reference, p.id
+      """)
+  Slice<PoolEntity> catalogPools(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference, Pageable pageable);
 
   /**
    * Selects qualified pools after the visited identity boundary despite concurrent division

@@ -32,6 +32,8 @@ class CatalogEntity {
   private Instant observedAt;
 
   @Setter private Instant providerPublishedAt;
+  @Setter private Boolean complete;
+  @Setter private Instant lastCompleteReadAt;
 
   /**
    * Creates the replacement scope at its existing F01 binding identity.

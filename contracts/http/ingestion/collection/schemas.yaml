@@ -500,8 +500,8 @@ ObserveSeasonSourceInternalRequest:
   title: ObserveSeasonSourceInternalRequest
   type: object
   description:
-    Propose one qualified sporting season and supported root found through official entry discovery.
-    Never activate, overwrite an operator candidate, unlock or reopen a season.
+    Attribute one supported official root to a verified sporting season. The resulting binding
+    can admit ordinary catalogue reads before activation.
   additionalProperties: false
   properties:
     incarnationId:
@@ -518,7 +518,7 @@ ObserveSeasonSourceInternalRequest:
       minLength: 1
     candidateUrl:
       type: string
-      description: Published supported official URL without credentials.
+      description: Published and qualified official root URL without credentials.
       format: uri
     evidenceUrl:
       type: string

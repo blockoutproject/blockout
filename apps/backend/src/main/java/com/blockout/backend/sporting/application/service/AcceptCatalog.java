@@ -4,6 +4,7 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
@@ -15,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,12 +41,16 @@ public class AcceptCatalog {
   public ObservationOutcome.Catalog accept(UUID sourceId, CatalogObservation observation) {
     CollectionState.Source source =
         cycleAccess.requireCatalogSource(observation.context().cycleId(), sourceId);
+    CollectionState.Cycle cycle = collectionWork.get(observation.context().cycleId());
     ObservationOrder order =
-        new ObservationOrder(
-            collectionWork.get(observation.context().cycleId()).cycleOrder(),
-            observation.context().readOrdinal());
+        new ObservationOrder(cycle.cycleOrder(), observation.context().readOrdinal());
     Map<PoolKey, CatalogObservation.Pool> unique = new LinkedHashMap<>();
     for (CatalogObservation.Pool candidate : observation.pools()) {
+      if (source.provider() == CollectionProviderEnum.LNV
+          && (!source.organizerReference().equals(candidate.competitionReference())
+              || !source.organizerReference().equals(candidate.packReference()))) {
+        throw new SportingConflictException("identity-conflict", List.of());
+      }
       PoolKey key = key(source, candidate);
       CatalogObservation.Pool previous = unique.putIfAbsent(key, candidate);
       if (previous != null && !previous.equals(candidate)) {
@@ -63,25 +69,28 @@ public class AcceptCatalog {
     boolean complete =
         observation.complete()
             && !(observation.pools().isEmpty()
-                && collectionWork.get(observation.context().cycleId()).mode()
-                    == CollectionModeEnum.INITIAL_IMPORT);
+                && cycle.mode() == CollectionModeEnum.INITIAL_IMPORT);
     Map<PoolKey, ObservationOutcome> outcomes = new LinkedHashMap<>();
     for (Map.Entry<PoolKey, CatalogObservation.Pool> entry : unique.entrySet()) {
       UUID id;
-      if (repeated) {
+      if (repeated || !complete) {
         id = store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
       } else {
         id = store.acceptCatalogPool(entry.getKey(), entry.getValue());
       }
       outcomes.put(
           entry.getKey(),
-          new ObservationOutcome(
-              entry.getValue().poolReference(),
-              repeated ? ObservationOutcomeEnum.UNCHANGED : ObservationOutcomeEnum.ACCEPTED,
-              id,
-              null,
-              null,
-              null));
+          id == null
+              ? ObservationOutcome.refused(entry.getValue().poolReference(), false)
+              : new ObservationOutcome(
+                  entry.getValue().poolReference(),
+                  repeated || !complete
+                      ? ObservationOutcomeEnum.UNCHANGED
+                      : ObservationOutcomeEnum.ACCEPTED,
+                  id,
+                  null,
+                  null,
+                  null));
     }
     if (!repeated) {
       store.finishCatalog(
@@ -89,8 +98,10 @@ public class AcceptCatalog {
           source.seasonId(),
           source.provider(),
           source.organizerReference(),
-          new LinkedHashSet<>(
-              outcomes.values().stream().map(ObservationOutcome::resourceId).toList()),
+          complete
+              ? new LinkedHashSet<>(
+                  outcomes.values().stream().map(ObservationOutcome::resourceId).toList())
+              : Set.of(),
           complete,
           order,
           observation.context());

@@ -1,7 +1,9 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
+import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery.Championship;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -20,7 +22,6 @@ import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,6 +36,8 @@ public class DiscoverSeasonSources {
   /** Fixed official-entry identity; no provider URL or discovered identifier becomes a log key. */
   private record CurrentEntry(String scope, URI url) {}
 
+  private record LnvEntry(String scope, URI url, Championship championship) {}
+
   private static final List<CurrentEntry> FFVB_ENTRIES =
       List.of(
           new CurrentEntry(
@@ -44,14 +47,20 @@ public class DiscoverSeasonSources {
           new CurrentEntry(
               "ffvb-departmental",
               URI.create("https://www.ffvb.org/122-37-1-Championnats-Departementaux")));
-  private static final List<CurrentEntry> LNV_ENTRIES =
+  private static final List<LnvEntry> LNV_ENTRIES =
       List.of(
-          new CurrentEntry(
-              "lnv-women-first", URI.create("https://www.lnv.fr/competitions/saforelle-volstar")),
-          new CurrentEntry(
-              "lnv-men-first", URI.create("https://www.lnv.fr/competitions/alterna-volstar")),
-          new CurrentEntry(
-              "lnv-men-second", URI.create("https://www.lnv.fr/competitions/volstar-masculine-2")));
+          new LnvEntry(
+              "lnv-women-first",
+              URI.create("https://www.lnv.fr/competitions/saforelle-volstar"),
+              Championship.WOMEN_FIRST),
+          new LnvEntry(
+              "lnv-men-first",
+              URI.create("https://www.lnv.fr/competitions/alterna-volstar"),
+              Championship.MEN_FIRST),
+          new LnvEntry(
+              "lnv-men-second",
+              URI.create("https://www.lnv.fr/competitions/volstar-masculine-2"),
+              Championship.MEN_SECOND));
   private final ProviderPages ffvbHttp;
   private final ProviderPages lnvHttp;
   private final FfvbDiscovery ffvb;
@@ -60,8 +69,18 @@ public class DiscoverSeasonSources {
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
 
-  /** Contextual catalog with its actual read completion time. */
-  public record Read(SportingObservation.Catalog catalog, Instant observedAt) {}
+  /** Contextual catalog with actual read completion time and optional incomplete-read evidence. */
+  public record Read(
+      SportingObservation.Catalog catalog, Instant observedAt, URI reasonType, String reason) {
+    private Read(
+        SportingObservation.Catalog catalog, Instant observedAt, RuntimeException failure) {
+      this(
+          catalog,
+          observedAt,
+          failure == null ? null : AcquisitionFailure.reasonType(failure),
+          failure == null ? null : AcquisitionFailure.reason(failure));
+    }
+  }
 
   /** One bounded response consumed immediately, never retained as a passage page cache. */
   public record PageRead(ProviderResponse response, Instant observedAt, long ordinal) {}
@@ -103,7 +122,7 @@ public class DiscoverSeasonSources {
     for (CurrentEntry entry : FFVB_ENTRIES) {
       reportEntry(CollectionProviderEnum.FFVB, entry.scope(), currentFfvb(entry.url()));
     }
-    for (CurrentEntry entry : LNV_ENTRIES) {
+    for (LnvEntry entry : LNV_ENTRIES) {
       boolean usable = false;
       boolean complete = true;
       try {
@@ -121,11 +140,16 @@ public class DiscoverSeasonSources {
             continue;
           }
           ProviderResponse source = lnvHttp.page(candidate);
-          String season = lnv.qualify(source.body(), source.url(), competition);
+          LnvDiscovery.Root root = lnv.root(source.body(), source.url(), competition);
+          if (root.championship() != entry.championship()) {
+            complete = false;
+            continue;
+          }
           usable = true;
-          if (season != null) {
+          if (root.season() != null) {
             complete &=
-                propose(CollectionProviderEnum.LNV, competition, season, candidate, entry.url());
+                propose(
+                    CollectionProviderEnum.LNV, competition, root.season(), candidate, entry.url());
           }
         }
       } catch (RuntimeException failure) {
@@ -146,13 +170,14 @@ public class DiscoverSeasonSources {
    *     original category
    */
   public Read catalog(CollectionBackend.Target target) {
-    return catalog(target, () -> 0, page -> {});
+    return catalog(target, false, () -> 0, page -> {});
   }
 
   /**
    * Streams shared pages to already admitted scopes before discarding each body.
    *
    * @param target seasonal discovery scope
+   * @param verifiedHistorical exact historical source admitted with verified reference evidence
    * @param nextOrdinal allocator called before every actual page read
    * @param consume immediate consumer; must not retain raw pages or ineligible sporting rows
    * @return aggregated catalog with actual final discovery read time
@@ -160,15 +185,17 @@ public class DiscoverSeasonSources {
    *     original category
    */
   public Read catalog(
-      CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
+      CollectionBackend.Target target,
+      boolean verifiedHistorical,
+      LongSupplier nextOrdinal,
+      Consumer<PageRead> consume) {
     if (target.provider() == CollectionProviderEnum.LNV) {
-      return lnvCatalog(target, nextOrdinal, consume);
+      return lnvCatalog(target, verifiedHistorical, nextOrdinal, consume);
     }
     ffvb.requireContext(target.url(), target.seasonLabel(), target.organizerReference());
     ArrayDeque<URI> pending = new ArrayDeque<>(List.of(target.url()));
     Set<URI> visited = new LinkedHashSet<>();
     List<SportingObservation.Pool> pools = new ArrayList<>();
-    boolean complete = true;
     boolean recognized = false;
     RuntimeException firstFailure = null;
     Instant observedAt = clock.instant();
@@ -195,7 +222,9 @@ public class DiscoverSeasonSources {
                   target.seasonLabel(),
                   target.organizerReference());
           recognized |= ffvb.seasonal(response.body(), response.url());
-          complete &= found.complete();
+          if (!found.complete() && firstFailure == null) {
+            firstFailure = new FfvbAcquisitionException("Unqualified FFVB catalog entries");
+          }
           pools.addAll(found.pools());
           pending.addAll(
               ffvb.roundLinks(
@@ -206,7 +235,9 @@ public class DiscoverSeasonSources {
         } catch (FfvbAcquisitionException unsupported) {
           List<URI> links = ffvb.navigation(response.body(), response.url());
           if (links.isEmpty()) {
-            complete = false;
+            if (firstFailure == null) {
+              firstFailure = unsupported;
+            }
           } else {
             pending.addAll(links);
           }
@@ -214,7 +245,7 @@ public class DiscoverSeasonSources {
       } catch (CollectionBackendFailure failure) {
         throw failure;
       } catch (RuntimeException failure) {
-        complete = false;
+        observedAt = clock.instant();
         if (firstFailure == null) {
           firstFailure = failure;
         }
@@ -227,91 +258,66 @@ public class DiscoverSeasonSources {
       throw new FfvbAcquisitionException("No qualified FFVB catalog");
     }
     return new Read(
-        new SportingObservation.Catalog(complete, pools.stream().distinct().toList()), observedAt);
+        new SportingObservation.Catalog(firstFailure == null, pools.stream().distinct().toList()),
+        observedAt,
+        firstFailure);
   }
 
   /**
    * Follows the bound championship's own phases; rollover at today's entry cannot remove old roots.
    *
    * @param target exact admitted championship
+   * @param verifiedHistorical whether stored historical verification supplies missing root season
    * @param nextOrdinal pre-read order allocator
    * @param consume immediate selected-scope consumer
    * @return published phase/group references, never sampled numeric IDs
    */
   private Read lnvCatalog(
-      CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
+      CollectionBackend.Target target,
+      boolean verifiedHistorical,
+      LongSupplier nextOrdinal,
+      Consumer<PageRead> consume) {
     long rootOrdinal = nextOrdinal.getAsLong();
     ProviderResponse root = lnvHttp.page(target.url());
-    Instant observedAt = clock.instant();
-    String season = lnv.qualify(root.body(), root.url(), target.organizerReference());
-    if (season != null && !season.equals(target.seasonLabel())) {
-      throw new IllegalArgumentException("Contradictory LNV season");
+    Instant rootObservedAt = clock.instant();
+    Instant observedAt = rootObservedAt;
+    LnvDiscovery.Root qualified = lnv.root(root.body(), root.url(), target.organizerReference());
+    if (qualified.season() == null && !verifiedHistorical) {
+      throw new LnvAcquisitionException("LNV championship has no published season");
     }
-    consume.accept(new PageRead(root, observedAt, rootOrdinal));
+    if (qualified.season() != null && !qualified.season().equals(target.seasonLabel())) {
+      throw new LnvAcquisitionException("LNV championship belongs to a different season");
+    }
     List<SportingObservation.Pool> pools = new ArrayList<>();
-    boolean complete = true;
-    for (URI phase : lnv.phaseLinks(root.body(), root.url(), target.organizerReference())) {
+    RuntimeException firstFailure = null;
+    for (URI phase : qualified.phases()) {
       lifecycle.requireActive();
       try {
         ProviderResponse page = root;
+        long ordinal = rootOrdinal;
+        Instant pageObservedAt = rootObservedAt;
         if (!phase.equals(root.url())) {
-          long ordinal = nextOrdinal.getAsLong();
+          ordinal = nextOrdinal.getAsLong();
           page = lnvHttp.page(phase);
           observedAt = clock.instant();
-          String phaseSeason = lnv.qualify(page.body(), page.url(), target.organizerReference());
-          if (phaseSeason != null && !phaseSeason.equals(target.seasonLabel())) {
-            throw new IllegalArgumentException("Contradictory LNV season");
-          }
-          if (!target.organizerReference().equals(query(page.url()).get("ID"))
-              || !query(phase).get("PID").equals(query(page.url()).get("PID"))) {
-            throw new IllegalArgumentException("Contradictory phase");
-          }
-          consume.accept(new PageRead(page, observedAt, ordinal));
+          pageObservedAt = observedAt;
         }
-        Map<String, String> context = query(page.url());
-        if (!target.organizerReference().equals(context.get("ID"))
-            || !query(phase).get("PID").equals(context.get("PID"))) {
-          throw new IllegalArgumentException("Contradictory phase");
-        }
-        Document document =
-            Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString());
-        List<Element> groups = document.select("div.rmpView[id^=Content_Main_]");
-        if (groups.isEmpty()) {
-          throw new IllegalArgumentException("Missing groups");
-        }
-        for (Element group : groups) {
-          String id = group.id().substring("Content_Main_".length());
-          Element title = group.selectFirst("[id$=lbl_title]");
-          if (!id.matches("[0-9]+") || title == null) {
-            throw new IllegalArgumentException("Invalid group");
-          }
-          URI standings = null;
-          for (Element link : document.select("a[href*=CompetitionStandings.aspx]")) {
-            URI proposed = URI.create(link.absUrl("href"));
-            if (context.get("ID").equals(query(proposed).get("ID"))
-                && (!query(proposed).containsKey("PID")
-                    || context.get("PID").equals(query(proposed).get("PID")))) {
-              standings = proposed;
-            }
-          }
-          pools.add(
-              new SportingObservation.Pool(
-                  context.get("ID"),
-                  context.get("ID"),
-                  context.get("PID"),
-                  null,
-                  id,
-                  page.url(),
-                  standings,
-                  title.text()));
-        }
+        pools.addAll(lnv.phasePools(page.body(), page.url(), phase, target.seasonLabel()));
+        consume.accept(new PageRead(page, pageObservedAt, ordinal));
       } catch (CollectionBackendFailure failure) {
         throw failure;
       } catch (RuntimeException failure) {
-        complete = false;
+        observedAt = clock.instant();
+        if (firstFailure == null) {
+          firstFailure = failure;
+        }
       }
     }
-    return new Read(new SportingObservation.Catalog(complete, pools), observedAt);
+    if (pools.isEmpty() && firstFailure != null) {
+      throw firstFailure;
+    }
+    return new Read(
+        new SportingObservation.Catalog(firstFailure == null, pools), observedAt, firstFailure);
   }
 
   /**

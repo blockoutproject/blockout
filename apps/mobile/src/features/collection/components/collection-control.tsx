@@ -35,6 +35,7 @@ export function CollectionControl({
   const { authority } = editing;
   const mounted = useRef(false);
   const closed = season?.state === "closed";
+  const canRequest = control.enabled && (!season || season.state === "active");
   const busy =
     !authority.enabled ||
     editing.activity.isPending ||
@@ -59,7 +60,7 @@ export function CollectionControl({
       busy ||
       closed ||
       refused ||
-      (command === "request" && !control.enabled)
+      (command === "request" && !canRequest)
     ) {
       return;
     }
@@ -91,7 +92,7 @@ export function CollectionControl({
 
   /** Native confirmation belongs to the mounted control; the backend rechecks current permission and eligibility. */
   async function confirmRequest() {
-    if (busy || closed || refused) {
+    if (busy || refused || !canRequest) {
       return;
     }
 
@@ -188,7 +189,7 @@ export function CollectionControl({
               disabled={
                 busy ||
                 refused ||
-                !control.enabled ||
+                !canRequest ||
                 !!control.pendingRequestId ||
                 running
               }

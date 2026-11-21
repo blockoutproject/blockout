@@ -47,7 +47,7 @@ public class ChangeCollectionControls {
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
     if (enabled) {
-      requireLaunched(control, season);
+      requireOrdinarySource(control, season);
     }
     if (control.enabled() == enabled && (enabled || control.requestId() == null)) {
       return configurationReads.controlView(control);
@@ -83,7 +83,7 @@ public class ChangeCollectionControls {
         || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)) {
       throw new CollectionConflictException("conflict");
     }
-    requireLaunched(control, season);
+    requireOrdinarySource(control, season);
     ControlView current = configurationReads.controlView(control);
     if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING) {
       return new RequestOutcome(current, true);
@@ -107,20 +107,19 @@ public class ChangeCollectionControls {
   public record RequestOutcome(ControlView view, boolean running) {}
 
   /**
-   * Refuses an unlaunched provider even when another provider has activated the same season.
+   * Keeps the ordinary control unavailable for a provider with only historical references.
    *
-   * @param control locked family whose launch is required
+   * @param control locked competition family or seasonless control
    * @param season locked canonical season, or null for seasonless controls
-   * @throws CollectionConflictException if the family has no launch in its active season
+   * @throws CollectionConflictException if the family has no ordinary catalogue in this season
    */
-  private void requireLaunched(Control control, CollectionSeasonView season) {
+  private void requireOrdinarySource(Control control, CollectionSeasonView season) {
     if (season != null
-        && (season.collectionState() != CollectionSeasonStateEnum.ACTIVE
-            || store.sources(season.id()).stream()
-                .noneMatch(
-                    source ->
-                        source.launched()
-                            && source.provider().getValue().equals(control.family().getValue())))) {
+        && store.sources(season.id()).stream()
+            .noneMatch(
+                source ->
+                    source.ordinaryCatalogEligible()
+                        && source.provider().getValue().equals(control.family().getValue()))) {
       throw new CollectionConflictException("conflict");
     }
   }

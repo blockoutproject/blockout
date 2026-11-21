@@ -88,7 +88,7 @@ class InitialReconstructionTest {
         .thenReturn(season(CollectionSeasonStateEnum.PREPARING));
     when(store.sources(SEASON))
         .thenReturn(List.of(source(SourceValidationStateEnum.CONFIRMATION_REQUIRED)));
-    when(store.prepareInitialControl(SEASON, CollectionProviderEnum.FFVB))
+    when(store.ensureSeasonControl(SEASON, CollectionProviderEnum.FFVB, false))
         .thenReturn(
             new Control(
                 CONTROL,

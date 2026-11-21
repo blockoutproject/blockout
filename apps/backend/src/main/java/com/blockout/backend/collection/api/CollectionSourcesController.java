@@ -1,7 +1,9 @@
 package com.blockout.backend.collection.api;
 
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.api.CurrentAccount;
-import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.generated.mobile.api.CollectionSourcesApi;
@@ -14,20 +16,20 @@ import com.blockout.backend.generated.mobile.model.LaunchCollectionSourcesReques
 import com.blockout.backend.generated.mobile.model.SetSourceCandidateRequest;
 import com.blockout.backend.generated.mobile.model.SourceBindingListResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
-import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Generated preparation routes; current grants and atomic state changes belong to the service. */
+/** Read-only catalogue routes and season activation through the current collection grant. */
 @RestController
 @RequiredArgsConstructor
 public class CollectionSourcesController implements CollectionSourcesApi {
   private final PrepareCollectionSources preparation;
   private final ReadCollectionConfiguration configurationReads;
   private final CurrentAccount account;
+  private final CurrentPermissions permissions;
   private final CollectionApiMapper mapper;
 
   /** {@inheritDoc} */
@@ -51,7 +53,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<SourceBindingListResponse> listCollectionSources(UUID seasonId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toSourcesDto(configurationReads.sources(account.id(), seasonId)));
+        .body(mapper.toSourcesDto(configurationReads.sourceCatalogs(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */
@@ -59,67 +61,50 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<SourceBindingResponse> getCollectionSource(UUID sourceBindingId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(configurationReads.source(account.id(), sourceBindingId)));
+        .body(mapper.toDto(configurationReads.sourceCatalog(account.id(), sourceBindingId)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<CollectionSeasonResponse> activateCollectionSeason(UUID seasonId) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(preparation.activate(account.id(), seasonId)));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SourceBindingResponse> createCollectionSource(
       UUID seasonId, CreateSourceBindingRequest request) {
-    Source created =
-        preparation.create(
-            account.id(),
-            seasonId,
-            mapper.toProvider(request.getProvider()),
-            request.getOrganizerReference(),
-            request.getCandidateUrl());
-    return ResponseEntity.created(URI.create("/administration/source-bindings/" + created.id()))
-        .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(created));
+    throw retiredSourceWrite();
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SourceBindingResponse> setCollectionSourceCandidate(
       UUID sourceBindingId, SetSourceCandidateRequest request) {
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                preparation.setCandidate(
-                    account.id(), sourceBindingId, request.getCandidateUrl())));
+    throw retiredSourceWrite();
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SourceBindingResponse> requestCollectionSourceValidation(
       UUID sourceBindingId) {
-    return ResponseEntity.accepted()
-        .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(preparation.requestValidation(account.id(), sourceBindingId)));
+    throw retiredSourceWrite();
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SourceBindingResponse> confirmCollectionSourceSeason(
       UUID sourceBindingId, ConfirmSourceSeasonRequest request) {
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                preparation.confirmSeason(
-                    account.id(), sourceBindingId, request.getSeasonLabel())));
+    throw retiredSourceWrite();
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<CollectionSeasonResponse> launchCollectionSources(
       UUID seasonId, LaunchCollectionSourcesRequest request) {
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                preparation.launch(account.id(), seasonId, request.getSourceBindingIds())));
+    throw retiredSourceWrite();
   }
 
   /** {@inheritDoc} */
@@ -131,5 +116,13 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         .body(
             mapper.toDto(
                 configurationReads.children(account.id(), sourceBindingId, parentId, page, size)));
+  }
+
+  /**
+   * Older clients receive ordinary conflict feedback without changing the scope of their action.
+   */
+  private CollectionConflictException retiredSourceWrite() {
+    permissions.requireForRead(account.id(), Permission.MANAGE_COLLECTION);
+    return new CollectionConflictException("conflict");
   }
 }

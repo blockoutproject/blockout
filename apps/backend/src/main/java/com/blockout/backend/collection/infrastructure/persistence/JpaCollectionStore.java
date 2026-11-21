@@ -55,20 +55,18 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public CollectionState.Control prepareInitialControl(
-      UUID seasonId, CollectionProviderEnum provider) {
+  public CollectionState.Control ensureSeasonControl(
+      UUID seasonId, CollectionProviderEnum provider, boolean enabledOnCreate) {
     CollectionFamilyEnum family =
-        provider == CollectionProviderEnum.FFVB
-            ? CollectionFamilyEnum.FFVB
-            : CollectionFamilyEnum.LNV;
+        switch (provider) {
+          case FFVB -> CollectionFamilyEnum.FFVB;
+          case LNV -> CollectionFamilyEnum.LNV;
+        };
     CollectionControlEntity entity =
-        controls.findBySeasonIdOrderById(seasonId).stream()
-            .filter(control -> control.getFamily() == family)
-            .findFirst()
-            .orElse(null);
+        controls.findBySeasonIdAndFamily(seasonId, family).orElse(null);
     if (entity == null) {
       entity = new CollectionControlEntity(seasonId, family);
-      entity.setEnabled(false);
+      entity.setEnabled(enabledOnCreate);
       controls.saveAndFlush(entity);
     }
     return lockControl(entity.getId());
@@ -190,6 +188,14 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<CollectionResult> catalogResults(UUID seasonId, List<UUID> sourceIds) {
+    return sourceIds.isEmpty()
+        ? List.of()
+        : results.catalogResults(seasonId, sourceIds).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public CollectionState.ResultPage results(
       UUID controlId, CollectionState.ResultFilters filters, long page, int size) {
     CollectionState.ResultSummary summary =
@@ -277,16 +283,10 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider) {
-    CollectionFamilyEnum family =
-        switch (provider) {
-          case FFVB -> CollectionFamilyEnum.FFVB;
-          case LNV -> CollectionFamilyEnum.LNV;
-        };
-    if (!controls.existsBySeasonIdAndFamily(seasonId, family)) {
-      controls.save(new CollectionControlEntity(seasonId, family));
-    }
+  public boolean hasOrdinarySources(UUID seasonId, CollectionProviderEnum provider) {
+    return sources
+        .existsBySeasonIdAndProviderAndLaunchedTrueAndValidationStateAndAcceptedUrlIsNotNull(
+            seasonId, provider, SourceValidationStateEnum.QUALIFIED);
   }
 
   /** {@inheritDoc} */

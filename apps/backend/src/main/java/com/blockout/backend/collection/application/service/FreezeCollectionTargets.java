@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
@@ -85,18 +86,18 @@ public class FreezeCollectionTargets {
           case LNV -> CollectionProviderEnum.LNV;
           default -> throw invalid();
         };
+    boolean initialImport = cycle.mode() == CollectionModeEnum.INITIAL_IMPORT;
     List<Source> sources =
         store.sources(season.id()).stream()
             .filter(source -> source.provider() == provider)
             .filter(
                 source ->
-                    cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
+                    initialImport
                         ? control.sourceBindingIds().contains(source.id())
-                        : source.launched())
+                        : source.ordinaryCatalogEligible())
             .toList();
     if (sources.isEmpty()
-        || (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
-            && sources.size() != control.sourceBindingIds().size())) {
+        || (initialImport && sources.size() != control.sourceBindingIds().size())) {
       throw invalid();
     }
     for (Source candidate : sources) {
@@ -112,6 +113,9 @@ public class FreezeCollectionTargets {
         source = candidate;
       }
       retainDue(cycle, control, List.of(mapper.toDiscoveryTarget(source, season)));
+      if (!initialImport && season.collectionState() != CollectionSeasonStateEnum.ACTIVE) {
+        continue;
+      }
       UUID afterPool = null;
       while (true) {
         List<AcquisitionReference> references =
@@ -119,7 +123,7 @@ public class FreezeCollectionTargets {
                 season.id(),
                 provider,
                 source.organizerReference(),
-                cycle.mode() == CollectionModeEnum.INITIAL_IMPORT,
+                initialImport,
                 cycle.startedAt(),
                 afterPool);
         if (references.isEmpty()) {

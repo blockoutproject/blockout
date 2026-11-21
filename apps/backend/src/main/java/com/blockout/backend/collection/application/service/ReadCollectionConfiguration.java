@@ -3,25 +3,35 @@ package com.blockout.backend.collection.application.service;
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogRead;
+import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.ControlView;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalog;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.shared.pagination.PageOffset;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -204,6 +214,91 @@ public class ReadCollectionConfiguration {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     seasonReads.collectionState(seasonId);
     return sourceView(store.sources(seasonId));
+  }
+
+  /** Reads one source together with its latest independent catalogue observation. */
+  @Transactional(readOnly = true)
+  public SourceCatalog sourceCatalog(UUID accountId, UUID sourceId) {
+    Source source = source(accountId, sourceId);
+    return catalogs(source.seasonId(), List.of(source)).getFirst();
+  }
+
+  /** Reads the selected season's sources and catalogue evidence in bounded owner queries. */
+  @Transactional(readOnly = true)
+  public List<SourceCatalog> sourceCatalogs(UUID accountId, UUID seasonId) {
+    return catalogs(seasonId, sources(accountId, seasonId));
+  }
+
+  private List<SourceCatalog> catalogs(UUID seasonId, List<Source> sources) {
+    List<UUID> ids = sources.stream().map(Source::id).toList();
+    Map<UUID, CatalogObservation.Evidence> catalogs = acquisitionReads.catalogEvidence(ids);
+    Map<UUID, List<CollectionResult>> results =
+        store.catalogResults(seasonId, ids).stream()
+            .collect(Collectors.groupingBy(CollectionResult::scopeId));
+    return sources.stream()
+        .map(
+            source ->
+                new SourceCatalog(
+                    source,
+                    catalogRead(
+                        catalogs.get(source.id()), results.getOrDefault(source.id(), List.of()))))
+        .toList();
+  }
+
+  /**
+   * Gives a committed read precedence and preserves its last full refresh after a failed attempt.
+   */
+  private CatalogRead catalogRead(
+      CatalogObservation.Evidence accepted, List<CollectionResult> results) {
+    CollectionResult attempt =
+        results.stream()
+            .filter(result -> result.phase() == CollectionPhaseEnum.ACQUISITION)
+            .findFirst()
+            .orElse(null);
+    ObservationOrder attemptOrder = attempt == null ? null : order(attempt);
+    Instant lastComplete = accepted == null ? null : accepted.lastCompleteReadAt();
+    if (accepted != null
+        && (attemptOrder == null || accepted.order().compareTo(attemptOrder) >= 0)) {
+      if (Boolean.TRUE.equals(accepted.complete())) {
+        return new CatalogRead(
+            CatalogStatus.COMPLETE, accepted.observedAt(), lastComplete, null, null);
+      }
+      CollectionResult matched = accepted.order().equals(attemptOrder) ? attempt : null;
+      return catalogRead(CatalogStatus.PARTIAL, accepted.observedAt(), lastComplete, matched);
+    }
+    if (attempt == null) {
+      return new CatalogRead(CatalogStatus.NOT_READ, null, null, null, null);
+    }
+    CatalogStatus status =
+        attempt.outcome() == CollectionOutcomeEnum.PARTIAL
+            ? CatalogStatus.PARTIAL
+            : CatalogStatus.UNAVAILABLE;
+    CollectionResult evidence = attempt;
+    if (attempt.outcome() == CollectionOutcomeEnum.SUCCESS) {
+      evidence =
+          results.stream()
+              .filter(
+                  result ->
+                      result.phase() == CollectionPhaseEnum.INTEGRATION
+                          && attemptOrder.equals(order(result)))
+              .findFirst()
+              .orElse(attempt);
+    }
+    return catalogRead(status, attempt.observedAt(), lastComplete, evidence);
+  }
+
+  private ObservationOrder order(CollectionResult result) {
+    return new ObservationOrder(result.cycleOrder(), result.readOrdinal());
+  }
+
+  private CatalogRead catalogRead(
+      CatalogStatus status, Instant time, Instant lastComplete, CollectionResult reason) {
+    return new CatalogRead(
+        status,
+        time,
+        lastComplete,
+        reason == null ? null : reason.reasonType(),
+        reason == null ? null : reason.reason());
   }
 
   /**
