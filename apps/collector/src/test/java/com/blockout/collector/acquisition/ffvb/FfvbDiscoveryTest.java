@@ -39,7 +39,7 @@ class FfvbDiscoveryTest {
 
     // When
     SportingObservation.Catalog catalog =
-        discovery.parse(FfvbDiscovery.document(html, round), "2026/2027", "LIIDF");
+        discovery.parse(FfvbPage.document(html, round), "2026/2027", "LIIDF");
 
     // Then
     assertThat(catalog.complete()).isTrue();
