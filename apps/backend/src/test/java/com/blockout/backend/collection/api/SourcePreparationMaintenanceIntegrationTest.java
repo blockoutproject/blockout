@@ -226,7 +226,8 @@ class SourcePreparationMaintenanceIntegrationTest {
         "INSERT INTO account_permission(account_id, permission) VALUES (?, 'collection.manage')",
         ACCOUNT);
     mvc.perform(get("/administration/source-bindings/{id}", SOURCE).with(mobile()))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.label").value("FFVB / ABCCS"));
 
     // When
     mvc.perform(get("/clubs").with(mobile()))

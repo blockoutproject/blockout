@@ -699,12 +699,9 @@ Results:
         in: query
         description:
           Case- and accent-insensitive search across known scope and source labels and the stage and phase labels.
-          Every search term must match. Blank means no text filter.
+          Letter and number sequences form literal terms. Every term must match. Blank means no text filter.
         schema:
-          type: string
-          description: Up to 200 Unicode characters split into letter and number terms without wildcard operators.
-          # Matches the Discovery query limit without counting surrogate pairs twice.
-          pattern: '^[\p{L}\P{L}]{0,200}(?![\p{L}\P{L}])'
+          $ref: ../../common/scalars.yaml#/SearchQueryText
       - name: status
         in: query
         description: Restrict results to this outcome.

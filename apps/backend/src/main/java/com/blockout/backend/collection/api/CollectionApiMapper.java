@@ -161,9 +161,7 @@ public interface CollectionApiMapper {
    * @return source preparation response, without mapping metadata
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(
-      target = "label",
-      expression = "java(source.provider().name() + \" / \" + source.organizerReference())")
+  @Mapping(target = "label", expression = "java(source.label())")
   @Mapping(target = "validation", source = "validationState")
   @Mapping(
       target = "candidateUrl",

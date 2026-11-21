@@ -53,14 +53,14 @@ interface CollectionResultRepository
               r.outcome, r.last_success_at AS "lastSuccessAt", r.reason_type AS "reasonType",
               r.reason, r.obtained_count AS "obtainedCount", r.rejected_count AS "rejectedCount",
               NULLIF(CASE
-                WHEN r.stage = 'DISCOVERY' THEN binding.label
                 WHEN r.stage = 'DETAILS' THEN CONCAT_WS(' – ', COALESCE(home.manual_name, home.source_name),
                   COALESCE(away.manual_name, away.source_name))
                 WHEN r.stage = 'LOGO' THEN COALESCE(team.manual_name, team.source_name)
                 WHEN r.stage IN ('CLUB_SHEET', 'GEOCODING') THEN COALESCE(club.manual_name, club.source_name)
                 ELSE COALESCE(p.manual_name, p.source_name)
               END, '') AS "scopeLabel",
-              s.id AS "sourceId", binding.label AS "sourceLabel",
+              s.id AS "sourceId", s.provider AS "sourceProvider",
+              s.organizer_reference AS "organizerReference",
               CASE WHEN s.provider = 'FFVB' THEN p.pack_id END AS "packId",
               CASE WHEN s.provider = 'FFVB' THEN p.id END AS "poolId",
               CASE WHEN s.provider = 'LNV' THEN p.tour_reference END AS "phaseReference"
@@ -85,7 +85,6 @@ interface CollectionResultRepository
                 (r.stage = 'DISCOVERY' AND s.id = r.scope_id) OR
                 s.organizer_reference = COALESCE(p.organizer_reference,
                   CASE WHEN team.provider = 'LNV' THEN team.organizer_reference END))
-            CROSS JOIN LATERAL (SELECT s.provider || ' / ' || s.organizer_reference AS label) binding
             WHERE r.control_id = :controlId
               AND (CAST(:outcome AS TEXT) IS NULL OR r.outcome = :outcome)
               AND (CAST(:stage AS TEXT) IS NULL OR r.stage = :stage)
@@ -96,7 +95,7 @@ interface CollectionResultRepository
           WHERE NOT EXISTS (
             SELECT 1 FROM terms
             WHERE POSITION(terms.value IN regexp_replace(
-              LOWER(normalize(CONCAT_WS(' ', "scopeLabel", "sourceLabel",
+              LOWER(normalize(CONCAT_WS(' ', "scopeLabel", "sourceProvider", "organizerReference",
                 CASE stage
                   WHEN 'DISCOVERY' THEN 'Découverte'
                   WHEN 'CALENDAR' THEN 'Calendrier'
@@ -161,7 +160,9 @@ interface CollectionResultRepository
 
     UUID getSourceId();
 
-    String getSourceLabel();
+    String getSourceProvider();
+
+    String getOrganizerReference();
 
     UUID getPackId();
 

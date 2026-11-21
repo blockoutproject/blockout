@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
@@ -193,7 +194,7 @@ class JpaCollectionStore implements CollectionStore {
       UUID controlId, CollectionState.ResultFilters filters, long page, int size) {
     CollectionState.ResultSummary summary =
         results.summary(controlId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) {
+    if (page > PageOffset.maxPage(size)) {
       return new CollectionState.ResultPage(List.of(), page, false, summary);
     }
     Slice<CollectionResultRepository.CurrentResult> slice =
@@ -210,16 +211,20 @@ class JpaCollectionStore implements CollectionStore {
 
   /** Keeps a catalogue link absent when the result has no established source binding. */
   private CollectionState.ResultRow resultRow(CollectionResultRepository.CurrentResult row) {
+    CollectionResult result = mapper.toView(row);
+    if (row.getSourceId() == null) {
+      return new CollectionState.ResultRow(result, row.getScopeLabel(), null);
+    }
     CollectionState.ResultSource source =
-        row.getSourceId() == null
-            ? null
-            : new CollectionState.ResultSource(
-                row.getSourceId(),
-                row.getSourceLabel(),
-                row.getPackId(),
-                row.getPoolId(),
-                row.getPhaseReference());
-    return new CollectionState.ResultRow(mapper.toView(row), row.getScopeLabel(), source);
+        new CollectionState.ResultSource(
+            row.getSourceId(),
+            CollectionState.Source.label(row.getSourceProvider(), row.getOrganizerReference()),
+            row.getPackId(),
+            row.getPoolId(),
+            row.getPhaseReference());
+    String scopeLabel =
+        result.stage() == CollectionStageEnum.DISCOVERY ? source.label() : row.getScopeLabel();
+    return new CollectionState.ResultRow(result, scopeLabel, source);
   }
 
   /** {@inheritDoc} */

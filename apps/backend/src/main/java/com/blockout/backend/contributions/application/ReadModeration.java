@@ -9,6 +9,7 @@ import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.generated.mobile.model.StreamModerationFilterEnum;
 import com.blockout.backend.generated.mobile.model.StreamPlatformEnum;
 import com.blockout.backend.generated.mobile.model.StreamVersionFilterEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.ReadPrivateMatches;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
@@ -240,7 +241,7 @@ public class ReadModeration {
    * @throws IllegalArgumentException when its twenty-item offset cannot be represented
    */
   private int page(long page) {
-    if (page < 0 || page > 107374182) {
+    if (page < 0 || page > PageOffset.maxPage(ContributionStore.PAGE_SIZE)) {
       throw new IllegalArgumentException("Invalid page");
     }
     return (int) page;

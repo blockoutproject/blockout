@@ -15,6 +15,7 @@ import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class ReadCollectionWork {
   @Transactional
   public TargetPage targets(UUID cycleId, long page, int size) {
     cycleAccess.requireRunningControl(cycleId);
-    if (page > Integer.MAX_VALUE / size) {
+    if (page > PageOffset.maxPage(size)) {
       return new TargetPage(List.of(), page, false);
     }
     SnapshotPage snapshot = store.targets(cycleId, (int) page, size);

@@ -249,7 +249,7 @@ class CollectionResultIntegrationTest {
     seedResult(control, match.id(), "DETAILS", "INTEGRATION", "PARTIAL", 3);
 
     // When
-    ResultPage page = store.results(control, new ResultFilters(null, null, source, null), 0, 3);
+    ResultPage page = store.results(control, new ResultFilters("LM", null, source, null), 0, 3);
 
     // Then
     assertThat(page.items())

@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.infrastructure;
 
+import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.contributions.application.ContributionStore.VersionPage;
 import com.blockout.backend.contributions.application.ModerationStore;
 import java.util.Map;
@@ -30,7 +31,9 @@ public class JpaContributionReadAdapter implements ModerationStore {
   public QueuePage queue(UUID season, String query, String platform, String state, int page) {
     String pattern =
         "%" + query.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
-    Slice<UUID> found = reads.queue(season, pattern, platform, state, PageRequest.of(page, 20));
+    Slice<UUID> found =
+        reads.queue(
+            season, pattern, platform, state, PageRequest.of(page, ContributionStore.PAGE_SIZE));
     return new QueuePage(found.getContent(), found.hasNext());
   }
 
@@ -61,7 +64,7 @@ public class JpaContributionReadAdapter implements ModerationStore {
   @Override
   public VersionPage versions(UUID matchId, String state, int page) {
     Slice<ContributionVersionEntity> found =
-        reads.versions(matchId, state, PageRequest.of(page, 20));
+        reads.versions(matchId, state, PageRequest.of(page, ContributionStore.PAGE_SIZE));
     return new VersionPage(
         found.getContent().stream().map(mapper::toDomain).toList(), found.hasNext());
   }
@@ -82,7 +85,8 @@ public class JpaContributionReadAdapter implements ModerationStore {
   /** {@inheritDoc} */
   @Override
   public ReportPage reports(UUID versionId, int page) {
-    Slice<Report> found = reads.reports(versionId, PageRequest.of(page, 20));
+    Slice<Report> found =
+        reads.reports(versionId, PageRequest.of(page, ContributionStore.PAGE_SIZE));
     return new ReportPage(reports.countByVersionId(versionId), found.getContent(), found.hasNext());
   }
 }

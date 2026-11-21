@@ -138,7 +138,16 @@ public final class CollectionState {
       boolean locked,
       boolean launched,
       UUID currentCycleId,
-      URI reasonType) {}
+      URI reasonType) {
+    public String label() {
+      return label(provider.name(), organizerReference);
+    }
+
+    /** Uses the same known provider and organizer reference in Sources and Bilan. */
+    public static String label(String provider, String organizerReference) {
+      return provider + " / " + organizerReference;
+    }
+  }
 
   /**
    * Current control and retained pending scope; empty selections mean the ordinary whole family.

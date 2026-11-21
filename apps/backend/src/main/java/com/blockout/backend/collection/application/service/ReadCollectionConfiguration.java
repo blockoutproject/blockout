@@ -12,6 +12,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
@@ -166,7 +167,7 @@ public class ReadCollectionConfiguration {
       UUID accountId, UUID sourceId, UUID parentId, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     Source source = store.source(sourceId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) {
+    if (page > PageOffset.maxPage(size)) {
       return new CollectionResourcePage(List.of(), page, false);
     }
     return acquisitionReads.collectionChildren(
