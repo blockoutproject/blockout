@@ -70,17 +70,7 @@ function ProfileIdentitySkeleton() {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (
-    <IdentityCard
-      artworkBackgroundColor={colors.skeleton}
-      artwork={
-        <Skeleton
-          width={tokens.size.media.profile}
-          height={tokens.size.media.profile}
-          shape="rectangle"
-          radius={tokens.media.radius.profile}
-        />
-      }
-    >
+    <IdentityCard artwork={null} artworkBackgroundColor={colors.skeleton}>
       <TextSkeleton role="title" width={126 * fontScale} />
       <TextSkeleton role="label" width={132 * fontScale} />
     </IdentityCard>

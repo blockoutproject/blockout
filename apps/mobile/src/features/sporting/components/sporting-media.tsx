@@ -14,7 +14,6 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
-import { Skeleton } from "@/shared/components/skeleton";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -64,7 +63,7 @@ export function SportingMedia({
   /** Expo Image reloads when its bounds change. Resize the display with the wrapping view. */
   function renderArtwork() {
     const fixedSize = nativeSize !== undefined;
-    const radius = identityPlate ? borderRadius : mediaRadius(imageSize);
+    const radius = artworkScale < 1 ? mediaRadius(size * artworkScale) : 0;
     const artwork = (
       <Image
         key={image.attemptKey}
@@ -120,49 +119,42 @@ export function SportingMedia({
         ? "Logo indisponible"
         : "Logo absent";
   const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
-  const imageSize = size * artworkScale;
   const nativeImageSize = (nativeSize ?? size) * artworkScale;
-  const borderRadius = identityPlate
-    ? tokens.media.radius.profile
-    : mediaRadius(size);
-  const frame = {
-    width: size,
-    borderRadius,
-    backgroundColor: colors.logoSurface,
-  };
   const logo = (
-    <View style={[styles.media, frame]}>
-      <View
-        accessible={!available}
-        accessibilityRole={available ? undefined : "image"}
-        accessibilityLabel={
-          available ? undefined : `${label} : ${identity.name}`
-        }
-        accessibilityState={{ busy: !available && busy }}
-        style={[styles.slot, frame, { height: size }]}
-      >
-        {available && renderArtwork()}
-        {!available && !busy && (
-          <ImageFallback
-            color={colors.logoInk}
-            size={
-              presentation === "logo"
-                ? tokens.size.icon.md
-                : tokens.size.icon.lg
-            }
-          />
-        )}
-        {busy && (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Skeleton
-              width={size}
-              height={size}
-              shape="rectangle"
-              radius={borderRadius}
-            />
-          </View>
-        )}
-      </View>
+    <View
+      accessible={!available}
+      accessibilityRole={available ? undefined : "image"}
+      accessibilityLabel={available ? undefined : `${label} : ${identity.name}`}
+      accessibilityState={{ busy: !available && busy }}
+      style={[
+        styles.slot,
+        {
+          width: size,
+          height: size,
+          // IdentityCard already clips its artwork slot.
+          borderRadius: identityPlate ? undefined : mediaRadius(size),
+          backgroundColor: busy ? undefined : colors.logoSurface,
+        },
+      ]}
+    >
+      {available && renderArtwork()}
+      {!available && !busy && (
+        <ImageFallback
+          color={colors.logoInk}
+          size={
+            presentation === "logo" ? tokens.size.icon.md : tokens.size.icon.lg
+          }
+        />
+      )}
+      {busy && (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.skeleton },
+          ]}
+        />
+      )}
     </View>
   );
   if (!renderWithAtmosphere) {
@@ -360,15 +352,11 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     opacity: tokens.sporting.coverOpacity,
   },
-  media: {
-    alignItems: "center",
-    flexShrink: 1,
-    maxWidth: "100%",
-    overflow: "hidden",
-  },
   slot: {
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 1,
+    maxWidth: "100%",
     overflow: "hidden",
   },
 });
