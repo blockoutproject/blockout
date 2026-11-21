@@ -348,11 +348,11 @@ MappingPacks:
     parameters:
       - name: search
         in: query
-        description: Each term must match a pack, source or current pool label, ignoring case and accents.
+        description: >-
+          Letter and number sequences form literal terms. Every term must match the pack, its source
+          or a current pool label, ignoring case and accents. Text without terms applies no search filter.
         schema:
-          type: string
-          description: Literal search text, split into alphanumeric terms.
-          maxLength: 200
+          $ref: ../../common/scalars.yaml#/SearchQueryText
       - name: status
         in: query
         description: Restrict packs by aggregate classification status.

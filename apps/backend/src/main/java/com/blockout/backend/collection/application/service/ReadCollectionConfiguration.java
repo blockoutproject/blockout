@@ -18,10 +18,11 @@ import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
@@ -173,12 +174,12 @@ public class ReadCollectionConfiguration {
    * @return native direct children without classification state
    */
   @Transactional(readOnly = true)
-  public CollectionResourcePage children(
+  public OffsetPage<CollectionResource> children(
       UUID accountId, UUID sourceId, UUID parentId, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     Source source = store.source(sourceId).orElseThrow(CollectionNotFoundException::new);
     if (page > PageOffset.maxPage(size)) {
-      return new CollectionResourcePage(List.of(), page, false);
+      return OffsetPage.empty(page);
     }
     return acquisitionReads.collectionChildren(
         source.seasonId(),

@@ -1,13 +1,17 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import static com.blockout.backend.shared.persistence.PostgresSearchText.FOLD_PREFIX;
+import static com.blockout.backend.shared.persistence.PostgresSearchText.FOLD_SUFFIX;
+import static com.blockout.backend.shared.persistence.PostgresSearchText.QUERY_TERMS_CTE;
+
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingStatus;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -56,15 +60,7 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
   /** Filters the complete pack projection before applying the pageable offset. */
   @Query(
       value =
-          """
-          WITH terms AS (
-            SELECT value FROM regexp_split_to_table(
-              regexp_replace(LOWER(normalize(CAST(:search AS TEXT), NFD)) COLLATE "C",
-                U&'[\\0300-\\036f]', '', 'g') COLLATE "default",
-              '[^[:alnum:]]+') AS term(value)
-            WHERE value <> ''
-          )
-          """
+          QUERY_TERMS_CTE
               + PACK_PROJECTION
               + """
             WHERE (CAST(:seasonId AS UUID) IS NULL OR season.id = :seasonId)
@@ -76,21 +72,26 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
               AND (CAST(:status AS TEXT) IS NULL OR coverage.status = :status)
               AND NOT EXISTS (
                 SELECT 1 FROM terms
-                WHERE POSITION(terms.value IN regexp_replace(LOWER(normalize(
-                  CONCAT_WS(' ', pack.reference, source.provider, source.organizer_reference), NFD
-                )) COLLATE "C", U&'[\\0300-\\036f]', '', 'g')) = 0
-                  AND NOT EXISTS (
-                    SELECT 1 FROM sporting_pool pool
+                WHERE NOT EXISTS (
+                  SELECT 1 FROM (
+                    SELECT CONCAT_WS(' ', pack.reference, source.provider, source.organizer_reference) AS label
+                    UNION ALL
+                    SELECT pool.source_name FROM sporting_pool pool
                     WHERE pool.pack_id = pack.id AND pool.catalog_eligible
-                      AND POSITION(terms.value IN regexp_replace(LOWER(normalize(
-                        pool.source_name, NFD
-                      )) COLLATE "C", U&'[\\0300-\\036f]', '', 'g')) > 0
-                  )
+                  ) labels
+                  WHERE POSITION(terms.value IN
+          """
+              + FOLD_PREFIX
+              + "labels.label"
+              + FOLD_SUFFIX
+              + """
+                  ) > 0
+                )
               )
             ORDER BY LOWER(pack.reference), pack.id
           """,
       nativeQuery = true)
-  Slice<PackRow> packs(String search, String status, UUID sourceId, UUID seasonId, Pageable page);
+  Slice<PackRow> packs(String query, String status, UUID sourceId, UUID seasonId, Pageable page);
 
   @Query(value = PACK_PROJECTION + "WHERE pack.id = :packId", nativeQuery = true)
   Optional<PackRow> pack(UUID packId);
@@ -162,7 +163,7 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
           getSeasonLabel(),
           classification(),
           getDivisionName(),
-          MappingStatus.valueOf(getStatus()),
+          MappingStatusEnum.valueOf(getStatus()),
           Math.toIntExact(getPoolCount()));
     }
   }

@@ -2,13 +2,14 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
-import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Contacts;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
@@ -33,7 +34,7 @@ public class ReadSportingConfiguration {
 
   /** Reads catalogue packs under the classification grant, independent of collection access. */
   @Transactional(readOnly = true)
-  public PackMappingPage mappingPacks(
+  public OffsetPage<MappingPack> mappingPacks(
       UUID accountId, MappingPackFilters filters, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     return store.mappingPacks(filters, page, size);
@@ -50,8 +51,8 @@ public class ReadSportingConfiguration {
 
   /** Reads source or season choices under the same grant as the catalogue they filter. */
   @Transactional(readOnly = true)
-  public MappingFilterOptions mappingFilterOptions(
-      UUID accountId, MappingFilterDimension dimension, long page, int size) {
+  public OffsetPage<MappingFilterOption> mappingFilterOptions(
+      UUID accountId, MappingFilterDimensionEnum dimension, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     return store.mappingFilterOptions(dimension, page, size);
   }

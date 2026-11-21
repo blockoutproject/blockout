@@ -210,7 +210,7 @@ it("selects automatic team artwork independently through the generated binary cl
 it("preserves the mapping aggregate and explicit unclassified pool on a generated detail page", async () => {
   // Given
   const body = {
-    pack: mappingPack,
+    pack: { ...mappingPack, label: "🏐".repeat(256) },
     items: [
       {
         id: poolId,
@@ -239,18 +239,21 @@ it("preserves the mapping aggregate and explicit unclassified pool on a generate
   expect(result).toStrictEqual(body);
 });
 
-it("rejects omission of a required nullable effective mapping classification", async () => {
+it.each([
+  { reason: "omitted effective classification", pool: { label: "Tour 2" } },
+  {
+    reason: "label over the Unicode limit",
+    pool: { label: "🏐".repeat(257), effectiveClassification: null },
+  },
+])("rejects a generated pool response with $reason", async ({ pool }) => {
   // Given
   mockFetch.mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        pack: mappingPack,
-        items: [{ id: poolId, label: "Tour 2", mode: "inherited" }],
-        page: 0,
-        hasNext: false,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    ),
+    Response.json({
+      pack: mappingPack,
+      items: [{ id: poolId, mode: "inherited", ...pool }],
+      page: 0,
+      hasNext: false,
+    }),
   );
 
   // When

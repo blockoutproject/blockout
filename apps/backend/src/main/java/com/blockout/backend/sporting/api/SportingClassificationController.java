@@ -39,10 +39,10 @@ public class SportingClassificationController implements SportingClassificationA
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
-            mapper.toDto(
+            mapper.toPackPage(
                 configurationReads.mappingPacks(
                     account.id(),
-                    new MappingPackFilters(search, mapper.toStatus(status), sourceId, seasonId),
+                    new MappingPackFilters(search, status, sourceId, seasonId),
                     page,
                     size)));
   }
@@ -63,9 +63,8 @@ public class SportingClassificationController implements SportingClassificationA
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(
-            mapper.toDto(
-                configurationReads.mappingFilterOptions(
-                    account.id(), mapper.toDimension(dimension), page, size)));
+            mapper.toFilterOptions(
+                configurationReads.mappingFilterOptions(account.id(), dimension, page, size)));
   }
 
   /** {@inheritDoc} */

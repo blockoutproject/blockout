@@ -1,7 +1,9 @@
 package com.blockout.backend.sporting.application.port;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
@@ -16,14 +18,14 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
-import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -45,13 +47,14 @@ import java.util.UUID;
 /** Application-owned identity operations; managed entities never cross this port. */
 public interface SportingStore {
   /** Reads a bounded slice after applying the search and filters to the mapping population. */
-  PackMappingPage mappingPacks(MappingPackFilters filters, long page, int size);
+  OffsetPage<MappingPack> mappingPacks(MappingPackFilters filters, long page, int size);
 
   /** Reads the pack summary and a bounded slice of current catalogue children. */
   Optional<PackMappingDetail> mappingPack(UUID packId, long page, int size);
 
   /** Reads distinct options from the complete mapping population, independent of pack filters. */
-  MappingFilterOptions mappingFilterOptions(MappingFilterDimension dimension, long page, int size);
+  OffsetPage<MappingFilterOption> mappingFilterOptions(
+      MappingFilterDimensionEnum dimension, long page, int size);
 
   /**
    * Reads one page of direct children within an exact source-season context.
@@ -64,7 +67,7 @@ public interface SportingStore {
    * @param size positive size no greater than 200
    * @return child identities without mapping readiness or a total count
    */
-  SportingViews.CollectionResourcePage collectionChildren(
+  OffsetPage<CollectionResource> collectionChildren(
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,

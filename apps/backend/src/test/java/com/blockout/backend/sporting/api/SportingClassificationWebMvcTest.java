@@ -19,18 +19,17 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingStatus;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
-import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.service.ChangeSportingClassification;
 import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
@@ -77,8 +76,9 @@ class SportingClassificationWebMvcTest {
   void listsMappingPacks() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    String search = "tour ligue" + "🏐".repeat(190);
     MappingPackFilters filters =
-        new MappingPackFilters("tour ligue", MappingStatus.SOME, SOURCE, SEASON);
+        new MappingPackFilters(search, MappingStatusEnum.SOME, SOURCE, SEASON);
     MappingPack pack =
         new MappingPack(
             ID,
@@ -89,17 +89,17 @@ class SportingClassificationWebMvcTest {
             "2026–2027",
             null,
             null,
-            MappingStatus.SOME,
+            MappingStatusEnum.SOME,
             2);
     when(configurationReads.mappingPacks(ACCOUNT, filters, 2, 1))
-        .thenReturn(new PackMappingPage(List.of(pack), 2, true));
+        .thenReturn(new OffsetPage<>(List.of(pack), 2, true));
 
     // When
     ResultActions response =
         mvc.perform(
             get("/administration/packs")
                 .with(mobileJwt())
-                .param("search", "tour ligue")
+                .param("search", search)
                 .param("status", "some")
                 .param("sourceId", SOURCE.toString())
                 .param("seasonId", SEASON.toString())
@@ -128,7 +128,7 @@ class SportingClassificationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.mappingPacks(
             ACCOUNT, new MappingPackFilters(null, null, null, null), 0, 50))
-        .thenReturn(new PackMappingPage(List.of(), 0, false));
+        .thenReturn(OffsetPage.empty(0));
 
     // When
     ResultActions response = mvc.perform(get("/administration/packs").with(mobileJwt()));
@@ -161,17 +161,18 @@ class SportingClassificationWebMvcTest {
             "2026–2027",
             null,
             null,
-            MappingStatus.SOME,
+            MappingStatusEnum.SOME,
             2);
     when(configurationReads.mappingPack(ACCOUNT, ID, 0, 50))
         .thenReturn(
             new PackMappingDetail(
                 pack,
-                List.of(
-                    new MappingPool(customPool, "Tour 1", custom, "M18 Régionale", false),
-                    new MappingPool(inheritedPool, "Tour 2", null, null, true)),
-                0,
-                false));
+                new OffsetPage<>(
+                    List.of(
+                        new MappingPool(customPool, "Tour 1", custom, "M18 Régionale", false),
+                        new MappingPool(inheritedPool, "Tour 2", null, null, true)),
+                    0,
+                    false)));
 
     // When
     ResultActions response = mvc.perform(get("/administration/packs/{id}", ID).with(mobileJwt()));
@@ -199,10 +200,9 @@ class SportingClassificationWebMvcTest {
   void listsMappingFilterOptions() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(configurationReads.mappingFilterOptions(ACCOUNT, MappingFilterDimension.SEASON, 0, 1))
+    when(configurationReads.mappingFilterOptions(ACCOUNT, MappingFilterDimensionEnum.SEASON, 0, 1))
         .thenReturn(
-            new MappingFilterOptions(
-                List.of(new MappingFilterOption(SEASON, "2026–2027")), 0, true));
+            new OffsetPage<>(List.of(new MappingFilterOption(SEASON, "2026–2027")), 0, true));
 
     // When
     ResultActions response =
@@ -249,6 +249,21 @@ class SportingClassificationWebMvcTest {
   void refusesInvalidMappingCriteria(String path) throws Exception {
     // When
     ResultActions response = mvc.perform(get(path).with(mobileJwt()));
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(configurationReads);
+  }
+
+  @Test
+  @DisplayName("Rejects search beyond the shared Unicode code point limit")
+  void refusesLongMappingSearch() throws Exception {
+    // Given
+    String search = "🏐".repeat(201);
+
+    // When
+    ResultActions response =
+        mvc.perform(get("/administration/packs").with(mobileJwt()).queryParam("search", search));
+
     // Then
     response.andExpect(status().isBadRequest());
     verifyNoInteractions(configurationReads);

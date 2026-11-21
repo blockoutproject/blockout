@@ -58,6 +58,11 @@ MappingFilterDimensionEnum:
   enum:
     - source
     - season
+MappingLabelText:
+  type: string
+  description: Established catalogue, source, season or division display label capped at 256 Unicode code points.
+  # Count code points in Java Pattern and Orval's Unicode RegExp, including before a final newline.
+  pattern: '^[\p{L}\P{L}]{0,256}(?![\p{L}\P{L}])'
 MappingPackPageResponse:
   title: MappingPackPageResponse
   type: object
@@ -96,25 +101,19 @@ MappingPackResponse:
       format: uuid
       description: Stable catalogue pack UUID, also used for classification operations.
     label:
-      type: string
-      maxLength: 512
-      description: Established pack catalogue label, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
     sourceId:
       type: string
       format: uuid
       description: Stable source binding UUID for this pack's provider, organizer and season.
     sourceLabel:
-      type: string
-      maxLength: 512
-      description: Established provider and organizer label, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
     seasonId:
       type: string
       format: uuid
       description: Stable qualified season UUID.
     seasonLabel:
-      type: string
-      maxLength: 512
-      description: Established season label, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
     defaultClassification:
       $ref: "#/MappingClassificationResponse"
     status:
@@ -174,9 +173,7 @@ MappingPoolResponse:
       format: uuid
       description: Stable catalogue pool UUID, also used for classification operations.
     label:
-      type: string
-      maxLength: 512
-      description: Established pool catalogue label, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
     mode:
       $ref: "#/MappingPoolModeEnum"
     effectiveClassification:
@@ -200,9 +197,7 @@ MappingClassificationResponse:
       format: uuid
       description: Stable division UUID.
     divisionName:
-      type: string
-      maxLength: 512
-      description: Current division name, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
     format:
       $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
     gender:
@@ -250,9 +245,7 @@ MappingFilterOptionResponse:
       format: uuid
       description: UUID accepted by the corresponding sourceId or seasonId filter.
     label:
-      type: string
-      maxLength: 512
-      description: Established source or season label, capped at 256 Unicode characters.
+      $ref: "#/MappingLabelText"
   required:
     - id
     - label

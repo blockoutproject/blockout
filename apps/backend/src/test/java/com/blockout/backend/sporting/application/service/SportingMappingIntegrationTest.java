@@ -10,19 +10,18 @@ import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterDimension;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOptions;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
-import com.blockout.backend.sporting.application.model.SportingMapping.MappingStatus;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
-import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingPage;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.port.SportingStore;
@@ -82,12 +81,12 @@ class SportingMappingIntegrationTest {
     assertThatThrownBy(() -> reads.mappingPack(collector, created.packId(), 0, 1))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(
-            () -> reads.mappingFilterOptions(collector, MappingFilterDimension.SOURCE, 0, 1))
+            () -> reads.mappingFilterOptions(collector, MappingFilterDimensionEnum.SOURCE, 0, 1))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> reads.mappingPack(operator, source.id(), 0, 1))
         .isInstanceOf(SportingResourceNotFoundException.class);
 
-    PackMappingPage page = reads.mappingPacks(operator, UNFILTERED, 0, 1);
+    OffsetPage<MappingPack> page = reads.mappingPacks(operator, UNFILTERED, 0, 1);
     assertThat(page.items())
         .containsExactly(
             new MappingPack(
@@ -99,9 +98,9 @@ class SportingMappingIntegrationTest {
                 "2026/2027",
                 null,
                 null,
-                MappingStatus.NONE,
+                MappingStatusEnum.NONE,
                 1));
-    assertThat(reads.mappingPack(operator, created.packId(), 0, 1).items())
+    assertThat(reads.mappingPack(operator, created.packId(), 0, 1).pools().items())
         .containsExactly(new MappingPool(created.id(), "Poule A", null, null, true));
   }
 
@@ -123,8 +122,8 @@ class SportingMappingIntegrationTest {
 
     PackMappingDetail withDefault = reads.mappingPack(operator, pack, 0, 2);
     assertThat(withDefault.pack().defaultClassification()).isEqualTo(defaultClassification);
-    assertThat(withDefault.pack().status()).isEqualTo(MappingStatus.ALL);
-    assertThat(withDefault.items())
+    assertThat(withDefault.pack().status()).isEqualTo(MappingStatusEnum.ALL);
+    assertThat(withDefault.pools().items())
         .containsExactly(
             new MappingPool(inherited.id(), "A — Du pack", defaultClassification, "Default", true),
             new MappingPool(
@@ -134,8 +133,8 @@ class SportingMappingIntegrationTest {
 
     PackMappingDetail withoutDefault = reads.mappingPack(operator, pack, 0, 2);
     assertThat(withoutDefault.pack().defaultClassification()).isNull();
-    assertThat(withoutDefault.pack().status()).isEqualTo(MappingStatus.SOME);
-    assertThat(withoutDefault.items())
+    assertThat(withoutDefault.pack().status()).isEqualTo(MappingStatusEnum.SOME);
+    assertThat(withoutDefault.pools().items())
         .containsExactly(
             new MappingPool(inherited.id(), "A — Du pack", null, null, true),
             new MappingPool(
@@ -146,11 +145,11 @@ class SportingMappingIntegrationTest {
     writes.setPool(operator, inherited.id(), customClassification);
 
     PackMappingDetail allOverrides = reads.mappingPack(operator, pack, 0, 2);
-    PackMappingPage allPacks =
+    OffsetPage<MappingPack> allPacks =
         reads.mappingPacks(
-            operator, new MappingPackFilters(null, MappingStatus.ALL, null, null), 0, 1);
+            operator, new MappingPackFilters(null, MappingStatusEnum.ALL, null, null), 0, 1);
     assertThat(allOverrides.pack().defaultClassification()).isNull();
-    assertThat(allOverrides.pack().status()).isEqualTo(MappingStatus.ALL);
+    assertThat(allOverrides.pack().status()).isEqualTo(MappingStatusEnum.ALL);
     assertThat(allPacks.items()).containsExactly(allOverrides.pack());
   }
 
@@ -177,15 +176,15 @@ class SportingMappingIntegrationTest {
         .extracting(MappingPack::id)
         .containsExactly(first.packId());
     String search = "REgionale: sélection / ECRIN, ouest FFVB";
-    PackMappingPage matching =
+    OffsetPage<MappingPack> matching =
         reads.mappingPacks(operator, new MappingPackFilters(search, null, null, null), 0, 1);
     assertThat(matching.items()).extracting(MappingPack::id).containsExactly(otherSeason.packId());
     assertThat(matching.hasNext()).isTrue();
 
-    PackMappingPage scoped =
+    OffsetPage<MappingPack> scoped =
         reads.mappingPacks(
             operator,
-            new MappingPackFilters(search, MappingStatus.SOME, futureWest.id(), current.id()),
+            new MappingPackFilters(search, MappingStatusEnum.SOME, futureWest.id(), current.id()),
             0,
             1);
     assertThat(scoped.items()).extracting(MappingPack::id).containsExactly(selected.packId());
@@ -202,7 +201,7 @@ class SportingMappingIntegrationTest {
             reads
                 .mappingPacks(
                     operator,
-                    new MappingPackFilters(null, MappingStatus.NONE, null, preparing.id()),
+                    new MappingPackFilters(null, MappingStatusEnum.NONE, null, preparing.id()),
                     0,
                     1)
                 .items())
@@ -225,9 +224,9 @@ class SportingMappingIntegrationTest {
     UUID pack = withdrawn.packId();
 
     PackMappingDetail before = reads.mappingPack(operator, pack, 0, 1);
-    assertThat(before.items()).isEmpty();
+    assertThat(before.pools().items()).isEmpty();
     assertThat(before.pack().poolCount()).isZero();
-    assertThat(before.pack().status()).isEqualTo(MappingStatus.NONE);
+    assertThat(before.pack().status()).isEqualTo(MappingStatusEnum.NONE);
     assertThat(
             reads
                 .mappingPacks(operator, new MappingPackFilters("Withdrawn", null, null, null), 0, 1)
@@ -237,8 +236,8 @@ class SportingMappingIntegrationTest {
     writes.setPack(operator, pack, setting);
 
     PackMappingDetail after = reads.mappingPack(operator, pack, 0, 1);
-    assertThat(after.items()).isEmpty();
-    assertThat(after.pack().status()).isEqualTo(MappingStatus.ALL);
+    assertThat(after.pools().items()).isEmpty();
+    assertThat(after.pack().status()).isEqualTo(MappingStatusEnum.ALL);
     assertThat(after.pack().defaultClassification()).isEqualTo(setting);
   }
 
@@ -262,14 +261,14 @@ class SportingMappingIntegrationTest {
     assertThat(firstPage.pack().id()).isEqualTo(first.packId());
     assertThat(firstPage.pack().label()).isEqualTo("🏐".repeat(256));
     assertThat(firstPage.pack().sourceLabel()).isEqualTo("FFVB / " + "É".repeat(249));
-    assertThat(firstPage.items())
+    assertThat(firstPage.pools().items())
         .containsExactly(new MappingPool(ids.getFirst(), "🦉".repeat(256), null, null, true));
-    assertThat(firstPage.hasNext()).isTrue();
-    assertThat(secondPage.items())
+    assertThat(firstPage.pools().hasNext()).isTrue();
+    assertThat(secondPage.pools().items())
         .containsExactly(new MappingPool(ids.getLast(), "🦉".repeat(256), null, null, true));
-    assertThat(secondPage.hasNext()).isFalse();
-    assertThat(distantPage.items()).isEmpty();
-    assertThat(distantPage.hasNext()).isFalse();
+    assertThat(secondPage.pools().hasNext()).isFalse();
+    assertThat(distantPage.pools().items()).isEmpty();
+    assertThat(distantPage.pools().hasNext()).isFalse();
     assertThat(distantPage.pack().poolCount()).isEqualTo(2);
   }
 
@@ -287,14 +286,14 @@ class SportingMappingIntegrationTest {
     discover(newerWest, "Newer Pack", "A", "Two");
     discover(east, "East Pack", "A", "Three");
 
-    MappingFilterOptions firstSource =
-        reads.mappingFilterOptions(operator, MappingFilterDimension.SOURCE, 0, 1);
-    MappingFilterOptions secondSource =
-        reads.mappingFilterOptions(operator, MappingFilterDimension.SOURCE, 1, 1);
-    MappingFilterOptions firstSeason =
-        reads.mappingFilterOptions(operator, MappingFilterDimension.SEASON, 0, 1);
-    MappingFilterOptions secondSeason =
-        reads.mappingFilterOptions(operator, MappingFilterDimension.SEASON, 1, 1);
+    OffsetPage<MappingFilterOption> firstSource =
+        reads.mappingFilterOptions(operator, MappingFilterDimensionEnum.SOURCE, 0, 1);
+    OffsetPage<MappingFilterOption> secondSource =
+        reads.mappingFilterOptions(operator, MappingFilterDimensionEnum.SOURCE, 1, 1);
+    OffsetPage<MappingFilterOption> firstSeason =
+        reads.mappingFilterOptions(operator, MappingFilterDimensionEnum.SEASON, 0, 1);
+    OffsetPage<MappingFilterOption> secondSeason =
+        reads.mappingFilterOptions(operator, MappingFilterDimensionEnum.SEASON, 1, 1);
 
     assertThat(firstSource.items())
         .containsExactly(new MappingFilterOption(east.id(), "FFVB / Est"));

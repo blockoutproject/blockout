@@ -21,20 +21,6 @@ public final class SportingViews {
       String phaseReference,
       Integer poolCount) {}
 
-  /** Bounded direct children in stable label/identity order; no total-count query. */
-  public record CollectionResourcePage(List<CollectionResource> items, long page, boolean hasNext) {
-    /**
-     * Detaches the returned children from persistence.
-     *
-     * @param items direct children in stable label/identity order
-     * @param page zero-based page index
-     * @param hasNext whether another page remains
-     */
-    public CollectionResourcePage {
-      items = List.copyOf(items);
-    }
-  }
-
   /**
    * Canonical season identity, independent of F01 lifecycle and source labels.
    *

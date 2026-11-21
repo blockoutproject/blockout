@@ -1,5 +1,9 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
+import static com.blockout.backend.shared.persistence.PostgresSearchText.FOLD_PREFIX;
+import static com.blockout.backend.shared.persistence.PostgresSearchText.FOLD_SUFFIX;
+import static com.blockout.backend.shared.persistence.PostgresSearchText.QUERY_TERMS_CTE;
+
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionState.ResultSummary;
 import java.time.Instant;
@@ -49,14 +53,9 @@ interface CollectionResultRepository
    */
   @Query(
       value =
-          """
-          WITH terms AS (
-            SELECT value FROM regexp_split_to_table(
-              regexp_replace(LOWER(normalize(CAST(:query AS TEXT), NFD)) COLLATE "C",
-                U&'[\\0300-\\036f]', '', 'g') COLLATE "default",
-              '[^[:alnum:]]+') AS term(value)
-            WHERE value <> ''
-          ), attributed AS (
+          QUERY_TERMS_CTE
+              + """
+          , attributed AS (
             SELECT r.scope_id AS "scopeId", r.stage, r.phase, r.cycle_order AS "cycleOrder",
               r.read_ordinal AS "readOrdinal", r.last_attempt_at AS "observedAt",
               r.outcome, r.last_success_at AS "lastSuccessAt", r.reason_type AS "reasonType",
@@ -103,8 +102,11 @@ interface CollectionResultRepository
           FROM attributed
           WHERE NOT EXISTS (
             SELECT 1 FROM terms
-            WHERE POSITION(terms.value IN regexp_replace(
-              LOWER(normalize(CONCAT_WS(' ', "scopeLabel", "sourceProvider", "organizerReference",
+            WHERE POSITION(terms.value IN
+          """
+              + FOLD_PREFIX
+              + """
+              CONCAT_WS(' ', "scopeLabel", "sourceProvider", "organizerReference",
                 CASE stage
                   WHEN 'DISCOVERY' THEN 'Découverte'
                   WHEN 'CALENDAR' THEN 'Calendrier'
@@ -118,7 +120,11 @@ interface CollectionResultRepository
                   WHEN 'ACQUISITION' THEN 'Acquisition'
                   WHEN 'INTEGRATION' THEN 'Intégration'
                 END
-              ), NFD)) COLLATE "C", U&'[\\0300-\\036f]', '', 'g')) = 0
+              )
+          """
+              + FOLD_SUFFIX
+              + """
+            ) = 0
           )
           ORDER BY "observedAt" DESC NULLS LAST, "scopeId", stage, phase
           """,

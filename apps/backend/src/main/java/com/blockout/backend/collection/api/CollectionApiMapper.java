@@ -34,6 +34,7 @@ import com.blockout.backend.generated.mobile.model.SourceCatalogReadResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import java.util.Arrays;
 import java.util.Objects;
@@ -182,7 +183,8 @@ public interface CollectionApiMapper {
    * @return generated page preserving order and hasNext
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  DiscoveredCollectionResourcePageResponse toDto(SportingViews.CollectionResourcePage source);
+  DiscoveredCollectionResourcePageResponse toDto(
+      OffsetPage<SportingViews.CollectionResource> source);
 
   /**
    * Maps one discovered native identity.

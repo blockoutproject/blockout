@@ -34,13 +34,13 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.AcceptCatalog;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
@@ -860,7 +860,8 @@ class SourcePreparationIntegrationTest {
         pack);
 
     // When
-    CollectionResourcePage children = configurationReads.children(ACCOUNT, SOURCE, pack, 0, 1);
+    OffsetPage<CollectionResource> children =
+        configurationReads.children(ACCOUNT, SOURCE, pack, 0, 1);
 
     // Then
     assertThat(children.hasNext()).isTrue();
