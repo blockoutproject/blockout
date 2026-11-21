@@ -2,13 +2,11 @@ Query:
   name: q
   in: query
   required: false
-  description: Text to match; absent, empty or whitespace-only selects examples. Nonempty text selects paginated search.
+  description:
+    Text to match. Absent, empty or whitespace-only text selects examples.
+    Nonempty text selects paginated search without truncation or a separate term limit.
   schema:
-    type: string
-    description: At most 200 Unicode characters, without truncation or a separate token-count limit.
-    # Both Java Pattern and Orval's Unicode RegExp count code points here. @Size/max count UTF-16.
-    # The final negative lookahead also rejects an over-limit trailing newline.
-    pattern: '^[\p{L}\P{L}]{0,200}(?![\p{L}\P{L}])'
+    $ref: ../../common/scalars.yaml#/SearchQueryText
 Cursor:
   name: cursor
   in: query

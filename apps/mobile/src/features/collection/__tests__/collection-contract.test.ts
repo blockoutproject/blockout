@@ -1,8 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createCollectionQueries } from "../api/collection-queries";
-import { getCollectionControl } from "../../../../.generated/mobile";
+import {
+  getCollectionControl,
+  listCollectionResults,
+} from "../../../../.generated/mobile";
 import type {
   CollectionControlResponse,
+  CollectionResultResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 
@@ -55,6 +59,58 @@ it("accepts explicit nullable evidence and additive fields through the generated
   expect(result).toEqual(control);
   expect(result).not.toHaveProperty("cycle");
   expect(result).not.toHaveProperty("seasonId");
+});
+
+it("reads legacy result pages and preserves new search criteria and evidence", async () => {
+  // Given
+  const controlId = "00000000-0000-4000-8000-000000000004";
+  const row: CollectionResultResponse = {
+    scopeId: "00000000-0000-4000-8000-000000000002",
+    scopeLabel: "D1 masculine · Saison régulière",
+    stage: "calendar",
+    phase: "acquisition",
+    outcome: "failed",
+    observedAt: "2026-10-24T12:00:00Z",
+    lastSuccessAt: null,
+    reasonType: "urn:blockout:acquisition:technical",
+  };
+  const legacy = { items: [row], page: 0, hasNext: true };
+  const source = {
+    id: "00000000-0000-4000-8000-000000000003",
+    label: "D1 masculine",
+    phaseReference: "42",
+  };
+  const filtered = {
+    items: [{ ...row, source }],
+    page: 0,
+    hasNext: false,
+    summary: { success: 12, partial: 2, failed: 1, unconfirmed: 0 },
+  };
+  mockFetch
+    .mockResolvedValueOnce(Response.json(legacy))
+    .mockResolvedValueOnce(Response.json(filtered));
+
+  // When
+  const previousPage = await listCollectionResults(controlId, { size: 1 });
+  const filteredPage = await listCollectionResults(controlId, {
+    size: 1,
+    query: "régulière calendrier",
+    status: "failed",
+    sourceId: source.id,
+    stage: "calendar",
+  });
+
+  // Then
+  expect(previousPage).toEqual(legacy);
+  expect(filteredPage).toEqual(filtered);
+  const request = new URL(String(mockFetch.mock.calls[1][0]));
+  expect(Object.fromEntries(request.searchParams)).toEqual({
+    size: "1",
+    query: "régulière calendrier",
+    status: "failed",
+    sourceId: source.id,
+    stage: "calendar",
+  });
 });
 
 it.each([

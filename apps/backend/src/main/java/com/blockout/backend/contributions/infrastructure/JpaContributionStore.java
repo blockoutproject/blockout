@@ -214,7 +214,7 @@ public class JpaContributionStore implements ContributionStore {
   public VersionPage own(UUID matchId, UUID ownerId, int page) {
     Slice<ContributionVersionEntity> found =
         versions.findByMatchIdAndOwnerIdOrderByCreatedAtDescIdAsc(
-            matchId, ownerId, PageRequest.of(page, 20));
+            matchId, ownerId, PageRequest.of(page, ContributionStore.PAGE_SIZE));
     return new VersionPage(
         found.getContent().stream().map(mapper::toDomain).toList(), found.hasNext());
   }

@@ -9,6 +9,7 @@ import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
@@ -45,7 +46,7 @@ public class ReadOwnContributions {
    * @throws SportingResourceNotFoundException when the exact match is unknown or hidden
    */
   public Page read(UUID owner, UUID matchId, long page) {
-    if (page < 0 || page > 107374182) {
+    if (page < 0 || page > PageOffset.maxPage(ContributionStore.PAGE_SIZE)) {
       throw new IllegalArgumentException("Invalid page");
     }
     Facts facts = require(owner, matchId);

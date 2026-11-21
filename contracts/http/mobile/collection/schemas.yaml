@@ -324,7 +324,9 @@ CollectionResultResponse:
       format: uuid
     scopeLabel:
       type: string
-      description: Safe scope label without personal values.
+      description: Human-readable scope from known evidence or a neutral unknown-scope label.
+    source:
+      $ref: "#/CollectionResultSourceResponse"
     stage:
       $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
     phase:
@@ -342,11 +344,11 @@ CollectionResultResponse:
       nullable: true
     reasonType:
       type: string
-      description: Stable safe machine problem type when relevant.
+      description: Stable safe machine problem type when available. It does not establish a cause or a timeout.
       format: uri
     reason:
       type: string
-      description: Safe concise diagnostic, excluding raw documents and personal data.
+      description: Known safe factual explanation. A structured category is available separately in reasonType when supplied.
     obtainedCount:
       type: integer
       format: int64
@@ -367,12 +369,74 @@ CollectionResultResponse:
     - outcome
     - observedAt
     - lastSuccessAt
+CollectionResultSourceResponse:
+  title: CollectionResultSourceResponse
+  type: object
+  description: Known catalogue attribution inside the selected control. Omitted when no authorized source link is established.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Source binding identity shared with the catalogue and source filter.
+    label:
+      type: string
+      description: Source binding label. Uses the provider and recorded organizer reference when only those are retained.
+    packId:
+      type: string
+      format: uuid
+      description: Known FFVB pack identity in this source, omitted when unknown or inapplicable.
+    poolId:
+      type: string
+      format: uuid
+      description: Known FFVB pool identity in this source, omitted when unknown or inapplicable.
+    phaseReference:
+      type: string
+      description: Known native LNV phase reference within this source, omitted when unknown or inapplicable.
+  required:
+    - id
+    - label
+CollectionResultSummaryResponse:
+  title: CollectionResultSummaryResponse
+  type: object
+  description: Whole-control counts of current results by outcome across both phases, independent of search, filters and pagination.
+  additionalProperties: true
+  properties:
+    success:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current successful results.
+    partial:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current partial results.
+    failed:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current failed results.
+    unconfirmed:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current unconfirmed results.
+  required:
+    - success
+    - partial
+    - failed
+    - unconfirmed
 CollectionResultPageResponse:
   title: CollectionResultPageResponse
   type: object
   description:
-    Current results ordered by scope UUID, stage then phase; concurrent updates may change later pages,
-    without snapshot/history guarantees.
+    Current results ordered by latest attempt descending, then by scope UUID, stage and phase.
+    Concurrent updates may change later pages.
   additionalProperties: true
   properties:
     items:
@@ -389,6 +453,8 @@ CollectionResultPageResponse:
     hasNext:
       type: boolean
       description: Another page was present when read.
+    summary:
+      $ref: "#/CollectionResultSummaryResponse"
   required:
     - items
     - page

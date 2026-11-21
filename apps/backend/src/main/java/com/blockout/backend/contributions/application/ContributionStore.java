@@ -12,6 +12,9 @@ import java.util.UUID;
  * port acquires no sporting/account locks or provider evidence on the caller's behalf.
  */
 public interface ContributionStore {
+  /** Fixed page size for personal contribution and moderation reads. */
+  int PAGE_SIZE = 20;
+
   /**
    * Removes this original account's personal data in the caller's erasure transaction. Retained
    * nonpersonal facts and other owners remain unchanged; acquires no domain root.
@@ -163,7 +166,7 @@ public interface ContributionStore {
    *
    * @param matchId current match
    * @param ownerId original account
-   * @param page zero-based page, at most 107374182
+   * @param page zero-based index with a supported native offset for {@link #PAGE_SIZE} items
    * @return native page content and continuation, without a total
    */
   VersionPage own(UUID matchId, UUID ownerId, int page);

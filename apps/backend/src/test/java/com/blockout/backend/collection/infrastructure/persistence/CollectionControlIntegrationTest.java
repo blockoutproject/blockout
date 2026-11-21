@@ -242,6 +242,28 @@ class CollectionControlIntegrationTest {
   }
 
   @Test
+  @DisplayName("A paused control remains readable until the current collection grant is revoked")
+  void readsResultsIndependentlyOfTheRelaunchCommand() throws Exception {
+    // Given
+    activity(false).andExpect(status().isOk());
+    request().andExpect(status().isConflict());
+
+    // When / Then
+    mvc.perform(get("/administration/collection-controls/{id}/results", CONTROL).with(operator()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items").isEmpty())
+        .andExpect(jsonPath("$.summary.success").value(0));
+    mvc.perform(get("/administration/collection-controls/{id}/results", SOURCE).with(operator()))
+        .andExpect(status().isNotFound());
+    sql.update("DELETE FROM account_permission WHERE account_id=?", ACCOUNT);
+    mvc.perform(get("/administration/collection-controls/{id}/results", CONTROL).with(operator()))
+        .andExpect(status().isForbidden())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    request().andExpect(status().isForbidden());
+    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Integer.class)).isZero();
+  }
+
+  @Test
   @DisplayName("Pause cancels pending intent and resume restores eligibility without replay")
   void pauseResume() throws Exception {
     // Given

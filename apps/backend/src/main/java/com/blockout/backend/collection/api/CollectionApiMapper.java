@@ -7,11 +7,14 @@ import com.blockout.backend.collection.application.service.ObserveCollectionSour
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionControlInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObserveSeasonSourceInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.SeasonSourceInternalResponse;
@@ -21,6 +24,8 @@ import com.blockout.backend.generated.ingestion.model.StartCollectionCycleIntern
 import com.blockout.backend.generated.ingestion.model.SubmitSourceValidationInternalRequest;
 import com.blockout.backend.generated.mobile.model.CollectionResultPageResponse;
 import com.blockout.backend.generated.mobile.model.CollectionResultResponse;
+import com.blockout.backend.generated.mobile.model.CollectionResultSourceResponse;
+import com.blockout.backend.generated.mobile.model.CollectionResultSummaryResponse;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
@@ -29,6 +34,8 @@ import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
 import com.blockout.backend.sporting.application.model.SportingViews;
+import java.util.Arrays;
+import java.util.Objects;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -154,9 +161,7 @@ public interface CollectionApiMapper {
    * @return source preparation response, without mapping metadata
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(
-      target = "label",
-      expression = "java(source.provider().name() + \" / \" + source.organizerReference())")
+  @Mapping(target = "label", expression = "java(source.label())")
   @Mapping(target = "validation", source = "validationState")
   @Mapping(
       target = "candidateUrl",
@@ -225,14 +230,20 @@ public interface CollectionApiMapper {
    */
   RecordCollectionResult toCommand(RecordCollectionResultInternalRequest source);
 
-  /**
-   * Projects bounded current results in their existing canonical order.
-   *
-   * @param source current bounded evidence
-   * @return generated page in canonical order
-   */
+  CollectionOutcomeEnum toOutcome(
+      com.blockout.backend.generated.mobile.model.CollectionOutcomeEnum source);
+
+  CollectionStageEnum toStage(
+      com.blockout.backend.generated.mobile.model.CollectionStageEnum source);
+
   @Mapping(target = "additionalProperties", ignore = true)
   CollectionResultPageResponse toDto(CollectionState.ResultPage source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  CollectionResultSourceResponse toDto(CollectionState.ResultSource source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  CollectionResultSummaryResponse toDto(CollectionState.ResultSummary source);
 
   /**
    * Keeps required nullable timestamps present in the operational response.
@@ -241,12 +252,30 @@ public interface CollectionApiMapper {
    * @return safe operational view without raw provider data
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "scopeLabel", source = "scopeId")
+  @Mapping(target = ".", source = "result")
+  @Mapping(target = "scopeLabel", defaultValue = "Périmètre inconnu")
+  @Mapping(target = "reason", source = "result", qualifiedByName = "factualReason")
   @Mapping(
       target = "lastSuccessAt",
-      source = "lastSuccessAt",
+      source = "result.lastSuccessAt",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  CollectionResultResponse toDto(CollectionResult source);
+  CollectionResultResponse toDto(CollectionState.ResultRow source);
+
+  /** Retained collector reasons may consist of a bare result code or an exception class. */
+  @Named("factualReason")
+  default String factualReason(CollectionResult result) {
+    String text = Objects.toString(result.reason(), "").strip();
+    if (text.isEmpty()
+        || text.equals(result.outcome().getValue())
+        || text.equals(Objects.toString(result.reasonType(), ""))
+        || text.matches("urn:blockout:[a-z0-9:-]+")
+        || text.matches("[a-zA-Z0-9_$]+(?:Exception|Error)")
+        || Arrays.stream(ObservationOutcomeEnum.values())
+            .anyMatch(outcome -> text.equals(outcome.getValue()))) {
+      return null;
+    }
+    return text;
+  }
 
   /**
    * Retains the conditional admission purpose.

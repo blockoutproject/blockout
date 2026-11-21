@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
@@ -189,12 +190,41 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  public CollectionState.ResultPage results(UUID controlId, int page, int size) {
-    Slice<CollectionResultEntity> slice =
-        results.findByControlIdOrderByScopeIdAscStageAscPhaseAsc(
-            controlId, PageRequest.of(page, size));
+  public CollectionState.ResultPage results(
+      UUID controlId, CollectionState.ResultFilters filters, long page, int size) {
+    CollectionState.ResultSummary summary =
+        results.summary(controlId).orElseThrow(CollectionNotFoundException::new);
+    if (page > PageOffset.maxPage(size)) {
+      return new CollectionState.ResultPage(List.of(), page, false, summary);
+    }
+    Slice<CollectionResultRepository.CurrentResult> slice =
+        results.currentResults(
+            controlId,
+            filters.query(),
+            filters.status() == null ? null : filters.status().name(),
+            filters.sourceId(),
+            filters.stage() == null ? null : filters.stage().name(),
+            PageRequest.of((int) page, size));
     return new CollectionState.ResultPage(
-        slice.stream().map(mapper::toView).toList(), page, slice.hasNext());
+        slice.stream().map(this::resultRow).toList(), page, slice.hasNext(), summary);
+  }
+
+  /** Keeps a catalogue link absent when the result has no established source binding. */
+  private CollectionState.ResultRow resultRow(CollectionResultRepository.CurrentResult row) {
+    CollectionResult result = mapper.toView(row);
+    if (row.getSourceId() == null) {
+      return new CollectionState.ResultRow(result, row.getScopeLabel(), null);
+    }
+    CollectionState.ResultSource source =
+        new CollectionState.ResultSource(
+            row.getSourceId(),
+            CollectionState.Source.label(row.getSourceProvider(), row.getOrganizerReference()),
+            row.getPackId(),
+            row.getPoolId(),
+            row.getPhaseReference());
+    String scopeLabel =
+        result.stage() == CollectionStageEnum.DISCOVERY ? source.label() : row.getScopeLabel();
+    return new CollectionState.ResultRow(result, scopeLabel, source);
   }
 
   /** {@inheritDoc} */

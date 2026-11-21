@@ -7,10 +7,12 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.ControlView;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
+import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
@@ -165,7 +167,7 @@ public class ReadCollectionConfiguration {
       UUID accountId, UUID sourceId, UUID parentId, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     Source source = store.source(sourceId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) {
+    if (page > PageOffset.maxPage(size)) {
       return new CollectionResourcePage(List.of(), page, false);
     }
     return acquisitionReads.collectionChildren(
@@ -234,17 +236,15 @@ public class ReadCollectionConfiguration {
    *
    * @param accountId original local account
    * @param controlId independent control
+   * @param filters optional criteria within the authorized control
    * @param page validated zero-based page
    * @param size validated bounded size
-   * @return canonical current evidence without a total count
+   * @return latest-first matching results and an unfiltered current summary
    */
   @Transactional(readOnly = true)
-  public CollectionState.ResultPage results(UUID accountId, UUID controlId, long page, int size) {
+  public CollectionState.ResultPage results(
+      UUID accountId, UUID controlId, ResultFilters filters, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
-    store.control(controlId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) {
-      return new CollectionState.ResultPage(List.of(), page, false);
-    }
-    return store.results(controlId, (int) page, size);
+    return store.results(controlId, filters, page, size);
   }
 }

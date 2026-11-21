@@ -1,9 +1,12 @@
 package com.blockout.backend.collection.api;
 
 import com.blockout.backend.accounts.api.CurrentAccount;
+import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.generated.mobile.api.CollectionResultsApi;
+import com.blockout.backend.generated.mobile.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResultPageResponse;
+import com.blockout.backend.generated.mobile.model.CollectionStageEnum;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -21,9 +24,18 @@ public class CollectionResultsController implements CollectionResultsApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<CollectionResultPageResponse> listCollectionResults(
-      UUID controlId, Long page, Integer size) {
+      UUID controlId,
+      Long page,
+      Integer size,
+      String query,
+      CollectionOutcomeEnum status,
+      UUID sourceId,
+      CollectionStageEnum stage) {
+    ResultFilters filters =
+        new ResultFilters(query, mapper.toOutcome(status), sourceId, mapper.toStage(stage));
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(configurationReads.results(account.id(), controlId, page, size)));
+        .body(
+            mapper.toDto(configurationReads.results(account.id(), controlId, filters, page, size)));
   }
 }

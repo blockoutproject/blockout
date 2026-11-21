@@ -3,8 +3,10 @@ package com.blockout.backend.collection.application.model;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
@@ -23,14 +25,30 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CollectionState {
-  /** Bounded current evidence in stable scope/stage/phase order. */
-  public record ResultPage(List<CollectionResult> items, long page, boolean hasNext) {
+  /** Optional search terms and exact filters on the authorized result scope. */
+  public record ResultFilters(
+      String query, CollectionOutcomeEnum status, UUID sourceId, CollectionStageEnum stage) {}
+
+  /** Current evidence and the independently known scope label and catalogue attribution. */
+  public record ResultRow(CollectionResult result, String scopeLabel, ResultSource source) {}
+
+  /** Known source binding; child identities are present only when established for the result. */
+  public record ResultSource(
+      UUID id, String label, UUID packId, UUID poolId, String phaseReference) {}
+
+  /** Outcome counts over the complete current control, regardless of search or page. */
+  public record ResultSummary(long success, long partial, long failed, long unconfirmed) {}
+
+  /** Bounded current evidence ordered latest first, with totals for the whole control. */
+  public record ResultPage(
+      List<ResultRow> items, long page, boolean hasNext, ResultSummary summary) {
     /**
      * Detaches current evidence from persistence.
      *
      * @param items current scope evidence
      * @param page zero-based requested page
      * @param hasNext whether another page is available
+     * @param summary current outcome totals in the authorized control
      */
     public ResultPage {
       items = List.copyOf(items);
@@ -120,7 +138,16 @@ public final class CollectionState {
       boolean locked,
       boolean launched,
       UUID currentCycleId,
-      URI reasonType) {}
+      URI reasonType) {
+    public String label() {
+      return label(provider.name(), organizerReference);
+    }
+
+    /** Uses the same known provider and organizer reference in Sources and Bilan. */
+    public static String label(String provider, String organizerReference) {
+      return provider + " / " + organizerReference;
+    }
+  }
 
   /**
    * Current control and retained pending scope; empty selections mean the ordinary whole family.

@@ -4,6 +4,7 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowReadStore.TargetPage;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.ConsultationViews.PoolSummary;
 import com.blockout.backend.sporting.application.ConsultationViews.TeamSummary;
 import com.blockout.backend.sporting.application.ReadSportingResources;
@@ -25,7 +26,7 @@ public class ReadFollowLists {
   public static final int PAGE_SIZE = 20;
 
   /** Greatest page whose twenty-item native JPA offset is representable as an int. */
-  public static final long MAX_PAGE = 107374182L;
+  public static final long MAX_PAGE = PageOffset.maxPage(PAGE_SIZE);
 
   private final AccountAccess accounts;
   private final FollowReadStore follows;

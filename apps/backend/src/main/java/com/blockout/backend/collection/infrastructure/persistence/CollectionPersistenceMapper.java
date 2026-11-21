@@ -30,6 +30,9 @@ interface CollectionPersistenceMapper {
   @Mapping(target = "observedAt", source = "lastAttemptAt")
   CollectionResult toView(CollectionResultEntity source);
 
+  /** Detaches scalar evidence from the bounded result query. */
+  CollectionResult toView(CollectionResultRepository.CurrentResult source);
+
   /**
    * Stores newer evidence while retaining its stable key.
    *

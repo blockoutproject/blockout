@@ -660,9 +660,10 @@ Results:
       - CollectionResults
     summary: Read current scoped results
     description:
-      Requires current global collection-management permission. Returns current evidence and
-      latest successes, not execution history. A success in another scope never resolves this scope. Diagnostics
-      exclude raw payloads and personal values.
+      Requires the current collection-management grant. Returns one latest result per scope, stage
+      and phase within the selected control's provider and season or seasonless family. Applies
+      combined filters before pagination. The summary covers the entire control regardless of
+      filters or page. Diagnostics exclude private payloads and personal values.
     responses:
       "200":
         description: Current scoped results and retained success/failure evidence.
@@ -694,6 +695,30 @@ Results:
           format: uuid
       - $ref: ../../common/parameters.yaml#/Page
       - $ref: ../../common/parameters.yaml#/PageSize
+      - name: query
+        in: query
+        description:
+          Case- and accent-insensitive search across known scope and source labels and the stage and phase labels.
+          Letter and number sequences form literal terms. Every term must match. Blank means no text filter.
+        schema:
+          $ref: ../../common/scalars.yaml#/SearchQueryText
+      - name: status
+        in: query
+        description: Restrict results to this outcome.
+        schema:
+          $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
+      - name: sourceId
+        in: query
+        description: Restrict results to the given source binding within the selected control.
+        schema:
+          type: string
+          format: uuid
+          description: Authorized source binding identity.
+      - name: stage
+        in: query
+        description: Restrict results to this stage across both phases.
+        schema:
+          $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
 Children:
   get:
     operationId: listCollectionSourceChildren

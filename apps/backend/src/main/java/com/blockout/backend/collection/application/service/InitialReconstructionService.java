@@ -17,6 +17,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
@@ -342,7 +343,7 @@ public class InitialReconstructionService {
     if (page < 0 || size < 1 || size > 200) {
       throw new IllegalArgumentException("Invalid coverage page");
     }
-    if (page > Integer.MAX_VALUE / size) {
+    if (page > PageOffset.maxPage(size)) {
       return new InitialCoverage.Page(List.of(), page, false);
     }
     InitialCoverage.Page result = store.initialCoverage(seasonId, page, size);
