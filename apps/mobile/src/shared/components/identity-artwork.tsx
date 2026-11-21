@@ -1,8 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { tokens } from "@/shared/theme/tokens";
-import { Skeleton } from "./skeleton";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** One authorized identity source; the caller keys this presentation by URI and supplies its named fallback. */
 export interface IdentityArtworkProps {
@@ -13,7 +12,7 @@ export interface IdentityArtworkProps {
   cachePolicy?: ImageProps["cachePolicy"];
 }
 
-/** A new keyed source starts covered until native display; missing or failed media reveals only its local fallback. */
+/** Fills the clipped IdentityCard slot and covers a new source until native display. */
 export function IdentityArtwork({
   uri,
   loading = false,
@@ -21,12 +20,18 @@ export function IdentityArtwork({
   fallback,
   cachePolicy,
 }: Readonly<IdentityArtworkProps>) {
+  const { colors } = useTheme();
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );
   const pending = uri ? status === "loading" : loading;
   return (
-    <View style={styles.artwork}>
+    <View
+      style={[
+        styles.artwork,
+        { backgroundColor: pending ? undefined : colors.logoSurface },
+      ]}
+    >
       {uri && status !== "failed" ? (
         <Image
           accessible
@@ -35,7 +40,7 @@ export function IdentityArtwork({
           accessibilityState={{ busy: pending }}
           source={{ uri }}
           contentFit="contain"
-          style={styles.image}
+          style={StyleSheet.absoluteFill}
           cachePolicy={cachePolicy}
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}
@@ -50,15 +55,11 @@ export function IdentityArtwork({
           accessibilityRole={!uri ? "image" : undefined}
           accessibilityLabel={!uri ? label : undefined}
           accessibilityState={{ busy: true }}
-          style={StyleSheet.absoluteFill}
-        >
-          <Skeleton
-            width={tokens.size.media.profile}
-            height={tokens.size.media.profile}
-            shape="rectangle"
-            radius={tokens.media.radius.profile}
-          />
-        </View>
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: colors.skeleton },
+          ]}
+        />
       )}
     </View>
   );
@@ -66,15 +67,8 @@ export function IdentityArtwork({
 
 const styles = StyleSheet.create({
   artwork: {
-    width: tokens.size.media.profile,
-    height: tokens.size.media.profile,
-    borderRadius: tokens.media.radius.profile,
-    overflow: "hidden",
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-  },
-  image: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: tokens.media.radius.profile,
   },
 });

@@ -39,10 +39,7 @@ export function IdentityCard({
       {atmosphere}
       <View style={styles.rail}>
         <View
-          style={[
-            styles.artwork,
-            { backgroundColor: artworkBackgroundColor ?? colors.logoSurface },
-          ]}
+          style={[styles.artwork, { backgroundColor: artworkBackgroundColor }]}
         >
           {artwork}
         </View>
