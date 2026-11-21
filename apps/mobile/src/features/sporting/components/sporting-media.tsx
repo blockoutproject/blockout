@@ -14,7 +14,6 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
-import { Skeleton } from "@/shared/components/skeleton";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -64,7 +63,7 @@ export function SportingMedia({
   /** Expo Image reloads when its bounds change. Resize the display with the wrapping view. */
   function renderArtwork() {
     const fixedSize = nativeSize !== undefined;
-    const radius = identityPlate ? borderRadius : mediaRadius(imageSize);
+    const radius = artworkScale < 1 ? mediaRadius(imageSize) : 0;
     const artwork = (
       <Image
         key={image.attemptKey}
@@ -122,16 +121,17 @@ export function SportingMedia({
   const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
   const imageSize = size * artworkScale;
   const nativeImageSize = (nativeSize ?? size) * artworkScale;
-  const borderRadius = identityPlate
-    ? tokens.media.radius.profile
-    : mediaRadius(size);
-  const frame = {
-    width: size,
-    borderRadius,
-    backgroundColor: colors.logoSurface,
-  };
   const logo = (
-    <View style={[styles.media, frame]}>
+    <View
+      style={[
+        styles.media,
+        // IdentityCard clips its entire artwork slot. Only standalone media needs its own radius.
+        {
+          width: size,
+          borderRadius: identityPlate ? undefined : mediaRadius(size),
+        },
+      ]}
+    >
       <View
         accessible={!available}
         accessibilityRole={available ? undefined : "image"}
@@ -139,7 +139,14 @@ export function SportingMedia({
           available ? undefined : `${label} : ${identity.name}`
         }
         accessibilityState={{ busy: !available && busy }}
-        style={[styles.slot, frame, { height: size }]}
+        style={[
+          styles.slot,
+          {
+            width: size,
+            height: size,
+            backgroundColor: busy ? undefined : colors.logoSurface,
+          },
+        ]}
       >
         {available && renderArtwork()}
         {!available && !busy && (
@@ -153,14 +160,13 @@ export function SportingMedia({
           />
         )}
         {busy && (
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Skeleton
-              width={size}
-              height={size}
-              shape="rectangle"
-              radius={borderRadius}
-            />
-          </View>
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: colors.skeleton },
+            ]}
+          />
         )}
       </View>
     </View>
@@ -369,6 +375,5 @@ const styles = StyleSheet.create({
   slot: {
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
 });
