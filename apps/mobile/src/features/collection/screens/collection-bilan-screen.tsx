@@ -78,7 +78,7 @@ export function CollectionBilanScreen({
   });
   const [reloading, setReloading] = useState<string>();
   const { control, handleSubmit, reset } = useForm({
-    defaultValues: { query: criteria.query ?? "" },
+    values: { query: criteria.query ?? "" },
     resolver: zodResolver(searchSchema),
     mode: "onChange",
   });

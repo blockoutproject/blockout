@@ -265,6 +265,37 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
   }
 });
 
+it("shows the committed search when the current Bilan receives new route criteria", async () => {
+  // Given
+  const screenProps = { ...navigation, header: <Text>Bilan</Text>, controlId };
+  const view = await renderCollection(
+    <CollectionBilanScreen {...screenProps} criteria={{}} />,
+    client,
+  );
+  expect(
+    await screen.findByLabelText("Rechercher dans le bilan"),
+  ).toHaveDisplayValue("");
+
+  // When
+  await view.rerender(
+    <CollectionBilanScreen {...screenProps} criteria={{ query: "Poule A" }} />,
+  );
+
+  // Then
+  expect(await screen.findByDisplayValue("Poule A")).toBeOnTheScreen();
+  await waitFor(() => {
+    expect(
+      mockFetch.mock.calls.some(([url]) => {
+        const read = new URL(String(url));
+        return (
+          read.pathname.endsWith("/results") &&
+          read.searchParams.get("query") === "Poule A"
+        );
+      }),
+    ).toBe(true);
+  });
+});
+
 it("uses its initial skeleton and lets only the Empty card reload its result scope", async () => {
   // Given
   const user = userEvent.setup();
