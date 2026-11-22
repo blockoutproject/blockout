@@ -11,14 +11,17 @@ import { Page } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageReadState } from "@/shared/components/page-read-state";
 import { SearchField } from "@/shared/components/search-field";
-import { SearchToolbar } from "@/shared/components/search-toolbar";
+import {
+  SearchToolbar,
+  searchToolbarMinHeight,
+} from "@/shared/components/search-toolbar";
 import { useSubmittedSearch } from "@/shared/forms/use-submitted-search";
 import { tokens } from "@/shared/theme/tokens";
 import { useSportingAuthority } from "../api/classification";
 import { createMappingQueries } from "../api/mapping-queries";
 import { MappingHeader } from "../components/mapping-header";
 import { MappingList } from "../components/mapping-list";
-import { MappingRow, mappingStatusLabels } from "../components/mapping-row";
+import { MappingRow } from "../components/mapping-row";
 import {
   selectedMappingSeason,
   useMappingRouteParams,
@@ -78,7 +81,6 @@ export function MappingScreen() {
         <>
           <MappingHeader subtitle={season?.label} />
           <SearchToolbar
-            style={{ paddingTop: tokens.spacing.xs }}
             filter={{
               active: filtered,
               onPress: () =>
@@ -96,30 +98,46 @@ export function MappingScreen() {
           </SearchToolbar>
         </>
       }
-      headerMinHeight={
-        tokens.layout.header + tokens.size.control.default + tokens.spacing.xs
-      }
+      headerMinHeight={tokens.layout.header + searchToolbarMinHeight}
     >
       <MappingList<MappingPackResponse>
         key={hashKey(options.queryKey)}
         query={packs}
         loadingLabel="Chargement des packs"
         emptyLabel="Aucun pack trouvé"
-        renderItem={({ item: pack }) => (
-          <MappingRow
-            label={pack.label}
-            detail={`${pack.sourceLabel} · ${pack.poolCount} ${pack.poolCount === 1 ? "poule" : "poules"}`}
-            badge={mappingStatusLabels[pack.status]}
-            tone={pack.status === "all" ? "success" : "strong-warning"}
-            onPress={() => {
-              Keyboard.dismiss();
-              router.push({
-                pathname: "/administration/mapping/[packId]",
-                params: { packId: pack.id },
-              });
-            }}
-          />
-        )}
+        renderItem={({ item: pack }) => {
+          const { poolCount, classifiedPoolCount, defaultClassification } =
+            pack;
+          const singular = poolCount === 1;
+          return (
+            <MappingRow
+              label={pack.label}
+              detail={`${pack.sourceLabel} · ${poolCount} ${singular ? "poule" : "poules"}`}
+              badges={[
+                defaultClassification
+                  ? { label: "Défaut défini", tone: "info" }
+                  : { label: "Sans défaut", tone: "neutral" },
+                poolCount === 0
+                  ? { label: "Aucune poule", tone: "neutral" }
+                  : {
+                      label: `${classifiedPoolCount}/${poolCount} ${singular ? "classée" : "classées"}`,
+                      tone:
+                        classifiedPoolCount === poolCount
+                          ? "success"
+                          : "strong-warning",
+                    },
+              ]}
+              badgePlacement="below"
+              onPress={() => {
+                Keyboard.dismiss();
+                router.push({
+                  pathname: "/administration/mapping/[packId]",
+                  params: { packId: pack.id },
+                });
+              }}
+            />
+          );
+        }}
       />
     </Page>
   );

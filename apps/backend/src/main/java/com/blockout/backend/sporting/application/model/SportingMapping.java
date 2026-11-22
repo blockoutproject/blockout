@@ -22,7 +22,8 @@ public final class SportingMapping {
       SportingClassification defaultClassification,
       String defaultDivisionName,
       MappingStatusEnum status,
-      int poolCount) {}
+      int poolCount,
+      int classifiedPoolCount) {}
 
   /** Inheritance still applies when both the effective value and the pack default are absent. */
   public record MappingPool(

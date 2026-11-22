@@ -24,6 +24,7 @@ const mappingPack: MappingPackResponse = {
   defaultClassification: null,
   status: "some",
   poolCount: 2,
+  classifiedPoolCount: 1,
 };
 const division: DivisionResponse = {
   id: "00000000-0000-4000-8000-000000000002",

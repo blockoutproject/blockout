@@ -394,6 +394,8 @@ it.each(["first", "full"])(
     const card = await screen.findByRole("alert", {
       name: "Une erreur est survenue",
     });
+    expect(screen.getByLabelText("Rechercher dans le bilan")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Filtres" })).toBeNull();
     expect(screen.queryByText("Nationale 2 · Poule A")).not.toBeOnTheScreen();
     expect(
       screen.queryByLabelText("Actualiser les données"),
@@ -422,6 +424,7 @@ it.each(["first", "full"])(
     expect(
       await screen.findByRole("header", { name: "Nationale 2 · Poule A" }),
     ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Filtres" })).toBeEnabled();
   },
 );
 

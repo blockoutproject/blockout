@@ -13,7 +13,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { CloseSeasonScreen } from "../screens/close-season-screen";
+import { SeasonConfirmationScreen } from "../screens/season-confirmation-screen";
 import {
   AccountActions,
   collectionPeer,
@@ -93,25 +93,27 @@ it("requires the exact displayed label and targets the original season once", as
       : peer.reads(url, options),
   );
   await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
+    <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
     client,
     (cache) => {
       privateClient = cache;
     },
   );
   const user = userEvent.setup();
-  const input = await screen.findByLabelText("Nom exact de la saison");
+  const input = await screen.findByLabelText(
+    "Saisissez 2026/2027 pour confirmer",
+  );
   expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
 
   // When
   await user.type(input, "2026/2027 ");
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeDisabled();
   await user.clear(input);
   await user.type(input, "2026/2027");
   await user.press(
-    await screen.findByRole("button", { name: "Clôturer définitivement" }),
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
   );
 
   // Then
@@ -146,29 +148,31 @@ it.each([409, "lost"])(
       return peer.reads(url, options);
     });
     const view = await renderCollection(
-      <CloseSeasonScreen seasonId={seasonId} />,
+      <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
       client,
       (cache) => {
         privateClient = cache;
       },
     );
     await user.type(
-      await screen.findByLabelText("Nom exact de la saison"),
+      await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
       "2026/2027",
     );
     // When
     await user.press(
-      screen.getByRole("button", { name: "Clôturer définitivement" }),
+      screen.getByRole("button", { name: "Clôturer la saison" }),
     );
     await screen.findByRole("alert");
     // Then
     expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
     // When
     await view.rerender(<></>);
-    await view.rerender(<CloseSeasonScreen seasonId={seasonId} />);
+    await view.rerender(
+      <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
+    );
     // Then
     expect(
-      await screen.findByLabelText("Nom exact de la saison"),
+      await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     ).toHaveDisplayValue("");
     expect(
       mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
@@ -187,25 +191,25 @@ it("observes an accepted closure on a later explicit read after a lost response"
     return peer.reads(url, options);
   });
   await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
+    <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
     client,
     (cache) => {
       privateClient = cache;
     },
   );
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/2027",
   );
 
   // When
   await user.press(
-    await screen.findByRole("button", { name: "Clôturer définitivement" }),
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
   );
   // Then
   await screen.findByRole("alert");
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeEnabled();
   expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
 
@@ -217,7 +221,7 @@ it("observes an accepted closure on a later explicit read after a lost response"
     await screen.findByText("Saison clôturée · historique conservé"),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Clôturer définitivement" }),
+    screen.queryByRole("button", { name: "Clôturer la saison" }),
   ).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -228,13 +232,13 @@ it("cancels through ordinary back without changing the season", async () => {
   // Given
   const user = userEvent.setup();
   await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
+    <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
     client,
     (cache) => {
       privateClient = cache;
     },
   );
-  await screen.findByLabelText("Nom exact de la saison");
+  await screen.findByLabelText("Saisissez 2026/2027 pour confirmer");
 
   // When
   await user.press(await screen.findByRole("button", { name: "Annuler" }));
@@ -251,7 +255,7 @@ it("retains entered text while current collection permission is unavailable", as
   const user = userEvent.setup();
   await renderCollection(
     <>
-      <CloseSeasonScreen seasonId={seasonId} />
+      <SeasonConfirmationScreen command="closure" seasonId={seasonId} />
       <AccountActions />
     </>,
     client,
@@ -260,7 +264,7 @@ it("retains entered text while current collection permission is unavailable", as
     },
   );
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/",
   );
 
@@ -273,9 +277,11 @@ it("retains entered text while current collection permission is unavailable", as
   // Then
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
-  expect(screen.queryByLabelText("Nom exact de la saison")).toBeNull();
   expect(
-    screen.getByLabelText("Nom exact de la saison", {
+    screen.queryByLabelText("Saisissez 2026/2027 pour confirmer"),
+  ).toBeNull();
+  expect(
+    screen.getByLabelText("Saisissez 2026/2027 pour confirmer", {
       includeHiddenElements: true,
     }),
   ).toHaveDisplayValue("2026/");
@@ -288,11 +294,11 @@ it("retains entered text while current collection permission is unavailable", as
 
   // Then
   expect(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
   ).toHaveDisplayValue("2026/");
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeDisabled();
 });
 
@@ -300,14 +306,14 @@ it("retains an incorrect draft through a background refetch and refuses to submi
   // Given
   const user = userEvent.setup();
   await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
+    <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
     client,
     (cache) => {
       privateClient = cache;
     },
   );
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/",
   );
 
@@ -317,7 +323,7 @@ it("retains an incorrect draft through a background refetch and refuses to submi
   // Then
   expect(screen.getByDisplayValue("2026/")).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeDisabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -344,20 +350,20 @@ it.each([422, 409])(
         : peer.reads(url, options),
     );
     await renderCollection(
-      <CloseSeasonScreen seasonId={seasonId} />,
+      <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
       client,
       (cache) => {
         privateClient = cache;
       },
     );
     await user.type(
-      await screen.findByLabelText("Nom exact de la saison"),
+      await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
       "2026/2027",
     );
 
     // When
     await user.press(
-      await screen.findByRole("button", { name: "Clôturer définitivement" }),
+      await screen.findByRole("button", { name: "Clôturer la saison" }),
     );
 
     // Then
@@ -368,7 +374,7 @@ it.each([422, 409])(
     ).toBeOnTheScreen();
     expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: "Clôturer définitivement" }),
+      screen.getByRole("button", { name: "Clôturer la saison" }),
     ).toBeEnabled();
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -383,7 +389,7 @@ it.each([422, 409])(
         : peer.reads(url, options),
     );
     await user.press(
-      screen.getByRole("button", { name: "Clôturer définitivement" }),
+      screen.getByRole("button", { name: "Clôturer la saison" }),
     );
 
     // Then
@@ -419,35 +425,31 @@ it("allows another explicit closure after a lost response without a prerequisite
       : peer.reads(url, options),
   );
   await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
+    <SeasonConfirmationScreen command="closure" seasonId={seasonId} />,
     client,
     (cache) => {
       privateClient = cache;
     },
   );
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/2027",
   );
   mockFetch.mockClear();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Clôturer la saison" }));
 
   // Then
   await screen.findByRole("alert");
   expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Clôturer la saison" }));
 
   // Then
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));

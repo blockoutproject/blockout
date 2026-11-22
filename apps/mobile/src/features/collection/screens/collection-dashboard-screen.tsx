@@ -103,7 +103,7 @@ export function CollectionDashboardScreen() {
               <CollectionDestinationLink
                 key={season.id}
                 label={season.label}
-                detail={seasonStatus(season)}
+                detail={seasonStatus(season).label}
                 icon={CalendarDays}
                 onPress={() =>
                   router.push({

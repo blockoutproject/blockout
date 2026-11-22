@@ -1,4 +1,7 @@
-import { SearchToolbar } from "@/shared/components/search-toolbar";
+import {
+  SearchToolbar,
+  searchToolbarMinHeight,
+} from "@/shared/components/search-toolbar";
 import { RefreshCw } from "lucide-react-native";
 import { PageList } from "@/shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
@@ -94,8 +97,7 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
         }))}
         tabBarMinHeight={
           tokens.touch.minimum +
-          tokens.size.control.default +
-          tokens.spacing.sm +
+          searchToolbarMinHeight +
           tokens.layout.content.start
         }
         renderTabBar={(tabBar) => (
@@ -365,7 +367,6 @@ const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
   feedback: { paddingHorizontal: 0, paddingTop: tokens.spacing.sm },
   toolbar: {
-    paddingTop: tokens.spacing.sm,
     paddingBottom: tokens.layout.content.start,
   },
   badges: {

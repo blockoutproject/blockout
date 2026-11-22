@@ -1,4 +1,7 @@
-import { SearchToolbar } from "@/shared/components/search-toolbar";
+import {
+  SearchToolbar,
+  searchToolbarMinHeight,
+} from "@/shared/components/search-toolbar";
 import { hashKey } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Eraser, Search } from "lucide-react-native";
@@ -213,9 +216,7 @@ export function SearchScreen() {
           };
         })}
         tabBarMinHeight={
-          tokens.touch.minimum +
-          tokens.size.control.default +
-          2 * tokens.spacing.sm
+          tokens.touch.minimum + tokens.spacing.sm + searchToolbarMinHeight
         }
         renderTabBar={(tabBar) => (
           <>
@@ -227,7 +228,6 @@ export function SearchScreen() {
               />
             </View>
             <SearchToolbar
-              style={styles.toolbar}
               filter={
                 resource !== "club" && !failed
                   ? {
@@ -282,5 +282,4 @@ const styles = StyleSheet.create({
     paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
-  toolbar: { paddingTop: tokens.spacing.sm },
 });

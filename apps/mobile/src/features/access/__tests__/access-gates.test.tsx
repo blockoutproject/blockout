@@ -337,6 +337,7 @@ it("uses the latest season, then retains another season and its criteria after o
     defaultClassification: null,
     status: "some",
     poolCount: 2,
+    classifiedPoolCount: 1,
   };
   const packSearches: URLSearchParams[] = [];
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
@@ -389,7 +390,7 @@ it("uses the latest season, then retains another season and its criteria after o
     await screen.findByRole("button", { name: "Appliquer les filtres" }),
   );
   const cfa = await screen.findByRole("link", {
-    name: "CFA, Ligue Île-de-France · 2 poules, Partiel",
+    name: "CFA, Ligue Île-de-France · 2 poules, Sans défaut, 1/2 classées",
   });
   await user.press(cfa);
   expect(
@@ -404,7 +405,9 @@ it("uses the latest season, then retains another season and its criteria after o
 
   // Then
   expect(
-    await screen.findByRole("link", { name: /CFA.*Partiel/ }),
+    await screen.findByRole("link", {
+      name: /CFA.*Sans défaut, 1\/2 classées/,
+    }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("header", { name: "Mapping des poules, 2025–2026" }),

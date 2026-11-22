@@ -3,7 +3,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 export type StatusBadgeTone =
-  "success" | "warning" | "strong-warning" | "error" | "neutral";
+  "success" | "warning" | "strong-warning" | "error" | "neutral" | "info";
 
 /** Renders text and its matching semantic paint for compact status labels. */
 export function StatusBadge({
@@ -24,8 +24,10 @@ export function StatusBadge({
     "strong-warning": [colors.onWarning, colors.warning],
     error: [colors.error, colors.errorSubtle],
     neutral: [colors.secondaryText, colors.subtle],
+    info: [colors.onInfo, colors.info],
   }[tone];
-  const outline = tone === "strong-warning" ? backgroundColor : colors.border;
+  const solid = tone === "strong-warning" || tone === "info";
+  const outline = solid ? backgroundColor : colors.border;
   return (
     <Text
       style={[

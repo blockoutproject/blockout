@@ -9,17 +9,21 @@ import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { CloseSeasonLoading } from "../components/collection-loading";
-import { useCloseCollectionSeason } from "../api/use-collection-controls";
-import { CloseSeasonForm } from "../forms/close-season-form";
+import { SeasonConfirmationLoading } from "../components/collection-loading";
+import { useCollectionSeasonCommand } from "../api/use-collection-season";
+import { SeasonConfirmationForm } from "../forms/season-confirmation-form";
+import { seasonCommands, type SeasonCommand } from "../model/season-command";
 
-/** Retains the typed closure draft with its native form while current season/admission reads recover. */
-export function CloseSeasonScreen({
+/** Keeps the typed draft mounted while current season and admission reads recover. */
+export function SeasonConfirmationScreen({
   seasonId,
-}: Readonly<{ seasonId: string }>) {
-  const editing = useCloseCollectionSeason(seasonId);
+  command,
+}: Readonly<{ seasonId: string; command: SeasonCommand }>) {
+  const editing = useCollectionSeasonCommand(seasonId, command);
   const { authority, season } = editing;
-  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}`;
+  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}:${command}`;
+  const { verb, label } = seasonCommands[command];
+  const title = season.data ? `${verb} ${season.data.label} ?` : label;
   const requiredRead = [authority.account, season].find(hasReadError) ?? season;
   const blocked =
     !authority.enabled || !season.data || hasReadError(requiredRead);
@@ -30,12 +34,12 @@ export function CloseSeasonScreen({
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (
-    <Page header={<PageHeader title="Clôturer la saison" />}>
+    <Page header={<PageHeader title={title} />}>
       <FormScrollView
         refreshControl={
           <DataRefreshControl
             fetching={season.isFetching}
-            enabled={!blocked && !editing.close.isPending}
+            enabled={!blocked && !editing.submit.isPending}
             onRefresh={() => season.refetch({ cancelRefetch: false })}
           />
         }
@@ -45,20 +49,20 @@ export function CloseSeasonScreen({
             {!authority.enabled ? (
               <AccessFeedback
                 {...authority}
-                loadingContent={<CloseSeasonLoading />}
+                loadingContent={<SeasonConfirmationLoading />}
               />
             ) : (
               <ReadFeedback
                 query={requiredRead}
-                loadingContent={<CloseSeasonLoading />}
+                loadingContent={<SeasonConfirmationLoading />}
               />
             )}
           </FeedbackLayout>
         )}
         <PageContent style={blocked ? styles.hidden : undefined}>
-          <CloseSeasonForm
+          <SeasonConfirmationForm
             key={visitKey}
-            season={season.data}
+            command={command}
             editing={editing}
           />
         </PageContent>

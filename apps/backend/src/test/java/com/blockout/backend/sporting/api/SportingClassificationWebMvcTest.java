@@ -90,7 +90,8 @@ class SportingClassificationWebMvcTest {
             null,
             null,
             MappingStatusEnum.SOME,
-            2);
+            2,
+            1);
     when(configurationReads.mappingPacks(ACCOUNT, filters, 2, 1))
         .thenReturn(new OffsetPage<>(List.of(pack), 2, true));
 
@@ -118,6 +119,7 @@ class SportingClassificationWebMvcTest {
         .andExpect(jsonPath("$.items[0].seasonLabel").value("2026–2027"))
         .andExpect(jsonPath("$.items[0].status").value("some"))
         .andExpect(jsonPath("$.items[0].poolCount").value(2))
+        .andExpect(jsonPath("$.items[0].classifiedPoolCount").value(1))
         .andExpect(jsonPath("$.items[0].defaultClassification").value(nullValue()));
   }
 
@@ -162,7 +164,8 @@ class SportingClassificationWebMvcTest {
             null,
             null,
             MappingStatusEnum.SOME,
-            2);
+            2,
+            1);
     when(configurationReads.mappingPack(ACCOUNT, ID, 0, 50))
         .thenReturn(
             new PackMappingDetail(
