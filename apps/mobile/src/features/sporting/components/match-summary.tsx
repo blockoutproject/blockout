@@ -12,6 +12,7 @@ import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
+import { centeredLeadingHalo } from "@/shared/components/artwork-halo";
 import { SportingMedia } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
 import { matchStatusLabel } from "../model/match-presentation";
@@ -56,6 +57,7 @@ export function MatchSummary({
         <SportingLogo
           kind="division"
           identity={division}
+          atmosphere={{ placement: centeredLeadingHalo }}
           renderWithAtmosphere={
             contextual
               ? undefined

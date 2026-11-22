@@ -14,12 +14,14 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSportingLogo } from "../api/use-sporting-logo";
 import {
-  SportingAtmosphere,
   SportingMedia,
   SportingCover,
   type SportingMediaProps,
 } from "./sporting-media";
-import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
+import {
+  ArtworkHalo,
+  centeredLeadingHalo,
+} from "@/shared/components/artwork-halo";
 import { IdentityCard } from "@/shared/components/identity-card";
 import { SportingIdentityRevealContext } from "./sporting-initial-composition";
 
@@ -75,16 +77,12 @@ export function SportingDivisionAtmosphere({
   if (!uri) {
     return null;
   }
-  return presentation === "identity" ? (
-    renderIdentityAtmosphere(uri)
-  ) : (
-    <SportingAtmosphere uri={uri} layout="card" />
-  );
-}
-
-function renderIdentityAtmosphere(uri: string) {
   return (
-    <IdentityAtmosphere key={uri} uri={uri} testID="sporting-logo-atmosphere" />
+    <ArtworkHalo
+      key={uri}
+      uri={uri}
+      placement={presentation === "identity" ? centeredLeadingHalo : undefined}
+    />
   );
 }
 
@@ -145,7 +143,14 @@ export function SportingIdentity({
             presentation="identity"
           />
         )
-      : logo.uri && !logo.error && renderIdentityAtmosphere(logo.uri);
+      : logo.uri &&
+        !logo.error && (
+          <ArtworkHalo
+            key={logo.uri}
+            uri={logo.uri}
+            placement={centeredLeadingHalo}
+          />
+        );
 
   return (
     <IdentityCard

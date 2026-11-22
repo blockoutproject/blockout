@@ -215,17 +215,7 @@ function StandingRow({
     const content = (
       <>
         {podium && <RankTint color={rankFill} />}
-        {podium && atmosphere ? (
-          <View
-            pointerEvents="none"
-            accessible={false}
-            style={styles.podiumAtmosphere}
-          >
-            {atmosphere}
-          </View>
-        ) : (
-          atmosphere
-        )}
+        {atmosphere}
         {list && highlighted && (
           <View
             pointerEvents="none"
@@ -328,7 +318,7 @@ function StandingRow({
       nativeSize={nativeLogoSize}
       atmosphere={
         !list && {
-          layout: podium ? "podium" : "horizontal",
+          placement: podium ? styles.podiumAtmosphere : undefined,
           withdrawLogoOnError: true,
         }
       }
@@ -499,13 +489,10 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.xs,
   },
   podiumAtmosphere: {
-    position: "absolute",
     top:
       tokens.spacing.sm +
-      (card.podiumIdentityMinHeight - card.atmosphereHeight) / 2,
-    end: tokens.spacing.sm + (tokens.size.media.row - card.atmosphereWidth) / 2,
-    width: card.atmosphereWidth,
-    height: card.atmosphereHeight,
-    opacity: card.atmosphereOpacity,
+      (card.podiumIdentityMinHeight - tokens.media.halo.height) / 2,
+    end:
+      tokens.spacing.sm + (tokens.size.media.row - tokens.media.halo.width) / 2,
   },
 });

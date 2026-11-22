@@ -246,10 +246,10 @@ export const tokens = {
       preview: radius.lg,
       profile: radius.panelInset,
     },
-    // Product identity patterns repeat the same accepted image behind the foreground slot.
-    identityAtmosphere: {
+    // Search's entity card supplies the common artwork frame and intensity.
+    halo: {
       width: 150,
-      height: 168,
+      height: 120,
       blur: 14,
       scale: 3,
       opacity: { light: 0.34, dark: 0.42 },
@@ -326,14 +326,6 @@ export const tokens = {
     coverBlur: 20,
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
-    atmosphere: {
-      blur: 14,
-      scale: 3,
-      opacity: { light: 0.34, dark: 0.42 },
-      horizontalWidth: 150,
-      cardHeight: 120,
-      crestScale: 2,
-    },
     clubTeam: { minHeight: 114, railWidth: 66, logoSize: 44 },
     // Product Design compact official standings row 4502:39958.
     standingsRowMinHeight: 68,
@@ -352,9 +344,6 @@ export const tokens = {
       podiumRankHeight: 36,
       podiumIdentityMinHeight: 48,
       nameMinHeight: 40,
-      atmosphereHeight: 136,
-      atmosphereWidth: 114,
-      atmosphereOpacity: 0.28,
       tintOpacity: 0.16,
       performanceHeight: 3,
     },
