@@ -135,6 +135,7 @@ it("retains caller content and ignores former events when an image source return
           identity={identity}
           kind="team"
           uri={uri}
+          atmosphere={{ withdrawLogoOnError: true }}
           renderWithAtmosphere={(logo, atmosphere) => (
             <View>
               {atmosphere}
@@ -182,6 +183,10 @@ it("retains caller content and ignores former events when an image source return
     busy: true,
   });
   expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toHaveProp("source", {
+    uri: firstUri,
+    cache: "reload",
+  });
   expect(screen.getByDisplayValue("Texte conservé")).toBeOnTheScreen();
 
   // When

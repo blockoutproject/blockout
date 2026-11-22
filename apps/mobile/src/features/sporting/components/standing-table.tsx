@@ -215,17 +215,7 @@ function StandingRow({
     const content = (
       <>
         {podium && <RankTint color={rankFill} />}
-        {podium && atmosphere ? (
-          <View
-            pointerEvents="none"
-            accessible={false}
-            style={styles.podiumAtmosphere}
-          >
-            {atmosphere}
-          </View>
-        ) : (
-          atmosphere
-        )}
+        {!podium && atmosphere}
         {list && highlighted && (
           <View
             pointerEvents="none"
@@ -268,6 +258,7 @@ function StandingRow({
               podium ? styles.podiumLogo : styles.rowLogo,
             ]}
           >
+            {podium && atmosphere}
             {logo}
             {!podium && (
               <View style={[styles.copy, list && styles.listCopy]}>
@@ -328,7 +319,6 @@ function StandingRow({
       nativeSize={nativeLogoSize}
       atmosphere={
         !list && {
-          layout: podium ? "podium" : "horizontal",
           withdrawLogoOnError: true,
         }
       }
@@ -339,7 +329,6 @@ function StandingRow({
       identity={{ name: row.sourceName }}
       kind="team"
       size={size}
-      atmosphere={false}
       renderWithAtmosphere={renderRow}
     />
   );
@@ -449,7 +438,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   rowLogo: { flex: 1 },
-  podiumLogo: { flexShrink: 1 },
+  podiumLogo: { flexShrink: 1, justifyContent: "center" },
   rank: {
     alignItems: "center",
     justifyContent: "center",
@@ -457,6 +446,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   podiumRank: {
+    zIndex: 1,
     minWidth: card.podiumRankWidth,
     minHeight: card.podiumRankHeight,
   },
@@ -497,15 +487,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: tokens.spacing.xs,
-  },
-  podiumAtmosphere: {
-    position: "absolute",
-    top:
-      tokens.spacing.sm +
-      (card.podiumIdentityMinHeight - card.atmosphereHeight) / 2,
-    end: tokens.spacing.sm + (tokens.size.media.row - card.atmosphereWidth) / 2,
-    width: card.atmosphereWidth,
-    height: card.atmosphereHeight,
-    opacity: card.atmosphereOpacity,
   },
 });

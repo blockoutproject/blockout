@@ -128,7 +128,6 @@ function MatchScoreTeam({
         kind="team"
         size={tokens.sporting.setLogo}
         atmosphere={{
-          layout: "crest",
           testID: `match-score-atmosphere-${identity.id}`,
         }}
         renderWithAtmosphere={(logo, halo) => (

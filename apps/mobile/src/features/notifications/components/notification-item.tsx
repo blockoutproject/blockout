@@ -191,7 +191,6 @@ export function NotificationItem({
       kind="division"
       identity={division}
       size={tokens.size.control.compact}
-      atmosphere={{ layout: "card" }}
       renderWithAtmosphere={renderCard}
     />
   );

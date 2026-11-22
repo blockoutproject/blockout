@@ -533,7 +533,6 @@ function CalendarPoolGroupStart({
     <SportingLogo
       identity={division}
       kind="division"
-      atmosphere={{ layout: "card" }}
       renderWithAtmosphere={renderGroup}
     />
   ) : (

@@ -14,12 +14,11 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSportingLogo } from "../api/use-sporting-logo";
 import {
-  SportingAtmosphere,
   SportingMedia,
   SportingCover,
   type SportingMediaProps,
 } from "./sporting-media";
-import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
+import { ArtworkHalo } from "@/shared/components/artwork-halo";
 import { IdentityCard } from "@/shared/components/identity-card";
 import { SportingIdentityRevealContext } from "./sporting-initial-composition";
 
@@ -66,26 +65,9 @@ export function SportingArtwork({
 /** Resolves the team's division image independently of its foreground crest. */
 export function SportingDivisionAtmosphere({
   division,
-  presentation,
-}: Readonly<{
-  division: SportingDivisionResponse;
-  presentation: "identity" | "entity";
-}>) {
+}: Readonly<{ division: SportingDivisionResponse }>) {
   const { uri } = useSportingLogo(division, "division");
-  if (!uri) {
-    return null;
-  }
-  return presentation === "identity" ? (
-    renderIdentityAtmosphere(uri)
-  ) : (
-    <SportingAtmosphere uri={uri} layout="card" />
-  );
-}
-
-function renderIdentityAtmosphere(uri: string) {
-  return (
-    <IdentityAtmosphere key={uri} uri={uri} testID="sporting-logo-atmosphere" />
-  );
+  return uri ? <ArtworkHalo uri={uri} /> : null;
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
@@ -139,13 +121,8 @@ export function SportingIdentity({
 
   const atmosphere =
     kind === "team"
-      ? division && (
-          <SportingDivisionAtmosphere
-            division={division}
-            presentation="identity"
-          />
-        )
-      : logo.uri && !logo.error && renderIdentityAtmosphere(logo.uri);
+      ? division && <SportingDivisionAtmosphere division={division} />
+      : logo.uri && !logo.error && <ArtworkHalo uri={logo.uri} />;
 
   return (
     <IdentityCard

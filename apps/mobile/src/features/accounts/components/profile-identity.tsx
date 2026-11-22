@@ -1,7 +1,7 @@
 import { Text } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { IdentityArtwork } from "@/shared/components/identity-artwork";
-import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
+import { ArtworkHalo } from "@/shared/components/artwork-halo";
 import { IdentityCard } from "@/shared/components/identity-card";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { tokens } from "@/shared/theme/tokens";
@@ -26,11 +26,7 @@ export function ProfileIdentity({
       borderColor={proAccent ? membership.border : undefined}
       atmosphere={
         uri ? (
-          <IdentityAtmosphere
-            key={uri}
-            testID="profile-photo-atmosphere"
-            uri={uri}
-          />
+          <ArtworkHalo testID="profile-photo-atmosphere" uri={uri} />
         ) : undefined
       }
       artwork={
