@@ -107,11 +107,7 @@ export function ModerationReportsScreen({
     }
     return (
       <EmptyState title="Aucun signalement">
-        <ReloadButton
-          fetching={query.isFetching}
-          disabled={!reading.canRetain}
-          onReload={() => query.refetch({ cancelRefetch: false })}
-        />
+        <ReloadButton query={query} disabled={!reading.canRetain} />
       </EmptyState>
     );
   }

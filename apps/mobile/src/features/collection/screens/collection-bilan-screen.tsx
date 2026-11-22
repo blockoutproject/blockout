@@ -183,11 +183,7 @@ export function CollectionBilanScreen({
                     : "Aucun résultat observé"
                 }
               >
-                <ReloadButton
-                  fetching={query.isFetching}
-                  onReload={() => query.refetch({ cancelRefetch: false })}
-                  disabled={!authority.enabled}
-                />
+                <ReloadButton query={query} disabled={!authority.enabled} />
               </EmptyState>
             </ScreenState>
           ) : undefined

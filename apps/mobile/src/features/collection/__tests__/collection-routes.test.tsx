@@ -1266,6 +1266,64 @@ it("keeps collection operations closed to an outdated client even with the colle
   ).toBe(false);
 });
 
+it("reloads empty Suivi and retries a failed read of the selected season's controls", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const reload = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
+  let nextRead: Promise<Response> | undefined;
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith("/collection-controls") && nextRead
+      ? nextRead
+      : serve(url),
+  );
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}/controls/ffvb`));
+  await screen.findByRole("header", { name: "Aucun contrôle de collecte" });
+  mockFetch.mockClear();
+
+  // When
+  nextRead = reload.promise;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+  expect(
+    await screen.findByRole("button", { name: "Actualiser", busy: true }),
+  ).toBeDisabled();
+  await act(() => reload.resolve(refused(503)));
+  nextRead = retry.promise;
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  const requested = mockFetch.mock.calls.map(([url, options]) => {
+    const { pathname, search } = new URL(String(url));
+    return [options?.method ?? "GET", `${pathname}${search}`];
+  });
+  const controlsRequest = [
+    "GET",
+    `/administration/collection-controls?seasonId=${seasonId}`,
+  ];
+  expect(requested).toEqual([controlsRequest, controlsRequest]);
+
+  // When
+  await act(() =>
+    retry.resolve(Response.json({ items: [control({ seasonId })] })),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+});
+
 it.each(["preparing", "active"] as const)(
   "keeps Sources accessible when the %s season has no provider control yet",
   async (state) => {

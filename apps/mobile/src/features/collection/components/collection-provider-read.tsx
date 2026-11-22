@@ -10,6 +10,7 @@ import {
 } from "@/features/access/components/access-feedback";
 import { Page } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
 import type { useCollectionSeason } from "../api/use-collection-season";
@@ -21,22 +22,23 @@ type ProviderContent = (
   controls: ReturnType<typeof useCollectionControls>,
 ) => ReactNode;
 
+type ProviderView = "suivi" | "bilan";
+
 /** Keeps admission and control selection the same for Suivi and a directly opened Bilan. */
 export function CollectionProviderRead({
   provider,
   reading,
+  view,
   header,
   loadingContent,
-  retainControlOnError = false,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
   reading: ReturnType<typeof useCollectionSeason>;
+  view: ProviderView;
   /** A standalone page retains its header when context has yet to admit its content. */
   header?: ReactNode;
   loadingContent: ReactNode;
-  /** Suivi keeps its separately read results while the retained control is temporarily unavailable. */
-  retainControlOnError?: boolean;
   children: ProviderContent;
 }>) {
   const { authority, season } = reading;
@@ -61,9 +63,9 @@ export function CollectionProviderRead({
     <ProviderControlRead
       provider={provider}
       season={season.data}
+      view={view}
       header={header}
       loadingContent={loadingContent}
-      retainControlOnError={retainControlOnError}
     >
       {children}
     </ProviderControlRead>
@@ -73,16 +75,16 @@ export function CollectionProviderRead({
 function ProviderControlRead({
   provider,
   season,
+  view,
   header,
   loadingContent,
-  retainControlOnError,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
   season: CollectionSeasonResponse;
+  view: ProviderView;
   header?: ReactNode;
   loadingContent: ReactNode;
-  retainControlOnError: boolean;
   children: ProviderContent;
 }>) {
   const controls = useCollectionControls(season.id);
@@ -91,7 +93,8 @@ function ProviderControlRead({
   const control = query.data?.items.find(
     (item) => item.family === provider && item.seasonId === season.id,
   );
-  if (control && (!failed || retainControlOnError)) {
+  // Suivi keeps its separately read results while the retained control is unavailable.
+  if (control && (!failed || view === "suivi")) {
     return children(control, season, controls);
   }
   if (!query.data || failed) {
@@ -101,18 +104,20 @@ function ProviderControlRead({
       </ProviderReadState>
     );
   }
-  return <ProviderReadState header={header} />;
+  return (
+    <ProviderReadState header={header}>
+      <EmptyState title="Aucun contrôle de collecte">
+        {view === "suivi" && <ReloadButton query={query} />}
+      </EmptyState>
+    </ProviderReadState>
+  );
 }
 
 function ProviderReadState({
   header,
   pending = false,
   children,
-}: Readonly<{ header?: ReactNode; pending?: boolean; children?: ReactNode }>) {
-  const content = (
-    <PageReadState pending={pending}>
-      {children ?? <EmptyState title="Aucun contrôle de collecte" />}
-    </PageReadState>
-  );
+}: Readonly<{ header?: ReactNode; pending?: boolean; children: ReactNode }>) {
+  const content = <PageReadState pending={pending}>{children}</PageReadState>;
   return header ? <Page header={header}>{content}</Page> : content;
 }

@@ -42,6 +42,7 @@ export function CollectionBilanVisit({
     <CollectionProviderRead
       provider={provider}
       reading={reading}
+      view="bilan"
       header={header}
       loadingContent={<CollectionBilanResultsLoading />}
     >
