@@ -15,12 +15,11 @@ import { StatusBadge } from "@/shared/components/status-badge";
 import { useRouter } from "expo-router";
 import { Globe, Power, Trophy } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "@/shared/components/button";
 import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-collection-season";
-import { seasonCommands, type SeasonCommand } from "../model/season-command";
+import { seasonCommandsByState } from "../model/season-command";
 
 /** Opens provider journeys and the selected season's available lifecycle commands. */
 export function CollectionSeasonScreen({
@@ -34,18 +33,7 @@ export function CollectionSeasonScreen({
     ? isAccessLoading(authority)
     : !failed && season.isLoading;
   const current = authority.enabled && !failed ? season.data : undefined;
-  const preparing = current?.state === "preparing";
-  const command = preparing ? "activation" : "closure";
-
-  function confirm(command: SeasonCommand) {
-    router.push({
-      pathname:
-        command === "activation"
-          ? "/collection/[seasonId]/activation"
-          : "/collection/[seasonId]/closure",
-      params: { seasonId },
-    });
-  }
+  const hasActions = current && seasonCommandsByState[current.state].length > 0;
 
   return (
     <Page
@@ -53,15 +41,19 @@ export function CollectionSeasonScreen({
         <PageHeader
           title={current?.label ?? "Saison"}
           action={
-            current &&
-            current.state !== "closed" && (
+            hasActions && (
               <IconButton
-                label={seasonCommands[command].label}
-                onPress={() => confirm(command)}
+                label="Actions de la saison"
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/[seasonId]/actions",
+                    params: { seasonId },
+                  })
+                }
               >
                 <Power
                   accessible={false}
-                  color={preparing ? colors.icon : colors.error}
+                  color={colors.icon}
                   size={tokens.size.icon.lg}
                 />
               </IconButton>
@@ -111,13 +103,6 @@ export function CollectionSeasonScreen({
                 router.push(collectionProviderHref(seasonId, "lnv"))
               }
             />
-            {preparing && (
-              <Button
-                label={seasonCommands.closure.label}
-                variant="secondary"
-                onPress={() => confirm("closure")}
-              />
-            )}
           </PageContent>
         </PageScrollView>
       ) : (

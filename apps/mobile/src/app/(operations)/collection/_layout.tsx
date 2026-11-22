@@ -14,6 +14,7 @@ export default function CollectionLayout() {
   const sheetOptions = useSheetScreenOptions();
   return useOperationalAdmission() ? (
     <Stack screenOptions={screenOptions}>
+      <Stack.Screen name="[seasonId]/actions" options={sheetOptions} />
       <Stack.Screen
         name="[seasonId]/controls/[provider]/bilan-filters"
         options={sheetOptions}
