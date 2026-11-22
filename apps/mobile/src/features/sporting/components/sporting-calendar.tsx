@@ -484,6 +484,7 @@ function CalendarPoolGroupStart({
   function renderGroup(logo: ReactNode, atmosphere?: ReactNode) {
     const heading = (
       <>
+        {atmosphere}
         {logo}
         <View style={calendarStyles.poolCopy}>
           <Text
@@ -503,7 +504,6 @@ function CalendarPoolGroupStart({
     );
     return (
       <CalendarGroupPart divisionColor={division?.color} first last={last}>
-        {atmosphere}
         {linked ? (
           <SportingLink
             kind="pool"

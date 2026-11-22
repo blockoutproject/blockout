@@ -319,6 +319,7 @@ function StandingRow({
       nativeSize={nativeLogoSize}
       atmosphere={
         !list && {
+          treatment: podium ? "identity" : "standingsRow",
           withdrawLogoOnError: true,
         }
       }

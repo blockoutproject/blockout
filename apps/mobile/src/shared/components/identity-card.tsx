@@ -36,11 +36,7 @@ export function IdentityCard({
         style,
       ]}
     >
-      {atmosphere && (
-        <View pointerEvents="none" style={styles.atmosphere}>
-          {atmosphere}
-        </View>
-      )}
+      {atmosphere}
       <View style={styles.rail}>
         <View
           style={[styles.artwork, { backgroundColor: artworkBackgroundColor }]}
@@ -60,10 +56,6 @@ const styles = StyleSheet.create({
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.panel,
     overflow: "hidden",
-  },
-  atmosphere: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: "center",
   },
   rail: {
     width: tokens.layout.identity.railWidth,

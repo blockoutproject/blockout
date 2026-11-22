@@ -17,7 +17,7 @@ export function NotificationLoading() {
     <LoadingGroup label="Chargement des notifications" style={styles.items}>
       {Array.from({ length: 3 }, (_, index) => (
         <NotificationCard key={index}>
-          <View style={layout.pool}>
+          <View style={[layout.inset, layout.pool]}>
             <Skeleton
               width={tokens.size.control.compact}
               height={tokens.size.control.compact}
@@ -28,7 +28,7 @@ export function NotificationLoading() {
               <TextSkeleton width={128} role="metadata" />
             </View>
           </View>
-          <View>
+          <View style={layout.inset}>
             {[188, 164].map((width) => (
               <View
                 key={width}

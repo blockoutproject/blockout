@@ -11,7 +11,7 @@ import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
-import { SportingArtwork, SportingLogo } from "./sporting-identity";
+import { MatchLogo, SportingArtwork, SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
 import { matchStatusLabel } from "../model/match-presentation";
@@ -47,26 +47,14 @@ export function MatchSummary({
   const onAccent = division ? divisionTextColor(accent) : context.onAction;
   const result = match.result;
   const contextual = presentation === "context";
+  const DivisionLogo = contextual ? SportingLogo : MatchLogo;
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   const poolContent = (
     <>
       {contextual && division && <DivisionPaint division={division} />}
       {contextual && division && <SportingArtwork division={division} />}
       {division ? (
-        <SportingLogo
-          kind="division"
-          identity={division}
-          renderWithAtmosphere={
-            contextual
-              ? undefined
-              : (logo, atmosphere) => (
-                  <>
-                    {atmosphere}
-                    {logo}
-                  </>
-                )
-          }
-        />
+        <DivisionLogo kind="division" identity={division} />
       ) : (
         <SportingMedia kind="division" identity={match.pool.pool} />
       )}
