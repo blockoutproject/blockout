@@ -1,4 +1,4 @@
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 import Svg, {
   Defs,
   G,
@@ -18,11 +18,13 @@ const radialFadeEnd = 0.7;
 // The radial fade reaches zero at the frame’s top and bottom edges.
 const verticalRadius = `${50 / radialFadeEnd}%`;
 
+export type ArtworkHaloPlacement = "centered-leading" | ViewStyle;
+
 interface ArtworkHaloProps {
   uri: string;
   testID?: string;
-  /** Positions the fixed-size halo within the card's clipping surface. */
-  placement?: StyleProp<ViewStyle>;
+  /** Custom positions fade at the leading edge because they can start inside the card. */
+  placement?: ArtworkHaloPlacement;
   onError?: () => void;
 }
 
@@ -43,13 +45,17 @@ export function ArtworkHalo({
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const secondary = `${id}-secondary`;
+  const centeredLeading = placement === "centered-leading";
+  const atCardEdge = placement === undefined || centeredLeading;
   return (
     <View
       accessible={false}
       pointerEvents="none"
       style={[
         styles.halo,
-        placement ?? styles.upperLeft,
+        centeredLeading
+          ? styles.centeredLeading
+          : (placement ?? styles.upperLeft),
         {
           opacity: tokens.media.halo.opacity[scheme],
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
@@ -93,7 +99,11 @@ export function ArtworkHalo({
                 />
               </RadialGradient>
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
-                <Stop offset={0} stopColor="white" stopOpacity={0} />
+                <Stop
+                  offset={0}
+                  stopColor="white"
+                  stopOpacity={atCardEdge ? 1 : 0}
+                />
                 <Stop offset={0.1} stopColor="white" stopOpacity={0.9} />
                 <Stop offset={1} stopColor="white" stopOpacity={0} />
               </LinearGradient>
@@ -124,12 +134,6 @@ export function ArtworkHalo({
   );
 }
 
-export const centeredLeadingHalo: ViewStyle = {
-  left: 0,
-  top: "50%",
-  marginTop: -tokens.media.halo.height / 2,
-};
-
 const styles = StyleSheet.create({
   halo: {
     position: "absolute",
@@ -137,6 +141,11 @@ const styles = StyleSheet.create({
     aspectRatio: tokens.media.halo.width / tokens.media.halo.height,
   },
   upperLeft: { top: 0, left: 0 },
+  centeredLeading: {
+    left: 0,
+    top: "50%",
+    marginTop: -tokens.media.halo.height / 2,
+  },
   image: {
     ...StyleSheet.absoluteFill,
     transform: [{ scale: tokens.media.halo.scale }],

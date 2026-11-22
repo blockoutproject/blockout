@@ -18,10 +18,7 @@ import {
   SportingCover,
   type SportingMediaProps,
 } from "./sporting-media";
-import {
-  ArtworkHalo,
-  centeredLeadingHalo,
-} from "@/shared/components/artwork-halo";
+import { ArtworkHalo } from "@/shared/components/artwork-halo";
 import { IdentityCard } from "@/shared/components/identity-card";
 import { SportingIdentityRevealContext } from "./sporting-initial-composition";
 
@@ -81,7 +78,7 @@ export function SportingDivisionAtmosphere({
     <ArtworkHalo
       key={uri}
       uri={uri}
-      placement={presentation === "identity" ? centeredLeadingHalo : undefined}
+      placement={presentation === "identity" ? "centered-leading" : undefined}
     />
   );
 }
@@ -148,7 +145,7 @@ export function SportingIdentity({
           <ArtworkHalo
             key={logo.uri}
             uri={logo.uri}
-            placement={centeredLeadingHalo}
+            placement="centered-leading"
           />
         );
 

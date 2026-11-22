@@ -1,9 +1,12 @@
 import { Image } from "expo-image";
-import { ArtworkHalo } from "@/shared/components/artwork-halo";
+import {
+  ArtworkHalo,
+  type ArtworkHaloPlacement,
+} from "@/shared/components/artwork-halo";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -29,7 +32,7 @@ export interface SportingMediaProps {
   atmosphere?:
     | false
     | Readonly<{
-        placement?: StyleProp<ViewStyle>;
+        placement?: ArtworkHaloPlacement;
         testID?: string;
         /** Standings retain their paired fallback if either native image fails. */
         withdrawLogoOnError?: boolean;
