@@ -223,7 +223,11 @@ function Inbox({
             title="Aucune notification pour le moment"
             description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
           >
-            <ReloadButton fetching={query.isFetching} onReload={refresh} />
+            <ReloadButton
+              fetching={query.isFetching}
+              disabled={query.isFetching}
+              onReload={refresh}
+            />
           </EmptyState>
         </ScreenState>
       );
