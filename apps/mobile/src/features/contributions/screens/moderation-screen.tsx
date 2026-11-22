@@ -22,6 +22,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
 import { EmptyState } from "@/shared/components/state-card";
+import { StatusBadge } from "@/shared/components/status-badge";
 import { Button } from "@/shared/components/button";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -342,19 +343,12 @@ function ModerationQueueRow({
             ]
               .filter(([count]) => count !== 0)
               .map(([count, label]) => (
-                <Text
+                <StatusBadge
                   key={label}
-                  style={[
-                    styles.badge,
-                    {
-                      color: colors.secondaryText,
-                      backgroundColor: colors.subtle,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  {count} {label}
-                </Text>
+                  label={`${count} ${label}`}
+                  tone="neutral"
+                  style={styles.countBadge}
+                />
               ))}
           </View>
         </ModerationMatchContext>
@@ -376,11 +370,5 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: tokens.spacing.sm,
   },
-  badge: {
-    ...tokens.typography.metadata,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.sm,
-  },
+  countBadge: { paddingVertical: tokens.spacing.xs },
 });

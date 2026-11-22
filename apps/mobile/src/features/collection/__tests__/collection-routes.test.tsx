@@ -632,6 +632,9 @@ it("switches from Suivi to the read-only source catalogue in the provider tabs",
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/controls/lnv`,
   );
+  await act(async () => router.setParams({ scope: "regional" }));
+  expect(screen.getByRole("button", { name: "Filtres" })).toBeEnabled();
+  expect(screen.getByText(source.label)).toBeOnTheScreen();
 });
 
 it("searches the native FFVB reference and applies status and perimeter together", async () => {

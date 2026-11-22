@@ -28,7 +28,7 @@ export function CollectionProviderScreen({
   provider,
   seasonId,
   tab,
-  filters: routeFilters,
+  filters,
 }: Readonly<{
   provider: CollectionProviderEnum;
   seasonId: string;
@@ -39,13 +39,11 @@ export function CollectionProviderScreen({
   const reading = useCollectionSeason(seasonId);
   const { authority, season } = reading;
   const [search, setSearch] = useState("");
-  const sourceTab =
+  const showSourceToolbar =
     tab === "sources" &&
     authority.enabled &&
     !!season.data &&
     !hasReadError(season);
-  const filters: SourceFilters =
-    provider === "ffvb" ? routeFilters : { status: routeFilters.status };
   const followUpLoading = <CollectionFollowUpLoading />;
   return (
     <Page fullBleed>
@@ -61,38 +59,38 @@ export function CollectionProviderScreen({
           />
         }
         tabBarMinHeight={
-          sourceTab ? tokens.touch.minimum + searchToolbarMinHeight : undefined
-        }
-        renderTabBar={
-          sourceTab
-            ? (tabBar) => (
-                <>
-                  {tabBar}
-                  <SearchToolbar
-                    filter={{
-                      active: Boolean(filters.status || filters.scope),
-                      onPress: () =>
-                        router.push({
-                          pathname:
-                            "/collection/[seasonId]/controls/[provider]/sources-filters",
-                          params: { seasonId, provider, ...filters },
-                        }),
-                    }}
-                  >
-                    <SearchField
-                      label="Rechercher une source"
-                      placeholder="Nom ou référence…"
-                      value={search}
-                      onChangeText={setSearch}
-                      onClear={() => setSearch("")}
-                      autoCorrect={false}
-                      returnKeyType="search"
-                    />
-                  </SearchToolbar>
-                </>
-              )
+          showSourceToolbar
+            ? tokens.touch.minimum + searchToolbarMinHeight
             : undefined
         }
+        renderTabBar={(tabBar) => (
+          <>
+            {tabBar}
+            {showSourceToolbar && (
+              <SearchToolbar
+                filter={{
+                  active: Boolean(filters.status || filters.scope),
+                  onPress: () =>
+                    router.push({
+                      pathname:
+                        "/collection/[seasonId]/controls/[provider]/sources-filters",
+                      params: { seasonId, provider, ...filters },
+                    }),
+                }}
+              >
+                <SearchField
+                  label="Rechercher une source"
+                  placeholder="Nom ou référence…"
+                  value={search}
+                  onChangeText={setSearch}
+                  onClear={() => setSearch("")}
+                  autoCorrect={false}
+                  returnKeyType="search"
+                />
+              </SearchToolbar>
+            )}
+          </>
+        )}
         tabs={[
           {
             id: "suivi",

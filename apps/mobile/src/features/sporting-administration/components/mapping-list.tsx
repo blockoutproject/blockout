@@ -14,6 +14,7 @@ import { PageReadState } from "@/shared/components/page-read-state";
 import { PageFlatList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ReloadButton } from "@/shared/components/reload-button";
+import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -57,15 +58,21 @@ export function MappingList<Row extends { id: string }>({
     query.data.pages.flatMap(({ items }) => items),
     ({ id }) => id,
   );
+  const indexEmpty = rows.length === 0 && !header;
+  const emptyState = (
+    <EmptyState title={emptyLabel}>
+      {indexEmpty && <ReloadButton query={query} />}
+    </EmptyState>
+  );
   return (
     <PageFlatList
       data={rows}
       keyExtractor={({ id }) => id}
-      contentContainerStyle={pageContentStyle}
+      contentContainerStyle={indexEmpty ? undefined : pageContentStyle}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       refreshControl={
-        rows.length > 0 || header ? (
+        !indexEmpty ? (
           <DataRefreshControl
             enabled={!query.isFetchingNextPage && !continuationFailed}
             fetching={query.isFetching}
@@ -76,9 +83,7 @@ export function MappingList<Row extends { id: string }>({
       ItemSeparatorComponent={<ListSeparator gap={tokens.spacing.sm} />}
       ListHeaderComponent={header}
       ListEmptyComponent={
-        <EmptyState title={emptyLabel}>
-          {!header && <ReloadButton query={query} />}
-        </EmptyState>
+        indexEmpty ? <ScreenState>{emptyState}</ScreenState> : emptyState
       }
       renderItem={renderItem}
       onEndReached={continuationFailed ? undefined : loadMore}

@@ -27,7 +27,8 @@ import {
   useMappingRouteParams,
 } from "../model/mapping-route-params";
 
-const loading = <ListLoading label="Chargement des packs" />;
+const loadingLabel = "Chargement des packs";
+const loading = <ListLoading label={loadingLabel} />;
 
 export function MappingScreen() {
   const router = useRouter();
@@ -103,7 +104,7 @@ export function MappingScreen() {
       <MappingList<MappingPackResponse>
         key={hashKey(options.queryKey)}
         query={packs}
-        loadingLabel="Chargement des packs"
+        loadingLabel={loadingLabel}
         emptyLabel="Aucun pack trouvé"
         renderItem={({ item: pack }) => {
           const { poolCount, classifiedPoolCount, defaultClassification } =

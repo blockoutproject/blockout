@@ -5,11 +5,11 @@ import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { IconButton } from "@/shared/components/icon-button";
 import { PageHeader } from "@/shared/components/page-header";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { StatusBadge } from "@/shared/components/status-badge";
 import { useRouter } from "expo-router";
@@ -29,12 +29,11 @@ export function CollectionSeasonScreen({
   const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
   const { colors } = useTheme();
+  const failed = hasReadError(season);
   const pending = !authority.enabled
     ? isAccessLoading(authority)
-    : !hasReadError(season) && season.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
-  const current =
-    authority.enabled && !hasReadError(season) ? season.data : undefined;
+    : !failed && season.isLoading;
+  const current = authority.enabled && !failed ? season.data : undefined;
   const preparing = current?.state === "preparing";
   const command = preparing ? "activation" : "closure";
 
@@ -71,17 +70,17 @@ export function CollectionSeasonScreen({
         />
       }
     >
-      <PageScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" && current ? (
-            <DataRefreshControl
-              fetching={season.isFetching}
-              onRefresh={() => season.refetch({ cancelRefetch: false })}
-            />
-          ) : undefined
-        }
-      >
-        {current ? (
+      {current ? (
+        <PageScrollView
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                fetching={season.isFetching}
+                onRefresh={() => season.refetch({ cancelRefetch: false })}
+              />
+            ) : undefined
+          }
+        >
           <PageContent>
             <View style={styles.heading}>
               <Text
@@ -120,22 +119,22 @@ export function CollectionSeasonScreen({
               />
             )}
           </PageContent>
-        ) : (
-          <FeedbackLayout>
-            {authority.enabled ? (
-              <ReadFeedback
-                query={season}
-                loadingContent={<CollectionLoading />}
-              />
-            ) : (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionLoading />}
-              />
-            )}
-          </FeedbackLayout>
-        )}
-      </PageScrollView>
+        </PageScrollView>
+      ) : (
+        <PageReadState pending={pending}>
+          {authority.enabled ? (
+            <ReadFeedback
+              query={season}
+              loadingContent={<CollectionLoading />}
+            />
+          ) : (
+            <AccessFeedback
+              {...authority}
+              loadingContent={<CollectionLoading />}
+            />
+          )}
+        </PageReadState>
+      )}
     </Page>
   );
 }

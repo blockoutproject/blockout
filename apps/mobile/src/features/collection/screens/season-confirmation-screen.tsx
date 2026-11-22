@@ -24,12 +24,11 @@ export function SeasonConfirmationScreen({
   const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}:${command}`;
   const { verb, label } = seasonCommands[command];
   const title = season.data ? `${verb} ${season.data.label} ?` : label;
-  const requiredRead = [authority.account, season].find(hasReadError) ?? season;
-  const blocked =
-    !authority.enabled || !season.data || hasReadError(requiredRead);
+  const failedRead = [authority.account, season].find(hasReadError);
+  const blocked = !authority.enabled || !season.data || !!failedRead;
   const initialLoading = !authority.enabled
     ? isAccessLoading(authority)
-    : !hasReadError(requiredRead) && season.isLoading;
+    : !failedRead && season.isLoading;
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
@@ -53,7 +52,7 @@ export function SeasonConfirmationScreen({
               />
             ) : (
               <ReadFeedback
-                query={requiredRead}
+                query={failedRead ?? season}
                 loadingContent={<SeasonConfirmationLoading />}
               />
             )}
@@ -62,6 +61,7 @@ export function SeasonConfirmationScreen({
         <PageContent style={blocked ? styles.hidden : undefined}>
           <SeasonConfirmationForm
             key={visitKey}
+            blocked={blocked}
             command={command}
             editing={editing}
           />

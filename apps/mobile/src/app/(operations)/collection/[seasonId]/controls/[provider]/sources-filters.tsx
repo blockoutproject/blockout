@@ -31,7 +31,7 @@ export default function SourceFiltersRoute() {
   return (
     <SourceFiltersSheet
       provider={provider}
-      initial={sourceFiltersFromRoute(params)}
+      initial={sourceFiltersFromRoute(params, provider)}
       onClose={onClose}
       onApply={(filters) =>
         router.dismissTo(

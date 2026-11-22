@@ -18,13 +18,15 @@ import {
 
 /** The mounted visit owns its original label and local input across season reads. */
 export function SeasonConfirmationForm({
+  blocked,
   command,
   editing,
 }: Readonly<{
+  blocked: boolean;
   command: SeasonCommand;
   editing: ReturnType<typeof useCollectionSeasonCommand>;
 }>) {
-  const { authority, season, submit } = editing;
+  const { season, submit } = editing;
   const { colors } = useTheme();
   const feedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const router = useRouter();
@@ -48,23 +50,24 @@ export function SeasonConfirmationForm({
   }
 
   const label = current.label;
-  const busy = !authority.enabled || !season.data || submit.isPending;
+  const unavailable = blocked || submit.isPending;
   const matches = (value: string) => value === label && value === originalLabel;
 
   function confirm(values: SeasonConfirmationValues) {
-    if (busy || terminal || !matches(values.confirmation)) {
+    if (unavailable || terminal || !matches(values.confirmation)) {
       return;
     }
     feedback.clear();
     submit.mutate(values.confirmation, {
-      ...(activating && {
-        onSuccess() {
-          reset();
-          disablePrevention();
-          feedback.success("Saison activée.");
-          router.back();
-        },
-      }),
+      onSuccess() {
+        if (!activating) {
+          return;
+        }
+        reset();
+        disablePrevention();
+        feedback.success("Saison activée.");
+        router.back();
+      },
       onError: () => feedback.error(),
     });
   }
@@ -95,7 +98,7 @@ export function SeasonConfirmationForm({
                 autoCapitalize="none"
                 autoComplete="off"
                 autoCorrect={false}
-                editable={!busy}
+                editable={!unavailable}
                 error={fieldState.error?.message}
               />
             )}
@@ -104,7 +107,7 @@ export function SeasonConfirmationForm({
             label={seasonCommands[command].label}
             variant={activating ? "primary" : "destructive"}
             fullWidth
-            disabled={busy || !matches(confirmation)}
+            disabled={unavailable || !matches(confirmation)}
             loading={submit.isPending}
             onPress={() => void handleSubmit(confirm)()}
           />

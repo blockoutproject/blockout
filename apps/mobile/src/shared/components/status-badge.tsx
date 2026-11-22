@@ -18,15 +18,15 @@ export function StatusBadge({
   style?: StyleProp<TextStyle>;
 }>) {
   const { colors } = useTheme();
-  const [color, backgroundColor] = {
+  const paints = {
     success: [colors.onSuccessSubtle, colors.successSubtle],
     warning: [colors.warningOnSurface, colors.warningSubtle],
-    "strong-warning": [colors.onWarning, colors.warning],
+    "strong-warning": [colors.onWarning, colors.warning, true],
     error: [colors.error, colors.errorSubtle],
     neutral: [colors.secondaryText, colors.subtle],
-    info: [colors.onInfo, colors.info],
-  }[tone];
-  const solid = tone === "strong-warning" || tone === "info";
+    info: [colors.onInfo, colors.info, true],
+  } as const;
+  const [color, backgroundColor, solid] = paints[tone];
   const outline = solid ? backgroundColor : colors.border;
   return (
     <Text
