@@ -10,6 +10,7 @@ import {
 } from "@/features/access/components/access-feedback";
 import { Page } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
 import type { useCollectionSeason } from "../api/use-collection-season";
@@ -28,6 +29,7 @@ export function CollectionProviderRead({
   header,
   loadingContent,
   retainControlOnError = false,
+  reloadEmptyControls = false,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
@@ -37,6 +39,8 @@ export function CollectionProviderRead({
   loadingContent: ReactNode;
   /** Suivi keeps its separately read results while the retained control is temporarily unavailable. */
   retainControlOnError?: boolean;
+  /** Suivi can explicitly reread the controls before the selected provider has a control. */
+  reloadEmptyControls?: boolean;
   children: ProviderContent;
 }>) {
   const { authority, season } = reading;
@@ -64,6 +68,7 @@ export function CollectionProviderRead({
       header={header}
       loadingContent={loadingContent}
       retainControlOnError={retainControlOnError}
+      reloadEmptyControls={reloadEmptyControls}
     >
       {children}
     </ProviderControlRead>
@@ -76,6 +81,7 @@ function ProviderControlRead({
   header,
   loadingContent,
   retainControlOnError,
+  reloadEmptyControls,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
@@ -83,6 +89,7 @@ function ProviderControlRead({
   header?: ReactNode;
   loadingContent: ReactNode;
   retainControlOnError: boolean;
+  reloadEmptyControls: boolean;
   children: ProviderContent;
 }>) {
   const controls = useCollectionControls(season.id);
@@ -101,18 +108,25 @@ function ProviderControlRead({
       </ProviderReadState>
     );
   }
-  return <ProviderReadState header={header} />;
+  return (
+    <ProviderReadState header={header}>
+      <EmptyState title="Aucun contrôle de collecte">
+        {reloadEmptyControls && (
+          <ReloadButton
+            fetching={query.isFetching}
+            onReload={() => query.refetch({ cancelRefetch: false })}
+          />
+        )}
+      </EmptyState>
+    </ProviderReadState>
+  );
 }
 
 function ProviderReadState({
   header,
   pending = false,
   children,
-}: Readonly<{ header?: ReactNode; pending?: boolean; children?: ReactNode }>) {
-  const content = (
-    <PageReadState pending={pending}>
-      {children ?? <EmptyState title="Aucun contrôle de collecte" />}
-    </PageReadState>
-  );
+}: Readonly<{ header?: ReactNode; pending?: boolean; children: ReactNode }>) {
+  const content = <PageReadState pending={pending}>{children}</PageReadState>;
   return header ? <Page header={header}>{content}</Page> : content;
 }

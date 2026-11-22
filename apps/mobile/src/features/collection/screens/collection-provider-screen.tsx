@@ -55,6 +55,7 @@ export function CollectionProviderScreen({
                 reading={reading}
                 loadingContent={followUpLoading}
                 retainControlOnError
+                reloadEmptyControls
               >
                 {(control, currentSeason, controls) => (
                   <CollectionFollowUp
