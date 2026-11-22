@@ -1,15 +1,28 @@
 import {
   getDivision,
+  getMappingPack,
   getPoolPresentation,
   getTeamLogo,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
 import type {
   DivisionResponse,
+  MappingPackResponse,
   PoolPresentationResponse,
 } from "../../../../.generated/schemas/index.zod";
 
 const poolId = "00000000-0000-4000-8000-000000000001";
+const mappingPack: MappingPackResponse = {
+  id: "00000000-0000-4000-8000-000000000010",
+  label: "CFA",
+  sourceId: "00000000-0000-4000-8000-000000000011",
+  sourceLabel: "FFVB / Ligue",
+  seasonId: "00000000-0000-4000-8000-000000000012",
+  seasonLabel: "2026–2027",
+  defaultClassification: null,
+  status: "some",
+  poolCount: 2,
+};
 const division: DivisionResponse = {
   id: "00000000-0000-4000-8000-000000000002",
 
@@ -192,4 +205,60 @@ it("selects automatic team artwork independently through the generated binary cl
   );
   expect(image).toBeInstanceOf(Blob);
   expect(await image.text()).toBe("synthetic-image");
+});
+
+it("preserves the mapping aggregate and explicit unclassified pool on a generated detail page", async () => {
+  // Given
+  const body = {
+    pack: { ...mappingPack, label: "🏐".repeat(256) },
+    items: [
+      {
+        id: poolId,
+        label: "Tour 2",
+        mode: "inherited",
+        effectiveClassification: null,
+      },
+    ],
+    page: 1,
+    hasNext: false,
+  };
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  // When
+  const result = await getMappingPack(mappingPack.id, { page: 1, size: 1 });
+
+  // Then
+  const url = new URL(String(mockFetch.mock.calls[0][0]));
+  expect(url.pathname).toBe(`/administration/packs/${mappingPack.id}`);
+  expect(url.searchParams.get("page")).toBe("1");
+  expect(url.searchParams.get("size")).toBe("1");
+  expect(result).toStrictEqual(body);
+});
+
+it.each([
+  { reason: "omitted effective classification", pool: { label: "Tour 2" } },
+  {
+    reason: "label over the Unicode limit",
+    pool: { label: "🏐".repeat(257), effectiveClassification: null },
+  },
+])("rejects a generated pool response with $reason", async ({ pool }) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    Response.json({
+      pack: mappingPack,
+      items: [{ id: poolId, mode: "inherited", ...pool }],
+      page: 0,
+      hasNext: false,
+    }),
+  );
+
+  // When
+  const request = getMappingPack(mappingPack.id);
+
+  // Then
+  await expect(request).rejects.toMatchObject({ kind: "schema" });
 });

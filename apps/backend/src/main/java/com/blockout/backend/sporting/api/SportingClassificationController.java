@@ -3,7 +3,13 @@ package com.blockout.backend.sporting.api;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.generated.mobile.api.SportingClassificationApi;
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterOptionPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackDetailResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
 import com.blockout.backend.generated.mobile.model.SetClassificationRequest;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.service.ChangeSportingClassification;
 import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import java.util.UUID;
@@ -12,7 +18,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Generated pack/pool routes backed by atomic owner commands and current local grants. */
+/** Pack and pool mapping and atomic corrections under current sporting-classification grants. */
 @RestController
 @RequiredArgsConstructor
 public class SportingClassificationController implements SportingClassificationApi {
@@ -20,6 +26,46 @@ public class SportingClassificationController implements SportingClassificationA
   private final ReadSportingConfiguration configurationReads;
   private final CurrentAccount account;
   private final SportingAdministrationMapper mapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<MappingPackPageResponse> listMappingPacks(
+      String search,
+      MappingStatusEnum status,
+      UUID sourceId,
+      UUID seasonId,
+      Long page,
+      Integer size) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            mapper.toPackPage(
+                configurationReads.mappingPacks(
+                    account.id(),
+                    new MappingPackFilters(search, status, sourceId, seasonId),
+                    page,
+                    size)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<MappingPackDetailResponse> getMappingPack(
+      UUID packId, Long page, Integer size) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(configurationReads.mappingPack(account.id(), packId, page, size)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<MappingFilterOptionPageResponse> listMappingFilterOptions(
+      MappingFilterDimensionEnum dimension, Long page, Integer size) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            mapper.toFilterOptions(
+                configurationReads.mappingFilterOptions(account.id(), dimension, page, size)));
+  }
 
   /** {@inheritDoc} */
   @Override

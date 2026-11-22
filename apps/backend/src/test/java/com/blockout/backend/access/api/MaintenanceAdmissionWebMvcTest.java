@@ -92,6 +92,9 @@ class MaintenanceAdmissionWebMvcTest {
     "PATCH,/administration/application-versions",
     "POST,/administration/collection-controls/control/requests",
     "GET,/administration/collection-controls/control/results",
+    "GET,/administration/packs",
+    "GET,/administration/packs/00000000-0000-4000-8000-000000000001",
+    "GET,/administration/packs/filter-options",
     "PUT,/administration/pools/pool/classification"
   })
   @DisplayName("Leaves exact exceptions to authentication and their owning action authorization")

@@ -31,8 +31,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import java.time.Instant;
 import java.util.List;
@@ -186,7 +186,7 @@ class SourcePreparationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50))
         .thenReturn(
-            new CollectionResourcePage(
+            new OffsetPage<>(
                 List.of(
                     new CollectionResource(
                         SEASON, "National", CollectionResourceKindEnum.PACK, null, null, 2)),

@@ -3,6 +3,8 @@ package com.blockout.backend.shared.http;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.generated.mobile.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.mobile.model.CollectionStageEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.MappingStatusEnum;
 import com.blockout.backend.generated.mobile.model.MatchDocumentKindEnum;
 import com.blockout.backend.generated.mobile.model.SearchResourceTypeEnum;
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
@@ -31,6 +33,8 @@ public class ContractEnumBinding {
     register(binder, CalendarCategoryEnum.class, CalendarCategoryEnum::fromValue);
     register(binder, CollectionOutcomeEnum.class, CollectionOutcomeEnum::fromValue);
     register(binder, CollectionStageEnum.class, CollectionStageEnum::fromValue);
+    register(binder, MappingFilterDimensionEnum.class, MappingFilterDimensionEnum::fromValue);
+    register(binder, MappingStatusEnum.class, MappingStatusEnum::fromValue);
     register(binder, MatchDocumentKindEnum.class, MatchDocumentKindEnum::fromValue);
     register(binder, SearchResourceTypeEnum.class, SearchResourceTypeEnum::fromValue);
     register(binder, SportFormatEnum.class, SportFormatEnum::fromValue);

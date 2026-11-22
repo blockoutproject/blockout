@@ -1,11 +1,12 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
@@ -151,7 +152,7 @@ public class ReadSportingAcquisition {
    * @param size bounded page size
    * @return direct children, including unmapped pools
    */
-  public CollectionResourcePage collectionChildren(
+  public OffsetPage<CollectionResource> collectionChildren(
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,

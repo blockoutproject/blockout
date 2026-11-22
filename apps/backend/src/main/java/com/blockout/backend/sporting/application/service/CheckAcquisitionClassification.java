@@ -28,9 +28,9 @@ public class CheckAcquisitionClassification {
     SportingViews.PoolClassificationView classification =
         store.poolClassification(poolId).orElseThrow();
     SportingClassification current =
-        classification.setting() == null
-            ? store.pack(classification.pool().packId()).orElseThrow().setting()
-            : classification.setting();
+        SportingClassification.effective(
+            classification.setting(),
+            () -> store.pack(classification.pool().packId()).orElseThrow().setting());
     SportingClassification admitted =
         new SportingClassification(target.divisionId(), target.format(), target.gender());
     return current != null

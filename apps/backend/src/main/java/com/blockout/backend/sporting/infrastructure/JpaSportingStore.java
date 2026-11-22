@@ -5,7 +5,10 @@ import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.pagination.OffsetPage;
+import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
@@ -22,9 +25,15 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -76,6 +85,7 @@ public class JpaSportingStore implements SportingStore {
   private final DivisionRepository divisions;
   private final PackRepository packs;
   private final PoolRepository pools;
+  private final SportingMappingRepository mapping;
   private final TeamRepository teams;
   private final ParticipationRepository participations;
   private final MatchRepository matches;
@@ -84,7 +94,63 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public SportingViews.CollectionResourcePage collectionChildren(
+  public OffsetPage<MappingPack> mappingPacks(MappingPackFilters filters, long page, int size) {
+    if (page > PageOffset.maxPage(size)) {
+      return OffsetPage.empty(page);
+    }
+    Slice<MappingPack> slice =
+        mapping
+            .packs(
+                filters.search(),
+                filters.status() == null ? null : filters.status().name(),
+                filters.sourceId(),
+                filters.seasonId(),
+                PageRequest.of((int) page, size))
+            .map(SportingMappingRepository.PackRow::toPack);
+    return new OffsetPage<>(slice.getContent(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PackMappingDetail> mappingPack(UUID packId, long page, int size) {
+    return mapping
+        .pack(packId)
+        .map(
+            row -> {
+              MappingPack pack = row.toPack();
+              if (page > PageOffset.maxPage(size)) {
+                return new PackMappingDetail(pack, OffsetPage.empty(page));
+              }
+              Slice<MappingPool> slice =
+                  mapping
+                      .pools(packId, PageRequest.of((int) page, size))
+                      .map(pool -> pool.toPool(pack));
+              return new PackMappingDetail(
+                  pack, new OffsetPage<>(slice.getContent(), page, slice.hasNext()));
+            });
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public OffsetPage<MappingFilterOption> mappingFilterOptions(
+      MappingFilterDimensionEnum dimension, long page, int size) {
+    if (page > PageOffset.maxPage(size)) {
+      return OffsetPage.empty(page);
+    }
+    PageRequest request = PageRequest.of((int) page, size);
+    Slice<MappingFilterOption> slice =
+        switch (dimension) {
+          case SOURCE ->
+              mapping.sources(request).map(SportingMappingRepository.SourceRow::toOption);
+          case SEASON ->
+              mapping.seasons(request).map(SportingMappingRepository.SeasonRow::toOption);
+        };
+    return new OffsetPage<>(slice.getContent(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public OffsetPage<CollectionResource> collectionChildren(
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
@@ -92,7 +158,7 @@ public class JpaSportingStore implements SportingStore {
       int page,
       int size) {
     PageRequest request = PageRequest.of(page, size);
-    Slice<SportingViews.CollectionResource> resources;
+    Slice<CollectionResource> resources;
     if (parentId == null && provider != CollectionProviderEnum.LNV) {
       resources =
           packs
@@ -121,8 +187,7 @@ public class JpaSportingStore implements SportingStore {
                       parentId,
                       provider == CollectionProviderEnum.LNV ? pool.getReference() : null));
     }
-    return new SportingViews.CollectionResourcePage(
-        resources.getContent(), resources.getNumber(), resources.hasNext());
+    return new OffsetPage<>(resources.getContent(), resources.getNumber(), resources.hasNext());
   }
 
   /** {@inheritDoc} */
@@ -240,8 +305,10 @@ public class JpaSportingStore implements SportingStore {
       String reference,
       String url,
       Instant windowEnd) {
-    ClassificationSetting setting =
-        pool.getSetting() == null ? pool.getPack().getSetting() : pool.getSetting();
+    SportingClassification setting =
+        SportingClassification.effective(
+            mapper.toClassification(pool.getSetting()),
+            () -> mapper.toClassification(pool.getPack().getSetting()));
     return new AcquisitionReference(
         scopeId,
         kind,
@@ -249,7 +316,7 @@ public class JpaSportingStore implements SportingStore {
         pool.getPack().getReference(),
         pool.getId(),
         matchId,
-        mapper.toClassification(setting),
+        setting,
         url,
         windowEnd,
         pool.getProvider(),

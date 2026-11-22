@@ -8,8 +8,21 @@ import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
 import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.LogoPresentationResponse;
+import com.blockout.backend.generated.mobile.model.MappingClassificationResponse;
+import com.blockout.backend.generated.mobile.model.MappingFilterOptionPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingFilterOptionResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackDetailResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackPageResponse;
+import com.blockout.backend.generated.mobile.model.MappingPackResponse;
+import com.blockout.backend.generated.mobile.model.MappingPoolModeEnum;
+import com.blockout.backend.generated.mobile.model.MappingPoolResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
+import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
 import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -22,6 +35,45 @@ import org.openapitools.jackson.nullable.JsonNullable;
 /** Mechanical generated-contract mappings, preserving required explicit nulls. */
 @Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
 public interface SportingAdministrationMapper {
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingPackPageResponse toPackPage(OffsetPage<MappingPack> source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = ".", source = "pools")
+  MappingPackDetailResponse toDto(PackMappingDetail source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingFilterOptionPageResponse toFilterOptions(OffsetPage<MappingFilterOption> source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingFilterOptionResponse toDto(MappingFilterOption source);
+
+  /** Uses the generated constructor to emit the required null for an unset pack default. */
+  default MappingPackResponse toDto(MappingPack source) {
+    return new MappingPackResponse(
+        source.id(),
+        source.label(),
+        source.sourceId(),
+        source.sourceLabel(),
+        source.seasonId(),
+        source.seasonLabel(),
+        toDto(source.defaultClassification(), source.defaultDivisionName()),
+        source.status(),
+        source.poolCount());
+  }
+
+  /** Uses the generated constructor to emit the required null for an unclassified pool. */
+  default MappingPoolResponse toDto(MappingPool source) {
+    return new MappingPoolResponse(
+        source.id(),
+        source.label(),
+        source.inherited() ? MappingPoolModeEnum.INHERITED : MappingPoolModeEnum.CUSTOM,
+        toDto(source.effectiveClassification(), source.effectiveDivisionName()));
+  }
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  MappingClassificationResponse toDto(SportingClassification classification, String divisionName);
+
   /**
    * Captures valid division metadata before decoding optional image content.
    *

@@ -219,6 +219,8 @@ public class SecurityConfiguration {
             "/administration/clubs/{clubId}/contacts",
             "/administration/teams/{teamId}/presentation",
             "/administration/pools/{poolId}/presentation",
+            "/administration/packs",
+            "/administration/packs/{packId}",
             "/administration/packs/{packId}/classification",
             "/administration/pools/{poolId}/classification",
             "/administration/divisions",
