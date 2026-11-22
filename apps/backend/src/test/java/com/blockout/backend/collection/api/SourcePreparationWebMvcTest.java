@@ -17,6 +17,7 @@ import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState.CatalogRead;
 import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalog;
 import com.blockout.backend.collection.application.model.CollectionState.SourceCatalogue;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
@@ -85,8 +86,9 @@ class SourcePreparationWebMvcTest {
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
             new SourceCatalogue(
-                source(SourceValidationStateEnum.UNVALIDATED),
-                new CatalogRead(CatalogStatus.NOT_READ, null, null, null),
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.UNVALIDATED),
+                    new CatalogRead(CatalogStatus.NOT_READ, null, null, null)),
                 new SourceCatalogueEntries(List.of(), List.of())));
 
     // When
@@ -106,8 +108,10 @@ class SourcePreparationWebMvcTest {
         .andExpect(jsonPath("$.catalog.status").value("not-read"))
         .andExpect(jsonPath("$.catalog.observedAt").doesNotExist())
         .andExpect(jsonPath("$.catalog.lastCompleteAt").doesNotExist())
-        .andExpect(jsonPath("$.packs").isEmpty())
-        .andExpect(jsonPath("$.phases").isEmpty());
+        .andExpect(jsonPath("$.packs").value(Matchers.empty()))
+        .andExpect(jsonPath("$.phases").value(Matchers.empty()))
+        .andExpect(jsonPath("$.binding").doesNotExist())
+        .andExpect(jsonPath("$.entries").doesNotExist());
   }
 
   @Test
@@ -154,15 +158,16 @@ class SourcePreparationWebMvcTest {
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
             new SourceCatalogue(
-                source(SourceValidationStateEnum.QUALIFIED).toBuilder()
-                    .acceptedUrl(URL)
-                    .locked(true)
-                    .build(),
-                new CatalogRead(
-                    CatalogStatus.UNAVAILABLE,
-                    lastAttempt,
-                    Instant.parse("2026-10-16T11:48:00Z"),
-                    failedRead),
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.QUALIFIED).toBuilder()
+                        .acceptedUrl(URL)
+                        .locked(true)
+                        .build(),
+                    new CatalogRead(
+                        CatalogStatus.UNAVAILABLE,
+                        lastAttempt,
+                        Instant.parse("2026-10-16T11:48:00Z"),
+                        failedRead)),
                 new SourceCatalogueEntries(
                     List.of(
                         new CataloguePack(
@@ -197,11 +202,12 @@ class SourcePreparationWebMvcTest {
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
             new SourceCatalogue(
-                source(SourceValidationStateEnum.QUALIFIED).toBuilder()
-                    .provider(CollectionProviderEnum.LNV)
-                    .organizerReference("135")
-                    .build(),
-                new CatalogRead(CatalogStatus.COMPLETE, null, null, null),
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.QUALIFIED).toBuilder()
+                        .provider(CollectionProviderEnum.LNV)
+                        .organizerReference("135")
+                        .build(),
+                    new CatalogRead(CatalogStatus.COMPLETE, null, null, null)),
                 new SourceCatalogueEntries(
                     List.of(),
                     List.of(

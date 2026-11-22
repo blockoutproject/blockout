@@ -143,7 +143,7 @@ class SourcePreparationIntegrationTest {
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     Source source = store.source(SOURCE).orElseThrow();
     assertThat(source.acceptedUrl()).isEqualTo(URL + "&saison=2026/2027");
-    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).source())
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().source())
         .satisfies(
             binding -> {
               assertThat(binding.label()).isEqualTo("Championnats nationaux");
@@ -539,7 +539,7 @@ class SourcePreparationIntegrationTest {
   @DisplayName("Activation has no source or mapping prerequisite and is repeatable")
   void activatesSeasonWithoutCatalogue() {
     // Given
-    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog().status())
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog().status())
         .isEqualTo(CatalogStatus.NOT_READ);
 
     // When
@@ -606,13 +606,13 @@ class SourcePreparationIntegrationTest {
         new CatalogObservation.Pool(
             "National", "N2", "A", null, null, URI.create(URL), null, "Pool A");
     submitCatalog(cycle, 1, true, List.of(prior));
-    CatalogRead complete = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    CatalogRead complete = configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog();
     assertThat(complete.status()).isEqualTo(CatalogStatus.COMPLETE);
     assertThat(complete.lastCompleteReadAt()).isEqualTo(NOW.plusSeconds(1));
 
     // When
     submitCatalog(cycle, 2, false, List.of());
-    CatalogRead partial = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    CatalogRead partial = configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog();
     URI reason = URI.create("urn:blockout:acquisition:technical");
     results.record(
         cycle.id(),
@@ -633,7 +633,7 @@ class SourcePreparationIntegrationTest {
     assertThat(partial.lastReadAt()).isEqualTo(NOW.plusSeconds(2));
     assertThat(partial.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
     SourceCatalogue source = configurationReads.sourceCatalog(ACCOUNT, SOURCE);
-    CatalogRead unavailable = source.catalog();
+    CatalogRead unavailable = source.binding().catalog();
     assertThat(unavailable.status()).isEqualTo(CatalogStatus.UNAVAILABLE);
     assertThat(unavailable.lastReadAt()).isEqualTo(NOW.plusSeconds(3));
     assertThat(unavailable.evidence().reasonType()).isEqualTo(reason);
@@ -664,7 +664,7 @@ class SourcePreparationIntegrationTest {
     CatalogObservation.Pool regularSecondGroup =
         new CatalogObservation.Pool("135", "135", "193", null, "311", url, null, "Groupe B");
     CatalogObservation.Pool unnamed =
-        new CatalogObservation.Pool("135", "135", "194", null, "312", url, null, "Groupe C");
+        new CatalogObservation.Pool("135", "135", "192", null, "312", url, null, "Groupe C");
     catalogs.accept(
         lnv,
         new CatalogObservation(
@@ -700,7 +700,7 @@ class SourcePreparationIntegrationTest {
     assertThat(entries.packs()).isEmpty();
     assertThat(entries.phases())
         .containsExactly(
-            new CataloguePhase("193", "Saison régulière"), new CataloguePhase("194", null));
+            new CataloguePhase("193", "Saison régulière"), new CataloguePhase("192", null));
   }
 
   @Test

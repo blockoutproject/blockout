@@ -60,8 +60,7 @@ public final class CollectionState {
   public record SourceCatalog(Source source, CatalogRead catalog) {}
 
   /** Detail of one source, including every entry in its accepted catalogue. */
-  public record SourceCatalogue(
-      Source source, CatalogRead catalog, SourceCatalogueEntries entries) {}
+  public record SourceCatalogue(SourceCatalog binding, SourceCatalogueEntries entries) {}
 
   /** Bounded current evidence ordered latest first, with totals for the whole control. */
   public record ResultPage(

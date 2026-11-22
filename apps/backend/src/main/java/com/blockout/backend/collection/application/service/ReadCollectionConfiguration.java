@@ -194,8 +194,7 @@ public class ReadCollectionConfiguration {
     Source source = source(accountId, sourceId);
     SourceCatalog binding = catalogs(source.seasonId(), List.of(source)).getFirst();
     return new SourceCatalogue(
-        binding.source(),
-        binding.catalog(),
+        binding,
         acquisitionReads.sourceCatalogueEntries(
             source.id(), source.seasonId(), source.provider(), source.organizerReference()));
   }

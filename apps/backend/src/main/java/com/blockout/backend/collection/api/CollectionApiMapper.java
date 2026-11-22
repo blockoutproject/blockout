@@ -153,13 +153,15 @@ public interface CollectionApiMapper {
   SourceBindingResponse toDto(CollectionState.SourceCatalog view);
 
   /** Includes the accepted catalogue while preserving the binding's required nullable fields. */
-  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  default SourceCatalogueResponse toDto(CollectionState.SourceCatalogue view) {
+    return toCatalogueDto(toDto(view.binding()), view.entries());
+  }
+
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = ".", source = "source")
+  @Mapping(target = ".", source = "binding")
   @Mapping(target = ".", source = "entries")
-  @Mapping(target = "label", expression = "java(view.source().label())")
-  @Mapping(target = "validation", source = "source.validationState")
-  SourceCatalogueResponse toDto(CollectionState.SourceCatalogue view);
+  SourceCatalogueResponse toCatalogueDto(
+      SourceBindingResponse binding, SportingViews.SourceCatalogueEntries entries);
 
   @Mapping(target = "additionalProperties", ignore = true)
   SourceCataloguePackResponse toDto(SportingViews.CataloguePack source);
