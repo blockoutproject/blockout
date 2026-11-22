@@ -16,7 +16,6 @@ import {
   uniquePageRows,
 } from "@/shared/query/infinite-pages";
 import { createMappingQueries } from "../api/mapping-queries";
-import { mappingStatusLabels } from "../components/mapping-row";
 import {
   allMappingSeasons,
   selectedMappingSeason,
@@ -25,6 +24,11 @@ import {
 } from "../model/mapping-route-params";
 
 const allStatuses = "Tous les statuts";
+const mappingStatusLabels = {
+  all: "Classé",
+  some: "Partiel",
+  none: "À classer",
+} satisfies Record<MappingStatusEnum, string>;
 const allSources = "Toutes les sources";
 const loading = <ListLoading label="Chargement des choix" />;
 

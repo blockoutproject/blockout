@@ -6,7 +6,6 @@ import { FieldSkeleton } from "@/shared/components/form-loading";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { SeasonIdentitySkeleton } from "./collection-season-summary";
 
 /** Product Design 6019:46573: two decorative destination rows while the season catalogue is unknown. */
 export function CollectionLoading() {
@@ -68,26 +67,17 @@ export function CollectionResultsLoading() {
   );
 }
 
-/** Seasonal closure has one exact-label confirmation field; no value or command is fabricated while reading. */
-export function CloseSeasonLoading() {
+/** Reserves the common exact-label form while its season is loading. */
+export function SeasonConfirmationLoading() {
   return (
     <LoadingGroup
-      label="Chargement de la clôture de saison"
+      label="Chargement de la confirmation de saison"
       style={styles.rows}
     >
-      <SeasonIdentitySkeleton />
-      <Surface>
-        <TextSkeleton role="heading" width="54%" />
-        <TextSkeleton width="85%" />
-        <TextSkeleton width="70%" />
-        <FieldSkeleton labelWidth="46%" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-      </Surface>
-      <Skeleton
-        width="40%"
-        height={tokens.size.control.default}
-        shape="rectangle"
-      />
+      <TextSkeleton width="85%" />
+      <FieldSkeleton labelWidth="58%" />
+      <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      <Skeleton height={tokens.size.control.default} shape="rectangle" />
     </LoadingGroup>
   );
 }

@@ -140,14 +140,15 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
                   ? `${effective.divisionName} · ${formatLabel(effective.format)} · ${sportingGenderLabels[effective.gender]}`
                   : undefined
               }
-              badge={
+              badges={[
                 effective
-                  ? pool.mode === "custom"
-                    ? "Personnalisée"
-                    : "Du pack"
-                  : "À classer"
-              }
-              tone={effective ? "neutral" : "strong-warning"}
+                  ? {
+                      label:
+                        pool.mode === "custom" ? "Personnalisée" : "Du pack",
+                      tone: "neutral",
+                    }
+                  : { label: "À classer", tone: "strong-warning" },
+              ]}
               onPress={() => {
                 if (pack) {
                   router.push({

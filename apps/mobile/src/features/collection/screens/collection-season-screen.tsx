@@ -5,153 +5,134 @@ import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { ScreenState } from "@/shared/components/screen-state";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { IconButton } from "@/shared/components/icon-button";
 import { PageHeader } from "@/shared/components/page-header";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { StatusBadge } from "@/shared/components/status-badge";
 import { useRouter } from "expo-router";
-import { Globe, Trophy } from "lucide-react-native";
-import { Text } from "react-native";
-import { Button } from "@/shared/components/button";
+import { Globe, Power, Trophy } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
-import { useActivateCollectionSeason } from "../api/use-collection-season";
+import { useCollectionSeason } from "../api/use-collection-season";
+import {
+  seasonActionsLabel,
+  seasonCommandsByState,
+} from "../model/season-command";
 
-/** Opens provider journeys and owns the selected season's activation entry. */
+/** Opens provider journeys and the selected season's available lifecycle commands. */
 export function CollectionSeasonScreen({
   seasonId,
 }: Readonly<{ seasonId: string }>) {
-  const { authority, season, activate } = useActivateCollectionSeason(seasonId);
-  const feedback = useActionFeedback();
+  const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
   const { colors } = useTheme();
+  const failed = hasReadError(season);
   const pending = !authority.enabled
     ? isAccessLoading(authority)
-    : !hasReadError(season) && season.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
+    : !failed && season.isLoading;
+  const current = authority.enabled && !failed ? season.data : undefined;
+  const hasActions = current && seasonCommandsByState[current.state].length > 0;
 
-  async function activateSeason() {
-    feedback.clear();
-    try {
-      await activate.mutateAsync();
-      feedback.success("Saison activée.");
-    } catch {
-      feedback.error();
-    }
-  }
-
-  /** Admits season content only after current permission and a usable read. */
-  function renderBlockingState() {
-    if (!authority.enabled) {
-      return (
-        <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
-      );
-    }
-    if (!season.data || hasReadError(season)) {
-      return (
-        <ReadFeedback query={season} loadingContent={<CollectionLoading />} />
-      );
-    }
-    return undefined;
-  }
-
-  const blockingState = renderBlockingState();
   return (
-    <Page header={<PageHeader title={season.data?.label ?? "Saison"} />}>
-      <PageScrollView
-        refreshControl={
-          authority.sessionStatus === "authenticated" && !blockingState ? (
-            <DataRefreshControl
-              fetching={season.isFetching}
-              onRefresh={() => season.refetch({ cancelRefetch: false })}
-            />
-          ) : undefined
-        }
-      >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
-        ) : (
+    <Page
+      header={
+        <PageHeader
+          title={current?.label ?? "Saison"}
+          action={
+            hasActions && (
+              <IconButton
+                label={seasonActionsLabel}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/[seasonId]/actions",
+                    params: { seasonId },
+                  })
+                }
+              >
+                <Power
+                  accessible={false}
+                  color={colors.icon}
+                  size={tokens.size.icon.lg}
+                />
+              </IconButton>
+            )
+          }
+        />
+      }
+    >
+      {current ? (
+        <PageScrollView
+          refreshControl={
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl
+                fetching={season.isFetching}
+                onRefresh={() => season.refetch({ cancelRefetch: false })}
+              />
+            ) : undefined
+          }
+        >
           <PageContent>
-            {authority.enabled && season.data && (
-              <>
-                <Text
-                  style={[tokens.typography.strong, { color: colors.text }]}
-                >
-                  Collectes de la saison · {seasonStatus(season.data)}
-                </Text>
-                <CollectionDestinationLink
-                  label="FFVB"
-                  detail="National, régional et départemental"
-                  icon={Globe}
-                  onPress={() =>
-                    router.push(collectionProviderHref(seasonId, "ffvb"))
-                  }
-                />
-                <CollectionDestinationLink
-                  label="LNV"
-                  detail="Les trois championnats professionnels"
-                  icon={Trophy}
-                  onPress={() =>
-                    router.push(collectionProviderHref(seasonId, "lnv"))
-                  }
-                />
-                {season.data.state === "preparing" && (
-                  <SeasonActivation
-                    label={season.data.label}
-                    pending={activate.isPending}
-                    onConfirm={activateSeason}
-                  />
-                )}
-                {season.data.state !== "closed" && (
-                  <Button
-                    label="Clôturer la saison"
-                    variant="secondary"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/collection/[seasonId]/closure",
-                        params: { seasonId },
-                      })
-                    }
-                  />
-                )}
-              </>
-            )}
+            <View style={styles.heading}>
+              <Text
+                accessibilityRole="header"
+                style={[
+                  tokens.typography.strong,
+                  styles.headingText,
+                  { color: colors.text },
+                ]}
+              >
+                Collectes de la saison
+              </Text>
+              <StatusBadge {...seasonStatus(current)} />
+            </View>
+            <CollectionDestinationLink
+              label="FFVB"
+              detail="National, régional et départemental"
+              icon={Globe}
+              onPress={() =>
+                router.push(collectionProviderHref(seasonId, "ffvb"))
+              }
+            />
+            <CollectionDestinationLink
+              label="LNV"
+              detail="Les trois championnats professionnels"
+              icon={Trophy}
+              onPress={() =>
+                router.push(collectionProviderHref(seasonId, "lnv"))
+              }
+            />
           </PageContent>
-        )}
-      </PageScrollView>
+        </PageScrollView>
+      ) : (
+        <PageReadState pending={pending}>
+          {authority.enabled ? (
+            <ReadFeedback
+              query={season}
+              loadingContent={<CollectionLoading />}
+            />
+          ) : (
+            <AccessFeedback
+              {...authority}
+              loadingContent={<CollectionLoading />}
+            />
+          )}
+        </PageReadState>
+      )}
     </Page>
   );
 }
 
-/** Keeps the confirmation tied to the mounted, admitted preparing-season action. */
-function SeasonActivation({
-  label,
-  pending,
-  onConfirm,
-}: Readonly<{ label: string; pending: boolean; onConfirm(): Promise<void> }>) {
-  const confirm = useActionConfirmation();
-
-  async function requestActivation() {
-    if (
-      await confirm({
-        title: "Activer la saison ?",
-        message: `Les collectes périodiques des compétitions éligibles de la saison ${label} seront autorisées.`,
-        confirmLabel: "Activer",
-      })
-    ) {
-      await onConfirm();
-    }
-  }
-
-  return (
-    <Button
-      label="Activer la saison"
-      loading={pending}
-      onPress={() => void requestActivation()}
-    />
-  );
-}
+const styles = StyleSheet.create({
+  heading: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: tokens.spacing.sm,
+    justifyContent: "space-between",
+  },
+  headingText: { flexShrink: 1 },
+});

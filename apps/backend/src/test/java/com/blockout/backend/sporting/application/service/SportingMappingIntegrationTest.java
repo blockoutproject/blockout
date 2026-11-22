@@ -99,7 +99,8 @@ class SportingMappingIntegrationTest {
                 null,
                 null,
                 MappingStatusEnum.NONE,
-                1));
+                1,
+                0));
     assertThat(reads.mappingPack(operator, created.packId(), 0, 1).pools().items())
         .containsExactly(new MappingPool(created.id(), "Poule A", null, null, true));
   }
@@ -123,6 +124,7 @@ class SportingMappingIntegrationTest {
     PackMappingDetail withDefault = reads.mappingPack(operator, pack, 0, 2);
     assertThat(withDefault.pack().defaultClassification()).isEqualTo(defaultClassification);
     assertThat(withDefault.pack().status()).isEqualTo(MappingStatusEnum.ALL);
+    assertThat(withDefault.pack().classifiedPoolCount()).isEqualTo(2);
     assertThat(withDefault.pools().items())
         .containsExactly(
             new MappingPool(inherited.id(), "A — Du pack", defaultClassification, "Default", true),
@@ -134,6 +136,7 @@ class SportingMappingIntegrationTest {
     PackMappingDetail withoutDefault = reads.mappingPack(operator, pack, 0, 2);
     assertThat(withoutDefault.pack().defaultClassification()).isNull();
     assertThat(withoutDefault.pack().status()).isEqualTo(MappingStatusEnum.SOME);
+    assertThat(withoutDefault.pack().classifiedPoolCount()).isEqualTo(1);
     assertThat(withoutDefault.pools().items())
         .containsExactly(
             new MappingPool(inherited.id(), "A — Du pack", null, null, true),
@@ -150,6 +153,7 @@ class SportingMappingIntegrationTest {
             operator, new MappingPackFilters(null, MappingStatusEnum.ALL, null, null), 0, 1);
     assertThat(allOverrides.pack().defaultClassification()).isNull();
     assertThat(allOverrides.pack().status()).isEqualTo(MappingStatusEnum.ALL);
+    assertThat(allOverrides.pack().classifiedPoolCount()).isEqualTo(2);
     assertThat(allPacks.items()).containsExactly(allOverrides.pack());
   }
 
@@ -184,11 +188,12 @@ class SportingMappingIntegrationTest {
     OffsetPage<MappingPack> scoped =
         reads.mappingPacks(
             operator,
-            new MappingPackFilters(search, MappingStatusEnum.SOME, futureWest.id(), current.id()),
+            new MappingPackFilters("Écrin", MappingStatusEnum.SOME, futureWest.id(), current.id()),
             0,
             1);
     assertThat(scoped.items()).extracting(MappingPack::id).containsExactly(selected.packId());
     assertThat(scoped.items().getFirst().poolCount()).isEqualTo(2);
+    assertThat(scoped.items().getFirst().classifiedPoolCount()).isEqualTo(1);
     assertThat(scoped.hasNext()).isFalse();
     assertThat(
             reads
@@ -226,6 +231,7 @@ class SportingMappingIntegrationTest {
     PackMappingDetail before = reads.mappingPack(operator, pack, 0, 1);
     assertThat(before.pools().items()).isEmpty();
     assertThat(before.pack().poolCount()).isZero();
+    assertThat(before.pack().classifiedPoolCount()).isZero();
     assertThat(before.pack().status()).isEqualTo(MappingStatusEnum.NONE);
     assertThat(
             reads
@@ -237,6 +243,7 @@ class SportingMappingIntegrationTest {
 
     PackMappingDetail after = reads.mappingPack(operator, pack, 0, 1);
     assertThat(after.pools().items()).isEmpty();
+    assertThat(after.pack().classifiedPoolCount()).isZero();
     assertThat(after.pack().status()).isEqualTo(MappingStatusEnum.ALL);
     assertThat(after.pack().defaultClassification()).isEqualTo(setting);
   }
