@@ -1,18 +1,11 @@
-import { FilterButton } from "@/shared/components/filter-button";
+import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { RefreshCw } from "lucide-react-native";
 import { PageList } from "@/shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  AppState,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import type { StreamModerationItemResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -108,44 +101,43 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
         renderTabBar={(tabBar) => (
           <>
             {tabBar}
-            <View style={styles.toolbar}>
-              <View style={styles.searchInput}>
-                <Controller
-                  control={control}
-                  name="query"
-                  render={({ field }) => (
-                    <SearchField
-                      ref={field.ref}
-                      label="Rechercher un match, un lien"
-                      placeholder="Rechercher un match, un lien…"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      onClear={() => {
-                        setValue("query", "");
-                        router.setParams({ query: "" });
-                      }}
-                      returnKeyType="search"
-                      onSubmitEditing={() =>
-                        void handleSubmit(({ query }) =>
-                          router.setParams({ query }),
-                        )()
-                      }
-                    />
-                  )}
-                />
-              </View>
-              <FilterButton
-                active={changed}
-                onPress={() => {
-                  Keyboard.dismiss();
+            <SearchToolbar
+              style={styles.toolbar}
+              filter={{
+                active: changed,
+                onPress: () => {
                   router.push({
                     pathname: "/administration/stream-links/filters",
                     params: { ...filters },
                   });
-                }}
+                },
+              }}
+            >
+              <Controller
+                control={control}
+                name="query"
+                render={({ field }) => (
+                  <SearchField
+                    ref={field.ref}
+                    label="Rechercher un match, un lien"
+                    placeholder="Rechercher un match, un lien…"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    onClear={() => {
+                      setValue("query", "");
+                      router.setParams({ query: "" });
+                    }}
+                    returnKeyType="search"
+                    onSubmitEditing={() =>
+                      void handleSubmit(({ query }) =>
+                        router.setParams({ query }),
+                      )()
+                    }
+                  />
+                )}
               />
-            </View>
+            </SearchToolbar>
           </>
         )}
       />
@@ -373,14 +365,9 @@ const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
   feedback: { paddingHorizontal: 0, paddingTop: tokens.spacing.sm },
   toolbar: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,
     paddingBottom: tokens.layout.content.start,
   },
-  searchInput: { flex: 1 },
   badges: {
     borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.sm,

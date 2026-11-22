@@ -1,5 +1,12 @@
-import { ListCollectionResultsParams } from "../../../../.generated/schemas/index.zod";
+import {
+  CollectionProviderEnum,
+  ListCollectionResultsParams,
+} from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
+
+export function collectionProviderFromRoute(value: unknown) {
+  return CollectionProviderEnum.safeParse(value).data;
+}
 
 /** Admits only the generated list criteria from a committed Bilan navigation entry. */
 export function collectionBilanRouteCriteria(

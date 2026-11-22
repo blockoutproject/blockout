@@ -1,22 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Keyboard, StyleSheet, View } from "react-native";
+import { RefreshCw } from "lucide-react-native";
+import { Keyboard, StyleSheet } from "react-native";
 import {
   ListCollectionResultsParams,
   type CollectionResultSourceResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { Button } from "@/shared/components/button";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { FilterButton } from "@/shared/components/filter-button";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { ListSeparator } from "@/shared/components/list-separator";
 import {
   Page,
-  PageContent,
   PageScrollView,
   pageContentStyle,
 } from "@/shared/components/page";
@@ -24,6 +24,7 @@ import { PageList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
+import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -32,9 +33,14 @@ import {
   type CollectionResultCriteria,
 } from "../api/collection-queries";
 import { useCollectionAuthority } from "../api/use-source-preparation";
-import { CollectionBilanResult } from "../components/collection-bilan-result";
-import { CollectionResultsLoading } from "../components/collection-loading";
-import { collectionResultKey } from "../model/collection-result-presentation";
+import {
+  CollectionBilanResult,
+  CollectionBilanResultsLoading,
+} from "../components/collection-bilan-result";
+import {
+  collectionResultKey,
+  collectionResultRows,
+} from "../model/collection-result-presentation";
 
 export interface CollectionBilanScreenProps {
   header: ReactNode;
@@ -65,7 +71,12 @@ export function CollectionBilanScreen({
     controlId,
     criteria,
   );
-  const query = useInfiniteQuery(options);
+  // Keep a failed traversal available for explicit recovery across automatic Query events.
+  const query = useInfiniteQuery({
+    ...options,
+    enabled: (state) => authority.enabled && state.state.status !== "error",
+  });
+  const [reloading, setReloading] = useState<string>();
   const { control, handleSubmit, reset } = useForm({
     defaultValues: { query: criteria.query ?? "" },
     resolver: zodResolver(searchSchema),
@@ -88,7 +99,11 @@ export function CollectionBilanScreen({
               key={contextKey}
               query={query}
               loadingContent={null}
-              onRetry={() => query.refetch({ cancelRefetch: false })}
+              onRetry={
+                authority.enabled
+                  ? () => query.refetch({ cancelRefetch: false })
+                  : undefined
+              }
             />
           </ScreenState>
         </PageScrollView>
@@ -96,14 +111,25 @@ export function CollectionBilanScreen({
     );
   }
 
-  // Offset pages can overlap as newer observations change server order. Keep the first slot and the latest admitted row.
-  const rows = [
-    ...new Map(
-      query.data?.pages.flatMap((page) =>
-        page.items.map((item) => [collectionResultKey(item), item] as const),
-      ),
-    ).values(),
-  ];
+  const rows = collectionResultRows(query.data?.pages);
+  const refreshable =
+    authority.enabled &&
+    rows.length > 0 &&
+    !continuationFailed &&
+    !query.isFetchingNextPage;
+  const reloadRequested = reloading === contextKey;
+
+  async function reloadEmpty() {
+    if (!authority.enabled || reloadRequested) {
+      return;
+    }
+    setReloading(contextKey);
+    try {
+      await query.refetch({ cancelRefetch: false });
+    } finally {
+      setReloading((current) => (current === contextKey ? undefined : current));
+    }
+  }
 
   function loadMore() {
     if (
@@ -121,47 +147,44 @@ export function CollectionBilanScreen({
       header={
         <>
           {header}
-          <View style={styles.toolbar}>
-            <View style={styles.search}>
-              <Controller
-                control={control}
-                name="query"
-                render={({ field, fieldState }) => (
-                  <SearchField
-                    ref={field.ref}
-                    label="Rechercher dans le bilan"
-                    placeholder="Poule, source, étape…"
-                    value={field.value}
-                    autoCorrect={false}
-                    returnKeyType="search"
-                    onBlur={field.onBlur}
-                    error={
-                      fieldState.invalid
-                        ? "La recherche est limitée à 200 caractères."
-                        : undefined
-                    }
-                    onChangeText={field.onChange}
-                    onSubmitEditing={() =>
-                      void handleSubmit(({ query }) =>
-                        onSearch(query.trim() || undefined),
-                      )()
-                    }
-                    onClear={() => {
-                      reset({ query: "" });
-                      onSearch();
-                    }}
-                  />
-                )}
-              />
-            </View>
-            <FilterButton
-              active={filtered}
-              onPress={() => {
-                Keyboard.dismiss();
-                onOpenFilters();
-              }}
+          <SearchToolbar
+            style={styles.toolbar}
+            filter={{
+              active: filtered,
+              onPress: onOpenFilters,
+            }}
+          >
+            <Controller
+              control={control}
+              name="query"
+              render={({ field, fieldState }) => (
+                <SearchField
+                  ref={field.ref}
+                  label="Rechercher dans le bilan"
+                  placeholder="Poule, source, étape…"
+                  value={field.value}
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  onBlur={field.onBlur}
+                  error={
+                    fieldState.invalid
+                      ? "La recherche est limitée à 200 caractères."
+                      : undefined
+                  }
+                  onChangeText={field.onChange}
+                  onSubmitEditing={() =>
+                    void handleSubmit(({ query }) =>
+                      onSearch(query.trim() || undefined),
+                    )()
+                  }
+                  onClear={() => {
+                    reset({ query: "" });
+                    onSearch();
+                  }}
+                />
+              )}
             />
-          </View>
+          </SearchToolbar>
         </>
       }
       headerMinHeight={
@@ -175,18 +198,16 @@ export function CollectionBilanScreen({
         keyExtractor={collectionResultKey}
         reveal={{ presentation: reveal }}
         contentContainerStyle={pageContentStyle}
-        alwaysBounceVertical={!!query.data}
+        alwaysBounceVertical={rows.length > 0}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         maintainVisibleContentPosition={{ size: false, data: true }}
         refreshControl={
-          query.data ? (
-            <DataRefreshControl
-              enabled={!query.isFetchingNextPage}
-              fetching={query.isFetching}
-              onRefresh={() => query.refetch({ cancelRefetch: false })}
-            />
-          ) : undefined
+          <DataRefreshControl
+            enabled={refreshable}
+            fetching={query.isFetching}
+            onRefresh={() => query.refetch({ cancelRefetch: false })}
+          />
         }
         ItemSeparatorComponent={ListSeparator}
         renderItem={({ item }) => (
@@ -206,11 +227,7 @@ export function CollectionBilanScreen({
         onEndReachedThreshold={0.5}
         loadingFeedback={{
           active: query.isPending && query.isFetching,
-          content: (
-            <PageContent style={styles.noExtraInset}>
-              <CollectionResultsLoading />
-            </PageContent>
-          ),
+          content: <CollectionBilanResultsLoading />,
         }}
         ListEmptyComponent={
           query.data && !query.hasNextPage ? (
@@ -221,7 +238,14 @@ export function CollectionBilanScreen({
                     ? "Aucun résultat pour ces critères"
                     : "Aucun résultat observé"
                 }
-              />
+              >
+                <Button
+                  label="Actualiser"
+                  leadingIcon={RefreshCw}
+                  loading={reloadRequested && query.isFetching}
+                  onPress={() => void reloadEmpty()}
+                />
+              </EmptyState>
             </ScreenState>
           ) : undefined
         }
@@ -242,13 +266,6 @@ export function CollectionBilanScreen({
 }
 
 const styles = StyleSheet.create({
-  toolbar: {
-    paddingHorizontal: tokens.spacing.screen,
-    paddingBottom: tokens.spacing.xs,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: tokens.spacing.sm,
-  },
-  search: { flex: 1, minWidth: 0 },
+  toolbar: { paddingBottom: tokens.spacing.xs },
   noExtraInset: { padding: 0 },
 });

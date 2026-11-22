@@ -9,7 +9,9 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import type { CollectionResultCriteria } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-source-preparation";
+import { CollectionBilanResultsLoading } from "../components/collection-bilan-result";
 import { CollectionProviderRead } from "../components/collection-provider-read";
+import { collectionSourceHref } from "../model/collection-hrefs";
 import { CollectionBilanScreen } from "./collection-bilan-screen";
 
 export function CollectionBilanVisit({
@@ -54,11 +56,12 @@ export function CollectionBilanVisit({
       provider={provider}
       reading={reading}
       header={header}
+      loadingContent={<CollectionBilanResultsLoading />}
     >
-      {(controlId) => (
+      {(control) => (
         <CollectionBilanScreen
           header={header}
-          controlId={controlId}
+          controlId={control.id}
           criteria={criteria}
           onSearch={(query) => router.setParams({ query: query ?? "" })}
           onOpenFilters={() =>
@@ -68,18 +71,9 @@ export function CollectionBilanVisit({
               params: { seasonId, provider, ...criteria },
             })
           }
-          onViewSource={({ id, packId, poolId, phaseReference }) =>
+          onViewSource={(source) =>
             // A stack push leaves the current Bilan criteria and native list mounted for Back.
-            router.push({
-              pathname: "/collection/[seasonId]/sources/[sourceId]",
-              params: {
-                seasonId,
-                sourceId: id,
-                ...(packId ? { packId } : {}),
-                ...(poolId ? { poolId } : {}),
-                ...(phaseReference ? { phaseReference } : {}),
-              },
-            })
+            router.push(collectionSourceHref(seasonId, source))
           }
         />
       )}

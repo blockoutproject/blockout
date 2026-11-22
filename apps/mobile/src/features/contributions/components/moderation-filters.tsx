@@ -6,10 +6,9 @@ import {
   StreamModerationFilterEnum,
   StreamPlatformEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Button } from "@/shared/components/button";
+import { FilterSheetActions } from "@/shared/components/filter-sheet-actions";
 import { SelectField } from "@/shared/components/select-field";
-import { SelectionRow } from "@/shared/components/selection-row";
-import { EntryGroup } from "@/shared/components/entry-group";
+import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { ReadFeedback } from "@/shared/components/read-feedback";
 import { ModerationFiltersLoading } from "./moderation-loading";
@@ -151,33 +150,23 @@ export function ModerationFilters({
     }
     if (choice) {
       return (
-        <EntryGroup>
-          {options.map((option) => (
-            <SelectionRow
-              key={option.value}
-              label={option.label}
-              selected={(values[choice] ?? "") === option.value}
-              onPress={() => {
-                if (choice === "platform") {
-                  setValue(
-                    "platform",
-                    option.value
-                      ? StreamPlatformEnum.parse(option.value)
-                      : undefined,
-                  );
-                } else if (choice === "state") {
-                  setValue(
-                    "state",
-                    StreamModerationFilterEnum.parse(option.value),
-                  );
-                } else {
-                  setValue("seasonId", option.value || undefined);
-                }
-                setChoice(undefined);
-              }}
-            />
-          ))}
-        </EntryGroup>
+        <SelectionList
+          options={options}
+          selected={values[choice] ?? ""}
+          onSelect={(value) => {
+            if (choice === "platform") {
+              setValue(
+                "platform",
+                value ? StreamPlatformEnum.parse(value) : undefined,
+              );
+            } else if (choice === "state") {
+              setValue("state", StreamModerationFilterEnum.parse(value));
+            } else {
+              setValue("seasonId", value || undefined);
+            }
+            setChoice(undefined);
+          }}
+        />
       );
     }
     return (
@@ -204,19 +193,10 @@ export function ModerationFilters({
           value={stateLabel()}
           onPress={() => setChoice("state")}
         />
-        <View style={styles.actions}>
-          <Button
-            label="Appliquer les filtres"
-            fullWidth
-            onPress={() => void handleSubmit(apply)()}
-          />
-          <Button
-            label="Réinitialiser les filtres"
-            fullWidth
-            variant="secondary"
-            onPress={() => reset({ query: initial.query, state: "to-review" })}
-          />
-        </View>
+        <FilterSheetActions
+          onApply={() => void handleSubmit(apply)()}
+          onReset={() => reset({ query: initial.query, state: "to-review" })}
+        />
       </View>
     );
   }
@@ -239,8 +219,6 @@ export function ModerationFilters({
   );
 }
 
-// SearchFilters and SearchFilterChoice own the existing F13 composition reproduced here.
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
-  actions: { gap: tokens.layout.actions.gap },
+  form: { gap: tokens.layout.form.gap },
 });

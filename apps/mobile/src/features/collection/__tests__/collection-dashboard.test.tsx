@@ -3,9 +3,9 @@ import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { createQueryClient } from "@/shared/query/query-client";
 import { onlineManager } from "@tanstack/react-query";
 import {
-  getGetCollectionControlQueryKey,
   getGetCollectionSeasonQueryKey,
   getGetMyAccountQueryKey,
+  getListCollectionControlsQueryKey,
   getListCollectionResultsQueryKey,
   getListCollectionSeasonsQueryKey,
 } from "../../../../.generated/mobile";
@@ -356,11 +356,7 @@ it("reloads empty observed results without starting collection and retries a fai
 
 it.each([
   { scope: "season", path: `/administration/collection-seasons/${seasonId}` },
-  { scope: "control list", path: "/administration/collection-controls" },
-  {
-    scope: "control",
-    path: `/administration/collection-controls/${control().id}`,
-  },
+  { scope: "controls", path: "/administration/collection-controls" },
 ])(
   "keeps the $scope Error Card busy during an explicit initial-read retry",
   async ({ path }) => {
@@ -649,7 +645,7 @@ it("leaves native pull progress quiet while dashboard reads are paused and only 
 
     // Then
     const pullKeys = [
-      getGetCollectionControlQueryKey(selected.id),
+      getListCollectionControlsQueryKey({ seasonId }),
       getListCollectionResultsQueryKey(selected.id, { size: 1 }),
       getGetCollectionSeasonQueryKey(seasonId),
     ];
@@ -966,7 +962,7 @@ it.each(["control", "season"] as const)(
     await user.press(await screen.findByRole("button", { name: "Relancer" }));
     const refusedPath =
       scope === "control"
-        ? `/collection-controls/${control().id}`
+        ? "/collection-controls"
         : `/collection-seasons/${seasonId}`;
     mockFetch.mockImplementation((url, options) => {
       if (options?.method === "POST") {
@@ -1098,9 +1094,18 @@ it.each(["ffvb", "lnv"] as const)(
       pathname: "/collection/[seasonId]/controls/[provider]/bilan",
       params: { seasonId, provider },
     });
-    const resultReads = mockFetch.mock.calls
-      .map(([url]) => new URL(String(url)))
-      .filter((url) => url.pathname.endsWith("/results"));
+    const reads = mockFetch.mock.calls.map(([url]) => new URL(String(url)));
+    const controlReads = reads.filter((url) =>
+      url.pathname.startsWith("/administration/collection-controls"),
+    );
+    expect(controlReads.map((url) => url.pathname)).toEqual([
+      "/administration/collection-controls",
+      `/administration/collection-controls/${peer.controls[0].id}/results`,
+    ]);
+    expect(controlReads[0].searchParams.get("seasonId")).toBe(seasonId);
+    const resultReads = reads.filter((url) =>
+      url.pathname.endsWith("/results"),
+    );
     expect(
       resultReads.map((url) => Object.fromEntries(url.searchParams)),
     ).toEqual([{ page: "0", size: "1" }]);
@@ -1378,6 +1383,50 @@ it("retries failed result pages locally and keeps overlapping results current in
   ).toHaveLength(2);
 });
 
+it.each([403, 404])(
+  "withdraws admitted club results when continuation returns %s and keeps Pause available",
+  async (status) => {
+    // Given
+    peer.controls = [control({ family: "club-sheets", seasonId: undefined })];
+    mockFetch.mockImplementation((url, options) => {
+      const address = new URL(String(url));
+      if (!address.pathname.endsWith("/results")) {
+        return peer.reads(url, options);
+      }
+      return Promise.resolve(
+        address.searchParams.get("page") === "1"
+          ? refused(status)
+          : json({
+              items: [result({ scopeLabel: "Club A", stage: "club-sheet" })],
+              page: 0,
+              hasNext: true,
+            }),
+      );
+    });
+    await renderCollection(
+      <CollectionControlScreen family="club-sheets" />,
+      client,
+    );
+    await screen.findByRole("header", { name: "Club A · Fiche club" });
+
+    // When
+    await fireEvent(
+      screen.getByTestId("collection-results-list"),
+      "endReached",
+    );
+
+    // Then
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    expect(
+      screen.queryByRole("header", { name: "Club A · Fiche club" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucun résultat observé")).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Mettre en pause" }),
+    ).toBeEnabled();
+  },
+);
+
 it("keeps accepted empty result pages in continuation recovery without replacing the control", async () => {
   // Given
   peer.controls = [control({ family: "club-sheets", seasonId: undefined })];
@@ -1421,9 +1470,7 @@ it.each([
     // Given
     let unavailable = false;
     const failedPath =
-      projection === "results"
-        ? "/results"
-        : `/collection-controls/${control().id}`;
+      projection === "results" ? "/results" : "/collection-controls";
     mockFetch.mockImplementation((url, options) =>
       unavailable && new URL(String(url)).pathname.endsWith(failedPath)
         ? Promise.resolve(refused(status))
@@ -1527,17 +1574,20 @@ it("retains an accepted activity ACK when its ordinary control reread fails", as
   const user = userEvent.setup();
   let unavailable = false;
   const accepted = control({ enabled: false });
+  const otherProvider = control({
+    id: "00000000-0000-4000-8000-000000000191",
+    family: "lnv",
+  });
+  peer.controls = [control(), otherProvider];
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
-      peer.controls = [accepted];
+      peer.controls = [accepted, otherProvider];
       unavailable = true;
       return json(accepted);
     }
     if (
       unavailable &&
-      new URL(String(url)).pathname.endsWith(
-        `/collection-controls/${control().id}`,
-      )
+      new URL(String(url)).pathname.endsWith("/collection-controls")
     ) {
       return refused(503);
     }
@@ -1555,8 +1605,8 @@ it("retains an accepted activity ACK when its ordinary control reread fails", as
   // Then
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    privateClient.getQueryData(getGetCollectionControlQueryKey(control().id)),
-  ).toEqual(accepted);
+    privateClient.getQueryData(getListCollectionControlsQueryKey({ seasonId })),
+  ).toEqual({ items: [accepted, otherProvider] });
   expect(
     mockFetch.mock.calls.filter(([, init]) => init?.method === "PUT"),
   ).toHaveLength(1);
@@ -1576,10 +1626,84 @@ it("retains an accepted activity ACK when its ordinary control reread fails", as
   ).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
-    `/administration/collection-controls/${control().id}`,
+    "/administration/collection-controls",
   );
   expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
 });
+
+it.each([403, 503])(
+  "keeps the control read error after HTTP %i and a late acknowledgment",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const acknowledgement = Promise.withResolvers<Response>();
+    const reconciliation = Promise.withResolvers<Response>();
+    const controlsKey = getListCollectionControlsQueryKey({ seasonId });
+    let controlsReadStatus = 200;
+    let reconciles = false;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        return acknowledgement.promise;
+      }
+      if (
+        controlsReadStatus !== 200 &&
+        new URL(String(url)).pathname === controlsKey[0]
+      ) {
+        return reconciles
+          ? reconciliation.promise
+          : Promise.resolve(refused(controlsReadStatus));
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await user.press(
+      await screen.findByRole("button", { name: "Mettre en pause" }),
+    );
+    await waitFor(() => expect(privateClient.isMutating()).toBe(1));
+
+    // When
+    controlsReadStatus = status;
+    await act(() => privateClient.refetchQueries({ queryKey: controlsKey }));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+
+    // When
+    controlsReadStatus = 503;
+    reconciles = true;
+    try {
+      await act(() =>
+        acknowledgement.resolve(json(control({ enabled: false }))),
+      );
+      await waitFor(() => {
+        expect(privateClient.isMutating()).toBe(0);
+        expect(privateClient.isFetching()).toBe(1);
+      });
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Reprendre" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("alert", { name: "Collecte mise en pause." }),
+      ).not.toBeOnTheScreen();
+      if (status === 403) {
+        expect(privateClient.getQueryData(controlsKey)).toBeUndefined();
+      }
+    } finally {
+      await act(() => reconciliation.resolve(refused(503)));
+    }
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  },
+);
 
 it("rejects a malformed acknowledgement without inventing success and shows a failed ordinary refresh", async () => {
   // Given
@@ -1591,7 +1715,7 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
     }
     if (
       !readAvailable &&
-      String(url).endsWith(`/collection-controls/${control().id}`)
+      new URL(String(url)).pathname.endsWith("/collection-controls")
     ) {
       return Promise.resolve(refused(503));
     }

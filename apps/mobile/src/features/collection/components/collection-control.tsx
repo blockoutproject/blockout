@@ -7,7 +7,9 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
+import { Skeleton } from "@/shared/components/skeleton";
 import { Surface } from "@/shared/components/surface";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -291,6 +293,39 @@ export function CollectionControl({
   );
 }
 
+/** The surrounding read owns the pending announcement for this execution card. */
+export function CollectionExecutionSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <Surface style={styles.execution}>
+      <View style={styles.heading}>
+        <TextSkeleton role="title" width="38%" />
+        <TextSkeleton role="metadata" width="21%" />
+      </View>
+      <TextSkeleton role="metadata" width="52%" />
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <View style={styles.dates}>
+        {[0, 1].map((column) => (
+          <View key={column} style={styles.date}>
+            <TextSkeleton role="metadata" width="88%" />
+            <TextSkeleton role="label" width="66%" />
+          </View>
+        ))}
+      </View>
+      <View style={styles.actions}>
+        {[0, 1].map((column) => (
+          <View key={column} style={[styles.column, styles.compactActionSlot]}>
+            <Skeleton
+              height={tokens.size.control.compact}
+              radius={tokens.radius.full}
+            />
+          </View>
+        ))}
+      </View>
+    </Surface>
+  );
+}
+
 /** Acknowledging pause does not interrupt a cycle that has already started. */
 function activityConfirmation(accepted: CollectionControlResponse) {
   if (accepted.enabled) {
@@ -329,6 +364,10 @@ const styles = StyleSheet.create({
   },
   date: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   column: { flex: 1, minWidth: 0 },
+  compactActionSlot: {
+    minHeight: tokens.touch.minimum,
+    justifyContent: "center",
+  },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",

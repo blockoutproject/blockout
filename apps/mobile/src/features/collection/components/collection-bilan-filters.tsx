@@ -7,12 +7,11 @@ import type {
   CollectionStageEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
-import { Button } from "@/shared/components/button";
-import { EntryGroup } from "@/shared/components/entry-group";
+import { FilterSheetActions } from "@/shared/components/filter-sheet-actions";
 import { ListLoading } from "@/shared/components/list-loading";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { SelectField } from "@/shared/components/select-field";
-import { SelectionRow } from "@/shared/components/selection-row";
+import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -34,6 +33,14 @@ const seasonStages: readonly CollectionStageEnum[] = [
   "standings",
   "logo",
 ];
+const stageOptions = seasonStages.map((value) => ({
+  value,
+  label: stageLabels[value],
+}));
+const statusOptions = Object.entries(outcomeLabels).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 export interface CollectionBilanFiltersProps {
   seasonId: string;
@@ -71,10 +78,7 @@ export function CollectionBilanFilters({
     status: {
       label: "Statut",
       all: "Tous les statuts",
-      options: Object.entries(outcomeLabels).map(([value, label]) => ({
-        value,
-        label,
-      })),
+      options: statusOptions,
     },
     sourceId: {
       label: "Source",
@@ -84,10 +88,7 @@ export function CollectionBilanFilters({
     stage: {
       label: "Étape",
       all: "Toutes les étapes",
-      options: seasonStages.map((value) => ({
-        value,
-        label: stageLabels[value],
-      })),
+      options: stageOptions,
     },
   };
   const loading = <ListLoading label="Chargement des sources" />;
@@ -121,29 +122,20 @@ export function CollectionBilanFilters({
             value={draft.stage ? stageLabels[draft.stage] : fields.stage.all}
             onPress={() => setChoice("stage")}
           />
-          <View style={styles.actions}>
-            <Button
-              label="Appliquer les filtres"
-              fullWidth
-              onPress={() =>
-                void handleSubmit((filters) =>
-                  onApply({ ...filters, query: initial.query }),
-                )()
-              }
-            />
-            <Button
-              label="Réinitialiser les filtres"
-              variant="secondary"
-              fullWidth
-              onPress={() =>
-                reset({
-                  status: undefined,
-                  sourceId: undefined,
-                  stage: undefined,
-                })
-              }
-            />
-          </View>
+          <FilterSheetActions
+            onApply={() =>
+              void handleSubmit((filters) =>
+                onApply({ ...filters, query: initial.query }),
+              )()
+            }
+            onReset={() =>
+              reset({
+                status: undefined,
+                sourceId: undefined,
+                stage: undefined,
+              })
+            }
+          />
         </View>
       );
     }
@@ -151,21 +143,15 @@ export function CollectionBilanFilters({
       return <ReadFeedback query={sources} loadingContent={loading} />;
     }
     const field = fields[choice];
-    const options = [{ value: undefined, label: field.all }, ...field.options];
     return (
-      <EntryGroup>
-        {options.map(({ value, label }) => (
-          <SelectionRow
-            key={value ?? "all"}
-            label={label}
-            selected={draft[choice] === value}
-            onPress={() => {
-              setValue(choice, value);
-              setChoice(undefined);
-            }}
-          />
-        ))}
-      </EntryGroup>
+      <SelectionList
+        options={[{ value: undefined, label: field.all }, ...field.options]}
+        selected={draft[choice]}
+        onSelect={(value) => {
+          setValue(choice, value);
+          setChoice(undefined);
+        }}
+      />
     );
   }
 
@@ -181,5 +167,4 @@ export function CollectionBilanFilters({
 
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
-  actions: { gap: tokens.layout.actions.gap },
 });

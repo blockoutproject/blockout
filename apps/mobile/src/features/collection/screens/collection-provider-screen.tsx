@@ -4,13 +4,13 @@ import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { useCollectionSeason } from "../api/use-source-preparation";
-import {
-  CollectionControlLoading,
-  CollectionSummaryLoading,
-  ProviderPreparationLoading,
-} from "../components/collection-loading";
+import { ProviderPreparationLoading } from "../components/collection-loading";
 import { CollectionProviderRead } from "../components/collection-provider-read";
-import { CollectionFollowUp } from "./collection-follow-up-screen";
+import { collectionBilanHref } from "../model/collection-hrefs";
+import {
+  CollectionFollowUp,
+  CollectionFollowUpLoading,
+} from "./collection-follow-up-screen";
 import { ProviderSourcesScreen } from "./provider-sources-screen";
 
 /** Source preparation stays mounted after tab selection so its established native draft lifetime is preserved. */
@@ -26,6 +26,7 @@ export function CollectionProviderScreen({
   const router = useRouter();
   const reading = useCollectionSeason(seasonId);
   const { season } = reading;
+  const followUpLoading = <CollectionFollowUpLoading />;
   return (
     <Page fullBleed>
       <PagedTabs
@@ -43,31 +44,24 @@ export function CollectionProviderScreen({
           {
             id: "suivi",
             label: "Suivi",
-            preview: (
-              <PageContent>
-                <CollectionControlLoading />
-                <CollectionSummaryLoading />
-              </PageContent>
-            ),
+            preview: <PageContent>{followUpLoading}</PageContent>,
             content: (
-              <CollectionProviderRead provider={provider} reading={reading}>
-                {(controlId, currentSeason) => (
+              <CollectionProviderRead
+                provider={provider}
+                reading={reading}
+                loadingContent={followUpLoading}
+                retainControlOnError
+              >
+                {(control, currentSeason, controls) => (
                   <CollectionFollowUp
-                    key={controlId}
+                    key={control.id}
                     active={tab === "suivi"}
-                    controlId={controlId}
-                    provider={provider}
+                    control={control}
+                    controls={controls}
                     season={currentSeason}
-                    refreshSeason={{
-                      fetching: season.isFetching,
-                      refetch: () => season.refetch({ cancelRefetch: false }),
-                    }}
+                    seasonQuery={season}
                     onOpenBilan={() =>
-                      router.push({
-                        pathname:
-                          "/collection/[seasonId]/controls/[provider]/bilan",
-                        params: { seasonId, provider },
-                      })
+                      router.push(collectionBilanHref(seasonId, provider))
                     }
                   />
                 )}

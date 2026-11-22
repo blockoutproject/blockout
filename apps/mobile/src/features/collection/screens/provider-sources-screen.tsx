@@ -5,7 +5,10 @@ import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { PageContent } from "@/shared/components/page";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { ProviderPreparationLoading } from "../components/collection-loading";
 import { useSeasonPreparation } from "../api/use-source-preparation";
 import { ProviderPreparationForm } from "../forms/provider-preparation-form";
@@ -33,10 +36,7 @@ export function ProviderSourcesScreen({
     !sources.data ||
     hasReadError(requiredRead);
   const initialLoading = !authority.enabled
-    ? authority.sessionStatus === "restoring" ||
-      (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading &&
-        !hasReadError(authority.account))
+    ? isAccessLoading(authority)
     : !hasReadError(requiredRead) && (season.isLoading || sources.isLoading);
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 

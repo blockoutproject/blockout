@@ -5,6 +5,7 @@ import {
 } from "@/features/accounts/current-account";
 import { ErrorState } from "@/shared/components/state-card";
 import {
+  hasReadError,
   ReadFeedback,
   type ReadFeedbackQuery,
 } from "@/shared/components/read-feedback";
@@ -16,6 +17,20 @@ export interface AccessFeedbackProps {
   sessionStatus: AccountSession["status"];
   account: ReadFeedbackQuery & { readonly error?: unknown };
   enabled: boolean;
+}
+
+/** Keeps first account loading in the content layout and retained read errors in the feedback layout. */
+export function isAccessLoading({
+  sessionStatus,
+  account,
+}: Readonly<Pick<AccessFeedbackProps, "sessionStatus" | "account">>): boolean {
+  return (
+    sessionStatus === "restoring" ||
+    (sessionStatus === "authenticated" &&
+      account.isPending &&
+      account.isFetching &&
+      !hasReadError(account))
+  );
 }
 
 /** Keeps account-read recovery with Query; session recovery and current grants retain their owners. */

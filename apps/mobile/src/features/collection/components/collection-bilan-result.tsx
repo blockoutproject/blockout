@@ -1,10 +1,12 @@
-import { ChevronRight } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   CollectionResultResponse,
   CollectionResultSourceResponse,
 } from "../../../../.generated/schemas/index.zod";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
 import { Surface } from "@/shared/components/surface";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -12,6 +14,7 @@ import {
   stageLabels,
 } from "../model/collection-result-presentation";
 import { formatCollectionTimestamp } from "../model/collection-time";
+import { CollectionLink } from "./collection-link";
 
 /** One accepted outcome. A contextual link needs an established source from this very row. */
 export function CollectionBilanResult({
@@ -122,24 +125,11 @@ export function CollectionBilanResult({
             </Text>
           )}
           {sourceLink && (
-            <Pressable
-              accessibilityRole="link"
+            <CollectionLink
+              label="Voir la source"
               accessibilityHint={sourceLink.label}
               onPress={() => onViewSource(sourceLink)}
-              style={({ pressed }) => [
-                styles.link,
-                pressed && { opacity: tokens.opacity.pressed },
-              ]}
-            >
-              <Text style={[styles.linkLabel, { color: colors.text }]}>
-                Voir la source
-              </Text>
-              <ChevronRight
-                accessible={false}
-                color={colors.icon}
-                size={tokens.size.icon.sm}
-              />
-            </Pressable>
+            />
           )}
         </View>
       )}
@@ -147,7 +137,33 @@ export function CollectionBilanResult({
   );
 }
 
+/** Reserves the ordinary compact cards before status and optional evidence are known. */
+export function CollectionBilanResultsLoading() {
+  return (
+    <LoadingGroup
+      label="Chargement des résultats de collecte"
+      style={styles.loadingRows}
+    >
+      {[0, 1].map((row) => (
+        <Surface key={row} style={styles.card}>
+          <View style={styles.headline}>
+            <View style={styles.identity}>
+              <TextSkeleton width="80%" />
+              <TextSkeleton width="88%" role="metadata" />
+            </View>
+            <Skeleton
+              width={tokens.size.control.default}
+              height={tokens.size.icon.lg}
+            />
+          </View>
+        </Surface>
+      ))}
+    </LoadingGroup>
+  );
+}
+
 const styles = StyleSheet.create({
+  loadingRows: { gap: tokens.layout.list.gap },
   card: {
     padding: tokens.spacing.md,
     gap: tokens.spacing.sm,
@@ -187,12 +203,4 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.control,
   },
   codeBesideLink: { flexGrow: 1, flexBasis: "55%" },
-  link: {
-    marginLeft: "auto",
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  linkLabel: { ...tokens.typography.strong, flexShrink: 1 },
 });

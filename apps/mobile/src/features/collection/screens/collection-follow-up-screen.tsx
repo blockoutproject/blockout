@@ -1,121 +1,153 @@
-import { controlOpacity } from "@/shared/components/control-styles";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { LoadingGroup } from "@/shared/components/loading-group";
 import { PageContent, PageScrollView } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { Surface } from "@/shared/components/surface";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type {
-  CollectionProviderEnum,
+  CollectionControlResponse,
   CollectionResultSummaryResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { createCollectionQueries } from "../api/collection-queries";
-import { useCollectionControl } from "../api/use-collection-controls";
-import { CollectionControl } from "../components/collection-control";
 import {
-  CollectionControlLoading,
-  CollectionSummaryLoading,
-} from "../components/collection-loading";
+  useCollectionControl,
+  type useCollectionControls,
+} from "../api/use-collection-controls";
+import type { useCollectionSeason } from "../api/use-source-preparation";
+import {
+  CollectionControl,
+  CollectionExecutionSkeleton,
+} from "../components/collection-control";
+import { CollectionLink } from "../components/collection-link";
 
 interface CollectionFollowUpProps {
-  controlId: string;
-  provider: CollectionProviderEnum;
+  control: CollectionControlResponse;
+  controls: ReturnType<typeof useCollectionControls>;
   season: CollectionSeasonResponse;
   active: boolean;
   onOpenBilan: () => void;
-  refreshSeason?: {
-    fetching: boolean;
-    refetch: () => Promise<unknown>;
-  };
+  seasonQuery: Pick<
+    ReturnType<typeof useCollectionSeason>["season"],
+    "isFetching" | "refetch"
+  >;
 }
 
 /** Observes execution and aggregate results independently inside the provider's Suivi tab. */
 export function CollectionFollowUp({
-  controlId,
-  provider,
+  control,
+  controls,
   season,
   active,
   onOpenBilan,
-  refreshSeason,
+  seasonQuery,
 }: Readonly<CollectionFollowUpProps>) {
-  const editing = useCollectionControl(controlId, season.id);
+  const editing = useCollectionControl(control.id, controls);
   const { authority, query } = editing;
   const results = useQuery(
-    createCollectionQueries(authority).resultSummary(controlId),
+    createCollectionQueries(authority).resultSummary(control.id),
   );
-  const current = query.data;
-  const matches =
-    current?.family === provider && current.seasonId === season.id;
-  const controlFailed = hasReadError(query) || (!!current && !matches);
-  const blocked = !authority.enabled || !matches || controlFailed;
-  const summary = results.data?.summary;
-  const summaryMissing = results.isSuccess && !summary;
-  const resultsFailed = hasReadError(results) || summaryMissing;
   const resultsFeedback = (
     <ReadFeedback
       query={results}
-      failed={summaryMissing}
-      loadingContent={<CollectionSummaryLoading />}
+      loadingContent={
+        <LoadingGroup label="Chargement des résultats de collecte">
+          <ResultSummarySkeleton />
+        </LoadingGroup>
+      }
     />
   );
   const commandPending =
     editing.activity.isPending || editing.request.isPending;
   const fetching =
-    query.isFetching || results.isFetching || !!refreshSeason?.fetching;
-  const FeedbackLayout =
-    query.isLoading && !controlFailed ? PageContent : ScreenState;
+    query.isFetching || results.isFetching || seasonQuery.isFetching;
+  if (hasReadError(query)) {
+    return (
+      <PageScrollView>
+        <ScreenState>
+          <ReadFeedback query={query} loadingContent={null} />
+        </ScreenState>
+      </PageScrollView>
+    );
+  }
 
   return (
     <PageScrollView
       refreshControl={
         <DataRefreshControl
           fetching={fetching}
-          enabled={active && !blocked && !commandPending}
+          enabled={active && !commandPending}
           onRefresh={async () => {
             if (!fetching) {
               await Promise.all([
                 query.refetch({ cancelRefetch: false }),
                 results.refetch({ cancelRefetch: false }),
-                refreshSeason?.refetch(),
+                seasonQuery.refetch({ cancelRefetch: false }),
               ]);
             }
           }}
         />
       }
     >
-      {blocked ? (
-        <FeedbackLayout>
-          <ReadFeedback
-            query={query}
-            failed={!!current && !matches}
-            loadingContent={<CollectionControlLoading />}
-          />
-        </FeedbackLayout>
-      ) : (
-        <PageContent style={styles.sections}>
-          <CollectionControl
-            control={current}
-            editing={editing}
-            season={season}
-            active={active}
-          />
-          {resultsFailed ? (
-            <ScreenState style={styles.resultFeedback}>
-              {resultsFeedback}
-            </ScreenState>
-          ) : summary ? (
-            <ResultSummary summary={summary} onOpenBilan={onOpenBilan} />
-          ) : (
-            resultsFeedback
-          )}
-        </PageContent>
-      )}
+      <PageContent style={styles.sections}>
+        <CollectionControl
+          control={control}
+          editing={editing}
+          season={season}
+          active={active}
+        />
+        {hasReadError(results) ? (
+          <ScreenState style={styles.resultFeedback}>
+            {resultsFeedback}
+          </ScreenState>
+        ) : results.data ? (
+          <ResultSummary summary={results.data} onOpenBilan={onOpenBilan} />
+        ) : (
+          resultsFeedback
+        )}
+      </PageContent>
     </PageScrollView>
+  );
+}
+
+export function CollectionFollowUpLoading() {
+  return (
+    <LoadingGroup
+      label="Chargement du suivi de collecte"
+      style={styles.sections}
+    >
+      <CollectionExecutionSkeleton />
+      <ResultSummarySkeleton />
+    </LoadingGroup>
+  );
+}
+
+function ResultSummarySkeleton() {
+  return (
+    <Surface style={styles.summary}>
+      <TextSkeleton role="title" width="56%" />
+      <TextSkeleton role="metadata" width="36%" />
+      <View style={styles.distribution}>
+        {[0, 1].map((row) => (
+          <View key={row} style={styles.summaryRow}>
+            {[0, 1].map((column) => (
+              <View key={column} style={styles.count}>
+                <TextSkeleton role="title" width="20%" />
+                <TextSkeleton role="metadata" width="52%" />
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+      <View style={styles.linkSlot}>
+        <TextSkeleton role="label" width="32%" />
+      </View>
+    </Surface>
   );
 }
 
@@ -171,30 +203,7 @@ function ResultSummary({
           />
         </View>
       </View>
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel="Voir le bilan"
-        onPress={onOpenBilan}
-        style={({ pressed }) => [
-          styles.bilanLink,
-          { opacity: controlOpacity(false, pressed) },
-        ]}
-      >
-        <Text
-          style={[
-            tokens.typography.strong,
-            styles.linkLabel,
-            { color: colors.text },
-          ]}
-        >
-          Voir le bilan
-        </Text>
-        <ChevronRight
-          accessible={false}
-          size={tokens.size.icon.sm}
-          color={colors.icon}
-        />
-      </Pressable>
+      <CollectionLink label="Voir le bilan" onPress={onOpenBilan} centered />
     </Surface>
   );
 }
@@ -239,12 +248,9 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   countLabel: { flexShrink: 1 },
-  bilanLink: {
+  linkSlot: {
     minHeight: tokens.touch.minimum,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: tokens.spacing.sm,
   },
-  linkLabel: { flexShrink: 1, textAlign: "center" },
 });

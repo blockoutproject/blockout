@@ -10,6 +10,7 @@ import {
 import {
   CollectionControlResponse,
   type CloseCollectionSeasonRequest,
+  type CollectionControlListResponse,
   type SetCollectionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createCollectionQueries } from "./collection-queries";
@@ -25,37 +26,51 @@ import {
 /** Reads the complete controls for exactly one season, or the two seasonless families. */
 export function useCollectionControls(seasonId?: string) {
   const authority = useCollectionAuthority();
-  const query = useQuery(createCollectionQueries(authority).controls(seasonId));
-  return { authority, query };
+  const options = createCollectionQueries(authority).controls(seasonId);
+  const query = useQuery(options);
+  return { authority, query, queryKey: options.queryKey };
 }
 
-/** Current control and explicit commands share generated keys and the F05/F12 authority. */
-export function useCollectionControl(controlId: string, seasonId?: string) {
-  const authority = useCollectionAuthority();
+/** Direct commands update the accepted row in its complete scope projection. */
+export function useCollectionControl(
+  controlId: string,
+  { authority, query, queryKey }: ReturnType<typeof useCollectionControls>,
+) {
   const client = useQueryClient();
-  const queries = createCollectionQueries(authority);
-  const controlOptions = queries.control(controlId);
-  const key = controlOptions.queryKey;
-  const query = useQuery(controlOptions);
 
-  /** An acknowledged command cannot revive withdrawn data. */
+  /** The target acknowledgment cannot turn a failed list read into a successful one. */
   function acceptResponse(accepted: CollectionControlResponse) {
-    client.setQueryData<CollectionControlResponse>(key, (current) =>
-      current ? accepted : current,
-    );
-    void client.invalidateQueries({ queryKey: key, exact: true });
-    invalidateCollectionControls(client, seasonId);
-    invalidateCollectionSeasons(client);
+    if (client.getQueryState(queryKey)?.status === "success") {
+      client.setQueryData<CollectionControlListResponse>(
+        queryKey,
+        (current) => {
+          if (!current?.items.some((control) => control.id === controlId)) {
+            return undefined;
+          }
+          return {
+            ...current,
+            items: current.items.map((control) =>
+              control.id === controlId ? accepted : control,
+            ),
+          };
+        },
+      );
+    }
+    void client.invalidateQueries({ queryKey, exact: true });
   }
 
   const activity = useMutation({
-    mutationKey: [...key, ...getSetCollectionActivityMutationKey()],
+    mutationKey: [
+      ...queryKey,
+      controlId,
+      ...getSetCollectionActivityMutationKey(),
+    ],
     mutationFn: async (body: SetCollectionActivityRequest) =>
       setCollectionActivity(controlId, body, await authority.request()),
     onSuccess: acceptResponse,
   });
   const request = useMutation({
-    mutationKey: [...key, ...getRequestCollectionMutationKey()],
+    mutationKey: [...queryKey, controlId, ...getRequestCollectionMutationKey()],
     // Orval's multi-success-status function supplies no decoder. Validate once at this consuming boundary.
     mutationFn: async () =>
       requestCollection(controlId, {

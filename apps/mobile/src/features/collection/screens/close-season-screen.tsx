@@ -5,7 +5,10 @@ import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { CloseSeasonLoading } from "../components/collection-loading";
 import { useCloseCollectionSeason } from "../api/use-collection-controls";
 import { CloseSeasonForm } from "../forms/close-season-form";
@@ -21,10 +24,7 @@ export function CloseSeasonScreen({
   const blocked =
     !authority.enabled || !season.data || hasReadError(requiredRead);
   const initialLoading = !authority.enabled
-    ? authority.sessionStatus === "restoring" ||
-      (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading &&
-        !hasReadError(authority.account))
+    ? isAccessLoading(authority)
     : !hasReadError(requiredRead) && season.isLoading;
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 

@@ -6,6 +6,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
+import { onlineManager } from "@tanstack/react-query";
 import { Text } from "react-native";
 import "@/shared/native/test-support/tab-view-native";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
@@ -81,6 +82,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  onlineManager.setOnline(true);
   client.clear();
   privateClient?.clear();
   privateClient = undefined;
@@ -157,7 +159,7 @@ it("presents the accepted outcomes and opens only established source context", a
   expect(screen.getByText("Non confirmée")).toBeOnTheScreen();
 });
 
-it("keeps the admitted rows after a failed continuation and retries only the requested page and criteria", async () => {
+it("keeps the admitted rows and only retries a failed continuation from its footer", async () => {
   // Given
   const user = userEvent.setup();
   const criteria = {
@@ -168,6 +170,7 @@ it("keeps the admitted rows after a failed continuation and retries only the req
   } as const;
   const source = { id: sourceId, label: "Nationale 2" };
   const reads: URLSearchParams[] = [];
+  const failedContinuation = Promise.withResolvers<Response>();
   let continuationAvailable = false;
   mockFetch.mockImplementation(async (url, options) => {
     const { pathname, searchParams } = new URL(String(url));
@@ -195,7 +198,7 @@ it("keeps the admitted rows after a failed continuation and retries only the req
           page: 1,
           hasNext: false,
         })
-      : refused(503);
+      : failedContinuation.promise;
   });
   await renderCollection(
     <CollectionBilanScreen
@@ -221,6 +224,16 @@ it("keeps the admitted rows after a failed continuation and retries only the req
   expect(reads).toHaveLength(1);
   mockIsFocused.mockReturnValue(true);
   await fireEvent(list, "endReached");
+  try {
+    expect(
+      await screen.findByRole("progressbar", {
+        name: "Chargement de la suite…",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  } finally {
+    await act(() => failedContinuation.resolve(refused(503)));
+  }
 
   // Then: a footer is the only retry action, and later native edges do not retry it.
   const retry = await screen.findByRole("button", { name: "Réessayer" });
@@ -229,6 +242,10 @@ it("keeps the admitted rows after a failed continuation and retries only the req
   ).toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   await fireEvent(list, "endReached");
+  await act(() => onlineManager.setOnline(false));
+  await act(() => onlineManager.setOnline(true));
+  expect(retry).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   expect(reads).toHaveLength(2);
 
   // When
@@ -246,6 +263,59 @@ it("keeps the admitted rows after a failed continuation and retries only the req
       size: "50",
     });
   }
+});
+
+it("uses its initial skeleton and lets only the Empty card reload its result scope", async () => {
+  // Given
+  const user = userEvent.setup();
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/results")
+      ? response.promise
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionBilanScreen
+      header={<Text>Bilan</Text>}
+      controlId={controlId}
+      criteria={{}}
+      {...navigation}
+    />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+
+  // When
+  try {
+    expect(
+      await screen.findByRole("progressbar", {
+        name: "Chargement des résultats de collecte",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  } finally {
+    await act(() =>
+      response.resolve(json({ items: [], page: 0, hasNext: false })),
+    );
+  }
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Aucun résultat observé" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+
+  // When
+  mockFetch.mockClear();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname),
+  ).toEqual([`/administration/collection-controls/${controlId}/results`]);
 });
 
 it.each(["first", "full"])(

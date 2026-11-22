@@ -151,12 +151,6 @@ export function collectionPeer(): CollectionPeer {
     if (path.endsWith("/collection-controls")) {
       return json({ items: peer.controls });
     }
-    const selected = peer.controls.find((value) =>
-      path.endsWith(`/collection-controls/${value.id}`),
-    );
-    if (selected) {
-      return json(selected);
-    }
     if (path.endsWith("/results")) {
       return json({
         items: peer.results,

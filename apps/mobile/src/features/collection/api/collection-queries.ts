@@ -5,10 +5,8 @@ import {
   type QueryFunctionContext,
 } from "@tanstack/react-query";
 import {
-  getCollectionControl,
   getCollectionSeason,
   getCollectionSource,
-  getGetCollectionControlQueryKey,
   getGetCollectionSeasonQueryKey,
   getGetCollectionSourceQueryKey,
   getListCollectionControlsQueryKey,
@@ -65,29 +63,24 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     }
   }
 
-  /** Removes a refused or missing list/control snapshot so a technical failure cannot restore it. */
-  function rejectDenied(error: unknown, context: QueryFunctionContext): never {
-    if (!context.signal.aborted && isCollectionReadRefused(error)) {
-      context.client
-        .getQueryCache()
-        .find({ queryKey: context.queryKey, exact: true })
-        ?.setState({ data: undefined, dataUpdatedAt: 0 });
-    }
-    throw error;
-  }
-
-  async function readResults(
-    controlId: string,
-    params: ListCollectionResultsParams,
+  /** A refused list or result projection must leave Query before any later technical failure. */
+  async function readCollection<T>(
     context: QueryFunctionContext,
+    execute: (options: ApiFetchOptions) => Promise<T>,
   ) {
     try {
-      return await listCollectionResults(controlId, params, {
+      return await execute({
         ...(await authority.request()),
         signal: context.signal,
       });
     } catch (error) {
-      return rejectDenied(error, context);
+      if (!context.signal.aborted && isCollectionReadRefused(error)) {
+        context.client
+          .getQueryCache()
+          .find({ queryKey: context.queryKey, exact: true })
+          ?.setState({ data: undefined, dataUpdatedAt: 0 });
+      }
+      throw error;
     }
   }
 
@@ -98,16 +91,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         queryKey: getListCollectionSeasonsQueryKey(),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async (context) => {
-          try {
-            return await listCollectionSeasons({
-              ...(await authority.request()),
-              signal: context.signal,
-            });
-          } catch (error) {
-            return rejectDenied(error, context);
-          }
-        },
+        queryFn: (context) => readCollection(context, listCollectionSeasons),
       }),
     /** One season shared by navigation, preparation and terminal closure. */
     season: (seasonId: string) =>
@@ -150,17 +134,14 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,
-        queryFn: async (context) => {
-          try {
-            return await listCollectionSourceChildren(
+        queryFn: (context) =>
+          readCollection(context, (options) =>
+            listCollectionSourceChildren(
               sourceId,
               { ...params, page: context.pageParam },
-              { ...(await authority.request()), signal: context.signal },
-            );
-          } catch (error) {
-            return rejectDenied(error, context);
-          }
-        },
+              options,
+            ),
+          ),
         getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
       });
     },
@@ -171,35 +152,12 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         queryKey: getListCollectionControlsQueryKey(params),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async (context) => {
-          try {
-            return await listCollectionControls(params, {
-              ...(await authority.request()),
-              signal: context.signal,
-            });
-          } catch (error) {
-            return rejectDenied(error, context);
-          }
-        },
+        queryFn: (context) =>
+          readCollection(context, (options) =>
+            listCollectionControls(params, options),
+          ),
       });
     },
-    /** Current control configuration shared by observation and explicit commands. */
-    control: (controlId: string) =>
-      queryOptions({
-        queryKey: getGetCollectionControlQueryKey(controlId),
-        enabled: authority.enabled,
-        gcTime: 0,
-        queryFn: async (context) => {
-          try {
-            return await getCollectionControl(controlId, {
-              ...(await authority.request()),
-              signal: context.signal,
-            });
-          } catch (error) {
-            return rejectDenied(error, context);
-          }
-        },
-      }),
     /** Suivi reads one page of evidence for its whole-control totals, independently of the Bilan traversal. */
     resultSummary: (controlId: string) => {
       const params = { size: 1 };
@@ -207,8 +165,15 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         queryKey: getListCollectionResultsQueryKey(controlId, params),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: (context) =>
-          readResults(controlId, { ...params, page: 0 }, context),
+        queryFn: async (context) => {
+          const page = await readCollection(context, (options) =>
+            listCollectionResults(controlId, { ...params, page: 0 }, options),
+          );
+          if (!page.summary) {
+            throw new ApiError("schema");
+          }
+          return page.summary;
+        },
       });
     },
     /** Page identity stays in pageParam. Every response-shaping criterion belongs in the generated key. */
@@ -220,10 +185,12 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         gcTime: 0,
         initialPageParam: 0,
         queryFn: (context) =>
-          readResults(
-            controlId,
-            { ...params, page: context.pageParam },
-            context,
+          readCollection(context, (options) =>
+            listCollectionResults(
+              controlId,
+              { ...params, page: context.pageParam },
+              options,
+            ),
           ),
         getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
       });

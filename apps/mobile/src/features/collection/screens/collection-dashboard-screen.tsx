@@ -5,7 +5,7 @@ import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { isAccessDenied } from "@/shared/api/access-denied";
+import type { CollectionControlResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -24,13 +24,19 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { EmptyState } from "@/shared/components/state-card";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import {
   useCollectionControl,
   useCollectionControls,
 } from "../api/use-collection-controls";
 import { useCollectionSeasons } from "../api/use-source-preparation";
-import { createCollectionQueries } from "../api/collection-queries";
+import {
+  createCollectionQueries,
+  isCollectionReadRefused,
+} from "../api/collection-queries";
 import { CollectionControl } from "../components/collection-control";
 import {
   CollectionLoading,
@@ -40,7 +46,10 @@ import {
 import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
 import { seasonStatus } from "../components/source-summary";
-import { collectionResultKey } from "../model/collection-result-presentation";
+import {
+  collectionResultKey,
+  collectionResultRows,
+} from "../model/collection-result-presentation";
 
 type ClubCollectionFamily = "club-sheets" | "geocoding";
 
@@ -56,13 +65,7 @@ export function CollectionDashboardScreen() {
   const router = useRouter();
   const failed = hasReadError(query);
 
-  const FeedbackLayout =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading)
-      ? PageContent
-      : ScreenState;
+  const FeedbackLayout = isAccessLoading(authority) ? PageContent : ScreenState;
   return (
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView
@@ -162,20 +165,16 @@ export function CollectionDashboardScreen() {
 export function CollectionControlScreen({
   family,
 }: Readonly<{ family: ClubCollectionFamily }>) {
-  const { authority, query } = useCollectionControls();
+  const controls = useCollectionControls();
+  const { authority, query } = controls;
   const selected = query.data?.items.find(
     (control) => control.family === family && control.seasonId === undefined,
   );
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
   const pending = !authority.enabled
-    ? sessionPending
+    ? isAccessLoading(authority)
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.enabled || !selected || hasReadError(query)) {
+  if (!authority.enabled || !selected) {
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
@@ -200,7 +199,8 @@ export function CollectionControlScreen({
   return (
     <ControlDashboard
       key={`${authority.session.subject}/${selected.id}`}
-      controlId={selected.id}
+      control={selected}
+      controls={controls}
       family={family}
     />
   );
@@ -208,16 +208,18 @@ export function CollectionControlScreen({
 
 /** Results own their read recovery; continuation preserves received evidence and commands remain independent. */
 function ControlDashboard({
-  controlId,
+  control,
+  controls,
   family,
 }: Readonly<{
-  controlId: string;
+  control: CollectionControlResponse;
+  controls: ReturnType<typeof useCollectionControls>;
   family: ClubCollectionFamily;
 }>) {
-  const editing = useCollectionControl(controlId);
+  const editing = useCollectionControl(control.id, controls);
   const { authority, query } = editing;
   const results = useInfiniteQuery(
-    createCollectionQueries(authority).results(controlId),
+    createCollectionQueries(authority).results(control.id),
   );
   const { colors } = useTheme();
   const navigation = useNavigation();
@@ -227,27 +229,12 @@ function ControlDashboard({
     editing.activity.isPending || editing.request.isPending;
   const continuationBusy =
     fetching || commandPending || authority.account.isRefetching;
-  const current = query.data;
-  const matches =
-    !hasReadError(query) &&
-    current?.family === family &&
-    current.seasonId === undefined;
-  const continuationVisible =
-    !!results.data &&
-    !isAccessDenied(results.error) &&
-    (results.isFetchNextPageError || results.isFetchingNextPage);
-  const resultsFailed = hasReadError(results) && !results.isFetchNextPageError;
-  // Updated evidence may cross page boundaries; keep its latest value in the first observed position.
-  const rows =
-    hasReadError(query) || resultsFailed || isAccessDenied(results.error)
-      ? []
-      : [
-          ...new Map(
-            (results.data?.pages ?? [])
-              .flatMap((page) => page.items)
-              .map((row) => [collectionResultKey(row), row]),
-          ).values(),
-        ];
+  const refused = isCollectionReadRefused(results.error);
+  const continuationFailed =
+    !!results.data && results.isFetchNextPageError && !refused;
+  const continuationVisible = continuationFailed || results.isFetchingNextPage;
+  const resultsFailed = hasReadError(results) && !continuationFailed;
+  const rows = resultsFailed ? [] : collectionResultRows(results.data?.pages);
 
   /** Refreshes displayed projections independently of collection commands. */
   async function refresh() {
@@ -264,12 +251,9 @@ function ControlDashboard({
   async function loadMore() {
     if (
       !authority.enabled ||
-      !matches ||
       !navigation.isFocused() ||
       !results.hasNextPage ||
-      isAccessDenied(query.error) ||
-      isAccessDenied(results.error) ||
-      (results.isError && !results.isFetchNextPageError) ||
+      resultsFailed ||
       continuationBusy
     ) {
       return;
@@ -286,7 +270,7 @@ function ControlDashboard({
           styles.section,
         ]}
       >
-        {current && <CollectionControl control={current} editing={editing} />}
+        <CollectionControl control={control} editing={editing} />
         <Text
           accessibilityRole="header"
           style={[tokens.typography.heading, { color: colors.text }]}
@@ -303,16 +287,6 @@ function ControlDashboard({
       </View>
     );
   }
-
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
-  const pending = !authority.enabled
-    ? sessionPending
-    : !hasReadError(query) && query.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
 
   /** Distinguishes the initial result skeleton from failed or genuinely empty result reads. */
   function renderEmptyResults() {
@@ -345,74 +319,64 @@ function ControlDashboard({
     );
   }
 
-  return (
-    <Page header={<PageHeader title={familyLabels[family]} />}>
-      {!authority.enabled || !matches ? (
+  const header = <PageHeader title={familyLabels[family]} />;
+  if (hasReadError(query)) {
+    return (
+      <Page header={header}>
         <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={query}
-                loadingContent={<CollectionControlLoading />}
-                failed={!!current && !matches}
-              />
-            )}
-          </FeedbackLayout>
+          <ScreenState>
+            <ReadFeedback query={query} loadingContent={null} />
+          </ScreenState>
         </PageScrollView>
-      ) : (
-        <PageFlatList
-          testID="collection-results-list"
-          alwaysBounceVertical
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                enabled={!commandPending && !results.isFetchingNextPage}
-                onRefresh={refresh}
-                fetching={fetching}
+      </Page>
+    );
+  }
+
+  return (
+    <Page header={header}>
+      <PageFlatList
+        testID="collection-results-list"
+        alwaysBounceVertical
+        refreshControl={
+          <DataRefreshControl
+            enabled={!commandPending && !results.isFetchingNextPage}
+            onRefresh={refresh}
+            fetching={fetching}
+          />
+        }
+        data={rows}
+        keyExtractor={collectionResultKey}
+        contentContainerStyle={
+          rows.length > 0 || continuationVisible
+            ? pageContentStyle
+            : styles.emptyList
+        }
+        ListHeaderComponent={renderHeader()}
+        ItemSeparatorComponent={ListSeparator}
+        onEndReached={() => {
+          if (!results.isError) {
+            loadMore();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item }) => (
+          <CollectionResult result={item} diagnostics={diagnostics} />
+        )}
+        ListEmptyComponent={renderEmptyResults() ?? undefined}
+        ListFooterComponent={
+          <>
+            {!resultsFailed && results.hasNextPage ? (
+              <ListContinuation
+                loading={results.isFetchingNextPage}
+                failed={continuationFailed}
+                disabled={continuationBusy}
+                onRetry={loadMore}
               />
-            ) : undefined
-          }
-          data={rows}
-          keyExtractor={collectionResultKey}
-          contentContainerStyle={
-            rows.length > 0 || continuationVisible
-              ? pageContentStyle
-              : styles.emptyList
-          }
-          ListHeaderComponent={renderHeader()}
-          ItemSeparatorComponent={ListSeparator}
-          onEndReached={() => {
-            if (!query.isError && !results.isError) {
-              loadMore();
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          renderItem={({ item }) => (
-            <CollectionResult result={item} diagnostics={diagnostics} />
-          )}
-          ListEmptyComponent={renderEmptyResults() ?? undefined}
-          ListFooterComponent={
-            <>
-              {!resultsFailed &&
-              !isAccessDenied(results.error) &&
-              results.hasNextPage ? (
-                <ListContinuation
-                  loading={results.isFetchingNextPage}
-                  failed={results.isFetchNextPageError}
-                  disabled={continuationBusy}
-                  onRetry={loadMore}
-                />
-              ) : undefined}
-              <BottomContentSpacer />
-            </>
-          }
-        />
-      )}
+            ) : undefined}
+            <BottomContentSpacer />
+          </>
+        }
+      />
     </Page>
   );
 }

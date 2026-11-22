@@ -281,11 +281,13 @@ function responses(
     if (path.endsWith("/collection-controls")) {
       return Response.json({ items: [control({ family: "lnv", seasonId })] });
     }
-    if (path.endsWith(`/collection-controls/${control().id}`)) {
-      return Response.json(control({ family: "lnv", seasonId }));
-    }
     if (path.endsWith("/results")) {
-      return Response.json({ items: [], page: 0, hasNext: false });
+      return Response.json({
+        items: [],
+        page: 0,
+        hasNext: false,
+        summary: { success: 0, partial: 0, failed: 0, unconfirmed: 0 },
+      });
     }
     throw new Error(`Unexpected controlled request ${path}`);
   };
@@ -589,6 +591,31 @@ it("switches from Suivi to the existing source preparation in the provider tabs"
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/controls/lnv`,
   );
+});
+
+it("keeps an invalid Bilan filter link dismissible without reading collection data", async () => {
+  // Given
+  mockFetch.mockImplementation(responses({ manageCollection: true }));
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
+  await act(async () =>
+    router.push(`/collection/${seasonId}/controls/unknown/bilan-filters`),
+  );
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent("/access");
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(String(url)).pathname.includes("collection-"),
+    ),
+  ).toBe(false);
 });
 
 it("opens a source-filtered Bilan and returns from the attributed source to the same criteria", async () => {
@@ -1010,9 +1037,6 @@ it("shows the newly created control after the first source launch without leavin
       return Promise.resolve(
         Response.json({ items: launched ? [firstControl] : [] }),
       );
-    }
-    if (path.endsWith(`/collection-controls/${firstControl.id}`)) {
-      return Promise.resolve(Response.json(firstControl));
     }
     if (path.endsWith("/source-bindings")) {
       return Promise.resolve(
