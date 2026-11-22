@@ -246,10 +246,10 @@ export const tokens = {
       preview: radius.lg,
       profile: radius.panelInset,
     },
-    // Search's entity card supplies the common artwork frame and intensity.
+    // The original identity card supplies the common artwork frame and intensity.
     halo: {
       width: 150,
-      height: 120,
+      height: 168,
       leadingFadeWidth: 15,
       blur: 14,
       scale: 3,

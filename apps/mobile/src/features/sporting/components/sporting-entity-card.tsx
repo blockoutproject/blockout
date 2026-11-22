@@ -206,8 +206,10 @@ export function SportingEntityCard({
     if (linkedClub) {
       return (
         <View style={style}>
-          {atmosphere}
-          <Pressable {...primary}>{content}</Pressable>
+          <Pressable {...primary}>
+            {atmosphere}
+            {content}
+          </Pressable>
           <Pressable
             accessibilityRole="link"
             accessibilityLabel={`Voir le club ${linkedClub.name}`}

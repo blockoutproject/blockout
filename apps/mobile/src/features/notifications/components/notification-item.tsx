@@ -64,8 +64,9 @@ export function NotificationItem({
 
   function renderCard(logo: ReactNode, atmosphere: ReactNode) {
     return (
-      <NotificationCard atmosphere={atmosphere} divisionColor={division.color}>
+      <NotificationCard divisionColor={division.color}>
         <View style={layout.header}>
+          {atmosphere}
           <SportingLink
             kind="pool"
             id={pool.id}
@@ -98,11 +99,17 @@ export function NotificationItem({
           )}
         </View>
         {!!event && (
-          <Text style={[tokens.typography.label, { color: colors.text }]}>
+          <Text
+            style={[
+              layout.inset,
+              tokens.typography.label,
+              { color: colors.text },
+            ]}
+          >
             {event}
           </Text>
         )}
-        <View style={layout.participants}>
+        <View style={[layout.inset, layout.participants]}>
           <View style={layout.teams}>
             {teams.map(({ identity, side }) => {
               const name = identity.name.trim();

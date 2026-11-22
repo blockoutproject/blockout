@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -17,12 +17,9 @@ export function useNotificationTeamHeight() {
 }
 
 export function NotificationCard({
-  atmosphere,
   divisionColor,
   children,
-}: Readonly<
-  PropsWithChildren<{ atmosphere?: ReactNode; divisionColor?: string }>
->) {
+}: Readonly<PropsWithChildren<{ divisionColor?: string }>>) {
   const { colors } = useTheme();
   return (
     <View
@@ -37,7 +34,6 @@ export function NotificationCard({
         },
       ]}
     >
-      {atmosphere}
       {children}
     </View>
   );
@@ -49,14 +45,15 @@ export const notificationCardLayout = StyleSheet.create({
     borderRadius: tokens.radius.panelInset,
     overflow: "hidden",
     gap: tokens.spacing.optical,
-    paddingHorizontal: tokens.spacing.md,
     paddingVertical: tokens.spacing.tight,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.md,
   },
+  inset: { marginHorizontal: tokens.spacing.md },
   pool: {
     flex: 1,
     minWidth: 0,
