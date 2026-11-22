@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { PageFlatList } from "@/shared/components/page-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
@@ -34,10 +35,7 @@ import {
   useCollectionControls,
 } from "../api/use-collection-controls";
 import { useCollectionSeasons } from "../api/use-collection-season";
-import {
-  createCollectionQueries,
-  isCollectionReadRefused,
-} from "../api/collection-queries";
+import { createCollectionQueries } from "../api/collection-queries";
 import { CollectionControl } from "../components/collection-control";
 import {
   CollectionLoading,
@@ -228,7 +226,7 @@ function ControlDashboard({
     editing.activity.isPending || editing.request.isPending;
   const continuationBusy =
     fetching || commandPending || authority.account.isRefetching;
-  const refused = isCollectionReadRefused(results.error);
+  const refused = isResourceReadRefused(results.error);
   const continuationFailed =
     !!results.data && results.isFetchNextPageError && !refused;
   const continuationVisible = continuationFailed || results.isFetchingNextPage;

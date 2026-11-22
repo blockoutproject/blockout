@@ -4,7 +4,7 @@ import {
   SportGenderEnum,
 } from "../../../../.generated/schemas/index.zod";
 
-/** Complete editing intent; null is represented by the explicit inherit/remove choice. */
+/** Custom settings require a division. Pool inheritance clears the override. */
 export const classificationSchema = z
   .object({
     custom: z.boolean(),

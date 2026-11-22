@@ -1,4 +1,3 @@
-import { Flag } from "lucide-react-native";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
 import {
@@ -6,7 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigation, useIsFocused, useRouter } from "expo-router";
+import { useNavigation, useIsFocused } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -17,8 +16,7 @@ import {
   pageContentStyle,
 } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { IconButton } from "@/shared/components/icon-button";
-import { supportHref } from "@/features/support";
+import { SupportFlagAction } from "@/features/support";
 
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
@@ -28,8 +26,6 @@ import { EmptyState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { useTheme } from "@/shared/theme/theme-provider";
-import { tokens } from "@/shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { InboxOwner, InboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
@@ -87,24 +83,11 @@ export function NotificationsScreen() {
 }
 
 function NotificationsHeader() {
-  const router = useRouter();
-  const { colors } = useTheme();
   return (
     <PageHeader
       title="Notifications"
       back={false}
-      action={
-        <IconButton
-          label="Signaler un problème"
-          onPress={() => router.push(supportHref({ screen: "notifications" }))}
-        >
-          <Flag
-            accessible={false}
-            size={tokens.size.icon.lg}
-            color={colors.icon}
-          />
-        </IconButton>
-      }
+      action={<SupportFlagAction origin={{ screen: "notifications" }} />}
     />
   );
 }

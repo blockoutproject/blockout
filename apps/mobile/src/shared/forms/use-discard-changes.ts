@@ -3,8 +3,8 @@ import { usePreventRemove } from "expo-router";
 import { useActionConfirmation } from "./use-action-confirmation";
 
 /**
- * Confirms dirty-form navigation once and returns the same guard for explicit departures such as
- * sign-out. The form owns disposal; callers run their departure only after acceptance.
+ * Confirms dirty-form navigation once. A caller that has reset its accepted draft can disable
+ * prevention before issuing a new navigation action in the same event.
  */
 export function useDiscardChanges(dirty: boolean, discard: () => void) {
   const confirm = useActionConfirmation();
@@ -13,13 +13,10 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
     currentDirty.current = dirty;
   }, [dirty]);
 
-  /**
-   * A clean form leaves immediately; a held dialog cannot discard a draft already saved or replaced.
-   * Inline cancellation may reset fields without releasing an editor retained for the current route.
-   */
-  async function confirmDiscard(discardDraft = discard): Promise<boolean> {
+  return usePreventRemove(dirty, async ({ repeat }) => {
     if (!currentDirty.current) {
-      return true;
+      repeat();
+      return;
     }
     const accepted = await confirm({
       title: "Abandonner les modifications ?",
@@ -28,17 +25,10 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
       cancelLabel: "Continuer la saisie",
       destructive: true,
     });
-    if (!accepted || !currentDirty.current) {
-      return false;
-    }
-    discardDraft();
-    return true;
-  }
-
-  usePreventRemove(dirty, async ({ repeat }) => {
-    if (await confirmDiscard()) {
+    // The dialog may outlive a draft saved while the question was open.
+    if (accepted && currentDirty.current) {
+      discard();
       repeat();
     }
   });
-  return confirmDiscard;
 }

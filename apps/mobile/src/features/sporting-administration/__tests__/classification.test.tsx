@@ -1,5 +1,4 @@
 import { useLayoutEffect } from "react";
-import { ClassificationVisitProvider } from "../forms/classification-visit";
 import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -10,14 +9,14 @@ import type {
   DivisionResponse,
 } from "../../../../.generated/schemas/index.zod";
 import {
-  onlineManager,
   QueryClientProvider,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
 import {
   getGetPoolClassificationQueryKey,
-  getListDivisionsQueryKey,
+  getGetMappingPackQueryKey,
+  getListMappingPacksQueryKey,
   getListClubTeamsQueryKey,
 } from "../../../../.generated/mobile";
 import {
@@ -29,8 +28,10 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { AccessibilityInfo, Alert, Pressable, Text } from "react-native";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
+import { NavigationLink } from "@/shared/components/navigation-link";
+import { sheetScreenOptions } from "@/shared/components/sheet";
 import type { ComponentType, PropsWithChildren } from "react";
 import RootLayout from "@/app/_layout";
 import OnboardingRoute from "@/app/onboarding";
@@ -39,13 +40,10 @@ import RecoveryLayout from "@/app/(recovery)/_layout";
 import ClassificationRoute from "@/app/(operations)/administration/classification/[kind]/[id]";
 import DivisionsRoute from "@/app/(operations)/administration/divisions/index";
 import DivisionRoute from "@/app/(operations)/administration/divisions/[id]";
-import ClassificationSelectionRoute from "@/app/(operations)/administration/classification-selection";
-import { ClassificationSelectionScreen } from "../screens/classification-selection-screen";
 import { PresentationScreen } from "../screens/presentation-screen";
 import CreateDivisionRoute from "@/app/(operations)/administration/divisions/new";
 import { AdministrationScreen } from "@/features/access/screens/administration-screen";
 import { useCurrentAccount } from "@/features/accounts/current-account";
-import { ClassificationEntry } from "../entry";
 import { completeDiscovery } from "@/features/onboarding/discovery-state";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { createQueryClient } from "@/shared/query/query-client";
@@ -217,7 +215,11 @@ async function renderEditor(
 ) {
   await renderRouter(
     {
-      _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+      _layout: () => (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="editor" options={sheetScreenOptions} />
+        </Stack>
+      ),
       index: () => {
         if (kind === "divisions") {
           return <DivisionsScreen />;
@@ -225,23 +227,13 @@ async function renderEditor(
         if (kind === "division") {
           return <PresentationScreen target={{ kind, id: divisionId }} />;
         }
-        return <ClassificationScreen target={{ kind, id }} />;
+        return <Text>Mapping des poules</Text>;
       },
-      /** Reads the real selector route parameters while keeping its visit owner in the fixture wrapper. */
-      "administration/classification-selection":
-        function SelectionRouteFixture() {
-          const params = useLocalSearchParams<{
-            kind: "pack" | "pool";
-            id: string;
-            field: "divisionId" | "gender" | "format";
-          }>();
-          return (
-            <ClassificationSelectionScreen
-              target={params}
-              field={params.field}
-            />
-          );
-        },
+      editor: () => (
+        <ClassificationScreen
+          target={{ kind: kind === "pack" ? "pack" : "pool", id }}
+        />
+      ),
     },
     {
       initialUrl: "/",
@@ -251,11 +243,7 @@ async function renderEditor(
             <ApplicationAccessProvider>
               <AccountSessionProvider>
                 <PrivateQueries>
-                  <AccountFeedbackProvider>
-                    <ClassificationVisitProvider>
-                      {children}
-                    </ClassificationVisitProvider>
-                  </AccountFeedbackProvider>
+                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
                 </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
@@ -264,6 +252,9 @@ async function renderEditor(
       ),
     },
   );
+  if (kind === "pack" || kind === "pool") {
+    await act(() => router.push("/editor"));
+  }
 }
 
 it("announces the pending division catalogue without inventing editable rows", async () => {
@@ -316,9 +307,9 @@ it("submits a complete pool override directly and excludes inactive choices", as
   });
   const user = userEvent.setup();
   await renderEditor();
-  await screen.findByRole("radio", { name: "Du pack" });
+  await screen.findByRole("button", { name: "Du pack" });
   // When
-  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
+  await user.press(screen.getByRole("button", { name: "Personnalisé" }));
   await user.press(await screen.findByRole("button", { name: "Division" }));
   await user.press(await screen.findByRole("radio", { name: "National 2" }));
   await screen.findByRole("button", { name: "Division" });
@@ -343,11 +334,10 @@ it("submits a complete pool override directly and excludes inactive choices", as
       }),
     ),
   );
-  await waitFor(() =>
-    expect(
-      screen.queryByText("Modifications non enregistrées"),
-    ).not.toBeOnTheScreen(),
-  );
+  await screen.findByText("Mapping des poules");
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("saves its older classification draft after a newer read without rereading", async () => {
@@ -375,7 +365,6 @@ it("saves its older classification draft after a newer read without rereading", 
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
@@ -434,37 +423,89 @@ it("reloads an empty division catalogue without a search from its card while kee
   ).toBeOnTheScreen();
 });
 
-it("removes the complete pack default with explicit null", async () => {
-  // Given
+it("closes the pack sheet after saving a complete classification and refreshes Mapping", async () => {
   stored.setting = classification;
+  const alert = jest.spyOn(Alert, "alert");
+  const accepted = {
+    ...classification,
+    format: "4x4",
+    gender: "mixed",
+  } as const;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
-      stored = { ...stored, setting: null };
+      stored = { id, setting: accepted, effective: accepted };
       return Promise.resolve(json(stored));
     }
     return respond(url, options);
   });
   const user = userEvent.setup();
   await renderEditor("pack");
-  await screen.findByRole("radio", { name: "Sans classification" });
-  // When
-  await user.press(screen.getByRole("radio", { name: "Sans classification" }));
+  const packsKey = getListMappingPacksQueryKey({ seasonId: inactiveId });
+  const detailKey = getGetMappingPackQueryKey(id);
+  const packs = { items: [], page: 0, hasNext: false };
+  client.setQueryData(packsKey, packs);
+  client.setQueryData(detailKey, { ...packs, pack: { id } });
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Mixte" }));
+
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  // Then
+
+  await screen.findByText("Mapping des poules");
+  expect(await screen.findAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Classification du pack enregistrée",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(alert).not.toHaveBeenCalled();
+  expect(mockFetch).toHaveBeenCalledWith(
+    expect.stringContaining(`/packs/${id}/classification`),
+    expect.objectContaining({
+      method: "PUT",
+      body: JSON.stringify({ classification: accepted }),
+    }),
+  );
+  expect(client.getQueryState(packsKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
+});
+
+it("keeps a new sheet open when a previous visit's save is acknowledged", async () => {
+  // Given
+  stored.setting = classification;
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? response.promise : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({ classification: null }),
-      }),
+      expect.stringContaining(`/pools/${id}/classification`),
+      expect.objectContaining({ method: "PUT" }),
     ),
   );
+  await act(() => router.back());
+  await screen.findByText("Mapping des poules");
+  await act(() => router.push("/editor"));
+  await screen.findByRole("button", { name: "Enregistrer" });
+
+  // When
+  const accepted = { ...classification, format: "4x4" } as const;
+  stored = { id, setting: accepted, effective: accepted };
+  await act(() => response.resolve(json(stored)));
+
+  // Then
   await waitFor(() =>
-    expect(
-      screen.queryByText("Modifications non enregistrées"),
-    ).not.toBeOnTheScreen(),
+    expect(client.getQueryData(getGetPoolClassificationQueryKey(id))).toEqual(
+      stored,
+    ),
   );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
 it("retains dirty choices and displays conflicting scopes without applying a subset", async () => {
@@ -487,9 +528,9 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
   );
   const user = userEvent.setup();
   await renderEditor();
-  await screen.findByRole("radio", { name: "Personnalisé" });
+  await screen.findByRole("button", { name: "Personnalisé" });
   // When
-  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
+  await user.press(screen.getByRole("button", { name: "Personnalisé" }));
   await user.press(await screen.findByRole("button", { name: "Division" }));
   await user.press(await screen.findByRole("radio", { name: "National 2" }));
   await screen.findByRole("button", { name: "Division" });
@@ -517,6 +558,42 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
 });
+
+it("retains the choice when cancelling discard and closes only after confirmation", async () => {
+  stored.setting = classification;
+  jest.spyOn(Alert, "alert");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+
+  await act(() => router.back());
+
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await act(() => nativeAlertAction("Continuer la saisie")());
+
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await act(() => nativeAlertAction("Abandonner")());
+
+  await screen.findByText("Mapping des poules");
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
 it.each(["lost-response", "unknown-conflict"])(
   "preserves a %s draft without requiring recovery or replaying the request",
   async (failure) => {
@@ -579,11 +656,10 @@ it.each(["lost-response", "unknown-conflict"])(
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Modifications non enregistrées"),
-      ).not.toBeOnTheScreen(),
-    );
+    await screen.findByText("Classification de la poule enregistrée");
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer" }),
+    ).not.toBeOnTheScreen();
     const writes = mockFetch.mock.calls.filter(
       ([, options]) => options?.method === "PUT",
     );
@@ -641,10 +717,10 @@ it("refuses an incomplete override without opening confirmation or writing", asy
   jest.spyOn(Alert, "alert");
   const user = userEvent.setup();
   await renderEditor();
-  await screen.findByRole("radio", { name: "Personnalisé" });
+  await screen.findByRole("button", { name: "Personnalisé" });
 
   // When
-  await user.press(screen.getByRole("radio", { name: "Personnalisé" }));
+  await user.press(screen.getByRole("button", { name: "Personnalisé" }));
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -818,7 +894,13 @@ async function openRoutes() {
       ),
       "(ordinary)/index": () => (
         <>
-          <ClassificationEntry target={{ kind: "pool", id }} />
+          <NavigationLink
+            href={{
+              pathname: "/administration/classification/[kind]/[id]",
+              params: { kind: "pool", id },
+            }}
+            label="Modifier la classification"
+          />
           <PermissionRefresh />
         </>
       ),
@@ -845,10 +927,11 @@ async function openRoutes() {
       ),
       "(operations)/administration/classification/[kind]/[id]":
         ClassificationRoute,
+      "(operations)/administration/mapping/index": () => null,
+      "(operations)/administration/mapping/[packId]": () => null,
+      "(operations)/administration/mapping/filters": () => null,
       "(operations)/administration/divisions/index": DivisionsRoute,
       "(operations)/administration/divisions/[id]": DivisionRoute,
-      "(operations)/administration/classification-selection":
-        ClassificationSelectionRoute,
       "(operations)/administration/divisions/new": CreateDivisionRoute,
     },
     { initialUrl: "/" },
@@ -894,9 +977,6 @@ it("drops the local classification draft when its protected route is removed", a
   expect(
     await screen.findByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "6 × 6" });
-  expect(
-    screen.queryByText("Modifications non enregistrées"),
-  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
@@ -1002,7 +1082,6 @@ it("retains dirty choices when the server refuses a direct save", async () => {
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -1313,8 +1392,7 @@ it("blocks an open selector after an account read fails and restores the same pa
   ).toBe(true);
 });
 
-it("replaces an empty division selector with its read error after a failed reload and preserves the parent draft", async () => {
-  // Given
+it("masks the entire editor after a division selector reload fails", async () => {
   stored.setting = classification;
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
@@ -1325,106 +1403,35 @@ it("replaces an empty division selector with its read error after a failed reloa
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  await screen.findByRole("button", { name: "Format" });
-  await user.press(screen.getByRole("button", { name: "Division" }));
+  await user.press(await screen.findByRole("button", { name: "Division" }));
   await screen.findByRole("header", { name: "Aucune division active" });
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-  const backgroundRead = Promise.withResolvers<Response>();
-  const reloadRead = Promise.withResolvers<Response>();
-  let background: Promise<void> | undefined;
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
-      ? backgroundRead.promise
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
       : respond(url, options),
   );
 
-  try {
-    // When: an automatic catalogue read never impersonates the card's explicit action.
-    await act(() => {
-      background = client.refetchQueries({
-        queryKey: getListDivisionsQueryKey({ includeInactive: true }),
-        exact: true,
-      });
-    });
-    await act(() =>
-      router.push({
-        pathname: "/administration/classification-selection",
-        params: { kind: "pool", id, field: "divisionId" },
-      }),
-    );
-    await screen.findByRole("header", { name: "Aucune division active" });
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
-    // Then
-    expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy();
-    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
-    await act(async () => {
-      backgroundRead.resolve(json({ items: [] }));
-      await background;
-    });
-    mockFetch
-      .mockClear()
-      .mockImplementation((url, options) =>
-        String(url).includes("/divisions?")
-          ? reloadRead.promise
-          : respond(url, options),
-      );
-
-    // When: a suspended explicit reload has not reached HTTP and shows no false loader.
-    await act(() => onlineManager.setOnline(false));
-    await user.press(screen.getByRole("button", { name: "Actualiser" }));
-
-    // Then
-    expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy();
-    expect(mockFetch).not.toHaveBeenCalled();
-
-    // When
-    await act(() => onlineManager.setOnline(true));
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Actualiser", busy: true }),
-    ).toBeOnTheScreen();
-
-    // When
-    await act(() =>
-      reloadRead.resolve(json({ title: "Unavailable", status: 503 }, 503)),
-    );
-
-    // Then
-    expect(
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue",
-      }),
-    ).toBeOnTheScreen();
-  } finally {
-    await act(async () => {
-      onlineManager.setOnline(true);
-      backgroundRead.resolve(json({ items: [] }));
-      reloadRead.resolve(json({ title: "Unavailable", status: 503 }, 503));
-      await background;
-    });
-  }
-
-  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
     screen.queryByRole("header", { name: "Aucune division active" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-
-  // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-  // Then: the same consumed catalogue also blocks the parent editor.
-  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("button", { name: "Format" }),
+    screen.queryByRole("button", { name: "Du pack" }),
   ).not.toBeOnTheScreen();
-  mockFetch.mockImplementation(respond);
+  mockFetch.mockClear().mockImplementation(respond);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   expect(
     await screen.findByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.map(([url, options]) => [
+      new URL(String(url)).pathname,
+      options?.method,
+    ]),
+  ).toEqual([["/administration/divisions", "GET"]]);
 });
 
 it("keeps an open format selector unavailable through a refused then failed classification reread", async () => {
@@ -1498,7 +1505,7 @@ it("uses the first-load skeleton until all consumed classification data loads", 
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("radio", { name: "Du pack" }),
+    screen.queryByRole("button", { name: "Du pack" }),
   ).not.toBeOnTheScreen();
 
   // When
@@ -1561,7 +1568,7 @@ it("keeps the complete classification form hidden through active and repeated ca
 
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("radio", { name: "Du pack" }),
+    screen.queryByRole("button", { name: "Du pack" }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
@@ -1580,7 +1587,7 @@ it("keeps the complete classification form hidden through active and repeated ca
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
   );
   expect(
-    screen.queryByRole("radio", { name: "Du pack" }),
+    screen.queryByRole("button", { name: "Du pack" }),
   ).not.toBeOnTheScreen();
   mockFetch.mockImplementation(respond);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
@@ -1593,45 +1600,31 @@ it("keeps the complete classification form hidden through active and repeated ca
   ).toBe(false);
 });
 
-it.each(["pack", "pool"] as const)(
-  "saves %s removal directly after current data changes",
-  async (kind) => {
-    // Given
-    stored.setting = classification;
-    const user = userEvent.setup();
-    await renderEditor(kind);
-    await user.press(
-      await screen.findByRole("radio", {
-        name: kind === "pack" ? "Sans classification" : "Du pack",
-      }),
-    );
-    stored = { ...stored, setting: { ...classification, format: "4x4" } };
-    mockFetch.mockImplementation((url, options) => {
-      if (options?.method === "PUT") {
-        stored = { ...stored, setting: null };
-        return Promise.resolve(json(stored));
-      }
-      return respond(url, options);
-    });
+it("restores pool inheritance after current settings change", async () => {
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Du pack" }));
+  stored = { ...stored, setting: { ...classification, format: "4x4" } };
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      stored = { ...stored, setting: null };
+      return Promise.resolve(json(stored));
+    }
+    return respond(url, options);
+  });
 
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-    // Then
-    await waitFor(() =>
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/${kind}s/${id}/classification`),
-        expect.objectContaining({
-          method: "PUT",
-          body: JSON.stringify({ classification: null }),
-        }),
-      ),
-    );
-    expect(
-      screen.queryByRole("button", { name: "Relire la classification" }),
-    ).toBeNull();
-  },
-);
+  await screen.findByText("Classification de la poule enregistrée");
+  expect(mockFetch).toHaveBeenCalledWith(
+    expect.stringContaining(`/pools/${id}/classification`),
+    expect.objectContaining({
+      method: "PUT",
+      body: JSON.stringify({ classification: null }),
+    }),
+  );
+});
 
 it("treats a successfully read inactive division as field validation", async () => {
   // Given
@@ -1685,76 +1678,41 @@ it("saves the pack choice directly without reading the custom catalogue", async 
   ).toBe(false);
 });
 
-it("retains the accepted classification defaults when the following read fails", async () => {
-  // Given
+it("keeps the acknowledged save when a later editor read fails and retries only the read", async () => {
   stored.setting = classification;
-  let writes = 0;
+  let unavailable = false;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
-      writes += 1;
-      stored = {
-        ...stored,
-
-        setting: { ...classification, format: "4x4" },
-      };
+      unavailable = true;
+      stored = { ...stored, setting: { ...classification, format: "4x4" } };
       return Promise.resolve(json(stored));
     }
-    if (writes > 0 && String(url).includes("/classification")) {
-      return Promise.resolve(json({ title: "Unavailable", status: 503 }, 503));
-    }
-    return respond(url, options);
+    return unavailable && String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      : respond(url, options);
   });
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  await screen.findByRole("button", { name: "Format" });
 
-  // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
-  expect(
-    screen.queryByRole("button", { name: "Format" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Format", includeHiddenElements: true }),
-  ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(
-    screen.queryByRole("button", { name: "Relire la classification" }),
-  ).not.toBeOnTheScreen();
+  await screen.findByText("Classification de la poule enregistrée");
+  await screen.findByText("Mapping des poules");
+  await act(() => router.push("/editor"));
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByText("Modifications non enregistrées"),
-  ).not.toBeOnTheScreen();
 
-  // When: recovery is read-only and returns to the acknowledged baseline.
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? Promise.resolve(json(stored))
-      : respond(url, options),
-  );
+  unavailable = false;
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await screen.findByRole("button", { name: "Enregistrer" });
-  expect(writes).toBe(1);
-  expect(
-    screen.queryByRole("button", { name: "Relire la classification" }),
-  ).not.toBeOnTheScreen();
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-    ).toHaveLength(2),
-  );
-  const requests = mockFetch.mock.calls.filter(
-    ([, options]) => options?.method === "PUT",
-  );
-  expect(JSON.parse(String(requests[1][1]?.body))).toEqual({
-    classification: { ...classification, format: "4x4" },
-  });
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
 });

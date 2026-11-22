@@ -27,7 +27,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { createCollectionQueries } from "../api/collection-queries";
 import type { useCollectionSeason } from "../api/use-collection-season";
 import { ReloadButton } from "@/shared/components/reload-button";
-import { CollectionReadState } from "../components/collection-read-state";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionSourceHref } from "../model/collection-hrefs";
 import {
@@ -76,13 +76,13 @@ export function ProviderSourcesScreen({
       ? requiredRead.isPending && !hasReadError(requiredRead)
       : isAccessLoading(authority);
     return (
-      <CollectionReadState pending={pending}>
+      <PageReadState pending={pending}>
         {authority.enabled ? (
           <ReadFeedback query={requiredRead} loadingContent={loading} />
         ) : (
           <AccessFeedback {...authority} loadingContent={loading} />
         )}
-      </CollectionReadState>
+      </PageReadState>
     );
   }
 

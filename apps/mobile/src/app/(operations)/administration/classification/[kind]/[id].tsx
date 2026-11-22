@@ -1,37 +1,38 @@
-import { ScreenState } from "@/shared/components/screen-state";
-import { PageHeader } from "@/shared/components/page-header";
-import { Page, PageScrollView } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
-
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { z } from "zod";
 import { useOperationalAdmission } from "@/features/access/queries/use-access-admission";
 import { ClassificationScreen } from "@/features/sporting-administration/screens/classification-screen";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { ErrorState } from "@/shared/components/state-card";
 
 const targetSchema = z.object({
   kind: z.enum(["pack", "pool"]),
   id: z.string().uuid(),
 });
 
-/** Requires actual F12 operational admission and a valid original correction scope. */
+/** The route title and subtitle describe the parent row; only the original UUID identifies a write. */
 export default function ClassificationRoute() {
   const admitted = useOperationalAdmission();
-  const params = targetSchema.safeParse(useLocalSearchParams());
-  if (!admitted || !params.success) {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const target = targetSchema.safeParse(params);
+  if (!admitted || !target.success) {
     return (
-      <Page header={<PageHeader title="Administration technique" />}>
-        <PageScrollView>
-          <ScreenState>
-            <ErrorState />
-          </ScreenState>
-        </PageScrollView>
-      </Page>
+      <Sheet title="Classification" onClose={() => router.back()}>
+        <SheetContent>
+          <ErrorState />
+        </SheetContent>
+      </Sheet>
     );
   }
   return (
     <ClassificationScreen
-      key={`${params.data.kind}:${params.data.id}`}
-      target={params.data}
+      key={`${target.data.kind}:${target.data.id}`}
+      target={target.data}
+      title={typeof params.title === "string" ? params.title : undefined}
+      subtitle={
+        typeof params.subtitle === "string" ? params.subtitle : undefined
+      }
     />
   );
 }

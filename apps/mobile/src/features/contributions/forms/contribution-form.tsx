@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -16,10 +17,7 @@ import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import {
-  isOwnContributionAccessDenied,
-  type useOwnContributions,
-} from "../api/own-contributions";
+import { type useOwnContributions } from "../api/own-contributions";
 import {
   contributionSchema,
   type ContributionValues,
@@ -70,7 +68,7 @@ export function ContributionForm({
   });
   const { submit, change, query } = editing;
   const busy = submit.isPending || change.isPending;
-  const refused = isOwnContributionAccessDenied(query.error);
+  const refused = isResourceReadRefused(query.error);
   const withdrawalDisabled = !editing.canRetain || refused || busy;
   const disabled =
     !editing.canRetain || refused || !current.eligibility.canSubmit;

@@ -13,7 +13,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
 import type { useCollectionSeason } from "../api/use-collection-season";
-import { CollectionReadState } from "./collection-read-state";
+import { PageReadState } from "@/shared/components/page-read-state";
 
 type ProviderContent = (
   control: CollectionControlResponse,
@@ -110,9 +110,9 @@ function ProviderReadState({
   children,
 }: Readonly<{ header?: ReactNode; pending?: boolean; children?: ReactNode }>) {
   const content = (
-    <CollectionReadState pending={pending}>
+    <PageReadState pending={pending}>
       {children ?? <EmptyState title="Aucun contrôle de collecte" />}
-    </CollectionReadState>
+    </PageReadState>
   );
   return header ? <Page header={header}>{content}</Page> : content;
 }

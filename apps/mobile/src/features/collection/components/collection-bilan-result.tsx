@@ -5,6 +5,10 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "@/shared/components/status-badge";
 import { Surface } from "@/shared/components/surface";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -15,17 +19,13 @@ import {
 } from "../model/collection-result-presentation";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { CollectionLink } from "./collection-link";
-import {
-  CollectionStatusBadge,
-  type CollectionStatusTone,
-} from "./collection-status-badge";
 
 const outcomeTones = {
   success: "success",
   partial: "warning",
   failed: "error",
   unconfirmed: "warning",
-} satisfies Record<CollectionResultResponse["outcome"], CollectionStatusTone>;
+} satisfies Record<CollectionResultResponse["outcome"], StatusBadgeTone>;
 
 /** One accepted outcome. A contextual link needs an established source from this very row. */
 export function CollectionBilanResult({
@@ -84,7 +84,7 @@ export function CollectionBilanResult({
             </Text>
           </View>
         </View>
-        <CollectionStatusBadge
+        <StatusBadge
           label={outcomeLabels[result.outcome]}
           tone={outcomeTones[result.outcome]}
           outlined={outlinedBadge}

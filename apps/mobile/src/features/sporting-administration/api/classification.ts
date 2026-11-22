@@ -22,6 +22,7 @@ import { useAccountSession } from "@/features/accounts/current-account";
 import {
   invalidateClassificationReads,
   invalidateDivisionReads,
+  invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
@@ -78,8 +79,10 @@ export function useSportingAuthority(action: SportingAction) {
 }
 
 /** Reads complete settings and submits a single atomic correction through generated transport. */
-export function useClassification(target: ClassificationTarget) {
-  const authority = useSportingAuthority("classification");
+export function useClassification(
+  target: ClassificationTarget,
+  authority: ReturnType<typeof useSportingAuthority>,
+) {
   const client = useQueryClient();
   const queries = createSportingAdministrationQueries(authority);
   const options =
@@ -94,6 +97,7 @@ export function useClassification(target: ClassificationTarget) {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateDivisionReads(client, queryKey);
     invalidateClassificationReads(client);
+    invalidateMappingReads(client);
     invalidateSportingReads(client);
   }
 
@@ -119,7 +123,7 @@ export function useClassification(target: ClassificationTarget) {
     },
     onSettled: invalidateReads,
   });
-  return { authority, query, save, queryKey };
+  return { query, save };
 }
 
 /** Configuration list includes inactive entries for lifecycle context; consumers filter assignable choices. */

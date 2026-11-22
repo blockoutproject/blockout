@@ -2,10 +2,7 @@ import type {
   SportingSeasonResponse,
   SupportTargetRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { useRouter } from "expo-router";
-import { Flag } from "lucide-react-native";
-import { IconButton } from "@/shared/components/icon-button";
-import { supportHref } from "@/features/support";
+import { SupportFlagAction } from "@/features/support";
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -50,23 +47,14 @@ export interface SportingSupportActionProps {
 export function SportingSupportAction({
   target,
 }: Readonly<SportingSupportActionProps>) {
-  const router = useRouter();
-  const { colors } = useTheme();
   return (
-    <IconButton
-      label="Signaler un problème"
-      onPress={() =>
-        router.push(
-          supportHref({
-            screen: target.type,
-            targetType: target.type,
-            targetId: target.id,
-          }),
-        )
-      }
-    >
-      <Flag accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
-    </IconButton>
+    <SupportFlagAction
+      origin={{
+        screen: target.type,
+        targetType: target.type,
+        targetId: target.id,
+      }}
+    />
   );
 }
 

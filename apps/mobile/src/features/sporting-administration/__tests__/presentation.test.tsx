@@ -1726,9 +1726,9 @@ async function openRoutes(initialUrl = "/") {
       "(operations)/administration/classification/[kind]/[id]": () => (
         <Text>Classification route</Text>
       ),
-      "(operations)/administration/classification-selection": () => (
-        <Text>Selection route</Text>
-      ),
+      "(operations)/administration/mapping/index": () => null,
+      "(operations)/administration/mapping/[packId]": () => null,
+      "(operations)/administration/mapping/filters": () => null,
       "(operations)/administration/divisions/[id]": DivisionRoute,
       "(operations)/administration/divisions/index": () => (
         <Text>Divisions route</Text>

@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { useNavigation } from "expo-router";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -15,7 +16,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
 import { formatCollectionTimestamp } from "../model/collection-time";
-import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** A selected control displays its native mutation state and the applicable season facts. */
 export interface CollectionControlProps {
@@ -46,7 +46,7 @@ export function CollectionControl({
     !closed &&
     !editing.activity.isPending &&
     !editing.request.isPending &&
-    !isCollectionReadRefused(editing.query.error);
+    !isResourceReadRefused(editing.query.error);
   const canRequest =
     canChangeActivity &&
     control.enabled &&

@@ -1,12 +1,8 @@
 import { useRouter } from "expo-router";
-import { Flag } from "lucide-react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
-import { supportHref } from "@/features/support";
-import { IconButton } from "@/shared/components/icon-button";
+import { SupportFlagAction } from "@/features/support";
 import { PageHeader } from "@/shared/components/page-header";
-import { useTheme } from "@/shared/theme/theme-provider";
-import { tokens } from "@/shared/theme/tokens";
 import type { CollectionResultCriteria } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionBilanResultsLoading } from "../components/collection-bilan-result";
@@ -24,7 +20,6 @@ export function CollectionBilanVisit({
   criteria: CollectionResultCriteria;
 }>) {
   const router = useRouter();
-  const { colors } = useTheme();
   const { ordinary } = useAccessAdmission();
   const reading = useCollectionSeason(seasonId);
   const header = (
@@ -35,18 +30,10 @@ export function CollectionBilanVisit({
         .join("  ")}
       action={
         ordinary && (
-          <IconButton
+          <SupportFlagAction
             label="Contacter le support"
-            onPress={() =>
-              router.push(supportHref({ screen: "collection-bilan" }))
-            }
-          >
-            <Flag
-              accessible={false}
-              color={colors.icon}
-              size={tokens.size.icon.lg}
-            />
-          </IconButton>
+            origin={{ screen: "collection-bilan" }}
+          />
         )
       }
     />

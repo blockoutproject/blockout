@@ -48,19 +48,19 @@ export function AdministrationEntry() {
           </Link>
         )}
         {permissions?.manageSportingClassification === true && (
-          <EntryRow
-            label="Mapping des poules"
-            accessibilityRole="link"
-            icon={
-              <Funnel
-                accessible={false}
-                size={tokens.size.icon.md}
-                color={colors.icon}
-              />
-            }
-            disclosure
-            disabled
-          />
+          <Link href="/administration/mapping" asChild>
+            <EntryRow
+              label="Mapping des poules"
+              icon={
+                <Funnel
+                  accessible={false}
+                  size={tokens.size.icon.md}
+                  color={colors.icon}
+                />
+              }
+              disclosure
+            />
+          </Link>
         )}
         {canModerate && (
           <Link href="/administration/stream-links" asChild>

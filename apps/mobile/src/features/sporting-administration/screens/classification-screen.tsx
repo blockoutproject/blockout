@@ -1,141 +1,139 @@
+import { usePreventRemove, useRouter } from "expo-router";
+import { useState } from "react";
 import { useWatch } from "react-hook-form";
-import { StyleSheet } from "react-native";
-import { FormScrollView } from "@/shared/components/form-scroll-view";
-import { Page, PageContent } from "@/shared/components/page";
-import { PageHeader } from "@/shared/components/page-header";
-import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { ClassificationLoading } from "../components/sporting-editor-loading";
-import { ScreenState } from "@/shared/components/screen-state";
-import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { StyleSheet, View } from "react-native";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
 import {
   useClassification,
   useDivisions,
+  useSportingAuthority,
   type ClassificationTarget,
 } from "../api/classification";
-import { ClassificationForm } from "../forms/classification-form";
+import { ClassificationLoading } from "../components/sporting-editor-loading";
+import {
+  ClassificationForm,
+  classificationFieldLabels,
+  type ClassificationField,
+} from "../forms/classification-form";
 import { useClassificationDraft } from "../forms/use-classification-draft";
 
-/** Original route scope; the form owns unsaved-change prevention. */
-export interface ClassificationScreenProps {
+interface ClassificationScreenProps {
   target: ClassificationTarget;
+  /** Authorized parent context for presentation. The correction is addressed by target alone. */
+  title?: string;
+  subtitle?: string;
 }
 
-/** Keys the RHF visit to its original principal, business account and target. */
-export function ClassificationScreen({
-  target,
-}: Readonly<ClassificationScreenProps>) {
-  const editing = useClassification(target);
-  const { session } = editing.authority;
-  const visitKey = `${session.subject}:${session.accountId}:${target.kind}:${target.id}`;
+/** Keys the form visit to its original principal, business account and correction target. */
+export function ClassificationScreen(
+  props: Readonly<ClassificationScreenProps>,
+) {
+  const { target } = props;
+  const authority = useSportingAuthority("classification");
+  const { session } = authority;
   return (
-    <ClassificationVisit key={visitKey} target={target} editing={editing} />
+    <ClassificationVisit
+      key={`${session.subject}:${session.accountId}:${target.kind}:${target.id}`}
+      {...props}
+      authority={authority}
+    />
   );
 }
 
-/** The catalogue participates only while this mounted draft consumes custom choices. */
 function ClassificationVisit({
   target,
-  editing,
+  title,
+  subtitle,
+  authority,
 }: Readonly<
   ClassificationScreenProps & {
-    editing: ReturnType<typeof useClassification>;
+    authority: ReturnType<typeof useSportingAuthority>;
   }
 >) {
-  const { authority } = editing;
+  const router = useRouter();
+  const [choice, setChoice] = useState<ClassificationField>();
+  const closeChoice = () => setChoice(undefined);
+  const { query, save } = useClassification(target, authority);
+  usePreventRemove(authority.enabled && choice !== undefined, closeChoice);
   const current =
-    authority.sessionStatus === "authenticated" ? editing.query.data : null;
-  const editor = useClassificationDraft(target, current ?? null);
-  const custom = useWatch({ control: editor.form.control, name: "custom" });
+    authority.sessionStatus === "authenticated" ? query.data : null;
+  const form = useClassificationDraft(target.kind, current ?? null);
+  const custom = useWatch({ control: form.control, name: "custom" });
   const divisions = useDivisions(custom === true);
   const reads = [
     authority.account,
-    editing.query,
+    query,
     ...(custom ? [divisions.query] : []),
   ];
   const requiredRead =
-    reads.find(hasReadError) ??
-    reads.find((query) => query.isPending) ??
-    editing.query;
-  const blocked =
-    !authority.enabled || requiredRead.isPending || hasReadError(requiredRead);
+    reads.find(hasReadError) ?? reads.find((read) => read.isPending);
+  const blocked = !authority.enabled || !!requiredRead;
+  const loading = <ClassificationLoading pool={target.kind === "pool"} />;
+  const refreshable =
+    !choice ||
+    (choice === "divisionId" &&
+      divisions.query.data?.items.some(({ active }) => active) === true);
 
-  /** Pull refresh rereads this visit's existing data dependencies, never its mutation. */
+  /** An explicit read refreshes only this visit's current prerequisites. */
   async function refresh() {
-    if (editing.save.isPending) {
-      return;
-    }
     await Promise.all([
-      editing.query.refetch(),
+      query.refetch(),
       ...(custom ? [divisions.query.refetch()] : []),
     ]);
   }
 
-  const initialLoading =
-    authority.sessionStatus === "restoring" ||
-    (!hasReadError(requiredRead) && requiredRead.isLoading);
-  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
-
   return (
-    <Page
-      header={
-        <PageHeader
-          title={
-            target.kind === "pack"
+    <Sheet
+      title={
+        choice
+          ? classificationFieldLabels[choice]
+          : (title ??
+            (target.kind === "pack"
               ? "Classification du pack"
-              : "Classification de la poule"
+              : "Classification de la poule"))
+      }
+      message={choice ? undefined : subtitle}
+      onClose={choice ? closeChoice : router.back}
+      closeDisabled={save.isPending}
+      refreshControl={
+        <DataRefreshControl
+          enabled={refreshable && !blocked && !save.isPending}
+          fetching={
+            query.isFetching || (custom === true && divisions.query.isFetching)
           }
+          onRefresh={refresh}
         />
       }
     >
-      <FormScrollView
-        refreshControl={
-          <DataRefreshControl
-            enabled={
-              !blocked &&
-              authority.sessionStatus === "authenticated" &&
-              !editing.save.isPending
-            }
-            fetching={
-              editing.query.isFetching ||
-              (custom === true && divisions.query.isFetching)
-            }
-            onRefresh={refresh}
-          />
-        }
-      >
-        {blocked && (
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<ClassificationLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={requiredRead}
-                loadingContent={<ClassificationLoading />}
-              />
-            )}
-          </FeedbackLayout>
-        )}
-        <PageContent
+      <SheetContent>
+        {!authority.enabled ? (
+          <AccessFeedback {...authority} loadingContent={loading} />
+        ) : requiredRead ? (
+          <ReadFeedback query={requiredRead} loadingContent={loading} />
+        ) : undefined}
+        <View
           style={blocked ? styles.hidden : undefined}
           accessibilityElementsHidden={blocked}
           importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
         >
-          {editor.form.formState.defaultValues && (
+          {form.formState.defaultValues && (
             <ClassificationForm
-              target={target}
-              current={current ?? null}
-              editing={editing}
-              editor={editor}
-              divisions={divisions}
+              kind={target.kind}
+              form={form}
+              custom={custom === true}
+              disabled={blocked || !query.data}
+              save={save}
+              divisionQuery={divisions.query}
+              choice={choice}
+              onChoice={setChoice}
             />
           )}
-        </PageContent>
-      </FormScrollView>
-    </Page>
+        </View>
+      </SheetContent>
+    </Sheet>
   );
 }
 

@@ -8,3 +8,11 @@ export function isAccessDenied(error: unknown): boolean {
     (error.status === 401 || error.status === 403)
   );
 }
+
+/** A current access refusal or missing target withdraws the prior resource read. */
+export function isResourceReadRefused(error: unknown): error is ApiError {
+  return (
+    isAccessDenied(error) ||
+    (error instanceof ApiError && error.kind === "http" && error.status === 404)
+  );
+}

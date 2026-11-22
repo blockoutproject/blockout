@@ -20,7 +20,7 @@ afterEach(async () => {
 /** Real route history and dirtiness drive the hook; only the native confirmation is controlled. */
 function Editor() {
   const [dirty, setDirty] = useState(true);
-  const confirmDiscard = useDiscardChanges(dirty, () => {
+  const disablePrevention = useDiscardChanges(dirty, () => {
     discarded();
     setDirty(false);
   });
@@ -29,9 +29,11 @@ function Editor() {
       <Text>{dirty ? "Unsaved draft" : "Saved draft"}</Text>
       <Button title="Save draft" onPress={() => setDirty(false)} />
       <Button
-        title="Cancel inline draft"
+        title="Save and close"
         onPress={() => {
-          void confirmDiscard(() => setDirty(false));
+          setDirty(false);
+          disablePrevention();
+          router.back();
         }}
       />
     </>
@@ -95,24 +97,16 @@ it("does not discard or navigate when a held question outlives the dirty draft",
   expect(discarded).not.toHaveBeenCalled();
 });
 
-it("shares the native confirmation while retaining an inline editor owner", async () => {
+it("closes immediately when an acknowledged save clears the draft", async () => {
   // Given
   await openEditor();
   const user = userEvent.setup();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Cancel inline draft" }));
-  await act(() => nativeAlertAction("Abandonner")());
-
-  // Then
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
-  expect(screen.getByText("Saved draft")).toBeOnTheScreen();
-  expect(discarded).not.toHaveBeenCalled();
-
-  // When
-  await act(() => router.back());
+  await user.press(screen.getByRole("button", { name: "Save and close" }));
 
   // Then
   expect(await screen.findByText("Home")).toBeOnTheScreen();
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(discarded).not.toHaveBeenCalled();
 });

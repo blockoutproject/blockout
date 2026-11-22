@@ -1,4 +1,4 @@
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { discardCachedRead } from "@/shared/api/discard-cached-read";
 import {
   infiniteQueryOptions,
@@ -24,13 +24,7 @@ import {
 import type { ListCollectionResultsParams } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
-/** A refused permission or missing exact collection resource cannot authorize another command. */
-export function isCollectionReadRefused(error: unknown): boolean {
-  return (
-    isAccessDenied(error) ||
-    (error instanceof ApiError && error.kind === "http" && error.status === 404)
-  );
-}
+import { nextOffsetPage } from "@/shared/query/infinite-pages";
 
 /** Collection query availability and native authenticated request preparation. */
 export interface CollectionQueryAuthority {
@@ -46,10 +40,6 @@ export type CollectionResultCriteria = Pick<
 
 const collectionPageSize = 50;
 
-function nextCollectionPage(last: { page: number; hasNext: boolean }) {
-  return last.hasNext ? last.page + 1 : undefined;
-}
-
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
   /** A refused collection read must leave Query before any later technical failure. */
@@ -63,7 +53,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         signal: context.signal,
       });
     } catch (error) {
-      if (!context.signal.aborted && isCollectionReadRefused(error)) {
+      if (!context.signal.aborted && isResourceReadRefused(error)) {
         discardCachedRead(context);
       }
       throw error;
@@ -128,7 +118,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
               options,
             ),
           ),
-        getNextPageParam: nextCollectionPage,
+        getNextPageParam: nextOffsetPage,
       });
     },
     /** Season-specific controls and seasonless families have distinct generated selections. */
@@ -178,7 +168,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
               options,
             ),
           ),
-        getNextPageParam: nextCollectionPage,
+        getNextPageParam: nextOffsetPage,
       });
     },
   };

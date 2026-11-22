@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
-import { createLucideIcon, Flag } from "lucide-react-native";
+import { createLucideIcon } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import {
@@ -13,7 +13,7 @@ import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { useSingleContentReveal } from "@/shared/components/content-reveal";
 import { BrandMark } from "@/shared/components/brand-mark";
 import { IconButton } from "@/shared/components/icon-button";
-import { supportHref } from "@/features/support";
+import { SupportFlagAction } from "@/features/support";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
@@ -120,7 +120,6 @@ export function PersonalScreen() {
 
 /** Keeps Home branding and its adjacent actions together in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
-  const router = useRouter();
   const { colors } = useTheme();
   const handoff = useNativeHandoff("https://www.instagram.com/hugoecken");
   return (
@@ -150,16 +149,7 @@ function PersonalHeader() {
             color={colors.icon}
           />
         </IconButton>
-        <IconButton
-          label="Signaler un problème"
-          onPress={() => router.push(supportHref({ screen: "home" }))}
-        >
-          <Flag
-            accessible={false}
-            size={tokens.size.icon.lg}
-            color={colors.icon}
-          />
-        </IconButton>
+        <SupportFlagAction origin={{ screen: "home" }} />
       </View>
     </View>
   );
