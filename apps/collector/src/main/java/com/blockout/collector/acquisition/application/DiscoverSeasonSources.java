@@ -1,19 +1,23 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
+import com.blockout.collector.acquisition.ffvb.FfvbDiscovery.NavigationLink;
 import com.blockout.collector.acquisition.ffvb.FfvbPage;
 import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.Championship;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionSourceScopeEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -34,33 +38,38 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class DiscoverSeasonSources {
   /** Fixed official-entry identity; no provider URL or discovered identifier becomes a log key. */
-  private record CurrentEntry(String scope, URI url) {}
+  private record CurrentEntry(CollectionSourceScopeEnum scope, URI url) {}
 
-  private record LnvEntry(String scope, URI url, Championship championship) {}
+  private record LnvEntry(String scope, URI url, Championship championship, String displayName) {}
 
   private static final List<CurrentEntry> FFVB_ENTRIES =
       List.of(
           new CurrentEntry(
-              "ffvb-national", URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux")),
+              CollectionSourceScopeEnum.NATIONAL,
+              URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux")),
           new CurrentEntry(
-              "ffvb-regional", URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux")),
+              CollectionSourceScopeEnum.REGIONAL,
+              URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux")),
           new CurrentEntry(
-              "ffvb-departmental",
+              CollectionSourceScopeEnum.DEPARTMENTAL,
               URI.create("https://www.ffvb.org/122-37-1-Championnats-Departementaux")));
   private static final List<LnvEntry> LNV_ENTRIES =
       List.of(
           new LnvEntry(
               "lnv-women-first",
               URI.create("https://www.lnv.fr/competitions/saforelle-volstar"),
-              Championship.WOMEN_FIRST),
+              Championship.WOMEN_FIRST,
+              "D1 féminine"),
           new LnvEntry(
               "lnv-men-first",
               URI.create("https://www.lnv.fr/competitions/alterna-volstar"),
-              Championship.MEN_FIRST),
+              Championship.MEN_FIRST,
+              "D1 masculine"),
           new LnvEntry(
               "lnv-men-second",
               URI.create("https://www.lnv.fr/competitions/volstar-masculine-2"),
-              Championship.MEN_SECOND));
+              Championship.MEN_SECOND,
+              "D2 masculine"));
   private final ProviderPages ffvbHttp;
   private final ProviderPages lnvHttp;
   private final FfvbDiscovery ffvb;
@@ -120,7 +129,8 @@ public class DiscoverSeasonSources {
   public void currentEntries() {
     lifecycle.requireActive();
     for (CurrentEntry entry : FFVB_ENTRIES) {
-      reportEntry(CollectionProviderEnum.FFVB, entry.scope(), currentFfvb(entry.url()));
+      reportEntry(
+          CollectionProviderEnum.FFVB, "ffvb-" + entry.scope().getValue(), currentFfvb(entry));
     }
     for (LnvEntry entry : LNV_ENTRIES) {
       boolean usable = false;
@@ -146,7 +156,13 @@ public class DiscoverSeasonSources {
           if (root.season() != null) {
             complete &=
                 propose(
-                    CollectionProviderEnum.LNV, competition, root.season(), candidate, entry.url());
+                    CollectionProviderEnum.LNV,
+                    competition,
+                    root.season(),
+                    candidate,
+                    entry.url(),
+                    entry.displayName(),
+                    null);
           }
         }
       } catch (RuntimeException failure) {
@@ -278,17 +294,23 @@ public class DiscoverSeasonSources {
       throw new LnvAcquisitionException("LNV championship belongs to a different season");
     }
     List<SportingObservation.Pool> pools = new ArrayList<>();
+    Map<String, String> phaseLabels = new HashMap<>();
     RuntimeException firstFailure = null;
-    for (URI phase : qualified.phases()) {
+    for (LnvDiscovery.Phase phase : qualified.phases()) {
       lifecycle.requireActive();
       try {
         PageRead read = root;
-        if (!phase.equals(rootResponse.url())) {
-          read = readPage(lnvHttp, phase, nextOrdinal);
+        if (!phase.url().equals(rootResponse.url())) {
+          read = readPage(lnvHttp, phase.url(), nextOrdinal);
           observedAt = read.observedAt();
         }
         ProviderResponse page = read.response();
-        pools.addAll(lnv.phasePools(page.body(), page.url(), phase, target.seasonLabel()));
+        pools.addAll(
+            lnv.phasePools(
+                page.body(), page.url(), target.organizerReference(), phase, target.seasonLabel()));
+        if (phase.label() != null) {
+          phaseLabels.put(phase.reference(), phase.label());
+        }
         consume.accept(read);
       } catch (CollectionBackendFailure failure) {
         throw failure;
@@ -303,7 +325,9 @@ public class DiscoverSeasonSources {
       throw firstFailure;
     }
     return new Read(
-        new SportingObservation.Catalog(firstFailure == null, pools), observedAt, firstFailure);
+        new SportingObservation.Catalog(firstFailure == null, pools, phaseLabels),
+        observedAt,
+        firstFailure);
   }
 
   private PageRead readPage(ProviderPages provider, URI url, LongSupplier nextOrdinal) {
@@ -319,17 +343,17 @@ public class DiscoverSeasonSources {
    * @return whether the entry yielded qualified evidence without an unreadable branch; a leaf must
    *     have attributable catalog context or native navigation
    */
-  private boolean currentFfvb(URI entry) {
+  private boolean currentFfvb(CurrentEntry entry) {
     boolean usable = false;
     boolean complete = true;
     try {
-      ProviderResponse root = ffvbHttp.page(entry);
+      ProviderResponse root = ffvbHttp.page(entry.url());
       Set<URI> seen = new LinkedHashSet<>();
-      ArrayDeque<URI> pending =
-          new ArrayDeque<>(ffvb.navigation(FfvbPage.document(root.body(), root.url())));
+      ArrayDeque<NavigationLink> pending =
+          new ArrayDeque<>(ffvb.publishedNavigation(FfvbPage.document(root.body(), root.url())));
       while (!pending.isEmpty()) {
-        URI candidate = pending.removeFirst();
-        if (!seen.add(candidate)) {
+        NavigationLink candidate = pending.removeFirst();
+        if (!seen.add(candidate.target())) {
           continue;
         }
         if (seen.size() > 512) {
@@ -337,25 +361,24 @@ public class DiscoverSeasonSources {
         }
         lifecycle.requireActive();
         try {
-          ProviderResponse source = ffvbHttp.page(candidate);
+          ProviderResponse source = ffvbHttp.page(candidate.target());
           Document page = FfvbPage.document(source.body(), source.url());
-          List<URI> links = ffvb.navigation(page);
-          List<Map<String, String>> fields = links.stream().map(this::query).toList();
+          List<NavigationLink> links = ffvb.publishedNavigation(page);
           List<String> organizers =
-              fields.stream()
-                  .map(link -> link.get("codent"))
+              links.stream()
+                  .map(NavigationLink::organizerReference)
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
           List<String> seasons =
-              fields.stream()
-                  .map(link -> link.get("saison"))
+              links.stream()
+                  .map(NavigationLink::seasonLabel)
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
-          List<URI> navigation =
+          List<NavigationLink> navigation =
               links.stream()
-                  .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
+                  .filter(link -> !link.target().getPath().endsWith("vbspo_calendrier.php"))
                   .toList();
           if (!organizers.isEmpty() && seasons.size() == 1) {
             for (String organizer : organizers) {
@@ -370,7 +393,9 @@ public class DiscoverSeasonSources {
                           organizer,
                           seasons.getFirst(),
                           source.url(),
-                          entry);
+                          entry.url(),
+                          ffvbName(entry.scope(), candidate, organizer, organizers.size() == 1),
+                          entry.scope());
                   usable |= accepted;
                   complete &= accepted;
                 }
@@ -395,6 +420,30 @@ public class DiscoverSeasonSources {
   }
 
   /**
+   * Uses a visible league or committee name only when the link or its resolved menu identifies the
+   * organizer. Generic navigation and multi-organizer headings supply no display name.
+   */
+  private String ffvbName(
+      CollectionSourceScopeEnum scope, NavigationLink link, String organizer, boolean singleMenu) {
+    if (scope == CollectionSourceScopeEnum.NATIONAL) {
+      return "Championnats nationaux";
+    }
+    String linkedOrganizer = link.organizerReference();
+    if (!(organizer.equals(linkedOrganizer) || linkedOrganizer == null && singleMenu)) {
+      return null;
+    }
+    String prefix = scope == CollectionSourceScopeEnum.REGIONAL ? "ligue " : "comité ";
+    List<String> names =
+        link.labels().stream()
+            .filter(
+                label -> label.length() <= 160 && label.toLowerCase(Locale.ROOT).startsWith(prefix))
+            .distinct()
+            .limit(2)
+            .toList();
+    return names.size() == 1 ? names.getFirst() : null;
+  }
+
+  /**
    * Submits one actually evidenced year; changed IDs alone never create a season.
    *
    * @param provider source authority
@@ -402,10 +451,18 @@ public class DiscoverSeasonSources {
    * @param season positive published season label
    * @param candidate published root URL
    * @param entry official evidence entry
+   * @param displayName attributable or established name, when available
+   * @param scope official FFVB discovery scope, absent for LNV
    * @return whether a qualified consecutive year proposal was accepted
    */
   private boolean propose(
-      CollectionProviderEnum provider, String organizer, String season, URI candidate, URI entry) {
+      CollectionProviderEnum provider,
+      String organizer,
+      String season,
+      URI candidate,
+      URI entry,
+      String displayName,
+      CollectionSourceScopeEnum scope) {
     if (!season.matches("[0-9]{4}/[0-9]{4}")) {
       return false;
     }
@@ -421,19 +478,10 @@ public class DiscoverSeasonSources {
             organizer,
             candidate,
             entry,
-            clock.instant()));
+            clock.instant(),
+            displayName,
+            scope));
     return true;
-  }
-
-  /**
-   * Reads native query values from a published discovery reference.
-   *
-   * @param uri published reference
-   * @return exact native query fields
-   */
-  private Map<String, String> query(URI uri) {
-    return ProviderQuery.fields(
-        uri, () -> new IllegalArgumentException("Contradictory official entry URL"));
   }
 
   /**

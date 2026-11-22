@@ -1,9 +1,7 @@
-import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { EntryGroup } from "@/shared/components/entry-group";
 import { ListLoading } from "@/shared/components/list-loading";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -63,7 +61,6 @@ function Selection({
 }>) {
   const router = useRouter();
   const custom = useWatch({ control: editor.form.control, name: "custom" });
-  const [reloadRequested, setReloadRequested] = useState(false);
   const divisions = useDivisions(custom === true);
   const classification = useClassification(target);
   const value = useWatch({ control: editor.form.control, name: field });
@@ -118,19 +115,6 @@ function Selection({
     ]);
   }
 
-  /** Only this explicit empty-card action owns its progress; Query owns the read result. */
-  async function reload() {
-    if (reloadRequested) {
-      return;
-    }
-    setReloadRequested(true);
-    try {
-      await divisions.query.refetch();
-    } finally {
-      setReloadRequested(false);
-    }
-  }
-
   return (
     <Sheet
       title={label}
@@ -171,11 +155,9 @@ function Selection({
         {field === "divisionId" && catalog && choices.length === 0 && (
           <SheetContent>
             <EmptyState title="Aucune division active">
-              <Button
-                label="Actualiser"
-                leadingIcon={RefreshCw}
-                onPress={() => void reload()}
-                loading={reloadRequested && divisions.query.isFetching}
+              <ReloadButton
+                fetching={divisions.query.isFetching}
+                onReload={() => divisions.query.refetch()}
               />
             </EmptyState>
           </SheetContent>

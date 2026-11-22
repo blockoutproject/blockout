@@ -225,7 +225,8 @@ class JpaCollectionStore implements CollectionStore {
     CollectionState.ResultSource source =
         new CollectionState.ResultSource(
             row.getSourceId(),
-            CollectionState.Source.label(row.getSourceProvider(), row.getOrganizerReference()),
+            CollectionState.Source.label(
+                row.getSourceDisplayName(), row.getSourceProvider(), row.getOrganizerReference()),
             row.getPackId(),
             row.getPoolId(),
             row.getPhaseReference());

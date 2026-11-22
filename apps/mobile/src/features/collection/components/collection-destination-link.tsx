@@ -5,7 +5,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 /** Navigation identity with an accessible action and decorative approved Lucide glyphs. */
-export function PreparationLink({
+export function CollectionDestinationLink({
   label,
   detail,
   icon: Icon,

@@ -5,7 +5,10 @@ import { ErrorState } from "@/shared/components/state-card";
 
 import { useLocalSearchParams } from "expo-router";
 import { CollectionProviderScreen } from "@/features/collection/screens/collection-provider-screen";
-import { collectionProviderFromRoute } from "@/features/collection/model/collection-route-params";
+import {
+  collectionProviderFromRoute,
+  sourceFiltersFromRoute,
+} from "@/features/collection/model/collection-route-params";
 
 /** Both provider tabs share the selected canonical season. */
 export default function CollectionProviderRoute() {
@@ -13,10 +16,13 @@ export default function CollectionProviderRoute() {
     seasonId: string;
     provider: string;
     tab?: string;
+    status?: string;
+    scope?: string;
   }>();
   const provider = collectionProviderFromRoute(params.provider);
   return provider ? (
     <CollectionProviderScreen
+      filters={sourceFiltersFromRoute(params)}
       provider={provider}
       seasonId={params.seasonId}
       tab={params.tab === "sources" ? "sources" : "suivi"}

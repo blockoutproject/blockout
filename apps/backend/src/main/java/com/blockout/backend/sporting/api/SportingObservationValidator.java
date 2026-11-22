@@ -41,6 +41,11 @@ public class SportingObservationValidator {
               reference(pool.getCalendarUrl());
               reference(pool.getStandingsUrl());
             });
+    if (request.getPhaseLabels() != null
+        && request.getPhaseLabels().values().stream()
+            .anyMatch(label -> label == null || label.isBlank())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
   }
 
   /**

@@ -2,8 +2,7 @@ import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack, useGlobalSearchParams } from "expo-router";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { SupportJourney } from "@/features/support/screens/support-journey";
-import { sheetScreenOptions } from "@/shared/components/sheet";
-import { useTheme } from "@/shared/theme/theme-provider";
+import { useSheetScreenOptions } from "@/shared/components/sheet";
 
 /** A direct choice link retains the ordinary support form behind its native sheet. */
 export const unstable_settings = { anchor: "index" };
@@ -14,7 +13,7 @@ export default function SupportLayout() {
   // The layout's local params exclude the leaf query; the journey captures this complete URL once.
   const params = useGlobalSearchParams();
   const admitted = useAccessAdmission().ordinary;
-  const { colors } = useTheme();
+  const sheetOptions = useSheetScreenOptions();
   return (
     <SupportJourney
       admitted={admitted}
@@ -22,13 +21,7 @@ export default function SupportLayout() {
     >
       <Stack screenOptions={screenOptions}>
         <Stack.Screen name="index" />
-        <Stack.Screen
-          name="choice"
-          options={{
-            ...sheetScreenOptions,
-            contentStyle: { backgroundColor: colors.surface },
-          }}
-        />
+        <Stack.Screen name="choice" options={sheetOptions} />
       </Stack>
     </SupportJourney>
   );

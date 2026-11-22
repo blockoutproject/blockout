@@ -1,7 +1,7 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { FieldSkeleton } from "@/shared/components/form-loading";
-import { FilterSheetActionsSkeleton } from "@/shared/components/filter-sheet-actions";
+import { FilterSheetActionsSkeleton } from "@/shared/components/filter-sheet-form";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { EntryGroupSeparator } from "@/shared/components/entry-group";

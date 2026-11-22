@@ -65,12 +65,42 @@ class LnvDiscoveryTest {
         ("<title>Marmara SpikeLigue</title>" + html).getBytes(StandardCharsets.UTF_8);
 
     // When
-    List<URI> links = new LnvDiscovery().root(championship, page, "901").phases();
+    List<LnvDiscovery.Phase> links = new LnvDiscovery().root(championship, page, "901").phases();
 
     // Then
     assertThat(links)
         .containsExactly(
-            URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902"));
+            new LnvDiscovery.Phase(
+                URI.create(
+                    "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902"),
+                "902",
+                "Regular"));
+  }
+
+  @Test
+  @DisplayName("Conflicting names keep the discovered phase without an assumed label")
+  void leavesContradictoryPhaseLabelUnknown() {
+    // Given
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    byte[] championship =
+        """
+        <title>Marmara SpikeLigue</title>
+        <a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>
+        <a href='CompetitionMatches.aspx?ID=901&PID=902'>Playoffs</a>
+        """
+            .getBytes(StandardCharsets.UTF_8);
+
+    // When
+    List<LnvDiscovery.Phase> phases = new LnvDiscovery().root(championship, page, "901").phases();
+
+    // Then
+    assertThat(phases)
+        .singleElement()
+        .satisfies(
+            phase -> {
+              assertThat(phase.reference()).isEqualTo("902");
+              assertThat(phase.label()).isNull();
+            });
   }
 
   @Test

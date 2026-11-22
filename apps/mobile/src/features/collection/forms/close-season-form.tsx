@@ -1,4 +1,4 @@
-import { SeasonIdentity } from "../components/source-summary";
+import { SeasonIdentity } from "../components/collection-season-summary";
 import { useRouter } from "expo-router";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -16,7 +16,7 @@ import { useCloseSeasonDraft } from "./use-close-season-draft";
 
 /** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
-  season: CollectionSeasonResponse | null | undefined;
+  season: CollectionSeasonResponse | undefined;
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
 

@@ -4,9 +4,13 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
@@ -31,7 +35,10 @@ public class LnvDiscovery {
   }
 
   /** Qualified championship root with a distinct, published set of phase references. */
-  public record Root(Championship championship, String season, List<URI> phases) {}
+  public record Root(Championship championship, String season, List<Phase> phases) {}
+
+  /** A qualified native navigation target and its unambiguous visible name, when present. */
+  public record Phase(URI url, String reference, String label) {}
 
   /** The native championship ID in a supported DataProject reference, or null if absent. */
   public String championshipReference(URI url) {
@@ -65,8 +72,9 @@ public class LnvDiscovery {
     return new Root(championships.getFirst(), LnvPage.season(page), phaseLinks(page, competition));
   }
 
-  private List<URI> phaseLinks(Document page, String competition) {
-    List<URI> result = new ArrayList<>();
+  private List<Phase> phaseLinks(Document page, String competition) {
+    Map<URI, String> links = new LinkedHashMap<>();
+    Map<String, Set<String>> labels = new HashMap<>();
     for (Element link : page.select("a[href]")) {
       URI target;
       try {
@@ -81,14 +89,25 @@ public class LnvDiscovery {
           if (phase == null || phase.isBlank()) {
             throw new LnvAcquisitionException("LNV phase link has no phase identity");
           }
-          result.add(target);
+          links.putIfAbsent(target, phase);
+          String label = link.text();
+          if (!label.isBlank() && label.length() <= 255) {
+            labels.computeIfAbsent(phase, ignored -> new HashSet<>()).add(label);
+          }
         }
       }
     }
-    if (result.isEmpty()) {
+    if (links.isEmpty()) {
       throw new LnvAcquisitionException("No published LNV phase references");
     }
-    return result.stream().distinct().toList();
+    return links.entrySet().stream()
+        .map(
+            entry -> {
+              Set<String> names = labels.getOrDefault(entry.getValue(), Set.of());
+              String label = names.size() == 1 ? names.iterator().next() : null;
+              return new Phase(entry.getKey(), entry.getValue(), label);
+            })
+        .toList();
   }
 
   /**
@@ -97,16 +116,15 @@ public class LnvDiscovery {
    *
    * @param bytes bounded phase page HTML
    * @param actual final response URL
-   * @param published exact phase link from the root
+   * @param competition qualified root championship
+   * @param published phase qualified by that root
    * @param season expected root season
    * @return groups available from this independently qualified phase
    */
   public List<SportingObservation.Pool> phasePools(
-      byte[] bytes, URI actual, URI published, String season) {
+      byte[] bytes, URI actual, String competition, Phase published, String season) {
     Map<String, String> context = LnvPage.query(actual);
-    Map<String, String> expected = LnvPage.query(published);
-    String competition = expected.get("ID");
-    String phase = expected.get("PID");
+    String phase = published.reference();
     if (!HOST.equalsIgnoreCase(actual.getHost())
         || !actual.getPath().endsWith(MATCHES)
         || !competition.equals(context.get("ID"))

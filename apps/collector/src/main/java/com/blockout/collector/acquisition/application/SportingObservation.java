@@ -98,15 +98,22 @@ public final class SportingObservation {
       String sourceName) {}
 
   /** Qualified catalog presence; partial discovery cannot prove absence. */
-  public record Catalog(boolean complete, List<Pool> pools) {
+  public record Catalog(boolean complete, List<Pool> pools, Map<String, String> phaseLabels) {
     /**
      * Retains the provider's ordered identity proposals.
      *
      * @param complete whether discovery can establish the full catalog presence
      * @param pools qualified native pool identities in provider order
+     * @param phaseLabels attributed LNV phase names; null for a catalogue without phase evidence
      */
     public Catalog {
       pools = List.copyOf(pools);
+      phaseLabels = phaseLabels == null ? null : Map.copyOf(phaseLabels);
+    }
+
+    /** Catalogue with native pool references only, as used for FFVB. */
+    public Catalog(boolean complete, List<Pool> pools) {
+      this(complete, pools, null);
     }
   }
 

@@ -19,7 +19,7 @@ import {
   useCollectionControl,
   type useCollectionControls,
 } from "../api/use-collection-controls";
-import type { useCollectionSeason } from "../api/use-source-preparation";
+import type { useCollectionSeason } from "../api/use-collection-season";
 import {
   CollectionControl,
   CollectionExecutionSkeleton,

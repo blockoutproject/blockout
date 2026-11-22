@@ -1,4 +1,5 @@
 import { isAccessDenied } from "@/shared/api/access-denied";
+import { discardCachedRead } from "@/shared/api/discard-cached-read";
 import {
   infiniteQueryOptions,
   queryOptions,
@@ -43,27 +44,15 @@ export type CollectionResultCriteria = Pick<
   "query" | "status" | "sourceId" | "stage"
 >;
 
+const collectionPageSize = 50;
+
+function nextCollectionPage(last: { page: number; hasNext: boolean }) {
+  return last.hasNext ? last.page + 1 : undefined;
+}
+
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
-  /** Withdraws refused preparation data without masking a later read error; mounted forms own their drafts. */
-  async function readPreparation<T>(
-    context: QueryFunctionContext,
-    execute: (options: ApiFetchOptions) => Promise<T>,
-  ): Promise<T | null> {
-    try {
-      return await execute({
-        ...(await authority.request()),
-        signal: context.signal,
-      });
-    } catch (error) {
-      if (!context.signal.aborted && isCollectionReadRefused(error)) {
-        context.client.setQueryData<T | null>(context.queryKey, null);
-      }
-      throw error;
-    }
-  }
-
-  /** A refused list or result projection must leave Query before any later technical failure. */
+  /** A refused collection read must leave Query before any later technical failure. */
   async function readCollection<T>(
     context: QueryFunctionContext,
     execute: (options: ApiFetchOptions) => Promise<T>,
@@ -75,10 +64,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
       });
     } catch (error) {
       if (!context.signal.aborted && isCollectionReadRefused(error)) {
-        context.client
-          .getQueryCache()
-          .find({ queryKey: context.queryKey, exact: true })
-          ?.setState({ data: undefined, dataUpdatedAt: 0 });
+        discardCachedRead(context);
       }
       throw error;
     }
@@ -93,46 +79,46 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         gcTime: 0,
         queryFn: (context) => readCollection(context, listCollectionSeasons),
       }),
-    /** One season shared by navigation, preparation and terminal closure. */
+    /** One season shared by navigation, activation and terminal closure. */
     season: (seasonId: string) =>
       queryOptions({
         queryKey: getGetCollectionSeasonQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readCollection(context, (options) =>
             getCollectionSeason(seasonId, options),
           ),
       }),
-    /** Complete source configuration for the selected season. */
+    /** Official source catalogue bindings for the selected season. */
     sources: (seasonId: string) =>
       queryOptions({
         queryKey: getListCollectionSourcesQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readCollection(context, (options) =>
             listCollectionSources(seasonId, options),
           ),
       }),
-    /** Exact source binding supplies the retained candidate editor and its ordinary commands. */
+    /** Exact source binding supplies the independently observed catalogue facts. */
     source: (sourceId: string) =>
       queryOptions({
         queryKey: getGetCollectionSourceQueryKey(sourceId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readCollection(context, (options) =>
             getCollectionSource(sourceId, options),
           ),
       }),
     /** Direct children use one infinite entry per parent and page size; page numbers stay in pageParam. */
     children: (sourceId: string, parentId?: string) => {
-      const params = { parentId, size: 50 };
+      const params = { parentId, size: collectionPageSize };
       return infiniteQueryOptions({
         queryKey: getListCollectionSourceChildrenQueryKey(sourceId, params),
         enabled: authority.enabled,
-        gcTime: 0,
+        // An expanded pack can leave the native list's render window while browsing the same visit.
         initialPageParam: 0,
         queryFn: (context) =>
           readCollection(context, (options) =>
@@ -142,7 +128,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
               options,
             ),
           ),
-        getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
+        getNextPageParam: nextCollectionPage,
       });
     },
     /** Season-specific controls and seasonless families have distinct generated selections. */
@@ -178,7 +164,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
     },
     /** Page identity stays in pageParam. Every response-shaping criterion belongs in the generated key. */
     results: (controlId: string, criteria: CollectionResultCriteria = {}) => {
-      const params = { ...criteria, size: 50 };
+      const params = { ...criteria, size: collectionPageSize };
       return infiniteQueryOptions({
         queryKey: getListCollectionResultsQueryKey(controlId, params),
         enabled: authority.enabled,
@@ -192,7 +178,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
               options,
             ),
           ),
-        getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
+        getNextPageParam: nextCollectionPage,
       });
     },
   };

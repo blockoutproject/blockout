@@ -8,6 +8,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
@@ -38,7 +39,9 @@ public class ObserveCollectionSource {
       String organizerReference,
       URI candidateUrl,
       URI evidenceUrl,
-      Instant observedAt) {}
+      Instant observedAt,
+      String displayName,
+      CollectionSourceScopeEnum scope) {}
 
   /** Existing owner identities returned without activation or assumed sporting classification. */
   public record Resolved(UUID seasonId, UUID sourceBindingId) {}
@@ -70,7 +73,7 @@ public class ObserveCollectionSource {
     if (!source.locked()
         && (existing.isEmpty() || mayQualify(source, season.collectionState(), officialUrl))) {
       admitOrdinarySource(
-          source.toBuilder()
+          withPresentation(source, proposal).toBuilder()
               .candidateUrl(officialUrl)
               .acceptedUrl(officialUrl)
               .locked(true)
@@ -84,8 +87,13 @@ public class ObserveCollectionSource {
               .currentCycleId(null)
               .build());
       store.discardCycle(source.currentCycleId());
-    } else if (source.locked() && !source.launched() && officialUrl.equals(source.acceptedUrl())) {
-      admitOrdinarySource(source.toBuilder().launched(true).build());
+    } else if (source.locked() && officialUrl.equals(source.acceptedUrl())) {
+      Source presented = withPresentation(source, proposal);
+      if (!source.launched()) {
+        admitOrdinarySource(presented.toBuilder().launched(true).build());
+      } else if (!presented.equals(source)) {
+        store.saveSource(presented);
+      }
     }
     if (existing.isEmpty()) {
       events.publishEvent(
@@ -93,6 +101,23 @@ public class ObserveCollectionSource {
               season.id(), proposal.provider(), proposal.observedAt()));
     }
     return new Resolved(season.id(), source.id());
+  }
+
+  /** Fills missing presentation evidence without renaming a known seasonal binding on a retry. */
+  private Source withPresentation(Source source, Proposal proposal) {
+    CollectionSourceScopeEnum scope =
+        source.provider() == CollectionProviderEnum.FFVB ? proposal.scope() : null;
+    if (source.scope() != null && scope != null && source.scope() != scope) {
+      return source;
+    }
+    String name = proposal.displayName();
+    return source.toBuilder()
+        .displayName(
+            source.displayName() == null && name != null && !name.isBlank()
+                ? name.strip()
+                : source.displayName())
+        .scope(scope == null ? source.scope() : scope)
+        .build();
   }
 
   /** First ordinary use of a historical-only control is independent of explicit later pauses. */

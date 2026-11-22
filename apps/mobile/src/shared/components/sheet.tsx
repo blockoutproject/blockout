@@ -28,6 +28,15 @@ export const sheetScreenOptions = {
   sheetAllowedDetents: "fitToContents",
 } as const;
 
+/** Native contextual sheets use the same surface during presentation and inside their content. */
+export function useSheetScreenOptions() {
+  const { colors } = useTheme();
+  return {
+    ...sheetScreenOptions,
+    contentStyle: { backgroundColor: colors.surface },
+  };
+}
+
 /** Intrinsic contextual content; callers compose SheetContent and retain their own close, refresh and command state. */
 export interface SheetProps extends PropsWithChildren {
   onClose: () => void;

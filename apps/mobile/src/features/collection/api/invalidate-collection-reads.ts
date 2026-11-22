@@ -1,13 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {
-  getGetCollectionSeasonQueryKey,
-  getListCollectionSourcesQueryKey,
   getListCollectionSeasonsQueryKey,
-  getListCollectionControlsQueryKey,
+  getGetCollectionSeasonQueryKey,
 } from "../../../../.generated/mobile";
 
-/** Source changes invalidate their season decision and complete source projection together. */
-export function invalidateSeasonPreparation(
+/** Revalidates the selected season and its navigation entry after a confirmed lifecycle change. */
+export function invalidateCollectionSeason(
   client: QueryClient,
   seasonId: string,
 ) {
@@ -16,28 +14,7 @@ export function invalidateSeasonPreparation(
     exact: true,
   });
   void client.invalidateQueries({
-    queryKey: getListCollectionSourcesQueryKey(seasonId),
-    exact: true,
-  });
-}
-
-/** Confirmed lifecycle changes refresh the navigation list without changing the accepted season response. */
-export function invalidateCollectionSeasons(client: QueryClient) {
-  void client.invalidateQueries({
     queryKey: getListCollectionSeasonsQueryKey(),
-    exact: true,
-  });
-}
-
-/** Control commands and terminal season closure share the same complete-scope list invalidation. */
-export function invalidateCollectionControls(
-  client: QueryClient,
-  seasonId?: string,
-) {
-  void client.invalidateQueries({
-    queryKey: getListCollectionControlsQueryKey(
-      seasonId ? { seasonId } : undefined,
-    ),
     exact: true,
   });
 }

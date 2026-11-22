@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
 import {
   StreamModerationFilterEnum,
   StreamPlatformEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { FilterSheetActions } from "@/shared/components/filter-sheet-actions";
+import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
 import { SelectField } from "@/shared/components/select-field";
 import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
@@ -170,7 +170,10 @@ export function ModerationFilters({
       );
     }
     return (
-      <View style={styles.form}>
+      <FilterSheetForm
+        onApply={() => void handleSubmit(apply)()}
+        onReset={() => reset({ query: initial.query, state: "to-review" })}
+      >
         <SelectField
           label="Saison"
           value={
@@ -193,11 +196,7 @@ export function ModerationFilters({
           value={stateLabel()}
           onPress={() => setChoice("state")}
         />
-        <FilterSheetActions
-          onApply={() => void handleSubmit(apply)()}
-          onReset={() => reset({ query: initial.query, state: "to-review" })}
-        />
-      </View>
+      </FilterSheetForm>
     );
   }
 
@@ -218,7 +217,3 @@ export function ModerationFilters({
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: tokens.layout.form.gap },
-});

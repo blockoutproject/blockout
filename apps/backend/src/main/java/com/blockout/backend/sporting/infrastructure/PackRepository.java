@@ -37,7 +37,13 @@ interface PackRepository extends JpaRepository<PackEntity, UUID> {
   record CatalogPack(UUID id, String reference, long poolCount) {
     SportingViews.CollectionResource toResource() {
       return new SportingViews.CollectionResource(
-          id, reference, CollectionResourceKindEnum.PACK, null, null, Math.toIntExact(poolCount));
+          id,
+          reference,
+          CollectionResourceKindEnum.PACK,
+          null,
+          null,
+          null,
+          Math.toIntExact(poolCount));
     }
   }
 

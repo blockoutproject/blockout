@@ -20,13 +20,14 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { ChevronRight, Eraser, Plus, RefreshCw } from "lucide-react-native";
+import { ChevronRight, Eraser, Plus } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "@/shared/components/icon-button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { SearchField } from "@/shared/components/search-field";
 
 import { DivisionsLoading } from "../components/divisions-loading";
@@ -101,12 +102,7 @@ export function DivisionsScreen() {
             onPress={() => reset(divisionSearchValues())}
           />
         ) : (
-          <Button
-            label="Actualiser"
-            leadingIcon={RefreshCw}
-            onPress={() => void refresh()}
-            loading={query.isFetching}
-          />
+          <ReloadButton fetching={query.isFetching} onReload={refresh} />
         )}
       </EmptyState>
     );

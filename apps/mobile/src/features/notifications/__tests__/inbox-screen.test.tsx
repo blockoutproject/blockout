@@ -610,6 +610,37 @@ it("uses local read recovery after a cached empty inbox fails and restores accep
   ).not.toBeOnTheScreen();
 });
 
+it("keeps the empty inbox reload unavailable while refocusing rereads it", async () => {
+  // Given
+  rows = [];
+  const view = await showInbox();
+  const reload = await screen.findByRole("button", { name: "Actualiser" });
+  expect(reload).toBeEnabled();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? pending.promise
+      : response(url, init),
+  );
+
+  // When
+  mockFocused = false;
+  await view.rerender(<NotificationsScreen />);
+  mockFocused = true;
+  await view.rerender(<NotificationsScreen />);
+
+  // Then
+  const disabledReload = await screen.findByRole("button", {
+    name: "Actualiser",
+    disabled: true,
+  });
+  expect(disabledReload).not.toBeBusy();
+  await act(async () => pending.resolve(Response.json({ notifications: [] })));
+  expect(
+    await screen.findByRole("button", { name: "Actualiser", disabled: false }),
+  ).toBeEnabled();
+});
+
 it("reloads an accepted empty inbox only from its card and restores pull-to-refresh when rows return", async () => {
   // Given
   const pending = Promise.withResolvers<Response>();

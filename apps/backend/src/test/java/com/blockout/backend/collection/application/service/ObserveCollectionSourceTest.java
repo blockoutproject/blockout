@@ -111,6 +111,8 @@ class ObserveCollectionSourceTest {
         "LIRA",
         URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA"),
         URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux"),
-        Instant.parse("2026-10-21T00:00:00Z"));
+        Instant.parse("2026-10-21T00:00:00Z"),
+        null,
+        null);
   }
 }

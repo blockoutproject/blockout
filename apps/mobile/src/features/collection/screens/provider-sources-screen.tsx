@@ -1,86 +1,252 @@
-import { StyleSheet } from "react-native";
-import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { FormScrollView } from "@/shared/components/form-scroll-view";
-import { PageContent } from "@/shared/components/page";
-import { ScreenState } from "@/shared/components/screen-state";
-import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { ChevronRight } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text } from "react-native";
+import type {
+  CollectionProviderEnum,
+  SourceBindingResponse,
+} from "../../../../.generated/schemas/index.zod";
 import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { ProviderPreparationLoading } from "../components/collection-loading";
-import { useSeasonPreparation } from "../api/use-source-preparation";
-import { ProviderPreparationForm } from "../forms/provider-preparation-form";
+import { controlOpacity } from "@/shared/components/control-styles";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { ListLoading } from "@/shared/components/list-loading";
+import { pageContentStyle } from "@/shared/components/page";
+import { PageList } from "@/shared/components/page-list";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { SearchField } from "@/shared/components/search-field";
+import { SearchToolbar } from "@/shared/components/search-toolbar";
+import { EmptyState } from "@/shared/components/state-card";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { createCollectionQueries } from "../api/collection-queries";
+import type { useCollectionSeason } from "../api/use-collection-season";
+import { ReloadButton } from "@/shared/components/reload-button";
+import { CollectionReadState } from "../components/collection-read-state";
+import { SourceCatalogBadge } from "../components/source-catalog-badge";
+import { collectionSourceHref } from "../model/collection-hrefs";
+import {
+  sourceCatalogLabels,
+  sourceCatalogStatus,
+  sourceScopes,
+  type SourceFilters,
+} from "../model/source-catalogue";
 
-/** Selects the season/provider whose current reads admit the retained preparation form. */
-export interface ProviderSourcesScreenProps {
-  seasonId: string;
-  provider: CollectionProviderEnum;
+type SourceRow = "search" | { heading: string } | SourceBindingResponse;
+
+export function ProviderSourcesLoading() {
+  return <ListLoading label="Chargement des sources" />;
 }
 
-/** Keeps source selection and manual input with their native form while required reads recover. */
 export function ProviderSourcesScreen({
   seasonId,
   provider,
-}: Readonly<ProviderSourcesScreenProps>) {
-  const editing = useSeasonPreparation(seasonId);
-  const { authority, season, sources } = editing;
-  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}:${provider}`;
-  const requiredRead =
-    [authority.account, season, sources].find(hasReadError) ??
-    (!season.data ? season : sources);
-  const blocked =
+  reading,
+  filters,
+}: Readonly<{
+  seasonId: string;
+  provider: CollectionProviderEnum;
+  reading: ReturnType<typeof useCollectionSeason>;
+  filters: SourceFilters;
+}>) {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const [search, setSearch] = useState("");
+  const { authority, season } = reading;
+  const options = createCollectionQueries(authority).sources(seasonId);
+  const sources = useQuery({
+    ...options,
+    enabled: authority.enabled && !!season.data,
+  });
+  const requiredRead = !season.data || hasReadError(season) ? season : sources;
+  const loading = <ProviderSourcesLoading />;
+
+  if (
     !authority.enabled ||
     !season.data ||
     !sources.data ||
-    hasReadError(requiredRead);
-  const initialLoading = !authority.enabled
-    ? isAccessLoading(authority)
-    : !hasReadError(requiredRead) && (season.isLoading || sources.isLoading);
-  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
+    hasReadError(requiredRead)
+  ) {
+    const pending = authority.enabled
+      ? requiredRead.isPending && !hasReadError(requiredRead)
+      : isAccessLoading(authority);
+    return (
+      <CollectionReadState pending={pending}>
+        {authority.enabled ? (
+          <ReadFeedback query={requiredRead} loadingContent={loading} />
+        ) : (
+          <AccessFeedback {...authority} loadingContent={loading} />
+        )}
+      </CollectionReadState>
+    );
+  }
 
-  // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
+  const needle = searchKey(search.trim());
+  const scope = provider === "ffvb" ? filters.scope : undefined;
+  const items = sources.data.items.filter((source) => {
+    const status = sourceCatalogStatus(source.catalog);
+    return (
+      source.provider === provider &&
+      !!(source.acceptedUrl || status !== "not-read") &&
+      (!filters.status || filters.status === status) &&
+      (!scope || source.scope === scope) &&
+      searchKey(`${source.label} ${source.organizerReference}`).includes(needle)
+    );
+  });
+  const rows: SourceRow[] = [];
+
+  function addSection(heading: string, entries: SourceBindingResponse[]) {
+    if (entries.length) {
+      rows.push({ heading }, ...entries);
+    }
+  }
+
+  if (provider === "lnv") {
+    addSection("Championnats", items);
+  } else {
+    for (const scope of sourceScopes) {
+      addSection(
+        scope.label,
+        items.filter((source) => source.scope === scope.value),
+      );
+    }
+    addSection(
+      "Autres sources",
+      items.filter((source) => !source.scope),
+    );
+  }
+
+  const filtered = Boolean(filters.status || scope);
   return (
-    <FormScrollView
-      refreshControl={
-        <DataRefreshControl
-          fetching={sources.isFetching || season.isFetching}
-          enabled={!blocked && !editing.create.isPending}
-          onRefresh={() =>
-            Promise.all([
-              season.refetch({ cancelRefetch: false }),
-              sources.refetch({ cancelRefetch: false }),
-            ])
-          }
-        />
+    <PageList<SourceRow>
+      data={["search", ...rows]}
+      extraData={{ search, filters }}
+      stickyHeaderIndices={[0]}
+      keyExtractor={(row) =>
+        row === "search" ? row : "heading" in row ? row.heading : row.id
       }
-    >
-      {blocked && (
-        <FeedbackLayout>
-          {!authority.enabled ? (
-            <AccessFeedback
-              {...authority}
-              loadingContent={<ProviderPreparationLoading />}
-            />
-          ) : (
-            <ReadFeedback
-              query={requiredRead}
-              loadingContent={<ProviderPreparationLoading />}
-            />
-          )}
-        </FeedbackLayout>
-      )}
-      <PageContent style={blocked ? styles.hidden : undefined}>
-        <ProviderPreparationForm
-          key={visitKey}
-          season={sources.data ? season.data : null}
-          provider={provider}
-          editing={editing}
-        />
-      </PageContent>
-    </FormScrollView>
+      contentContainerStyle={pageContentStyle}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        rows.length ? (
+          <DataRefreshControl
+            fetching={sources.isFetching}
+            onRefresh={() => sources.refetch({ cancelRefetch: false })}
+          />
+        ) : undefined
+      }
+      renderItem={({ item }) => {
+        if (item === "search") {
+          return (
+            <SearchToolbar
+              style={[styles.search, { backgroundColor: colors.canvas }]}
+              filter={{
+                active: filtered,
+                onPress: () =>
+                  router.push({
+                    pathname:
+                      "/collection/[seasonId]/controls/[provider]/sources-filters",
+                    params: { seasonId, provider, ...filters },
+                  }),
+              }}
+            >
+              <SearchField
+                label="Rechercher une source"
+                placeholder="Nom ou référence…"
+                value={search}
+                onChangeText={setSearch}
+                onClear={() => setSearch("")}
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+            </SearchToolbar>
+          );
+        }
+        if ("heading" in item) {
+          return (
+            <Text
+              accessibilityRole="header"
+              style={[styles.heading, { color: colors.text }]}
+            >
+              {item.heading}
+            </Text>
+          );
+        }
+        const status = sourceCatalogStatus(item.catalog);
+        return (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={item.label}
+            accessibilityValue={{
+              text: sourceCatalogLabels[status],
+            }}
+            onPress={() => router.push(collectionSourceHref(seasonId, item))}
+            style={({ pressed }) => ({
+              opacity: controlOpacity(false, pressed),
+            })}
+          >
+            <Surface style={styles.source}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                {item.label}
+              </Text>
+              <SourceCatalogBadge status={status} />
+              <ChevronRight
+                accessible={false}
+                color={colors.icon}
+                size={tokens.size.icon.sm}
+              />
+            </Surface>
+          </Pressable>
+        );
+      }}
+      ListFooterComponent={
+        !rows.length ? (
+          <ScreenState style={styles.empty}>
+            <EmptyState
+              title={
+                needle || filtered
+                  ? "Aucune source correspondante"
+                  : "Aucune source découverte"
+              }
+            >
+              {!needle && !filtered && (
+                <ReloadButton
+                  fetching={sources.isFetching}
+                  onReload={() => sources.refetch({ cancelRefetch: false })}
+                />
+              )}
+            </EmptyState>
+          </ScreenState>
+        ) : undefined
+      }
+    />
   );
 }
 
-const styles = StyleSheet.create({ hidden: { display: "none" } });
+function searchKey(value: string) {
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("fr");
+}
+
+const styles = StyleSheet.create({
+  empty: { paddingHorizontal: 0 },
+  search: { paddingHorizontal: 0, marginBottom: tokens.spacing.xs },
+  heading: {
+    ...tokens.typography.navigation,
+    marginBottom: tokens.spacing.sm,
+    marginTop: tokens.spacing.sm,
+  },
+  source: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: tokens.size.control.default,
+    paddingVertical: tokens.spacing.sm,
+    marginBottom: tokens.spacing.sm,
+    gap: tokens.spacing.sm,
+  },
+  label: { ...tokens.typography.strong, flex: 1, minWidth: 0 },
+});

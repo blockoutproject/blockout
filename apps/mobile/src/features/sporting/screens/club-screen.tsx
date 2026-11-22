@@ -38,12 +38,12 @@ import { hashKey, useQuery } from "@tanstack/react-query";
 import { useIsFocused } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { Globe, Mail, Phone, RefreshCw } from "lucide-react-native";
+import { Globe, Mail, Phone } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import {
   EntryGroup,
   EntryGroupSeparator,
@@ -253,12 +253,13 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
                 return (
                   <PageScrollView>
                     <ScreenState>
-                      <ClubEmptyState
-                        title={noSeasonTitle}
-                        onRefresh={refresh}
-                        fetching={club.isFetching}
-                        active={tab === value}
-                      />
+                      <EmptyState title={noSeasonTitle}>
+                        <ReloadButton
+                          onReload={refresh}
+                          fetching={club.isFetching}
+                          disabled={tab !== value}
+                        />
+                      </EmptyState>
                     </ScreenState>
                   </PageScrollView>
                 );
@@ -374,12 +375,13 @@ function ClubTeams({
   }
   const emptyContent = data && (
     <ScreenState style={styles.listState}>
-      <ClubEmptyState
-        title="Aucune équipe pour cette saison"
-        onRefresh={refresh}
-        fetching={teams.isFetching}
-        active={active}
-      />
+      <EmptyState title="Aucune équipe pour cette saison">
+        <ReloadButton
+          onReload={refresh}
+          fetching={teams.isFetching}
+          disabled={!active}
+        />
+      </EmptyState>
     </ScreenState>
   );
   return (
@@ -430,46 +432,6 @@ function ClubTeams({
       )}
       ListHeaderComponent={<View style={styles.seasonHeader}>{children}</View>}
     />
-  );
-}
-
-/** Each retained Empty owns only its explicit Actualiser gesture; Query retains the read and background activity. */
-function ClubEmptyState({
-  title,
-  onRefresh,
-  fetching,
-  active,
-}: Readonly<{
-  title: string;
-  onRefresh: () => Promise<unknown>;
-  fetching: boolean;
-  active: boolean;
-}>) {
-  const [refreshing, setRefreshing] = useState(false);
-
-  /** The initiating scene retains this action's intent until its existing read settles. */
-  async function refresh() {
-    if (!active || refreshing) {
-      return;
-    }
-    setRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  return (
-    <EmptyState title={title}>
-      <Button
-        label="Actualiser"
-        leadingIcon={RefreshCw}
-        onPress={() => void refresh()}
-        loading={refreshing && fetching}
-        disabled={!active}
-      />
-    </EmptyState>
   );
 }
 

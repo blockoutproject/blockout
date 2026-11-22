@@ -1,3 +1,4 @@
+import { discardCachedRead } from "@/shared/api/discard-cached-read";
 import {
   queryOptions,
   type QueryFunctionContext,
@@ -78,17 +79,13 @@ export function createConsultationQueries(
   /**
    * Query retains data on failure. This exact-resource purge prevents known-refused contacts,
    * locations and other sensitive facts from reappearing if the next read fails technically.
-   * setQueryData(undefined) is a no-op; removing an active query would change its read lifecycle.
    */
   function rejectUnavailable(
     error: unknown,
     context: QueryFunctionContext,
   ): never {
     if (!context.signal.aborted && resourceUnavailable(error)) {
-      context.client
-        .getQueryCache()
-        .find({ queryKey: context.queryKey, exact: true })
-        ?.setState({ data: undefined, dataUpdatedAt: 0 });
+      discardCachedRead(context);
     }
     throw error;
   }

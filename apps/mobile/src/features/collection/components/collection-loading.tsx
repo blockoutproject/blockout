@@ -6,7 +6,7 @@ import { FieldSkeleton } from "@/shared/components/form-loading";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { SeasonIdentitySkeleton } from "./source-summary";
+import { SeasonIdentitySkeleton } from "./collection-season-summary";
 
 /** Product Design 6019:46573: two decorative destination rows while the season catalogue is unknown. */
 export function CollectionLoading() {
@@ -64,32 +64,6 @@ export function CollectionResultsLoading() {
           <TextSkeleton role="metadata" width="58%" />
         </Surface>
       ))}
-    </LoadingGroup>
-  );
-}
-
-/** Uses the source's initial closed editor with its link summary and command slot. */
-export function SourcePreparationLoading() {
-  return (
-    <LoadingGroup label="Chargement de la source" style={styles.rows}>
-      <SeasonIdentitySkeleton />
-      <Surface>
-        <TextSkeleton width="70%" />
-        <TextSkeleton role="metadata" width="45%" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-      </Surface>
-    </LoadingGroup>
-  );
-}
-
-/** Provider preparation waits in its source-selection region, followed by the existing launch action slot. */
-export function ProviderPreparationLoading() {
-  return (
-    <LoadingGroup label="Chargement des sources" style={styles.rows}>
-      <SeasonIdentitySkeleton />
-      <DestinationLoading />
-      <DestinationLoading />
-      <Skeleton height={tokens.size.control.default} shape="rectangle" />
     </LoadingGroup>
   );
 }

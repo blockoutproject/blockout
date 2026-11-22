@@ -1,9 +1,8 @@
 import { useNavigation } from "expo-router";
-import { RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { EntryGroupSeparator } from "@/shared/components/entry-group";
@@ -108,12 +107,10 @@ export function ModerationReportsScreen({
     }
     return (
       <EmptyState title="Aucun signalement">
-        <Button
-          label="Actualiser"
-          leadingIcon={RefreshCw}
+        <ReloadButton
+          fetching={query.isFetching}
           disabled={!reading.canRetain}
-          loading={query.isFetching}
-          onPress={() => void query.refetch({ cancelRefetch: false })}
+          onReload={() => query.refetch({ cancelRefetch: false })}
         />
       </EmptyState>
     );

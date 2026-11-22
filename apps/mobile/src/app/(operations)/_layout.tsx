@@ -1,8 +1,7 @@
 import { useStackScreenOptions } from "@/shared/native/stack-screen-options";
 import { ClassificationVisitProvider } from "@/features/sporting-administration/forms/classification-visit";
 import { Stack } from "expo-router";
-import { sheetScreenOptions } from "@/shared/components/sheet";
-import { useTheme } from "@/shared/theme/theme-provider";
+import { useSheetScreenOptions } from "@/shared/components/sheet";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { canReadDivisions } from "@/features/access/division-catalog-access";
 
@@ -10,7 +9,7 @@ import { canReadDivisions } from "@/features/access/division-catalog-access";
 export default function OperationsLayout() {
   const screenOptions = useStackScreenOptions();
   const { permissions } = useAccessAdmission();
-  const { colors } = useTheme();
+  const sheetOptions = useSheetScreenOptions();
   return (
     <ClassificationVisitProvider>
       <Stack screenOptions={screenOptions}>
@@ -32,10 +31,7 @@ export default function OperationsLayout() {
           <Stack.Screen name="administration/classification/[kind]/[id]" />
           <Stack.Screen
             name="administration/classification-selection"
-            options={{
-              ...sheetScreenOptions,
-              contentStyle: { backgroundColor: colors.surface },
-            }}
+            options={sheetOptions}
           />
         </Stack.Protected>
         <Stack.Protected guard={canReadDivisions(permissions)}>

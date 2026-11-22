@@ -6,6 +6,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
@@ -145,6 +146,8 @@ public final class CollectionState {
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
+      String displayName,
+      CollectionSourceScopeEnum scope,
       String candidateUrl,
       String acceptedUrl,
       long revision,
@@ -167,10 +170,14 @@ public final class CollectionState {
     }
 
     public String label() {
-      return label(provider.name(), organizerReference);
+      return label(displayName, provider.name(), organizerReference);
     }
 
-    /** Uses the same known provider and organizer reference in Sources and Bilan. */
+    /** Gives Sources and Bilan the same fallback when no published display name is retained. */
+    public static String label(String displayName, String provider, String organizerReference) {
+      return displayName == null ? label(provider, organizerReference) : displayName;
+    }
+
     public static String label(String provider, String organizerReference) {
       return provider + " / " + organizerReference;
     }

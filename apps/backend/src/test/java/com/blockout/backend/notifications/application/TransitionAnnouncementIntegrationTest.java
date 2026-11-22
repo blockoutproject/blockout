@@ -380,7 +380,9 @@ class TransitionAnnouncementIntegrationTest {
             source.organizerReference(),
             officialUrl,
             officialUrl,
-            NOW));
+            NOW,
+            null,
+            null));
     preparation.activate(OPERATOR, season.id());
     Control current = configuration.control(OPERATOR, initial.controlId()).control();
     controls.setActivity(OPERATOR, current.id(), true);

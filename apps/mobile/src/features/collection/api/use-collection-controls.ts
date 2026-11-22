@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   closeCollectionSeason,
   getCloseCollectionSeasonMutationKey,
+  getListCollectionControlsQueryKey,
   getRequestCollectionMutationKey,
   getSetCollectionActivityMutationKey,
   requestCollection,
@@ -14,14 +15,11 @@ import {
   type SetCollectionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createCollectionQueries } from "./collection-queries";
-import {
-  invalidateCollectionControls,
-  invalidateCollectionSeasons,
-} from "./invalidate-collection-reads";
+import { invalidateCollectionSeason } from "./invalidate-collection-reads";
 import {
   useCollectionAuthority,
   useCollectionSeason,
-} from "./use-source-preparation";
+} from "./use-collection-season";
 
 /** Reads the complete controls for exactly one season, or the two seasonless families. */
 export function useCollectionControls(seasonId?: string) {
@@ -94,9 +92,11 @@ export function useCloseCollectionSeason(seasonId: string) {
 
   /** Invalidates the season and its related controls after accepted closure. */
   function accept() {
-    void client.invalidateQueries({ queryKey: key, exact: true });
-    invalidateCollectionControls(client, seasonId);
-    invalidateCollectionSeasons(client);
+    invalidateCollectionSeason(client, seasonId);
+    void client.invalidateQueries({
+      queryKey: getListCollectionControlsQueryKey({ seasonId }),
+      exact: true,
+    });
   }
 
   const close = useMutation({

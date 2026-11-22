@@ -7,6 +7,7 @@ import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -147,7 +148,9 @@ public interface CollectionBackend {
       String organizerReference,
       URI candidateUrl,
       URI evidenceUrl,
-      Instant observedAt) {}
+      Instant observedAt,
+      String displayName,
+      CollectionSourceScopeEnum scope) {}
 
   /**
    * Proposes a qualified source through the canonical generated operation exactly once.

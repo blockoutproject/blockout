@@ -3,25 +3,29 @@ import type { CollectionProviderEnum } from "../../../../.generated/schemas/inde
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
-import { useCollectionSeason } from "../api/use-source-preparation";
-import { ProviderPreparationLoading } from "../components/collection-loading";
+import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionProviderRead } from "../components/collection-provider-read";
 import { collectionBilanHref } from "../model/collection-hrefs";
 import {
   CollectionFollowUp,
   CollectionFollowUpLoading,
 } from "./collection-follow-up-screen";
-import { ProviderSourcesScreen } from "./provider-sources-screen";
+import type { SourceFilters } from "../model/source-catalogue";
+import {
+  ProviderSourcesLoading,
+  ProviderSourcesScreen,
+} from "./provider-sources-screen";
 
-/** Source preparation stays mounted after tab selection so its established native draft lifetime is preserved. */
 export function CollectionProviderScreen({
   provider,
   seasonId,
   tab,
+  filters,
 }: Readonly<{
   provider: CollectionProviderEnum;
   seasonId: string;
   tab: "suivi" | "sources";
+  filters: SourceFilters;
 }>) {
   const router = useRouter();
   const reading = useCollectionSeason(seasonId);
@@ -73,11 +77,16 @@ export function CollectionProviderScreen({
             label: "Sources",
             preview: (
               <PageContent>
-                <ProviderPreparationLoading />
+                <ProviderSourcesLoading />
               </PageContent>
             ),
             content: (
-              <ProviderSourcesScreen provider={provider} seasonId={seasonId} />
+              <ProviderSourcesScreen
+                provider={provider}
+                seasonId={seasonId}
+                reading={reading}
+                filters={filters}
+              />
             ),
           },
         ]}

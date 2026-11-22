@@ -1,11 +1,14 @@
 import { useLocalSearchParams } from "expo-router";
-import { SourcePreparationScreen } from "@/features/collection/screens/source-preparation-screen";
+import { SourceCatalogueScreen } from "@/features/collection/screens/source-catalogue-screen";
+import { collectionSourceRouteFocus } from "@/features/collection/model/collection-route-params";
 
-/** Source editing stays on an ordinary route; its draft is discarded only by native explicit confirmation. */
-export default function SourcePreparationRoute() {
-  const { seasonId, sourceId } = useLocalSearchParams<{
-    seasonId: string;
-    sourceId: string;
-  }>();
-  return <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />;
+export default function SourceCatalogueRoute() {
+  const params = useLocalSearchParams<{ seasonId: string; sourceId: string }>();
+  return (
+    <SourceCatalogueScreen
+      seasonId={params.seasonId}
+      sourceId={params.sourceId}
+      focus={collectionSourceRouteFocus(params)}
+    />
+  );
 }

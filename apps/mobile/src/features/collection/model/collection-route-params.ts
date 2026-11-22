@@ -1,8 +1,12 @@
 import {
   CollectionProviderEnum,
+  CollectionResultSourceResponse,
+  CollectionSourceScopeEnum,
   ListCollectionResultsParams,
+  SourceCatalogStatusEnum,
 } from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
+import type { SourceFilters } from "./source-catalogue";
 
 export function collectionProviderFromRoute(value: unknown) {
   return CollectionProviderEnum.safeParse(value).data;
@@ -22,5 +26,32 @@ export function collectionBilanRouteCriteria(
     sourceId: sourceId.data,
     status: status.data,
     stage: stage.data,
+  };
+}
+
+export type SourceCatalogueFocus = Pick<
+  CollectionResultSourceResponse,
+  "packId" | "poolId" | "phaseReference"
+>;
+
+/** Optional focus can identify only an actual row in the destination binding. */
+export function collectionSourceRouteFocus(
+  params: Record<string, string | string[] | undefined>,
+): SourceCatalogueFocus {
+  const fields = CollectionResultSourceResponse.shape;
+  return {
+    packId: fields.packId.safeParse(params.packId).data,
+    poolId: fields.poolId.safeParse(params.poolId).data,
+    phaseReference:
+      fields.phaseReference.safeParse(params.phaseReference).data || undefined,
+  };
+}
+
+export function sourceFiltersFromRoute(
+  params: Record<string, string | string[] | undefined>,
+): SourceFilters {
+  return {
+    status: SourceCatalogStatusEnum.safeParse(params.status).data,
+    scope: CollectionSourceScopeEnum.safeParse(params.scope).data,
   };
 }

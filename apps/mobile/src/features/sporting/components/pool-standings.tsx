@@ -2,7 +2,7 @@ import { PageScrollView, PageContent } from "@/shared/components/page";
 import { standingVisibleColumns } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { divisionTextColor } from "../presentation";
-import { Columns3, List, RefreshCw } from "lucide-react-native";
+import { Columns3, List } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -14,7 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useSingleContentReveal } from "@/shared/components/content-reveal";
-import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -184,11 +184,9 @@ export function PoolStandings({
                     }
                   >
                     {refreshEmpty && (
-                      <Button
-                        label="Actualiser"
-                        leadingIcon={RefreshCw}
-                        onPress={() => void refresh()}
-                        loading={standings.isFetching}
+                      <ReloadButton
+                        fetching={standings.isFetching}
+                        onReload={refresh}
                         disabled={!active}
                       />
                     )}

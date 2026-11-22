@@ -144,6 +144,7 @@ public class ReadSportingAcquisition {
   /**
    * Reads current source children through their sporting owner, without acquisition filtering.
    *
+   * @param sourceId canonical source binding that owns phase labels
    * @param seasonId canonical source season
    * @param provider designated provider
    * @param organizerReference source organizer or championship
@@ -153,12 +154,14 @@ public class ReadSportingAcquisition {
    * @return direct children, including unmapped pools
    */
   public OffsetPage<CollectionResource> collectionChildren(
+      UUID sourceId,
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
       UUID parentId,
       int page,
       int size) {
-    return store.collectionChildren(seasonId, provider, organizerReference, parentId, page, size);
+    return store.collectionChildren(
+        sourceId, seasonId, provider, organizerReference, parentId, page, size);
   }
 }

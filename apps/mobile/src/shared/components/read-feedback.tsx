@@ -1,6 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ErrorState } from "./state-card";
+import { useExplicitRead } from "./use-explicit-read";
 
 /** Native Query metadata; data, failures and request lifetimes remain with the query owner. */
 export type ReadFeedbackQuery = Pick<
@@ -42,25 +43,20 @@ export function ReadFeedback({
   failed = false,
   onRetry,
 }: Readonly<ReadFeedbackProps>) {
-  const [retryRequested, setRetryRequested] = useState(false);
-  // Observe fetch changes before the gesture so Query also notifies a card mounted after an earlier failure.
+  // Observe fetch changes before the gesture so Query notifies a card mounted after a failure.
   const fetching = query.isFetching;
   const error = failed || hasReadError(query);
-
-  /** Tracks only the explicit gesture; Query and the feature retain the read outcome and cancellation. */
-  async function retry() {
-    if (retryRequested) {
-      return;
-    }
-    setRetryRequested(true);
+  const {
+    requested: retryRequested,
+    progressing: retrying,
+    read: retry,
+  } = useExplicitRead(async () => {
     try {
       await (onRetry ? onRetry() : query.refetch());
     } catch {
-      // Safe read callbacks may reject; their owner retains the failure and this card.
-    } finally {
-      setRetryRequested(false);
+      // A rejected read remains the owner's failure and keeps this card available.
     }
-  }
+  }, fetching);
 
   if (query.isEnabled === false && !onRetry) {
     return error ? <ErrorState /> : null;
@@ -68,10 +64,5 @@ export function ReadFeedback({
   if (!error && !retryRequested) {
     return query.isPending && fetching ? loadingContent : null;
   }
-  return (
-    <ErrorState
-      onRetry={() => void retry()}
-      retrying={retryRequested && fetching}
-    />
-  );
+  return <ErrorState onRetry={() => void retry()} retrying={retrying} />;
 }
