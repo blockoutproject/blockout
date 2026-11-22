@@ -12,8 +12,9 @@ import {
 } from "@/features/sporting/classification-presentation";
 import { Button } from "@/shared/components/button";
 import { ListLoading } from "@/shared/components/list-loading";
-import { Page, PageContent, PageScrollView } from "@/shared/components/page";
-import { ScreenState } from "@/shared/components/screen-state";
+import { Page } from "@/shared/components/page";
+import { PageReadState } from "@/shared/components/page-read-state";
+import { StatusBadge } from "@/shared/components/status-badge";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -21,7 +22,7 @@ import { useSportingAuthority } from "../api/classification";
 import { createMappingQueries } from "../api/mapping-queries";
 import { MappingHeader } from "../components/mapping-header";
 import { MappingList } from "../components/mapping-list";
-import { MappingBadge, MappingRow } from "../components/mapping-row";
+import { MappingRow } from "../components/mapping-row";
 
 const loadingLabel = "Chargement de la classification et des poules";
 
@@ -36,17 +37,14 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
     ? `${pack.sourceLabel}  ${pack.seasonLabel}`
     : undefined;
   if (!authority.enabled) {
-    const Layout = isAccessLoading(authority) ? PageContent : ScreenState;
     return (
       <Page header={<MappingHeader />}>
-        <PageScrollView>
-          <Layout>
-            <AccessFeedback
-              {...authority}
-              loadingContent={<ListLoading label={loadingLabel} />}
-            />
-          </Layout>
-        </PageScrollView>
+        <PageReadState pending={isAccessLoading(authority)}>
+          <AccessFeedback
+            {...authority}
+            loadingContent={<ListLoading label={loadingLabel} />}
+          />
+        </PageReadState>
       </Page>
     );
   }
@@ -72,9 +70,9 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
                   >
                     Classification du pack
                   </Text>
-                  <MappingBadge
+                  <StatusBadge
                     label={classification ? "Classé" : "À classer"}
-                    tone={classification ? "success" : "warning"}
+                    tone={classification ? "success" : "strong-warning"}
                   />
                 </View>
                 {classification && (
@@ -132,7 +130,7 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
             </View>
           )
         }
-        renderRow={(pool) => {
+        renderItem={({ item: pool }) => {
           const effective = pool.effectiveClassification;
           return (
             <MappingRow
@@ -149,7 +147,7 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
                     : "Du pack"
                   : "À classer"
               }
-              tone={effective ? "neutral" : "warning"}
+              tone={effective ? "neutral" : "strong-warning"}
               onPress={() => {
                 if (pack) {
                   router.push({

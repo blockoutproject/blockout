@@ -2,17 +2,18 @@ import { StyleSheet, Text, type StyleProp, type TextStyle } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-export type CollectionStatusTone = "success" | "warning" | "error" | "neutral";
+export type StatusBadgeTone =
+  "success" | "warning" | "strong-warning" | "error" | "neutral";
 
-/** Shared badge paint; each collection view chooses the tone for its own status. */
-export function CollectionStatusBadge({
+/** Renders text and its matching semantic paint for compact status labels. */
+export function StatusBadge({
   label,
   tone,
   outlined = true,
   style,
 }: Readonly<{
   label: string;
-  tone: CollectionStatusTone;
+  tone: StatusBadgeTone;
   outlined?: boolean;
   style?: StyleProp<TextStyle>;
 }>) {
@@ -20,9 +21,11 @@ export function CollectionStatusBadge({
   const [color, backgroundColor] = {
     success: [colors.onSuccessSubtle, colors.successSubtle],
     warning: [colors.warningOnSurface, colors.warningSubtle],
+    "strong-warning": [colors.onWarning, colors.warning],
     error: [colors.error, colors.errorSubtle],
     neutral: [colors.secondaryText, colors.subtle],
   }[tone];
+  const outline = tone === "strong-warning" ? backgroundColor : colors.border;
   return (
     <Text
       style={[
@@ -30,7 +33,7 @@ export function CollectionStatusBadge({
         {
           color,
           backgroundColor,
-          borderColor: outlined ? colors.border : "transparent",
+          borderColor: outlined ? outline : "transparent",
         },
         style,
       ]}

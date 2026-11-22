@@ -75,12 +75,12 @@ afterEach(async () => {
 /** Exercises actual presentation events; the optional promise controls only the remote write boundary. */
 function Actions({
   response,
-  retainOnUnmount,
+  retainSuccessOnUnmount,
 }: Readonly<{
   response?: Promise<void>;
-  retainOnUnmount?: boolean;
+  retainSuccessOnUnmount?: boolean;
 }>) {
-  const feedback = useActionFeedback({ retainOnUnmount });
+  const feedback = useActionFeedback({ retainSuccessOnUnmount });
   return (
     <>
       <Pressable
@@ -127,18 +127,21 @@ function Surface({
   scope = "original",
   showActions = true,
   response,
-  retainOnUnmount,
+  retainSuccessOnUnmount,
 }: Readonly<{
   scope?: string;
   showActions?: boolean;
   response?: Promise<void>;
-  retainOnUnmount?: boolean;
+  retainSuccessOnUnmount?: boolean;
 }>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey={scope}>
         {showActions && (
-          <Actions response={response} retainOnUnmount={retainOnUnmount} />
+          <Actions
+            response={response}
+            retainSuccessOnUnmount={retainSuccessOnUnmount}
+          />
         )}
       </ActionFeedbackProvider>
     </ThemeProvider>
@@ -320,19 +323,17 @@ it("drops old session feedback and refuses its delayed failure after a scope cha
   ).toBeOnTheScreen();
 });
 
-it("retains a published native-handoff failure after route removal until the session changes", async () => {
+it("retains a published success after route removal until the session changes", async () => {
   // Given
   const user = userEvent.setup();
-  const view = await render(<Surface retainOnUnmount />);
-  await user.press(screen.getByRole("button", { name: "Technical failure" }));
+  const view = await render(<Surface retainSuccessOnUnmount />);
+  await user.press(screen.getByRole("button", { name: "Save" }));
 
   // When
-  await view.rerender(<Surface retainOnUnmount showActions={false} />);
+  await view.rerender(<Surface retainSuccessOnUnmount showActions={false} />);
 
   // Then
-  expect(
-    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole("alert", { name: SAVED_MESSAGE })).toBeOnTheScreen();
 
   // When
   await view.rerender(<Surface scope="replacement" showActions={false} />);
@@ -341,18 +342,34 @@ it("retains a published native-handoff failure after route removal until the ses
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
-it("ignores a late handoff failure even when an already-published notice could survive navigation", async () => {
+it("clears a failure on route removal even when published success may survive", async () => {
+  // Given
+  const user = userEvent.setup();
+  const view = await render(<Surface retainSuccessOnUnmount />);
+  await user.press(screen.getByRole("button", { name: "Technical failure" }));
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+
+  // When
+  await view.rerender(<Surface retainSuccessOnUnmount showActions={false} />);
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("ignores acknowledgement after the originating interaction unmounts", async () => {
   // Given
   const response = Promise.withResolvers<void>();
   const user = userEvent.setup();
   const view = await render(
-    <Surface retainOnUnmount response={response.promise} />,
+    <Surface retainSuccessOnUnmount response={response.promise} />,
   );
-  await user.press(screen.getByRole("button", { name: "Technical failure" }));
+  await user.press(screen.getByRole("button", { name: "Save" }));
 
   // When
-  await view.rerender(<Surface retainOnUnmount showActions={false} />);
-  await act(() => response.reject(new Error("Late provider failure")));
+  await view.rerender(<Surface retainSuccessOnUnmount showActions={false} />);
+  await act(() => response.resolve());
 
   // Then
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();

@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { PageFlatList } from "@/shared/components/page-list";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
@@ -35,10 +36,7 @@ import {
   MatchSummary,
   useConsultationQueries,
 } from "@/features/sporting/match-consultation";
-import {
-  isOwnContributionAccessDenied,
-  useOwnContributions,
-} from "../api/own-contributions";
+import { useOwnContributions } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
 import { ContributionStateBadge } from "../components/contribution-state-badge";
 
@@ -109,8 +107,8 @@ export function OwnContributionsScreen({
   const current = query.data?.pages[0];
   const authorized =
     editing.canRetain &&
-    !isOwnContributionAccessDenied(query.error) &&
-    !isOwnContributionAccessDenied(match.error);
+    !isResourceReadRefused(query.error) &&
+    !isResourceReadRefused(match.error);
   const active = authorized ? current?.activeContribution : undefined;
 
   function refresh() {

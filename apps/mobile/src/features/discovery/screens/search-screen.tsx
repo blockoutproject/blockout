@@ -1,10 +1,8 @@
 import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { hashKey } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Eraser, Flag, Search } from "lucide-react-native";
-import { IconButton } from "@/shared/components/icon-button";
-import { supportHref } from "@/features/support";
-import { useTheme } from "@/shared/theme/theme-provider";
+import { Eraser, Search } from "lucide-react-native";
+import { SupportFlagAction } from "@/features/support";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "@/shared/components/page";
@@ -56,7 +54,6 @@ export function SearchScreen() {
   // The shared modal provider outlives this route; only a genuine unmount ends its visit, not a tab switch or sheet.
   useEffect(() => resetVisit, [resetVisit]);
   const router = useRouter();
-  const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");
   // A criteria reset replaces the scroller; the tab has only one initial presentation.
   const reveal = {
@@ -224,19 +221,10 @@ export function SearchScreen() {
           <>
             <View style={styles.navigation}>
               <View style={styles.tabs}>{tabBar}</View>
-              <IconButton
-                label="Signaler un problème"
-                onPress={() => {
-                  Keyboard.dismiss();
-                  router.push(supportHref({ screen: "search" }));
-                }}
-              >
-                <Flag
-                  accessible={false}
-                  size={tokens.size.icon.lg}
-                  color={colors.icon}
-                />
-              </IconButton>
+              <SupportFlagAction
+                origin={{ screen: "search" }}
+                beforeOpen={() => Keyboard.dismiss()}
+              />
             </View>
             <SearchToolbar
               style={styles.toolbar}

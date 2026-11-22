@@ -1,6 +1,4 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { Flag } from "lucide-react-native";
 import {
   getGetClubLogoQueryKey,
   getGetDivisionLogoQueryKey,
@@ -10,9 +8,6 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { IconButton } from "@/shared/components/icon-button";
-import { useTheme } from "@/shared/theme/theme-provider";
-import { tokens } from "@/shared/theme/tokens";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -23,7 +18,7 @@ import { useAdministrationCapabilities } from "@/features/access/api/use-adminis
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/api/use-consultation-queries";
-import { supportHref } from "@/features/support";
+import { SupportFlagAction } from "@/features/support";
 import {
   usePresentation,
   type Presentation,
@@ -57,8 +52,6 @@ function PresentationScreenContent({
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const client = useQueryClient();
-  const router = useRouter();
-  const { colors } = useTheme();
   const ordinary = useOrdinaryRequest();
   const consultation = useConsultationQueries();
 
@@ -198,24 +191,13 @@ function PresentationScreenContent({
           title={title}
           action={
             ordinary.admitted && supportKind ? (
-              <IconButton
-                label="Signaler un problème"
-                onPress={() =>
-                  router.push(
-                    supportHref({
-                      screen: supportKind,
-                      targetType: supportKind,
-                      targetId: target.id,
-                    }),
-                  )
-                }
-              >
-                <Flag
-                  accessible={false}
-                  size={tokens.size.icon.lg}
-                  color={colors.icon}
-                />
-              </IconButton>
+              <SupportFlagAction
+                origin={{
+                  screen: supportKind,
+                  targetType: supportKind,
+                  targetId: target.id,
+                }}
+              />
             ) : undefined
           }
         />

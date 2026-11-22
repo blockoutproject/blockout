@@ -18,7 +18,7 @@ import {
   type UpdateOwnStreamContributionRequest,
   OwnStreamContributionDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { ApiError } from "@/shared/api/api-fetch";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
@@ -27,16 +27,6 @@ import {
 } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
-
-/** A current owner refusal or unavailable match revokes the personal resource, unlike a technical outage. */
-export function isOwnContributionAccessDenied(
-  error: unknown,
-): error is ApiError {
-  return (
-    isAccessDenied(error) ||
-    (error instanceof ApiError && error.kind === "http" && error.status === 404)
-  );
-}
 
 /**
  * Applies a current resource refusal to native Query state; later technical failures cannot recover
@@ -48,7 +38,7 @@ async function refuseOwnAccess(
   error: unknown,
   reading = false,
 ) {
-  if (!isOwnContributionAccessDenied(error)) {
+  if (!isResourceReadRefused(error)) {
     return;
   }
   if (!reading) {
@@ -108,7 +98,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     admission.admitted &&
     session.status === "authenticated" &&
     account.data?.accountId === actor.accountId &&
-    !isOwnContributionAccessDenied(account.error);
+    !isResourceReadRefused(account.error);
 
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal) {

@@ -1,11 +1,9 @@
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import { tokens } from "@/shared/theme/tokens";
 
-/** Native lists share the approved gap without coupling rows to request or selection state. */
-export function ListSeparator() {
-  return <View style={styles.separator} />;
+/** LegendList may supply the leading row; separators only need the host's approved gap. */
+export function ListSeparator({
+  gap = tokens.layout.list.gap,
+}: Readonly<{ gap?: number; leadingItem?: unknown }>) {
+  return <View style={{ height: gap }} />;
 }
-
-const styles = StyleSheet.create({
-  separator: { height: tokens.layout.list.gap },
-});

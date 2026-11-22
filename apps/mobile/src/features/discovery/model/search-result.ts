@@ -3,6 +3,7 @@ import type {
   SportingClassificationResponse,
   SportingSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
+import { uniquePageRows } from "@/shared/query/infinite-pages";
 import type { DiscoveryPage } from "../api/discovery-queries";
 
 /** Available public summary slots; missing context never produces invented identity or classification. */
@@ -53,11 +54,7 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
 export function uniqueSearchResults(
   pages: readonly DiscoveryPage[] | undefined,
 ): SearchResult[] {
-  return [
-    ...new Map(
-      (pages ?? [])
-        .flatMap(searchResults)
-        .map((item) => [item.identity.id.toLowerCase(), item]),
-    ).values(),
-  ];
+  return uniquePageRows((pages ?? []).flatMap(searchResults), (item) =>
+    item.identity.id.toLowerCase(),
+  );
 }

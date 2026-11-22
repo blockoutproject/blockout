@@ -12,18 +12,20 @@ import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { useSportingAuthority } from "../api/classification";
 import {
-  createMappingQueries,
-  uniqueMappingItems,
-} from "../api/mapping-queries";
+  fetchNextPageIfReady,
+  uniquePageRows,
+} from "@/shared/query/infinite-pages";
+import { createMappingQueries } from "../api/mapping-queries";
 import { mappingStatusLabels } from "../components/mapping-row";
 import {
+  allMappingSeasons,
+  selectedMappingSeason,
   type MappingFilters,
   useMappingRouteParams,
 } from "../model/mapping-route-params";
 
 const allStatuses = "Tous les statuts";
 const allSources = "Toutes les sources";
-const allSeasons = "Toutes les saisons";
 const loading = <ListLoading label="Chargement des choix" />;
 
 const choiceTitles = { status: "Statut", source: "Source", season: "Saison" };
@@ -42,8 +44,7 @@ export function MappingFiltersSheet() {
   const sources = useInfiniteQuery(
     queries.filters("source", choice === "source"),
   );
-  const latest = seasons.data?.pages[0]?.items[0];
-  const selectedSeason = draft.seasonId ?? latest?.id;
+  const season = selectedMappingSeason(draft, seasons.data?.pages[0]?.items[0]);
 
   function apply() {
     router.dismissTo({
@@ -52,22 +53,21 @@ export function MappingFiltersSheet() {
     });
   }
 
-  const required = choice === "source" ? sources : seasons;
-  const continuationFailed = !!required.data && required.isFetchNextPageError;
-  const remoteChoice = choice === "source" || choice === "season";
-  const needsOptions = remoteChoice || needsSeasons;
-  const choices =
-    remoteChoice && required.data
-      ? uniqueMappingItems(required.data.pages)
-      : [];
+  const remoteChoice =
+    choice === "source" || choice === "season" ? choice : undefined;
+  const required =
+    choice === "source" ? sources : needsSeasons ? seasons : undefined;
+  const continuationFailed = !!required?.data && required.isFetchNextPageError;
+  const choices = remoteChoice
+    ? uniquePageRows(
+        required?.data?.pages.flatMap(({ items }) => items) ?? [],
+        ({ id }) => id,
+      )
+    : [];
 
   function loadMore() {
-    if (
-      navigation.isFocused() &&
-      required.hasNextPage &&
-      !required.isFetching
-    ) {
-      void required.fetchNextPage({ cancelRefetch: false });
+    if (required) {
+      fetchNextPageIfReady(required, navigation.isFocused());
     }
   }
 
@@ -78,7 +78,7 @@ export function MappingFiltersSheet() {
       onScroll={
         authority.enabled &&
         remoteChoice &&
-        required.data &&
+        required?.data &&
         !hasReadError(required)
           ? ({
               nativeEvent: { contentOffset, contentSize, layoutMeasurement },
@@ -96,7 +96,7 @@ export function MappingFiltersSheet() {
       <SheetContent>
         {!authority.enabled ? (
           <AccessFeedback {...authority} loadingContent={loading} />
-        ) : needsOptions &&
+        ) : required &&
           (!required.data ||
             (hasReadError(required) && !continuationFailed)) ? (
           <ReadFeedback
@@ -119,16 +119,16 @@ export function MappingFiltersSheet() {
               setChoice(undefined);
             }}
           />
-        ) : remoteChoice ? (
+        ) : remoteChoice && required ? (
           <>
             <SelectionList
               options={[
                 choice === "source"
                   ? { value: undefined, label: allSources }
-                  : { value: "all", label: allSeasons },
+                  : { value: "all", label: allMappingSeasons },
                 ...choices.map(({ id, label }) => ({ value: id, label })),
               ]}
-              selected={choice === "source" ? draft.sourceId : selectedSeason}
+              selected={choice === "source" ? draft.sourceId : season?.id}
               onSelect={(value) => {
                 const option = choices.find(({ id }) => id === value);
                 setDraft(
@@ -164,16 +164,16 @@ export function MappingFiltersSheet() {
             />
             <SelectField
               label="Source"
-              value={draft.sourceLabel ?? allSources}
+              value={
+                draft.sourceId
+                  ? (draft.sourceLabel ?? "Source sélectionnée")
+                  : allSources
+              }
               onPress={() => setChoice("source")}
             />
             <SelectField
               label="Saison"
-              value={
-                draft.seasonId === "all"
-                  ? allSeasons
-                  : (draft.seasonLabel ?? latest?.label ?? allSeasons)
-              }
+              value={season?.label ?? allMappingSeasons}
               onPress={() => setChoice("season")}
             />
           </FilterSheetForm>

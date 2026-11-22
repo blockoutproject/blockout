@@ -1,7 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
 import { Keyboard } from "react-native";
 import type { MappingPackResponse } from "../../../../.generated/schemas/index.zod";
 import {
@@ -9,11 +7,12 @@ import {
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
 import { ListLoading } from "@/shared/components/list-loading";
-import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { Page } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { ScreenState } from "@/shared/components/screen-state";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { SearchField } from "@/shared/components/search-field";
 import { SearchToolbar } from "@/shared/components/search-toolbar";
+import { useSubmittedSearch } from "@/shared/forms/use-submitted-search";
 import { tokens } from "@/shared/theme/tokens";
 import { useSportingAuthority } from "../api/classification";
 import { createMappingQueries } from "../api/mapping-queries";
@@ -21,7 +20,7 @@ import { MappingHeader } from "../components/mapping-header";
 import { MappingList } from "../components/mapping-list";
 import { MappingRow, mappingStatusLabels } from "../components/mapping-row";
 import {
-  mappingSearchSchema,
+  selectedMappingSeason,
   useMappingRouteParams,
 } from "../model/mapping-route-params";
 
@@ -35,29 +34,22 @@ export function MappingScreen() {
   const seasons = useInfiniteQuery(
     queries.filters("season", !filters.seasonId),
   );
-  const latest = seasons.data?.pages[0]?.items[0];
-  const seasonId =
-    filters.seasonId === "all" ? undefined : (filters.seasonId ?? latest?.id);
-  const seasonLabel =
-    filters.seasonId === "all"
-      ? "Toutes les saisons"
-      : filters.seasonId
-        ? filters.seasonLabel
-        : latest?.label;
+  const season = selectedMappingSeason(
+    filters,
+    seasons.data?.pages[0]?.items[0],
+  );
   const criteria = {
     status: filters.status,
     sourceId: filters.sourceId,
-    seasonId,
+    seasonId: season?.id === "all" ? undefined : season?.id,
     search: search || undefined,
   };
   const options = queries.packs(criteria, !!filters.seasonId || !!seasons.data);
   const packs = useInfiniteQuery(options);
   const seasonFailed = hasReadError(seasons) && !seasons.isFetchNextPageError;
-  const { control, handleSubmit, reset } = useForm({
-    values: { search: search ?? "" },
-    resolver: zodResolver(mappingSearchSchema),
-    mode: "onChange",
-  });
+  const searchField = useSubmittedSearch(search, (text) =>
+    router.setParams({ search: text }),
+  );
   const filtered = !!(filters.status || filters.sourceId || filters.seasonId);
 
   if (
@@ -67,18 +59,15 @@ export function MappingScreen() {
     const failed = authority.enabled
       ? seasonFailed
       : !isAccessLoading(authority);
-    const Layout = failed ? ScreenState : PageContent;
     return (
       <Page header={<MappingHeader />}>
-        <PageScrollView>
-          <Layout>
-            {authority.enabled ? (
-              <ReadFeedback query={seasons} loadingContent={loading} />
-            ) : (
-              <AccessFeedback {...authority} loadingContent={loading} />
-            )}
-          </Layout>
-        </PageScrollView>
+        <PageReadState pending={!failed}>
+          {authority.enabled ? (
+            <ReadFeedback query={seasons} loadingContent={loading} />
+          ) : (
+            <AccessFeedback {...authority} loadingContent={loading} />
+          )}
+        </PageReadState>
       </Page>
     );
   }
@@ -87,7 +76,7 @@ export function MappingScreen() {
     <Page
       header={
         <>
-          <MappingHeader subtitle={seasonLabel} />
+          <MappingHeader subtitle={season?.label} />
           <SearchToolbar
             style={{ paddingTop: tokens.spacing.xs }}
             filter={{
@@ -99,35 +88,10 @@ export function MappingScreen() {
                 }),
             }}
           >
-            <Controller
-              control={control}
-              name="search"
-              render={({ field, fieldState }) => (
-                <SearchField
-                  ref={field.ref}
-                  label="Rechercher un pack, une poule ou une source"
-                  placeholder="Pack, poule, source…"
-                  value={field.value}
-                  autoCorrect={false}
-                  returnKeyType="search"
-                  error={
-                    fieldState.invalid
-                      ? "La recherche est limitée à 200 caractères."
-                      : undefined
-                  }
-                  onBlur={field.onBlur}
-                  onChangeText={field.onChange}
-                  onSubmitEditing={() =>
-                    void handleSubmit(({ search }) =>
-                      router.setParams({ search }),
-                    )()
-                  }
-                  onClear={() => {
-                    reset({ search: "" });
-                    router.setParams({ search: "" });
-                  }}
-                />
-              )}
+            <SearchField
+              {...searchField}
+              label="Rechercher un pack, une poule ou une source"
+              placeholder="Pack, poule, source…"
             />
           </SearchToolbar>
         </>
@@ -141,12 +105,12 @@ export function MappingScreen() {
         query={packs}
         loadingLabel="Chargement des packs"
         emptyLabel="Aucun pack trouvé"
-        renderRow={(pack) => (
+        renderItem={({ item: pack }) => (
           <MappingRow
             label={pack.label}
             detail={`${pack.sourceLabel} · ${pack.poolCount} ${pack.poolCount === 1 ? "poule" : "poules"}`}
             badge={mappingStatusLabels[pack.status]}
-            tone={pack.status === "all" ? "success" : "warning"}
+            tone={pack.status === "all" ? "success" : "strong-warning"}
             onPress={() => {
               Keyboard.dismiss();
               router.push({

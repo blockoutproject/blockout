@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -30,7 +31,6 @@ import {
   useConsultationQueries,
 } from "@/features/sporting/match-consultation";
 import { useContributionReport } from "../api/contribution-reports";
-import { isOwnContributionAccessDenied } from "../api/own-contributions";
 
 /** Captured F03 identity; every explicit attempt keeps this exact version. */
 export interface ReportContributionScreenProps {
@@ -143,7 +143,7 @@ function ReportForm({
     });
   const { isDirty } = useFormState({ control });
   const matchAvailable =
-    match.data !== undefined && !isOwnContributionAccessDenied(match.error);
+    match.data !== undefined && !isResourceReadRefused(match.error);
   const currentVersionUrl =
     match.data?.streamContributionId === contributionId
       ? match.data.streamUrl
@@ -155,7 +155,7 @@ function ReportForm({
     command.data?.reported === true ||
     (reporting.usable &&
       matchAvailable &&
-      !isOwnContributionAccessDenied(query.error) &&
+      !isResourceReadRefused(query.error) &&
       query.data?.reported === true);
   useDiscardChanges(isDirty && !reported, () => {
     reset({ reason: "" });

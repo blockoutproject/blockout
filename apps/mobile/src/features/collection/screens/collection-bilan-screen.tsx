@@ -1,13 +1,9 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import type { ReactNode } from "react";
-import { Controller, useForm } from "react-hook-form";
 import { Keyboard, StyleSheet } from "react-native";
-import {
-  ListCollectionResultsParams,
-  type CollectionResultSourceResponse,
-} from "../../../../.generated/schemas/index.zod";
+import type { CollectionResultSourceResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -25,10 +21,11 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
 import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { EmptyState } from "@/shared/components/state-card";
+import { fetchNextPageIfReady } from "@/shared/query/infinite-pages";
+import { useSubmittedSearch } from "@/shared/forms/use-submitted-search";
 import { tokens } from "@/shared/theme/tokens";
 import {
   createCollectionQueries,
-  isCollectionReadRefused,
   type CollectionResultCriteria,
 } from "../api/collection-queries";
 import { useCollectionAuthority } from "../api/use-collection-season";
@@ -51,10 +48,6 @@ export interface CollectionBilanScreenProps {
   onViewSource: (source: CollectionResultSourceResponse) => void;
 }
 
-const searchSchema = ListCollectionResultsParams.pick({
-  query: true,
-}).required();
-
 /** Query owns the server-ordered traversal. A failed continuation leaves its accepted list mounted. */
 export function CollectionBilanScreen({
   header,
@@ -75,14 +68,12 @@ export function CollectionBilanScreen({
     ...options,
     enabled: (state) => authority.enabled && state.state.status !== "error",
   });
-  const { control, handleSubmit, reset } = useForm({
-    values: { query: criteria.query ?? "" },
-    resolver: zodResolver(searchSchema),
-    mode: "onChange",
-  });
+  const searchField = useSubmittedSearch(criteria.query, (text) =>
+    onSearch(text.trim() || undefined),
+  );
   const reveal = useContentReveal();
   const contextKey = hashKey(options.queryKey);
-  const refused = isCollectionReadRefused(query.error);
+  const refused = isResourceReadRefused(query.error);
   const continuationFailed =
     !!query.data && query.isFetchNextPageError && !refused;
   const failed = hasReadError(query) && !continuationFailed;
@@ -117,14 +108,7 @@ export function CollectionBilanScreen({
     !query.isFetchingNextPage;
 
   function loadMore() {
-    if (
-      authority.enabled &&
-      navigation.isFocused() &&
-      query.hasNextPage &&
-      !query.isFetching
-    ) {
-      void query.fetchNextPage({ cancelRefetch: false });
-    }
+    fetchNextPageIfReady(query, authority.enabled && navigation.isFocused());
   }
 
   return (
@@ -139,35 +123,10 @@ export function CollectionBilanScreen({
               onPress: onOpenFilters,
             }}
           >
-            <Controller
-              control={control}
-              name="query"
-              render={({ field, fieldState }) => (
-                <SearchField
-                  ref={field.ref}
-                  label="Rechercher dans le bilan"
-                  placeholder="Poule, source, étape…"
-                  value={field.value}
-                  autoCorrect={false}
-                  returnKeyType="search"
-                  onBlur={field.onBlur}
-                  error={
-                    fieldState.invalid
-                      ? "La recherche est limitée à 200 caractères."
-                      : undefined
-                  }
-                  onChangeText={field.onChange}
-                  onSubmitEditing={() =>
-                    void handleSubmit(({ query }) =>
-                      onSearch(query.trim() || undefined),
-                    )()
-                  }
-                  onClear={() => {
-                    reset({ query: "" });
-                    onSearch();
-                  }}
-                />
-              )}
+            <SearchField
+              {...searchField}
+              label="Rechercher dans le bilan"
+              placeholder="Poule, source, étape…"
             />
           </SearchToolbar>
         </>

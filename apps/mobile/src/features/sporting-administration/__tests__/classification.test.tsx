@@ -472,6 +472,42 @@ it("closes the pack sheet after saving a complete classification and refreshes M
   expect(client.getQueryState(detailKey)?.isInvalidated).toBe(true);
 });
 
+it("keeps a new sheet open when a previous visit's save is acknowledged", async () => {
+  // Given
+  stored.setting = classification;
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? response.promise : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/pools/${id}/classification`),
+      expect.objectContaining({ method: "PUT" }),
+    ),
+  );
+  await act(() => router.back());
+  await screen.findByText("Mapping des poules");
+  await act(() => router.push("/editor"));
+  await screen.findByRole("button", { name: "Enregistrer" });
+
+  // When
+  const accepted = { ...classification, format: "4x4" } as const;
+  stored = { id, setting: accepted, effective: accepted };
+  await act(() => response.resolve(json(stored)));
+
+  // Then
+  await waitFor(() =>
+    expect(client.getQueryData(getGetPoolClassificationQueryKey(id))).toEqual(
+      stored,
+    ),
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
 it("retains dirty choices and displays conflicting scopes without applying a subset", async () => {
   // Given
   const initialFetch = respond;

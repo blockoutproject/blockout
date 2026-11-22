@@ -158,10 +158,10 @@ export function ActionFeedbackProvider({
 /**
  * Supplies event-only feedback for the mounted original interaction.
  * Pass safe product copy; field validation and domain outcome presentation remain with their owners.
- * A native handoff may retain an already-published notice after closing its route; late events
- * remain ignored, and the root still owns session invalidation and the ordinary toast timeout.
+ * An acknowledged action that closes its route may retain its published success until the
+ * ordinary timeout or a session change. Errors leave with their interaction owner.
  */
-export function useActionFeedback({ retainOnUnmount = false } = {}) {
+export function useActionFeedback({ retainSuccessOnUnmount = false } = {}) {
   const context = useContext(FeedbackContext);
   if (!context) {
     throw new Error("Action feedback requires ActionFeedbackProvider");
@@ -178,11 +178,9 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
     const identity = owner.current;
     return () => {
       mounted.current = false;
-      if (!retainOnUnmount) {
-        clear(identity);
-      }
+      clear(identity, retainSuccessOnUnmount ? "error" : undefined);
     };
-  }, [clear, retainOnUnmount]);
+  }, [clear, retainSuccessOnUnmount]);
   return {
     /**
      * Replaces feedback for a live event. A session-changing continuation may supply its new scope

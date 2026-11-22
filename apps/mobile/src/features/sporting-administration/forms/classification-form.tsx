@@ -1,11 +1,5 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef } from "react";
-import {
-  Controller,
-  useFormState,
-  useWatch,
-  type UseFormReturn,
-} from "react-hook-form";
+import { useNavigation, useRouter } from "expo-router";
+import { Controller, useFormState, type UseFormReturn } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import {
   SportFormatEnum,
@@ -42,7 +36,13 @@ export const classificationFieldLabels = {
 
 export type ClassificationField = keyof typeof classificationFieldLabels;
 
-const classificationFields = ["divisionId", "format", "gender"] as const;
+const classificationFields = Object.keys(
+  classificationFieldLabels,
+) as ClassificationField[];
+const poolModes = [
+  { custom: false, label: "Du pack" },
+  { custom: true, label: "Personnalisé" },
+];
 const formats = SportFormatEnum.options.map((value) => ({
   value,
   label: formatLabel(value),
@@ -55,59 +55,49 @@ const genders = SportGenderEnum.options.map((value) => ({
 export function ClassificationForm({
   kind,
   form,
-  editing,
+  custom,
+  disabled,
+  save,
   divisionQuery,
   choice,
   onChoice,
 }: Readonly<{
   kind: ClassificationTarget["kind"];
   form: UseFormReturn<ClassificationValues>;
-  editing: ReturnType<typeof useClassification>;
+  custom: boolean;
+  disabled: boolean;
+  save: ReturnType<typeof useClassification>["save"];
   divisionQuery: ReturnType<typeof useDivisions>["query"];
   choice?: ClassificationField;
   onChoice: (field?: ClassificationField) => void;
 }>) {
   const router = useRouter();
-  const activeVisit = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      activeVisit.current = true;
-      return () => {
-        activeVisit.current = false;
-      };
-    }, []),
-  );
-  const feedback = useActionFeedback();
-  const confirmation = useActionFeedback({ retainOnUnmount: true });
-  const { control, handleSubmit, reset, setError, setValue } = form;
+  const navigation = useNavigation();
+  const feedback = useActionFeedback({ retainSuccessOnUnmount: true });
+  const { control, getValues, handleSubmit, reset, setError, setValue } = form;
   const { isDirty, errors } = useFormState({ control });
-  const { disablePrevention } = useDiscardChanges(!choice && isDirty, () =>
+  const disablePrevention = useDiscardChanges(!choice && isDirty, () =>
     reset(),
   );
-  const values = useWatch({ control });
-  const { authority, query, save } = editing;
-  const busy = !query.data || !authority.enabled || save.isPending;
+  const busy = disabled || save.isPending;
   const choicesBusy =
     busy || !divisionQuery.isSuccess || divisionQuery.isFetching;
   const divisions = divisionQuery.data?.items ?? [];
-  const activeDivisions = divisions.filter(({ active }) => active);
   const options = {
-    divisionId: activeDivisions.map(({ id, name }) => ({
-      value: id,
-      label: name,
-    })),
+    divisionId: divisions.flatMap(({ id, name, active }) =>
+      active ? [{ value: id, label: name }] : [],
+    ),
     format: formats,
     gender: genders,
   };
 
-  /** Acknowledgement retires this visit's dirty guard before the native sheet closes. */
-  async function submit(draft: ClassificationValues) {
-    if (busy || (draft.custom && choicesBusy)) {
+  function submit(draft: ClassificationValues) {
+    if (draft.custom ? choicesBusy : busy) {
       return;
     }
     if (
       draft.custom &&
-      !activeDivisions.some(({ id }) => id === draft.divisionId)
+      !options.divisionId.some(({ value }) => value === draft.divisionId)
     ) {
       setError("divisionId", {
         message: "Choisissez une division active disponible.",
@@ -115,38 +105,44 @@ export function ClassificationForm({
       return;
     }
     feedback.clear();
-    try {
-      const accepted = await save.mutateAsync(toClassificationRequest(draft));
-      if (activeVisit.current) {
+    save.mutate(toClassificationRequest(draft), {
+      onSuccess(accepted) {
+        if (!navigation.isFocused()) {
+          return;
+        }
+        // Reset the acknowledged draft and release its guard before closing this sheet.
         reset(classificationValues(accepted, kind));
         disablePrevention();
-        confirmation.success(
+        feedback.success(
           kind === "pack"
             ? "Classification du pack enregistrée"
             : "Classification de la poule enregistrée",
         );
         router.back();
-      }
-    } catch (error) {
-      if (
-        error instanceof ApiError &&
-        error.status === 409 &&
-        error.problem?.type === "urn:blockout:problem:classification-conflict"
-      ) {
-        const ids =
-          "conflictingResourceIds" in error.problem
-            ? error.problem.conflictingResourceIds
-            : undefined;
-        const scopes =
-          Array.isArray(ids) && ids.length > 0
-            ? ` Périmètres en conflit : ${ids.join(", ")}.`
-            : "";
-        setError("root.conflict", {
-          message: `Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique.${scopes} Votre brouillon est conservé.`,
-        });
-      } else {
-        feedback.error();
-      }
+      },
+      onError: showWriteFailure,
+    });
+  }
+
+  function showWriteFailure(error: Error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 409 &&
+      error.problem?.type === "urn:blockout:problem:classification-conflict"
+    ) {
+      const ids =
+        "conflictingResourceIds" in error.problem
+          ? error.problem.conflictingResourceIds
+          : undefined;
+      const scopes =
+        Array.isArray(ids) && ids.length > 0
+          ? ` Périmètres en conflit : ${ids.join(", ")}.`
+          : "";
+      setError("root.conflict", {
+        message: `Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique.${scopes} Votre brouillon est conservé.`,
+      });
+    } else {
+      feedback.error();
     }
   }
 
@@ -154,14 +150,12 @@ export function ClassificationForm({
     return options[choice].length > 0 ? (
       <SelectionList
         options={options[choice]}
-        selected={values[choice]}
+        selected={getValues(choice)}
         onSelect={(value) => {
-          if (value !== undefined) {
-            setValue(choice, value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-          }
+          setValue(choice, value, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
           onChoice(undefined);
         }}
       />
@@ -183,31 +177,26 @@ export function ClassificationForm({
           name="custom"
           render={({ field }) => (
             <View style={styles.modes}>
-              <View style={styles.mode}>
-                <Button
-                  label="Du pack"
-                  selected={!field.value}
-                  variant={field.value ? "secondary" : "primary"}
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => field.onChange(false)}
-                />
-              </View>
-              <View style={styles.mode}>
-                <Button
-                  label="Personnalisé"
-                  selected={field.value}
-                  variant={field.value ? "primary" : "secondary"}
-                  fullWidth
-                  disabled={busy}
-                  onPress={() => field.onChange(true)}
-                />
-              </View>
+              {poolModes.map((mode) => {
+                const selected = mode.custom === field.value;
+                return (
+                  <View key={String(mode.custom)} style={styles.mode}>
+                    <Button
+                      label={mode.label}
+                      selected={selected}
+                      variant={selected ? "primary" : "secondary"}
+                      fullWidth
+                      disabled={busy}
+                      onPress={() => field.onChange(mode.custom)}
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
         />
       )}
-      {values.custom &&
+      {custom &&
         classificationFields.map((name) => (
           <Controller
             key={name}
@@ -227,7 +216,7 @@ export function ClassificationForm({
                   name === "divisionId" &&
                   !!field.value &&
                   divisionQuery.isSuccess &&
-                  !activeDivisions.some(({ id }) => id === field.value)
+                  !options.divisionId.some(({ value }) => value === field.value)
                     ? "La division sélectionnée est inactive ou indisponible. Choisissez une division active avant une nouvelle affectation."
                     : undefined
                 }
@@ -241,7 +230,7 @@ export function ClassificationForm({
       <Button
         label="Enregistrer"
         fullWidth
-        disabled={busy || (values.custom && choicesBusy)}
+        disabled={custom ? choicesBusy : busy}
         loading={save.isPending}
         onPress={() => void handleSubmit(submit)()}
       />

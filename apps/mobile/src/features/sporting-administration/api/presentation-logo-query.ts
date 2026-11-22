@@ -8,18 +8,12 @@ import {
   getGetDivisionLogoQueryKey,
 } from "../../../../.generated/mobile";
 import { ApiError } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { binaryImagePreview } from "@/shared/api/binary-image-preview";
 import type { PresentationTarget } from "./presentation";
-import type { SportingQueryAuthority } from "./sporting-administration-queries";
-
-/** A current HTTP refusal or missing binary withdraws the remote preview without changing the editable resource. */
-function isRefusedOrMissingPreview(error: unknown): boolean {
-  return (
-    isAccessDenied(error) ||
-    (error instanceof ApiError && error.kind === "http" && error.status === 404)
-  );
-}
+import {
+  createSportingReader,
+  type SportingQueryAuthority,
+} from "./sporting-administration-queries";
 
 /**
  * Keeps an editor's selected binary preview in its generated cache owner. Generated calls own HTTP;
@@ -32,6 +26,7 @@ export function createPresentationLogoQueryOptions(
   selection: "effective" | "automatic",
 ) {
   const params = { selection };
+  const read = createSportingReader(authority);
   let generatedKey;
   if (target.kind === "team") {
     generatedKey = getGetTeamLogoQueryKey(target.id, params);
@@ -49,9 +44,8 @@ export function createPresentationLogoQueryOptions(
       target.kind !== "pool" &&
       target.kind !== "division-creation",
     gcTime: 0,
-    queryFn: async ({ signal, client, queryKey }) => {
-      try {
-        const options = await authority.request(signal);
+    queryFn: (context) =>
+      read(context, async (options) => {
         let blob;
         if (target.kind === "team") {
           blob = await getTeamLogo(target.id, params, options);
@@ -59,28 +53,15 @@ export function createPresentationLogoQueryOptions(
           blob = await getClubLogo(target.id, options);
         } else if (target.kind === "division") {
           blob = await getDivisionLogo(target.id, options);
-        } else {
-          blob = undefined;
         }
         if (!blob) {
           throw new ApiError("configuration");
         }
-        const uri = await binaryImagePreview(blob, signal);
-        if (signal.aborted) {
+        const uri = await binaryImagePreview(blob, context.signal);
+        if (context.signal.aborted) {
           throw new ApiError("cancelled");
         }
         return uri;
-      } catch (error) {
-        if (signal.aborted) {
-          throw new ApiError("cancelled");
-        }
-        if (isRefusedOrMissingPreview(error)) {
-          client.setQueryData<string | null>(queryKey, null, {
-            updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
-          });
-        }
-        throw error;
-      }
-    },
+      }),
   });
 }

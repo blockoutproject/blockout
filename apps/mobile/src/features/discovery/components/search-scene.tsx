@@ -1,3 +1,4 @@
+import { fetchNextPageIfReady } from "@/shared/query/infinite-pages";
 import type { ReactElement, ReactNode } from "react";
 import { Keyboard, StyleSheet } from "react-native";
 import { useNavigation } from "expo-router";
@@ -66,18 +67,10 @@ export function SearchScene({
 
   /** Only the selected focused valid text context may continue its current cursor. */
   function loadMore() {
-    if (
-      !active ||
-      !navigation.isFocused() ||
-      !resultsReady ||
-      examples ||
-      !textQuery.hasNextPage ||
-      query.isFetching ||
-      failed
-    ) {
-      return;
-    }
-    void textQuery.fetchNextPage({ cancelRefetch: false });
+    fetchNextPageIfReady(
+      textQuery,
+      active && navigation.isFocused() && resultsReady && !examples && !failed,
+    );
   }
 
   let emptyContent: ReactElement | null = null;

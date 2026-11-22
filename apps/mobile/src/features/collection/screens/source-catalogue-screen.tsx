@@ -1,3 +1,4 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import {
   useInfiniteQuery,
@@ -49,12 +50,11 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
   createCollectionQueries,
-  isCollectionReadRefused,
   type CollectionQueryAuthority,
 } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionLink } from "../components/collection-link";
-import { CollectionReadState } from "../components/collection-read-state";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionBilanHref } from "../model/collection-hrefs";
 import type { SourceCatalogueFocus } from "../model/collection-route-params";
@@ -130,22 +130,20 @@ export function SourceCatalogueScreen({
     );
   } else if (!authority.enabled) {
     content = (
-      <CollectionReadState pending={isAccessLoading(authority)}>
+      <PageReadState pending={isAccessLoading(authority)}>
         <AccessFeedback {...authority} loadingContent={loading} />
-      </CollectionReadState>
+      </PageReadState>
     );
   } else {
     const required = !season.data || hasReadError(season) ? season : source;
     content = (
-      <CollectionReadState
-        pending={required.isPending && !hasReadError(required)}
-      >
+      <PageReadState pending={required.isPending && !hasReadError(required)}>
         {source.data && !matchesRoute ? (
           <ErrorState />
         ) : (
           <ReadFeedback query={required} loadingContent={loading} />
         )}
-      </CollectionReadState>
+      </PageReadState>
     );
   }
 
@@ -224,9 +222,9 @@ function SourceCatalogue({
 
   if (failed || !query.data) {
     return (
-      <CollectionReadState pending={!failed}>
+      <PageReadState pending={!failed}>
         <ReadFeedback query={query} loadingContent={loading} />
-      </CollectionReadState>
+      </PageReadState>
     );
   }
 
@@ -596,7 +594,7 @@ function useCatalogueChildren(
     createCollectionQueries(authority).children(sourceId, parentId),
   );
   const continuationFailed =
-    query.isFetchNextPageError && !isCollectionReadRefused(query.error);
+    query.isFetchNextPageError && !isResourceReadRefused(query.error);
   const failed = hasReadError(query) && !continuationFailed;
   const pages = query.data?.pages;
   const rows = useMemo(() => catalogueRows(pages, level), [level, pages]);

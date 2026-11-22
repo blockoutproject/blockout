@@ -1,4 +1,4 @@
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { queryOptions, type QueryFunctionContext } from "@tanstack/react-query";
 import {
   getClubPresentation,
@@ -18,44 +18,47 @@ import {
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
-/** Current permission or target refusals suspend commands; technical failures retain the admitted draft. */
-function isSportingReadRefused(error: unknown): boolean {
-  return (
-    isAccessDenied(error) ||
-    (error instanceof ApiError && error.kind === "http" && error.status === 404)
-  );
-}
-
 /** Current sporting authority prepares credentials and rechecks the action grant for every execution. */
 export interface SportingQueryAuthority {
   enabled: boolean;
   request(signal?: AbortSignal): Promise<ApiFetchOptions>;
 }
 
-/** Canonical generated DTO reads; editor-specific projections belong to Query select, never a second cache. */
-export function createSportingAdministrationQueries(
+/** Uses the current principal for each read and leaves refusal handling with the cache's owner. */
+export function createSportingReader(
   authority: SportingQueryAuthority,
+  withdraw = markEditorReadRefused,
 ) {
-  /** Withdraws refused data; the failed attempt always reports its own error. */
-  async function read<T>(
+  return async function read<T>(
     context: QueryFunctionContext,
     execute: (options: ApiFetchOptions) => Promise<T>,
-  ): Promise<T | null> {
+  ) {
     try {
       return await execute(await authority.request(context.signal));
     } catch (error) {
       if (context.signal.aborted) {
         throw new ApiError("cancelled");
       }
-      if (isSportingReadRefused(error)) {
-        context.client.setQueryData<T | null>(context.queryKey, null, {
-          updatedAt:
-            context.client.getQueryState(context.queryKey)?.dataUpdatedAt ?? 0,
-        });
+      if (isResourceReadRefused(error)) {
+        withdraw(context);
       }
       throw error;
     }
-  }
+  };
+}
+
+// A late mutation acknowledgement must not reinstate a refused editor.
+function markEditorReadRefused({ client, queryKey }: QueryFunctionContext) {
+  client.setQueryData(queryKey, null, {
+    updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
+  });
+}
+
+/** Canonical generated DTO reads; editor-specific projections belong to Query select. */
+export function createSportingAdministrationQueries(
+  authority: SportingQueryAuthority,
+) {
+  const read = createSportingReader(authority);
 
   return {
     /** The complete division list supplies lifecycle navigation and custom classification choices. */

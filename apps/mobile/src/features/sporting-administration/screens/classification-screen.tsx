@@ -9,6 +9,7 @@ import { Sheet, SheetContent } from "@/shared/components/sheet";
 import {
   useClassification,
   useDivisions,
+  useSportingAuthority,
   type ClassificationTarget,
 } from "../api/classification";
 import { ClassificationLoading } from "../components/sporting-editor-loading";
@@ -31,13 +32,13 @@ export function ClassificationScreen(
   props: Readonly<ClassificationScreenProps>,
 ) {
   const { target } = props;
-  const editing = useClassification(target);
-  const { session } = editing.authority;
+  const authority = useSportingAuthority("classification");
+  const { session } = authority;
   return (
     <ClassificationVisit
       key={`${session.subject}:${session.accountId}:${target.kind}:${target.id}`}
       {...props}
-      editing={editing}
+      authority={authority}
     />
   );
 }
@@ -46,14 +47,16 @@ function ClassificationVisit({
   target,
   title,
   subtitle,
-  editing,
+  authority,
 }: Readonly<
-  ClassificationScreenProps & { editing: ReturnType<typeof useClassification> }
+  ClassificationScreenProps & {
+    authority: ReturnType<typeof useSportingAuthority>;
+  }
 >) {
   const router = useRouter();
   const [choice, setChoice] = useState<ClassificationField>();
   const closeChoice = () => setChoice(undefined);
-  const { authority, query, save } = editing;
+  const { query, save } = useClassification(target, authority);
   usePreventRemove(authority.enabled && choice !== undefined, closeChoice);
   const current =
     authority.sessionStatus === "authenticated" ? query.data : null;
@@ -120,7 +123,9 @@ function ClassificationVisit({
             <ClassificationForm
               kind={target.kind}
               form={form}
-              editing={editing}
+              custom={custom === true}
+              disabled={blocked || !query.data}
+              save={save}
               divisionQuery={divisions.query}
               choice={choice}
               onChoice={setChoice}

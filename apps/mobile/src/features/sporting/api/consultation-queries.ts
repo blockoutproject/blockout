@@ -36,7 +36,7 @@ import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { binaryImagePreview } from "@/shared/api/binary-image-preview";
 import type { SessionSnapshot } from "@/features/accounts/session/account-session-provider";
 import type { useOrdinaryRequest } from "@/features/access/ordinary-request";
-import { resourceUnavailable } from "../model/consultation-availability";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 
 /** Existing ordinary admission; only an explicit maintenance bypass needs credentials. */
 type ConsultationAdmission = Pick<
@@ -84,7 +84,7 @@ export function createConsultationQueries(
     error: unknown,
     context: QueryFunctionContext,
   ): never {
-    if (!context.signal.aborted && resourceUnavailable(error)) {
+    if (!context.signal.aborted && isResourceReadRefused(error)) {
       discardCachedRead(context);
     }
     throw error;

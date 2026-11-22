@@ -13,13 +13,10 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
     currentDirty.current = dirty;
   }, [dirty]);
 
-  /**
-   * A clean form leaves immediately; a held dialog cannot discard a draft already saved or replaced.
-   * Inline cancellation may reset fields without releasing an editor retained for the current route.
-   */
-  async function confirmDiscard(discardDraft = discard): Promise<boolean> {
+  return usePreventRemove(dirty, async ({ repeat }) => {
     if (!currentDirty.current) {
-      return true;
+      repeat();
+      return;
     }
     const accepted = await confirm({
       title: "Abandonner les modifications ?",
@@ -28,17 +25,10 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
       cancelLabel: "Continuer la saisie",
       destructive: true,
     });
-    if (!accepted || !currentDirty.current) {
-      return false;
-    }
-    discardDraft();
-    return true;
-  }
-
-  const disablePrevention = usePreventRemove(dirty, async ({ repeat }) => {
-    if (await confirmDiscard()) {
+    // The dialog may outlive a draft saved while the question was open.
+    if (accepted && currentDirty.current) {
+      discard();
       repeat();
     }
   });
-  return { confirmDiscard, disablePrevention };
 }

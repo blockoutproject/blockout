@@ -2,13 +2,12 @@ import { useLayoutEffect, useState, useEffectEvent } from "react";
 import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import Pdf from "react-native-pdf";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Flag, X } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { X } from "lucide-react-native";
 import type { File } from "expo-file-system";
 import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
-import { supportHref } from "@/features/support";
+import { SupportFlagAction } from "@/features/support";
 import { ApiError } from "@/shared/api/api-fetch";
 import { Page } from "@/shared/components/page";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -46,7 +45,6 @@ export function MatchDocumentReader({
       onClose();
     }
   }, [current, onClose]);
-  const router = useRouter();
   const { colors } = useTheme();
   return (
     <Modal visible presentationStyle="fullScreen" onRequestClose={onClose}>
@@ -69,25 +67,15 @@ export function MatchDocumentReader({
             >
               {matchDocumentLabels[kind]}
             </Text>
-            <IconButton
+            <SupportFlagAction
               label="Signaler un problème avec le document"
-              onPress={() => {
-                onClose();
-                router.push(
-                  supportHref({
-                    screen: "match",
-                    targetType: "match",
-                    targetId: matchId,
-                  }),
-                );
+              beforeOpen={onClose}
+              origin={{
+                screen: "match",
+                targetType: "match",
+                targetId: matchId,
               }}
-            >
-              <Flag
-                accessible={false}
-                size={tokens.size.icon.lg}
-                color={colors.icon}
-              />
-            </IconButton>
+            />
           </View>
           <SafeAreaView edges={["bottom"]} style={styles.pdf}>
             {current && (

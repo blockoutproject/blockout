@@ -2,6 +2,10 @@ import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MappingStatusEnum } from "../../../../.generated/schemas/index.zod";
 import { controlOpacity } from "@/shared/components/control-styles";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "@/shared/components/status-badge";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -10,25 +14,6 @@ export const mappingStatusLabels = {
   some: "Partiel",
   none: "À classer",
 } satisfies Record<MappingStatusEnum, string>;
-
-type BadgeTone = "success" | "warning" | "neutral";
-
-export function MappingBadge({
-  label,
-  tone,
-}: Readonly<{ label: string; tone: BadgeTone }>) {
-  const { colors } = useTheme();
-  const [color, backgroundColor, borderColor] = {
-    success: [colors.onSuccessSubtle, colors.successSubtle, colors.border],
-    warning: [colors.onWarning, colors.warning, colors.warning],
-    neutral: [colors.secondaryText, colors.subtle, colors.border],
-  }[tone];
-  return (
-    <Text style={[styles.badge, { color, backgroundColor, borderColor }]}>
-      {label}
-    </Text>
-  );
-}
 
 /** Pack and pool rows share one visual and accessible disclosure pattern. */
 export function MappingRow({
@@ -41,7 +26,7 @@ export function MappingRow({
   label: string;
   detail?: string;
   badge: string;
-  tone: BadgeTone;
+  tone: StatusBadgeTone;
   onPress: () => void;
 }>) {
   const { colors } = useTheme();
@@ -74,7 +59,7 @@ export function MappingRow({
           </Text>
         )}
       </View>
-      <MappingBadge label={badge} tone={tone} />
+      <StatusBadge label={badge} tone={tone} />
       <ChevronRight
         accessible={false}
         size={tokens.size.icon.sm}
@@ -95,12 +80,4 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.panelInset,
   },
   copy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
-  badge: {
-    ...tokens.typography.metadata,
-    flexShrink: 1,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.optical,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.sm,
-  },
 });

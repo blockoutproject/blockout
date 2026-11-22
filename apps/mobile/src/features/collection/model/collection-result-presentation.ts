@@ -5,6 +5,8 @@ import type {
   CollectionStageEnum,
 } from "../../../../.generated/schemas/index.zod";
 
+import { uniquePageRows } from "@/shared/query/infinite-pages";
+
 export const outcomeLabels: Record<CollectionOutcomeEnum, string> = {
   success: "Réussie",
   partial: "Partielle",
@@ -31,11 +33,8 @@ export function collectionResultKey(result: CollectionResultResponse) {
 export function collectionResultRows(
   pages: readonly CollectionResultPageResponse[] | undefined,
 ) {
-  return [
-    ...new Map(
-      pages?.flatMap((page) =>
-        page.items.map((item) => [collectionResultKey(item), item] as const),
-      ),
-    ).values(),
-  ];
+  return uniquePageRows(
+    pages?.flatMap(({ items }) => items) ?? [],
+    collectionResultKey,
+  );
 }

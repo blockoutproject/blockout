@@ -7,10 +7,11 @@ export function classificationValues(
   current: ClassificationDetailResponse,
   kind: ClassificationTarget["kind"],
 ): ClassificationValues {
+  const setting = current.setting ?? current.effective;
   return {
     custom: kind === "pack" || current.setting !== null,
-    divisionId: (current.setting ?? current.effective)?.divisionId ?? "",
-    format: (current.setting ?? current.effective)?.format ?? "6x6",
-    gender: (current.setting ?? current.effective)?.gender ?? "female",
+    divisionId: setting?.divisionId ?? "",
+    format: setting?.format ?? "6x6",
+    gender: setting?.gender ?? "female",
   };
 }
