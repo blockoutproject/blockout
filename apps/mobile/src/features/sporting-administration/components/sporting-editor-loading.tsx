@@ -8,21 +8,16 @@ import { Surface } from "@/shared/components/surface";
 import { tokens } from "@/shared/theme/tokens";
 import type { PresentationTarget } from "../api/presentation";
 
-/** Classification waits in its summary, mode, division and paired choice slots without installing a draft. */
-export function ClassificationLoading() {
+/** Keeps the pack and pool sheet's stacked field slots during the first required read. */
+export function ClassificationLoading({ pool }: Readonly<{ pool: boolean }>) {
   return (
     <LoadingGroup label="Chargement de la classification" style={styles.form}>
-      <TextSkeleton width="85%" />
-      <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      {pool && (
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      )}
       <FieldSkeleton labelWidth="30%" />
-      <View style={styles.row}>
-        <View style={styles.column}>
-          <FieldSkeleton />
-        </View>
-        <View style={styles.column}>
-          <FieldSkeleton />
-        </View>
-      </View>
+      <FieldSkeleton />
+      <FieldSkeleton />
       <Skeleton height={tokens.size.control.default} shape="rectangle" />
     </LoadingGroup>
   );

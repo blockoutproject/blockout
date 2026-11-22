@@ -560,7 +560,7 @@ it.each([
     if (grant === "manageSportingClassification") {
       expect(
         screen.getByRole("link", { name: "Mapping des poules" }),
-      ).toBeDisabled();
+      ).toBeEnabled();
     } else {
       expect(
         screen.queryByRole("link", { name: "Mapping des poules" }),
@@ -581,7 +581,7 @@ it.each([
   },
 );
 
-it("enables the current video-moderation destination while keeping planned mapping disabled", async () => {
+it("keeps Mapping and video moderation available together for both grants", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
     json({
@@ -592,27 +592,25 @@ it("enables the current video-moderation destination while keeping planned mappi
       },
     }),
   );
-  const user = userEvent.setup();
 
   // When
   await renderAdministration(<AdministrationEntry />);
-  const mapping = await screen.findByRole("link", {
-    name: "Mapping des poules",
-  });
-  const video = screen.getByRole("link", { name: "Liens vidéo" });
-  await user.press(mapping);
 
   // Then
-  expect(mapping).toBeDisabled();
-  expect(video).toBeEnabled();
-  expect(screen.getByRole("link", { name: "Divisions" })).toBeEnabled();
   expect(
-    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
-  ).toBe(true);
+    await screen.findByRole("link", { name: "Mapping des poules" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("link", { name: "Liens vidéo" })).toBeEnabled();
+  expect(screen.getByRole("link", { name: "Divisions" })).toBeEnabled();
 });
 
 it.each([
   ["manageCollection", "Collectes", "/collection"],
+  [
+    "manageSportingClassification",
+    "Mapping des poules",
+    "/administration/mapping",
+  ],
   ["manageMaintenance", "Maintenance", "/administration/maintenance"],
   [
     "manageApplicationVersions",
@@ -631,6 +629,7 @@ it.each([
       {
         index: () => <AdministrationEntry />,
         collection: () => <Text>Destination collectes</Text>,
+        "administration/mapping": () => <Text>Destination mapping</Text>,
         "administration/maintenance": () => (
           <Text>Destination maintenance</Text>
         ),

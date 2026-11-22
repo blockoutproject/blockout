@@ -20,7 +20,7 @@ afterEach(async () => {
 /** Real route history and dirtiness drive the hook; only the native confirmation is controlled. */
 function Editor() {
   const [dirty, setDirty] = useState(true);
-  const confirmDiscard = useDiscardChanges(dirty, () => {
+  const { confirmDiscard } = useDiscardChanges(dirty, () => {
     discarded();
     setDirty(false);
   });

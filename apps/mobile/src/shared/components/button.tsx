@@ -116,10 +116,7 @@ export function Button({
             size === "compact" && styles.compact,
             size === "compact" && outlined && styles.compactOutline,
             {
-              backgroundColor:
-                size === "compact" && outlined && !contextColor
-                  ? colors.subtle
-                  : backgroundColor,
+              backgroundColor,
               backgroundImage:
                 variant === "primary"
                   ? `linear-gradient(120deg, ${stops.join(", ")})`
@@ -198,7 +195,7 @@ function buttonPaints(
     case "secondary":
       return contextColor
         ? { foreground: contextColor, backgroundColor: "transparent" }
-        : { foreground: colors.text, backgroundColor: colors.raised };
+        : { foreground: colors.text, backgroundColor: colors.subtle };
   }
 }
 

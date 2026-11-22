@@ -3,8 +3,8 @@ import { usePreventRemove } from "expo-router";
 import { useActionConfirmation } from "./use-action-confirmation";
 
 /**
- * Confirms dirty-form navigation once and returns the same guard for explicit departures such as
- * sign-out. The form owns disposal; callers run their departure only after acceptance.
+ * Confirms dirty-form navigation once. A caller that has reset its accepted draft can disable
+ * prevention before issuing a new navigation action in the same event.
  */
 export function useDiscardChanges(dirty: boolean, discard: () => void) {
   const confirm = useActionConfirmation();
@@ -35,10 +35,10 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
     return true;
   }
 
-  usePreventRemove(dirty, async ({ repeat }) => {
+  const disablePrevention = usePreventRemove(dirty, async ({ repeat }) => {
     if (await confirmDiscard()) {
       repeat();
     }
   });
-  return confirmDiscard;
+  return { confirmDiscard, disablePrevention };
 }

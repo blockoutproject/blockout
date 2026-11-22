@@ -18,6 +18,9 @@ import { AccessGateScreen } from "../screens/access-gate-screen";
 import NotFoundRoute from "@/app/+not-found";
 import OperationsLayout from "@/app/(operations)/_layout";
 import AdministrationRoute from "@/app/(operations)/administration";
+import MappingRoute from "@/app/(operations)/administration/mapping";
+import MappingPackRoute from "@/app/(operations)/administration/mapping/[packId]";
+import MappingFiltersRoute from "@/app/(operations)/administration/mapping/filters";
 import RootLayout from "@/app/_layout";
 import EntryRoute from "@/app/index";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
@@ -163,7 +166,9 @@ async function openRoute(
       "(operations)/collection": () => null,
       "(operations)/administration/application-versions": () => null,
       "(operations)/administration/classification/[kind]/[id]": () => null,
-      "(operations)/administration/classification-selection": () => null,
+      "(operations)/administration/mapping/index": MappingRoute,
+      "(operations)/administration/mapping/[packId]": MappingPackRoute,
+      "(operations)/administration/mapping/filters": MappingFiltersRoute,
       "(operations)/administration/divisions/index": () => null,
       "(operations)/administration/divisions/[id]": () => null,
       "(operations)/administration/divisions/new": () => null,
@@ -287,6 +292,143 @@ it("keeps the current complete check on native focus and reconnect", async () =>
   // Then
   expect(screen.getByText("Sign-in route")).toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
+it("requires the classification grant before making a Mapping read", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json({ ...operator, permissions: { manageCollection: true } })
+      : json(applicationAccessResponse()),
+  );
+
+  // When
+  await openRoute("/administration/mapping");
+
+  // Then
+  expect(
+    screen.queryByRole("header", { name: /Mapping des poules/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).includes("/administration/packs"),
+    ),
+  ).toBe(false);
+});
+
+it("uses the latest season, then retains another season and its criteria after opening a pack", async () => {
+  // Given: real admission, route sheets and generated requests; fixtures represent a preparing season.
+  const latest = {
+    id: "00000000-0000-4000-8000-000000000191",
+    label: "2026–2027",
+  };
+  const previous = {
+    id: "00000000-0000-4000-8000-000000000192",
+    label: "2025–2026",
+  };
+  const pack = {
+    id: "00000000-0000-4000-8000-000000000193",
+    label: "CFA",
+    sourceId: "00000000-0000-4000-8000-000000000194",
+    sourceLabel: "Ligue Île-de-France",
+    seasonId: previous.id,
+    seasonLabel: previous.label,
+    defaultClassification: null,
+    status: "some",
+    poolCount: 2,
+  };
+  const packSearches: URLSearchParams[] = [];
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockFetch.mockImplementation(async (url) => {
+    const { pathname, searchParams } = new URL(String(url));
+    if (pathname.endsWith("/accounts/me")) {
+      return json({
+        ...operator,
+        permissions: { manageSportingClassification: true },
+      });
+    }
+    if (pathname.endsWith("/administration/packs/filter-options")) {
+      return json({ items: [latest, previous], page: 0, hasNext: false });
+    }
+    if (pathname.endsWith("/administration/packs")) {
+      packSearches.push(searchParams);
+      return json({
+        items: searchParams.get("seasonId") === previous.id ? [pack] : [],
+        page: 0,
+        hasNext: false,
+      });
+    }
+    if (pathname.endsWith(`/administration/packs/${pack.id}`)) {
+      return json({
+        pack,
+        items: [
+          {
+            id: "00000000-0000-4000-8000-000000000195",
+            label: "Tour 2",
+            mode: "inherited",
+            effectiveClassification: null,
+          },
+        ],
+        page: 0,
+        hasNext: false,
+      });
+    }
+    return json(applicationAccessResponse());
+  });
+  const user = userEvent.setup();
+
+  // When
+  await openRoute("/administration/mapping");
+  await screen.findByText("Aucun pack trouvé");
+  expect(packSearches[0].get("seasonId")).toBe(latest.id);
+  await user.press(screen.getByRole("button", { name: "Filtres" }));
+  await user.press(await screen.findByRole("button", { name: "Saison" }));
+  await user.press(await screen.findByRole("radio", { name: previous.label }));
+  await user.press(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  );
+  const cfa = await screen.findByRole("link", {
+    name: "CFA, Ligue Île-de-France · 2 poules, Partiel",
+  });
+  await user.press(cfa);
+  expect(
+    await screen.findByRole("header", {
+      name: /CFA, Ligue Île-de-France\s+2025–2026/,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Tour 2, À classer" }),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /CFA.*Partiel/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mapping des poules, 2025–2026" }),
+  ).toBeOnTheScreen();
+  expect(packSearches.at(-1)?.get("seasonId")).toBe(previous.id);
+
+  await user.press(screen.getByRole("button", { name: "Filtres actifs" }));
+  await user.press(await screen.findByRole("button", { name: "Saison" }));
+  await user.press(
+    await screen.findByRole("radio", { name: "Toutes les saisons" }),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  );
+
+  expect(
+    await screen.findByRole("header", {
+      name: "Mapping des poules, Toutes les saisons",
+    }),
+  ).toBeOnTheScreen();
+  expect(packSearches.at(-1)?.has("seasonId")).toBe(false);
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/collection/")),
+  ).toBe(false);
 });
 
 it.each(["maintenance", "update"] as const)(

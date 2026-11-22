@@ -17,6 +17,7 @@ const screens = {
   home: "Accueil",
   search: "Recherche",
   "collection-bilan": "Bilan",
+  "pool-mapping": "Mapping des poules",
   profile: "Profil",
   notifications: "Notifications",
   "sign-in": "Connexion",

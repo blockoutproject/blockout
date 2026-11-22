@@ -132,7 +132,9 @@ async function openRoute(path: string) {
 
       "(operations)/collection": () => null,
       "(operations)/administration/classification/[kind]/[id]": () => null,
-      "(operations)/administration/classification-selection": () => null,
+      "(operations)/administration/mapping/index": () => null,
+      "(operations)/administration/mapping/[packId]": () => null,
+      "(operations)/administration/mapping/filters": () => null,
       "(operations)/administration/divisions/index": () => null,
       "(operations)/administration/divisions/[id]": () => null,
       "(operations)/administration/divisions/new": () => null,

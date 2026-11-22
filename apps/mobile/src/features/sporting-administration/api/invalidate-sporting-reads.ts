@@ -30,6 +30,15 @@ export function invalidateClassificationReads(
   });
 }
 
+/** Refreshes Mapping's pack list and detail; available source and season choices are unaffected. */
+export function invalidateMappingReads(client: QueryClient) {
+  void client.invalidateQueries({
+    predicate: ({ queryKey: [path] }) =>
+      typeof path === "string" &&
+      /^\/administration\/packs(?:\/[\da-f-]+)?$/i.test(path),
+  });
+}
+
 /** Division creation, presentation and activity share the complete administration projections. */
 export function invalidateDivisionReads(
   client: QueryClient,

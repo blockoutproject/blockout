@@ -27,6 +27,7 @@ import type { PresentationValues } from "../schemas/presentation-schema";
 import { useSportingAuthority } from "./classification";
 import {
   invalidateDivisionReads,
+  invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
 import { createPresentationLogoQueryOptions } from "./presentation-logo-query";
@@ -222,6 +223,9 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       client.setQueryData<PresentationData | null>(acceptedKey, (current) =>
         current === null ? undefined : accepted.data,
       );
+      if (target.kind === "division") {
+        invalidateMappingReads(client);
+      }
     },
     onSettled: invalidateReads,
   });

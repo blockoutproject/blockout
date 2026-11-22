@@ -26,6 +26,8 @@ export const sheetScreenOptions = {
   headerShown: false,
   sheetGrabberVisible: true,
   sheetAllowedDetents: "fitToContents",
+  // On Android, content can settle while the resize animation still holds the first height.
+  sheetResizeAnimationEnabled: false,
 } as const;
 
 /** Native contextual sheets use the same surface during presentation and inside their content. */
@@ -46,6 +48,8 @@ export interface SheetProps extends PropsWithChildren {
   message?: string;
   /** Supply only when the scrollable sheet displays remote data; static choices have no refresh gesture. */
   refreshControl?: ScrollViewProps["refreshControl"];
+  /** The sheet's single native scroller can advance its current option list. */
+  onScroll?: ScrollViewProps["onScroll"];
 }
 
 /** Keeps intrinsic content inside one bounded native scroll view; the presenter owns detents and dismissal. */
@@ -55,6 +59,7 @@ export function Sheet({
   title,
   message,
   refreshControl,
+  onScroll,
   children,
 }: Readonly<SheetProps>) {
   const { colors } = useTheme();
@@ -106,6 +111,7 @@ export function Sheet({
       ]}
       alwaysBounceVertical={!!refreshControl}
       refreshControl={refreshControl}
+      onScroll={onScroll}
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets

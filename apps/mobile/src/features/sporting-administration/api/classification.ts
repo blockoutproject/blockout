@@ -22,6 +22,7 @@ import { useAccountSession } from "@/features/accounts/current-account";
 import {
   invalidateClassificationReads,
   invalidateDivisionReads,
+  invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
@@ -94,6 +95,7 @@ export function useClassification(target: ClassificationTarget) {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateDivisionReads(client, queryKey);
     invalidateClassificationReads(client);
+    invalidateMappingReads(client);
     invalidateSportingReads(client);
   }
 

@@ -1,3 +1,4 @@
+import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
 import {
   getDivision,
   getMappingPack,
@@ -10,6 +11,7 @@ import type {
   MappingPackResponse,
   PoolPresentationResponse,
 } from "../../../../.generated/schemas/index.zod";
+import { createMappingQueries } from "../api/mapping-queries";
 
 const poolId = "00000000-0000-4000-8000-000000000001";
 const mappingPack: MappingPackResponse = {
@@ -261,4 +263,60 @@ it.each([
 
   // Then
   await expect(request).rejects.toMatchObject({ kind: "schema" });
+});
+
+it("keeps a failed Mapping continuation until an explicit retry reads the same page", async () => {
+  // Given: a real infinite query and generated client, with one temporary transport failure.
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const options = createMappingQueries({
+    enabled: true,
+    request: async () => ({}),
+  }).packs({ seasonId: mappingPack.seasonId }, true);
+  const secondPack = {
+    ...mappingPack,
+    id: "00000000-0000-4000-8000-000000000020",
+    label: "N2F",
+  };
+  mockFetch
+    .mockResolvedValueOnce(
+      Response.json({ page: 0, hasNext: true, items: [mappingPack] }),
+    )
+    .mockResolvedValueOnce(Response.json({}, { status: 503 }))
+    .mockResolvedValueOnce(
+      Response.json({ page: 1, hasNext: false, items: [secondPack] }),
+    );
+  await client.fetchInfiniteQuery(options);
+  const observer = new InfiniteQueryObserver(client, {
+    ...options,
+    refetchOnMount: false,
+  });
+  const unsubscribe = observer.subscribe(() => {});
+
+  try {
+    // When returning to the app after a failed continuation
+    await observer.fetchNextPage();
+    client.getQueryCache().onFocus();
+    expect(observer.getCurrentResult().isFetchNextPageError).toBe(true);
+    expect(observer.getCurrentResult().isFetching).toBe(false);
+    expect(observer.getCurrentResult().data?.pages[0].items).toEqual([
+      mappingPack,
+    ]);
+
+    // Then Retry resumes page 1 and appends it without restarting the traversal.
+    const retried = await observer.fetchNextPage();
+    expect(retried.data?.pages.map(({ items }) => items[0].label)).toEqual([
+      "CFA",
+      "N2F",
+    ]);
+    expect(
+      mockFetch.mock.calls.map(([url]) =>
+        new URL(String(url)).searchParams.get("page"),
+      ),
+    ).toEqual(["0", "1", "1"]);
+  } finally {
+    unsubscribe();
+    client.clear();
+  }
 });
