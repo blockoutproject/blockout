@@ -11,6 +11,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useCollectionSeason } from "../api/use-collection-season";
 import {
+  seasonActionsLabel,
   seasonCommands,
   seasonCommandsByState,
   type SeasonCommand,
@@ -71,7 +72,7 @@ export function SeasonActionsSheet({
   }
 
   return (
-    <Sheet title="Actions de la saison" onClose={() => router.back()}>
+    <Sheet title={seasonActionsLabel} onClose={() => router.back()}>
       <SheetContent>{renderActions()}</SheetContent>
     </Sheet>
   );

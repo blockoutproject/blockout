@@ -1,5 +1,7 @@
 import type { CollectionSeasonStateEnum } from "../../../../.generated/schemas/index.zod";
 
+export const seasonActionsLabel = "Actions de la saison";
+
 export const seasonCommands = {
   activation: { verb: "Activer", label: "Activer la saison" },
   closure: { verb: "Clôturer", label: "Clôturer la saison" },

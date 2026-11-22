@@ -60,13 +60,12 @@ export function useCollectionSeasonCommand(
     ? getActivateCollectionSeasonMutationKey()
     : getCloseCollectionSeasonMutationKey();
 
-  /** An acknowledgement updates the season without hiding a read failure or replacing terminal closure. */
+  /** Publish acknowledged closure before rereading, and keep a current read failure visible. */
   function acceptSeason(accepted: CollectionSeasonResponse) {
     const current = client.getQueryState<CollectionSeasonResponse>(seasonKey);
     if (
-      activating &&
       current?.status === "success" &&
-      current.data?.state === "preparing"
+      (accepted.state === "closed" || current.data?.state === "preparing")
     ) {
       client.setQueryData(seasonKey, accepted);
     }

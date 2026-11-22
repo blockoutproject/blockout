@@ -10,7 +10,11 @@ import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import type { useCollectionSeasonCommand } from "../api/use-collection-season";
-import { seasonCommands, type SeasonCommand } from "../model/season-command";
+import {
+  seasonCommands,
+  seasonCommandsByState,
+  type SeasonCommand,
+} from "../model/season-command";
 import {
   seasonConfirmationSchema,
   type SeasonConfirmationValues,
@@ -42,8 +46,11 @@ export function SeasonConfirmationForm({
   });
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
-  const closed = current?.state === "closed";
-  const terminal = closed || (activating && current?.state === "active");
+  const terminal =
+    current !== undefined &&
+    !seasonCommandsByState[current.state].some(
+      (available) => available === command,
+    );
   const disablePrevention = useDiscardChanges(isDirty && !terminal, reset);
   if (!current) {
     return null;
@@ -76,7 +83,9 @@ export function SeasonConfirmationForm({
     <View style={styles.form}>
       {terminal ? (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {closed ? "Saison clôturée · historique conservé" : "Saison active"}
+          {current.state === "closed"
+            ? "Saison clôturée · historique conservé"
+            : "Saison active"}
         </Text>
       ) : (
         <>

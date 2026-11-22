@@ -1096,7 +1096,7 @@ it.each(["partial", "unavailable"] as const)(
   },
 );
 
-it("keeps historical preparation eligible for typed closure and the closed season consultable", async () => {
+it("keeps historical preparation eligible for typed closure and shows the closed season before rereading it", async () => {
   // Given
   let current: CollectionSeasonResponse = {
     ...season,
@@ -1104,10 +1104,19 @@ it("keeps historical preparation eligible for typed closure and the closed seaso
     startYear: 2025,
     state: "preparing",
   };
-  mockFetch.mockImplementation((url, options) => {
+  const reread = Promise.withResolvers<void>();
+  let rereading = false;
+  mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "POST") {
       current = { ...current, state: "closed" };
-      return Promise.resolve(Response.json(current));
+      return Response.json(current);
+    }
+    if (
+      current.state === "closed" &&
+      String(url).endsWith(`/collection-seasons/${seasonId}`)
+    ) {
+      rereading = true;
+      await reread.promise;
     }
     return responses({ manageCollection: true }, false, current)(url);
   });
@@ -1128,21 +1137,31 @@ it("keeps historical preparation eligible for typed closure and the closed seaso
     await screen.findByLabelText("Saisissez 2025/2026 pour confirmer"),
     "2025/2026",
   );
-  await user.press(screen.getByRole("button", { name: "Clôturer la saison" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Retour à la saison" }),
-  );
+  try {
+    await user.press(
+      screen.getByRole("button", { name: "Clôturer la saison" }),
+    );
+    await user.press(
+      await screen.findByRole("button", { name: "Retour à la saison" }),
+    );
 
-  // Then
-  expect(await screen.findByText("Clôturée")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("link", {
-      name: "LNV, Les trois championnats professionnels",
-    }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Actions de la saison" }),
-  ).not.toBeOnTheScreen();
+    // Then
+    await waitFor(() => expect(rereading).toBe(true));
+    expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+      new RegExp(`^/collection/${seasonId}$`),
+    );
+    expect(screen.getByText("Clôturée")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", {
+        name: "LNV, Les trois championnats professionnels",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Actions de la saison" }),
+    ).not.toBeOnTheScreen();
+  } finally {
+    await act(async () => reread.resolve());
+  }
 });
 
 it("discards a closure draft on protected-route removal and confirms discard only for new input", async () => {

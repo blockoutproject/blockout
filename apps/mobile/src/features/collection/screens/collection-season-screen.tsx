@@ -19,7 +19,10 @@ import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-collection-season";
-import { seasonCommandsByState } from "../model/season-command";
+import {
+  seasonActionsLabel,
+  seasonCommandsByState,
+} from "../model/season-command";
 
 /** Opens provider journeys and the selected season's available lifecycle commands. */
 export function CollectionSeasonScreen({
@@ -43,7 +46,7 @@ export function CollectionSeasonScreen({
           action={
             hasActions && (
               <IconButton
-                label="Actions de la saison"
+                label={seasonActionsLabel}
                 onPress={() =>
                   router.push({
                     pathname: "/collection/[seasonId]/actions",
