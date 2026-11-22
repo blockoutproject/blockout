@@ -308,7 +308,6 @@ class SourcePreparationMaintenanceIntegrationTest {
         Arguments.of(HttpMethod.GET, seasonPath, "", 200),
         Arguments.of(HttpMethod.GET, seasonPath + "/source-bindings", "", 200),
         Arguments.of(HttpMethod.GET, sourcePath, "", 200),
-        Arguments.of(HttpMethod.GET, sourcePath + "/children", "", 200),
         Arguments.of(HttpMethod.POST, seasonPath + "/activation", "", 200),
         Arguments.of(
             HttpMethod.POST,

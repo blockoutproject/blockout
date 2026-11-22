@@ -27,14 +27,15 @@ import com.blockout.backend.generated.mobile.model.CollectionResultResponse;
 import com.blockout.backend.generated.mobile.model.CollectionResultSourceResponse;
 import com.blockout.backend.generated.mobile.model.CollectionResultSummaryResponse;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
-import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
-import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
 import com.blockout.backend.generated.mobile.model.SourceCatalogReadResponse;
+import com.blockout.backend.generated.mobile.model.SourceCataloguePackResponse;
+import com.blockout.backend.generated.mobile.model.SourceCataloguePhaseResponse;
+import com.blockout.backend.generated.mobile.model.SourceCataloguePoolResponse;
+import com.blockout.backend.generated.mobile.model.SourceCatalogueResponse;
 import com.blockout.backend.shared.api.RequiredNullableMapping;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.shared.mapping.UriMapping;
-import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import java.util.Arrays;
 import java.util.Objects;
@@ -151,6 +152,24 @@ public interface CollectionApiMapper {
   @Mapping(target = "validation", source = "source.validationState")
   SourceBindingResponse toDto(CollectionState.SourceCatalog view);
 
+  /** Includes the accepted catalogue while preserving the binding's required nullable fields. */
+  @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = ".", source = "source")
+  @Mapping(target = ".", source = "entries")
+  @Mapping(target = "label", expression = "java(view.source().label())")
+  @Mapping(target = "validation", source = "source.validationState")
+  SourceCatalogueResponse toDto(CollectionState.SourceCatalogue view);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  SourceCataloguePackResponse toDto(SportingViews.CataloguePack source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  SourceCataloguePoolResponse toDto(SportingViews.CataloguePool source);
+
+  @Mapping(target = "additionalProperties", ignore = true)
+  SourceCataloguePhaseResponse toDto(SportingViews.CataloguePhase source);
+
   @Mapping(target = "additionalProperties", ignore = true)
   @Mapping(target = "observedAt", source = "lastReadAt")
   @Mapping(target = "lastCompleteAt", source = "lastCompleteReadAt")
@@ -175,25 +194,6 @@ public interface CollectionApiMapper {
   @Mapping(target = "sourceBindingId", source = "id")
   @Mapping(target = "state", source = "validationState")
   SourceValidationInternalResponse toValidationDto(CollectionState.Source source);
-
-  /**
-   * Maps bounded direct children without classification readiness.
-   *
-   * @param source owning sporting page
-   * @return generated page preserving order and hasNext
-   */
-  @Mapping(target = "additionalProperties", ignore = true)
-  DiscoveredCollectionResourcePageResponse toDto(
-      OffsetPage<SportingViews.CollectionResource> source);
-
-  /**
-   * Maps one discovered native identity.
-   *
-   * @param source pack or pool with optional native parent
-   * @return read-only catalogue entry
-   */
-  @Mapping(target = "additionalProperties", ignore = true)
-  DiscoveredCollectionResourceResponse toDto(SportingViews.CollectionResource source);
 
   /**
    * Converts independently reported phase evidence to the application command.

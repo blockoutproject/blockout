@@ -1,8 +1,8 @@
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type {
   CollectionSeasonResponse,
-  DiscoveredCollectionResourceResponse,
   SourceBindingResponse,
+  SourceCataloguePackResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
@@ -298,37 +298,16 @@ function responses(
       return Response.json({ items: [source, ffvbSource] });
     }
     if (path.endsWith(`/source-bindings/${ffvbSource.id}`)) {
-      return Response.json(ffvbSource);
+      return Response.json({ ...ffvbSource, packs: [], phases: [] });
     }
     if (path.endsWith(`/source-bindings/${sourceId}`)) {
-      return Response.json(source);
-    }
-    if (path.endsWith(`/source-bindings/${sourceId}/children`)) {
       return Response.json({
-        items: [
-          {
-            id: "00000000-0000-4000-8000-000000000183",
-            kind: "pool",
-            label: "Groupe A",
-            phaseReference: "137",
-            phaseLabel: "Phase régulière",
-          },
-          {
-            id: "00000000-0000-4000-8000-000000000184",
-            kind: "pool",
-            label: "Groupe B",
-            phaseReference: "137",
-            phaseLabel: "Phase régulière",
-          },
-          {
-            id: "00000000-0000-4000-8000-000000000185",
-            kind: "pool",
-            label: "Groupe C",
-            phaseReference: "138",
-          },
+        ...source,
+        packs: [],
+        phases: [
+          { reference: "137", label: "Phase régulière" },
+          { reference: "138" },
         ],
-        page: 0,
-        hasNext: false,
       });
     }
     if (path.endsWith(`/collection-seasons/${seasonId}`)) {
@@ -785,130 +764,176 @@ it("opens a source-filtered Bilan and returns from the attributed source to the 
   });
 });
 
-it("can continue past another group of an already displayed LNV phase", async () => {
+it("opens multiple FFVB packs from the source read without a loading state or another request", async () => {
   // Given
   const serve = responses({ manageCollection: true });
+  const sourcePath = `/source-bindings/${ffvbSource.id}`;
+  const firstPack = {
+    id: "00000000-0000-4000-8000-000000000186",
+    label: "N2F",
+    pools: [{ id: "00000000-0000-4000-8000-000000000187", label: "Poule A" }],
+  };
+  const secondPack = {
+    id: "00000000-0000-4000-8000-000000000188",
+    label: "N3F",
+    pools: [{ id: "00000000-0000-4000-8000-000000000189", label: "Poule B" }],
+  };
   mockFetch.mockImplementation(async (url) => {
-    const { pathname, searchParams } = new URL(String(url));
-    if (!pathname.endsWith(`/source-bindings/${sourceId}/children`)) {
+    if (!new URL(String(url)).pathname.endsWith(sourcePath)) {
       return serve(url);
     }
-    const page = Number(searchParams.get("page"));
     return Response.json({
-      items: [
-        {
-          id: `00000000-0000-4000-8000-00000000018${page + 3}`,
-          kind: "pool",
-          label: `Groupe ${page + 1}`,
-          phaseReference: page < 2 ? "137" : "138",
-          phaseLabel: page < 2 ? "Saison régulière" : "Playoffs",
-        },
-      ],
-      page,
-      hasNext: page < 2,
+      ...ffvbSource,
+      packs: [firstPack, secondPack],
+      phases: [],
     });
   });
   const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () =>
-    router.push(`/collection/${seasonId}/sources/${sourceId}`),
+    router.push(`/collection/${seasonId}/sources/${ffvbSource.id}`),
   );
-  await screen.findByText("Saison régulière");
+  const first = await screen.findByRole("button", {
+    name: "N2F, 1 poule",
+    expanded: false,
+  });
+  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
 
   // When
-  await user.press(
-    await screen.findByRole("link", { name: "Afficher plus de phases" }),
-  );
-  await user.press(
-    await screen.findByRole("link", { name: "Afficher plus de phases" }),
-  );
+  await user.press(first);
+  await user.press(screen.getByRole("button", { name: "N3F, 1 poule" }));
 
   // Then
-  expect(await screen.findByText("Playoffs")).toBeOnTheScreen();
-  expect(screen.getAllByText("Saison régulière")).toHaveLength(1);
-  expect(screen.queryByText("Groupe 2")).not.toBeOnTheScreen();
+  expect(screen.getByText("Poule A")).toBeOnTheScreen();
+  expect(screen.getByText("Poule B")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement des poules" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .map(([url]) => new URL(String(url)).pathname)
+      .filter((path) => path.includes(sourcePath)),
+  ).toEqual([`/administration${sourcePath}`]);
 });
 
-it("keeps accepted packs during a failed continuation and resumes seeking the attributed pool", async () => {
+it("opens the attributed FFVB pack and its pools from a direct source link", async () => {
   // Given
   const serve = responses({ manageCollection: true });
-  const childrenPath = `/source-bindings/${ffvbSource.id}/children`;
   const packId = "00000000-0000-4000-8000-000000000186";
   const poolId = "00000000-0000-4000-8000-000000000187";
-  let rejectPackContinuation = true;
   mockFetch.mockImplementation(async (url) => {
-    const { pathname, searchParams } = new URL(String(url));
-    if (!pathname.endsWith(childrenPath)) {
+    if (
+      !new URL(String(url)).pathname.endsWith(
+        `/source-bindings/${ffvbSource.id}`,
+      )
+    ) {
       return serve(url);
     }
-    const page = Number(searchParams.get("page"));
-    if (searchParams.get("parentId") === packId) {
-      return Response.json({
-        items: [
-          page === 0
-            ? {
-                id: "00000000-0000-4000-8000-000000000188",
-                label: "Poule A",
-                kind: "pool",
-              }
-            : { id: poolId, label: "Poule B", kind: "pool" },
-        ],
-        page,
-        hasNext: page === 0,
-      });
-    }
-    if (page === 1 && rejectPackContinuation) {
-      return refused(503);
-    }
     return Response.json({
-      items: [
-        page === 0
-          ? {
-              id: "00000000-0000-4000-8000-000000000189",
-              label: "N1",
-              kind: "pack",
-            }
-          : { id: packId, label: "N2", kind: "pack" },
+      ...ffvbSource,
+      packs: [
+        {
+          id: "00000000-0000-4000-8000-000000000189",
+          label: "N1",
+          pools: [
+            { id: "00000000-0000-4000-8000-000000000188", label: "Poule A" },
+          ],
+        },
+        { id: packId, label: "N2", pools: [{ id: poolId, label: "Poule B" }] },
       ],
-      page,
-      hasNext: page === 0,
+      phases: [],
     });
   });
-  const user = userEvent.setup();
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
   await act(async () =>
     router.push(
       `/collection/${seasonId}/sources/${ffvbSource.id}?packId=${packId}&poolId=${poolId}`,
     ),
   );
-  const retry = await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.getByRole("button", { name: "N1" })).toBeOnTheScreen();
-
-  // When
-  rejectPackContinuation = false;
-  await user.press(retry);
 
   // Then
   expect(await screen.findByText("Poule B")).toBeOnTheScreen();
-  expect(screen.getByText("Poule A")).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "N2", expanded: true }),
+    screen.getByRole("button", { name: "N2, 1 poule", expanded: true }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "N1" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "N1, 1 poule", expanded: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
+});
+
+it("refreshes the expanded FFVB catalogue with one source read and keeps the pack open", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const sourcePath = `/administration/source-bindings/${ffvbSource.id}`;
+  const packId = "00000000-0000-4000-8000-000000000186";
+  const poolId = "00000000-0000-4000-8000-000000000187";
+  const refreshed = Promise.withResolvers<Response>();
+  const catalogue = {
+    ...ffvbSource,
+    packs: [
+      { id: packId, label: "N2F", pools: [{ id: poolId, label: "Poule A" }] },
+    ],
+    phases: [],
+  };
+  let next = Promise.resolve(Response.json(catalogue));
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname === sourcePath ? next : serve(url),
+  );
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () =>
+    router.push(`/collection/${seasonId}/sources/${ffvbSource.id}`),
+  );
+  await user.press(await screen.findByRole("button", { name: "N2F, 1 poule" }));
+  expect(screen.getByText("Poule A")).toBeOnTheScreen();
+  mockFetch.mockClear();
+
+  // When
+  next = refreshed.promise;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(screen.getByText("Poule A")).toBeOnTheScreen();
+  await act(() =>
+    refreshed.resolve(
+      Response.json({
+        ...catalogue,
+        packs: [
+          {
+            id: packId,
+            label: "N2F",
+            pools: [{ id: poolId, label: "Poule B" }],
+          },
+        ],
+      }),
+    ),
+  );
+
+  // Then
+  expect(await screen.findByText("Poule B")).toBeOnTheScreen();
+  expect(screen.queryByText("Poule A")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "N2F, 1 poule", expanded: true }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname),
+  ).toEqual([sourcePath]);
 });
 
 it("reloads a confirmed empty catalogue and then uses Réessayer for a failed application read", async () => {
   // Given
   const serve = responses({ manageCollection: true });
-  const childrenPath = `/source-bindings/${ffvbSource.id}/children`;
+  const sourcePath = `/source-bindings/${ffvbSource.id}`;
   const deferred = Promise.withResolvers<Response>();
   let next = Promise.resolve(
-    Response.json({ items: [], page: 0, hasNext: false }),
+    Response.json({ ...ffvbSource, packs: [], phases: [] }),
   );
   mockFetch.mockImplementation((url) =>
-    new URL(String(url)).pathname.endsWith(childrenPath) ? next : serve(url),
+    new URL(String(url)).pathname.endsWith(sourcePath) ? next : serve(url),
   );
   const user = userEvent.setup();
   await openRoute("/access");
@@ -931,16 +956,17 @@ it("reloads a confirmed empty catalogue and then uses Réessayer for a failed ap
   const retry = await screen.findByRole("button", { name: "Réessayer" });
   next = Promise.resolve(
     Response.json({
-      items: [
+      ...ffvbSource,
+      packs: [
         {
           id: "00000000-0000-4000-8000-000000000186",
           label: "N2F",
-          kind: "pack",
-          poolCount: 1,
+          pools: [
+            { id: "00000000-0000-4000-8000-000000000187", label: "Poule A" },
+          ],
         },
       ],
-      page: 0,
-      hasNext: false,
+      phases: [],
     }),
   );
   await user.press(retry);
@@ -958,50 +984,42 @@ it("reloads a confirmed empty catalogue and then uses Réessayer for a failed ap
 });
 
 it.each(["partial", "unavailable"] as const)(
-  "shows retained FFVB pools for provider status %s and keeps a failed mobile read at its own scope",
+  "shows retained FFVB pools with provider status %s after a failed source read is retried",
   async (status) => {
     // Given
     const user = userEvent.setup();
     const serve = responses({ manageCollection: true });
     const packId = "00000000-0000-4000-8000-000000000186";
     const poolId = "00000000-0000-4000-8000-000000000187";
-    const pack: DiscoveredCollectionResourceResponse = {
+    const pool = { id: poolId, label: "Poule A" };
+    const pack: SourceCataloguePackResponse = {
       id: packId,
-      kind: "pack",
       label: "N2F",
-      poolCount: 1,
-    };
-    const pool: DiscoveredCollectionResourceResponse = {
-      id: poolId,
-      kind: "pool",
-      label: "Poule A",
-      parentId: packId,
+      pools: [pool],
     };
     let fails = true;
     mockFetch.mockImplementation(async (url) => {
-      const { pathname, searchParams } = new URL(String(url));
-      if (pathname.endsWith(`/source-bindings/${ffvbSource.id}`)) {
-        return Response.json({
-          ...ffvbSource,
-          catalog: {
-            status,
-            observedAt: "2026-11-18T10:00:00Z",
-            lastCompleteAt: "2026-11-17T10:00:00Z",
-            reason: "Une partie du site officiel n’a pas répondu.",
-          },
-        });
+      if (
+        !new URL(String(url)).pathname.endsWith(
+          `/source-bindings/${ffvbSource.id}`,
+        )
+      ) {
+        return serve(url);
       }
-      if (pathname.endsWith(`/source-bindings/${ffvbSource.id}/children`)) {
-        if (fails) {
-          return refused(503);
-        }
-        return Response.json({
-          items: [searchParams.get("parentId") ? pool : pack],
-          page: 0,
-          hasNext: false,
-        });
+      if (fails) {
+        return refused(503);
       }
-      return serve(url);
+      return Response.json({
+        ...ffvbSource,
+        catalog: {
+          status,
+          observedAt: "2026-11-18T10:00:00Z",
+          lastCompleteAt: "2026-11-17T10:00:00Z",
+          reason: "Une partie du site officiel n’a pas répondu.",
+        },
+        packs: [pack],
+        phases: [],
+      });
     });
     await openRoute("/access");
     await screen.findByRole("link", { name: "Accès administrateur" });

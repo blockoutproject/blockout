@@ -273,20 +273,21 @@ Source:
     operationId: getCollectionSource
     tags:
       - CollectionSources
-    summary: Read a source and its catalogue health
+    summary: Read a source and its complete catalogue
     description:
       Requires current global collection-management permission. Returns the retained
-      official reference and observed catalogue health. The read uses retained evidence.
+      official reference, observed catalogue health and all discovered catalogue entries
+      independently of pool classification and sporting imports.
     responses:
       "200":
-        description: Current source and catalogue evidence.
+        description: Current source, catalogue evidence and discovered entries.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
         content:
           application/json:
             schema:
-              $ref: ./schemas.yaml#/SourceBindingResponse
+              $ref: ./schemas.yaml#/SourceCatalogueResponse
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
@@ -656,45 +657,3 @@ Results:
         description: Restrict results to this stage across both phases.
         schema:
           $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
-Children:
-  get:
-    operationId: listCollectionSourceChildren
-    tags:
-      - CollectionSources
-    summary: Read discovered source children
-    description:
-      Requires current global collection-management permission. Returns direct children of
-      the current official catalogue, independently of pool classification and sporting imports.
-      FFVB exposes packs and their pools. LNV exposes discovered phase references.
-    responses:
-      "200":
-        description: Discovered direct children of the selected source or pack.
-        headers:
-          Cache-Control:
-            $ref: ../../common/headers.yaml#/NoStore
-        content:
-          application/json:
-            schema:
-              $ref: ./schemas.yaml#/DiscoveredCollectionResourcePageResponse
-      "400":
-        $ref: ../../common/problems.yaml#/responses/BadRequest
-      "401":
-        $ref: ../../common/problems.yaml#/responses/Unauthorized
-      "403":
-        $ref: ../../common/problems.yaml#/responses/Forbidden
-      "404":
-        $ref: ../../common/problems.yaml#/responses/NotFound
-      "503":
-        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
-    parameters:
-      - $ref: ./parameters.yaml#/SourceBindingId
-      - name: parentId
-        in: query
-        required: false
-        description: Optional parent pack.
-        schema:
-          type: string
-          description: Parent pack identity in this binding.
-          format: uuid
-      - $ref: ../../common/parameters.yaml#/Page
-      - $ref: ../../common/parameters.yaml#/PageSize

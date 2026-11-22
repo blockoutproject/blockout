@@ -13,12 +13,10 @@ import {
   getListCollectionControlsQueryKey,
   getListCollectionResultsQueryKey,
   getListCollectionSeasonsQueryKey,
-  getListCollectionSourceChildrenQueryKey,
   getListCollectionSourcesQueryKey,
   listCollectionControls,
   listCollectionResults,
   listCollectionSeasons,
-  listCollectionSourceChildren,
   listCollectionSources,
 } from "../../../../.generated/mobile";
 import type { ListCollectionResultsParams } from "../../../../.generated/schemas/index.zod";
@@ -91,7 +89,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
             listCollectionSources(seasonId, options),
           ),
       }),
-    /** Exact source binding supplies the independently observed catalogue facts. */
+    /** The source detail owns the catalogue entries and their observed health. */
     source: (sourceId: string) =>
       queryOptions({
         queryKey: getGetCollectionSourceQueryKey(sourceId),
@@ -102,25 +100,6 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
             getCollectionSource(sourceId, options),
           ),
       }),
-    /** Direct children use one infinite entry per parent and page size; page numbers stay in pageParam. */
-    children: (sourceId: string, parentId?: string) => {
-      const params = { parentId, size: collectionPageSize };
-      return infiniteQueryOptions({
-        queryKey: getListCollectionSourceChildrenQueryKey(sourceId, params),
-        enabled: authority.enabled,
-        // An expanded pack can leave the native list's render window while browsing the same visit.
-        initialPageParam: 0,
-        queryFn: (context) =>
-          readCollection(context, (options) =>
-            listCollectionSourceChildren(
-              sourceId,
-              { ...params, page: context.pageParam },
-              options,
-            ),
-          ),
-        getNextPageParam: nextOffsetPage,
-      });
-    },
     /** Season-specific controls and seasonless families have distinct generated selections. */
     controls: (seasonId?: string) => {
       const params = seasonId ? { seasonId } : undefined;

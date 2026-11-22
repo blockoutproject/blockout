@@ -116,8 +116,6 @@ paths:
     $ref: ./collection/paths.yaml#/Validation
   /administration/source-bindings/{sourceBindingId}/season-confirmation:
     $ref: ./collection/paths.yaml#/Confirmation
-  /administration/source-bindings/{sourceBindingId}/children:
-    $ref: ./collection/paths.yaml#/Children
   /administration/collection-controls:
     $ref: ./collection/paths.yaml#/Controls
   /administration/collection-controls/{controlId}:
