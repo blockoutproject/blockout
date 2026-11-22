@@ -11,8 +11,11 @@ import { ContentRevealBlock, useContentReveal } from "./content-reveal";
 import { PageContent } from "./page";
 
 /** Samples the mounted sections against the first usable scroll viewport. */
-export function useSectionContentReveal(ready: boolean) {
-  const reveal = useContentReveal();
+export function useSectionContentReveal(
+  ready: boolean,
+  { staggered = false }: Readonly<{ staggered?: boolean }> = {},
+) {
+  const reveal = useContentReveal({ staggered });
   const { start } = reveal;
   const bottomInset = useBottomContentInset();
   const viewportHeight = useRef(0);
@@ -90,7 +93,7 @@ export function SectionContentReveal({
   );
 }
 
-/** Measures and fades the existing section surface as one block. */
+/** Measures and reveals the existing section surface as one block. */
 export function RevealSection({
   sectionKey,
   ...props
