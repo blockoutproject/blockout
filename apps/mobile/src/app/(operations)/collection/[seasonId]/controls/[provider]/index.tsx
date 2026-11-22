@@ -22,7 +22,7 @@ export default function CollectionProviderRoute() {
   const provider = collectionProviderFromRoute(params.provider);
   return provider ? (
     <CollectionProviderScreen
-      filters={sourceFiltersFromRoute(params)}
+      filters={sourceFiltersFromRoute(params, provider)}
       provider={provider}
       seasonId={params.seasonId}
       tab={params.tab === "sources" ? "sources" : "suivi"}

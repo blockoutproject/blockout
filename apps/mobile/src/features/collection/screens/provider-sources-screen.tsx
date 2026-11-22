@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import type {
   CollectionProviderEnum,
@@ -18,8 +17,6 @@ import { pageContentStyle } from "@/shared/components/page";
 import { PageList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
-import { SearchField } from "@/shared/components/search-field";
-import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { EmptyState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -37,7 +34,7 @@ import {
   type SourceFilters,
 } from "../model/source-catalogue";
 
-type SourceRow = "search" | { heading: string } | SourceBindingResponse;
+type SourceRow = { heading: string } | SourceBindingResponse;
 
 export function ProviderSourcesLoading() {
   return <ListLoading label="Chargement des sources" />;
@@ -48,15 +45,16 @@ export function ProviderSourcesScreen({
   provider,
   reading,
   filters,
+  search,
 }: Readonly<{
   seasonId: string;
   provider: CollectionProviderEnum;
   reading: ReturnType<typeof useCollectionSeason>;
   filters: SourceFilters;
+  search: string;
 }>) {
   const router = useRouter();
   const { colors } = useTheme();
-  const [search, setSearch] = useState("");
   const { authority, season } = reading;
   const options = createCollectionQueries(authority).sources(seasonId);
   const sources = useQuery({
@@ -87,13 +85,13 @@ export function ProviderSourcesScreen({
   }
 
   const needle = searchKey(search.trim());
-  const scope = provider === "ffvb" ? filters.scope : undefined;
+  const { scope, status: filterStatus } = filters;
   const items = sources.data.items.filter((source) => {
     const status = sourceCatalogStatus(source.catalog);
     return (
       source.provider === provider &&
       !!(source.acceptedUrl || status !== "not-read") &&
-      (!filters.status || filters.status === status) &&
+      (!filterStatus || filterStatus === status) &&
       (!scope || source.scope === scope) &&
       searchKey(`${source.label} ${source.organizerReference}`).includes(needle)
     );
@@ -121,17 +119,13 @@ export function ProviderSourcesScreen({
     );
   }
 
-  const filtered = Boolean(filters.status || scope);
   return (
     <PageList<SourceRow>
-      data={["search", ...rows]}
-      extraData={{ search, filters }}
-      stickyHeaderIndices={[0]}
-      keyExtractor={(row) =>
-        row === "search" ? row : "heading" in row ? row.heading : row.id
-      }
-      contentContainerStyle={pageContentStyle}
+      data={rows}
+      keyExtractor={(row) => ("heading" in row ? row.heading : row.id)}
+      contentContainerStyle={rows.length ? pageContentStyle : undefined}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       refreshControl={
         rows.length ? (
           <DataRefreshControl
@@ -140,38 +134,16 @@ export function ProviderSourcesScreen({
           />
         ) : undefined
       }
-      renderItem={({ item }) => {
-        if (item === "search") {
-          return (
-            <SearchToolbar
-              style={[styles.search, { backgroundColor: colors.canvas }]}
-              filter={{
-                active: filtered,
-                onPress: () =>
-                  router.push({
-                    pathname:
-                      "/collection/[seasonId]/controls/[provider]/sources-filters",
-                    params: { seasonId, provider, ...filters },
-                  }),
-              }}
-            >
-              <SearchField
-                label="Rechercher une source"
-                placeholder="Nom ou référence…"
-                value={search}
-                onChangeText={setSearch}
-                onClear={() => setSearch("")}
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-            </SearchToolbar>
-          );
-        }
+      renderItem={({ item, index }) => {
         if ("heading" in item) {
           return (
             <Text
               accessibilityRole="header"
-              style={[styles.heading, { color: colors.text }]}
+              style={[
+                styles.heading,
+                index > 0 && styles.sectionHeading,
+                { color: colors.text },
+              ]}
             >
               {item.heading}
             </Text>
@@ -204,20 +176,16 @@ export function ProviderSourcesScreen({
           </Pressable>
         );
       }}
-      ListFooterComponent={
-        !rows.length ? (
-          <ScreenState style={styles.empty}>
-            <EmptyState
-              title={
-                needle || filtered
-                  ? "Aucune source correspondante"
-                  : "Aucune source découverte"
-              }
-            >
-              {!needle && !filtered && <ReloadButton query={sources} />}
+      ListEmptyComponent={
+        <ScreenState>
+          {needle || filterStatus || scope ? (
+            <EmptyState title="Aucune source correspondante" />
+          ) : (
+            <EmptyState title="Aucune source découverte">
+              <ReloadButton query={sources} />
             </EmptyState>
-          </ScreenState>
-        ) : undefined
+          )}
+        </ScreenState>
       }
     />
   );
@@ -228,13 +196,11 @@ function searchKey(value: string) {
 }
 
 const styles = StyleSheet.create({
-  empty: { paddingHorizontal: 0 },
-  search: { paddingHorizontal: 0, marginBottom: tokens.spacing.xs },
   heading: {
     ...tokens.typography.navigation,
     marginBottom: tokens.spacing.sm,
-    marginTop: tokens.spacing.sm,
   },
+  sectionHeading: { marginTop: tokens.spacing.sm },
   source: {
     flexDirection: "row",
     alignItems: "center",

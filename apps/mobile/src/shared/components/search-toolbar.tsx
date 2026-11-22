@@ -9,6 +9,10 @@ import {
 import { tokens } from "@/shared/theme/tokens";
 import { FilterButton } from "./filter-button";
 
+/** Reserve space in measured page headers and tab rails before the toolbar lays out. */
+export const searchToolbarMinHeight =
+  tokens.spacing.sm + tokens.size.control.default;
+
 /** Pairs a screen's search field with its optional filter action. */
 export function SearchToolbar({
   children,
@@ -42,6 +46,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: tokens.spacing.sm,
     paddingHorizontal: tokens.spacing.screen,
+    paddingTop: tokens.spacing.sm,
   },
   search: { flex: 1, minWidth: 0 },
 });

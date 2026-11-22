@@ -122,6 +122,12 @@ MappingPackResponse:
       type: integer
       minimum: 0
       description: Total current pools in this pack, independent of index filters and pool pages.
+    classifiedPoolCount:
+      type: integer
+      minimum: 0
+      description: >-
+        Current pools with an effective classification from their own override or the pack default,
+        independent of index filters and pool pages.
   required:
     - id
     - label
@@ -132,6 +138,7 @@ MappingPackResponse:
     - defaultClassification
     - status
     - poolCount
+    - classifiedPoolCount
 MappingPackDetailResponse:
   title: MappingPackDetailResponse
   type: object

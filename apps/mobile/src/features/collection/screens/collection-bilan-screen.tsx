@@ -2,24 +2,24 @@ import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
 import type { ReactNode } from "react";
-import { Keyboard, StyleSheet } from "react-native";
+import { Keyboard } from "react-native";
 import type { CollectionResultSourceResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { ListSeparator } from "@/shared/components/list-separator";
-import {
-  Page,
-  PageScrollView,
-  pageContentStyle,
-} from "@/shared/components/page";
+import { Page, pageContentStyle } from "@/shared/components/page";
 import { PageList } from "@/shared/components/page-list";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ReloadButton } from "@/shared/components/reload-button";
 import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
-import { SearchToolbar } from "@/shared/components/search-toolbar";
+import {
+  SearchToolbar,
+  searchToolbarMinHeight,
+} from "@/shared/components/search-toolbar";
 import { EmptyState } from "@/shared/components/state-card";
 import { fetchNextPageIfReady } from "@/shared/query/infinite-pages";
 import { useSubmittedSearch } from "@/shared/forms/use-submitted-search";
@@ -79,28 +79,8 @@ export function CollectionBilanScreen({
   const failed = hasReadError(query) && !continuationFailed;
   const filtered = !!(criteria.sourceId || criteria.status || criteria.stage);
 
-  if (failed) {
-    return (
-      <Page header={header}>
-        <PageScrollView>
-          <ScreenState>
-            <ReadFeedback
-              key={contextKey}
-              query={query}
-              loadingContent={null}
-              onRetry={
-                authority.enabled
-                  ? () => query.refetch({ cancelRefetch: false })
-                  : undefined
-              }
-            />
-          </ScreenState>
-        </PageScrollView>
-      </Page>
-    );
-  }
-
   const rows = collectionResultRows(query.data?.pages);
+  const empty = query.data && rows.length === 0 && !query.hasNextPage;
   const refreshable =
     authority.enabled &&
     rows.length > 0 &&
@@ -116,95 +96,107 @@ export function CollectionBilanScreen({
       header={
         <>
           {header}
-          <SearchToolbar
-            style={styles.toolbar}
-            filter={{
-              active: filtered,
-              onPress: onOpenFilters,
-            }}
-          >
-            <SearchField
-              {...searchField}
-              label="Rechercher dans le bilan"
-              placeholder="Poule, source, étape…"
-            />
-          </SearchToolbar>
+          {!refused && (
+            <SearchToolbar
+              filter={
+                failed
+                  ? undefined
+                  : { active: filtered, onPress: onOpenFilters }
+              }
+            >
+              <SearchField
+                {...searchField}
+                label="Rechercher dans le bilan"
+                placeholder="Poule, source, étape…"
+              />
+            </SearchToolbar>
+          )}
         </>
       }
       headerMinHeight={
-        tokens.layout.header + tokens.size.control.default + tokens.spacing.xs
+        refused ? undefined : tokens.layout.header + searchToolbarMinHeight
       }
     >
-      <PageList
-        key={contextKey}
-        testID="collection-bilan-list"
-        data={rows}
-        keyExtractor={collectionResultKey}
-        reveal={{ presentation: reveal }}
-        contentContainerStyle={pageContentStyle}
-        alwaysBounceVertical={rows.length > 0}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        maintainVisibleContentPosition={{ size: false, data: true }}
-        refreshControl={
-          <DataRefreshControl
-            enabled={refreshable}
-            fetching={query.isFetching}
-            onRefresh={() => query.refetch({ cancelRefetch: false })}
+      {failed ? (
+        <PageReadState>
+          <ReadFeedback
+            key={contextKey}
+            query={query}
+            loadingContent={null}
+            onRetry={
+              authority.enabled
+                ? () => query.refetch({ cancelRefetch: false })
+                : undefined
+            }
           />
-        }
-        ItemSeparatorComponent={ListSeparator}
-        renderItem={({ item }) => (
-          <CollectionBilanResult
-            result={item}
-            onViewSource={(source) => {
-              Keyboard.dismiss();
-              onViewSource(source);
-            }}
-          />
-        )}
-        onEndReached={() => {
-          if (!query.isError) {
-            loadMore();
-          }
-        }}
-        onEndReachedThreshold={0.5}
-        loadingFeedback={{
-          active: query.isPending && query.isFetching,
-          content: <CollectionBilanResultsLoading />,
-        }}
-        ListEmptyComponent={
-          query.data && !query.hasNextPage ? (
-            <ScreenState style={styles.noExtraInset}>
-              <EmptyState
-                title={
-                  filtered || criteria.query
-                    ? "Aucun résultat pour ces critères"
-                    : "Aucun résultat observé"
-                }
-              >
-                <ReloadButton query={query} disabled={!authority.enabled} />
-              </EmptyState>
-            </ScreenState>
-          ) : undefined
-        }
-        ListFooterComponent={
-          <>
-            <ListContinuation
-              loading={query.isFetchingNextPage}
-              failed={continuationFailed}
-              disabled={query.isFetching}
-              onRetry={loadMore}
+        </PageReadState>
+      ) : (
+        <PageList
+          key={contextKey}
+          testID="collection-bilan-list"
+          data={rows}
+          keyExtractor={collectionResultKey}
+          reveal={{ presentation: reveal }}
+          contentContainerStyle={empty ? undefined : pageContentStyle}
+          alwaysBounceVertical={rows.length > 0}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          maintainVisibleContentPosition={{ size: false, data: true }}
+          refreshControl={
+            <DataRefreshControl
+              enabled={refreshable}
+              fetching={query.isFetching}
+              onRefresh={() => query.refetch({ cancelRefetch: false })}
             />
-            <BottomContentSpacer />
-          </>
-        }
-      />
+          }
+          ItemSeparatorComponent={ListSeparator}
+          renderItem={({ item }) => (
+            <CollectionBilanResult
+              result={item}
+              onViewSource={(source) => {
+                Keyboard.dismiss();
+                onViewSource(source);
+              }}
+            />
+          )}
+          onEndReached={() => {
+            if (!query.isError) {
+              loadMore();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          loadingFeedback={{
+            active: query.isPending && query.isFetching,
+            content: <CollectionBilanResultsLoading />,
+          }}
+          ListEmptyComponent={
+            empty ? (
+              <ScreenState>
+                <EmptyState
+                  title={
+                    filtered || criteria.query
+                      ? "Aucun résultat pour ces critères"
+                      : "Aucun résultat observé"
+                  }
+                >
+                  <ReloadButton query={query} disabled={!authority.enabled} />
+                </EmptyState>
+              </ScreenState>
+            ) : undefined
+          }
+          ListFooterComponent={
+            <>
+              <ListContinuation
+                loading={query.isFetchingNextPage}
+                failed={continuationFailed}
+                disabled={query.isFetching}
+                onRetry={loadMore}
+              />
+              <BottomContentSpacer />
+            </>
+          }
+        />
+      )}
     </Page>
   );
 }
-
-const styles = StyleSheet.create({
-  toolbar: { paddingBottom: tokens.spacing.xs },
-  noExtraInset: { padding: 0 },
-});

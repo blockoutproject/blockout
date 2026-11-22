@@ -31,8 +31,8 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
       JOIN sporting_season season ON season.id = pack.season_id
       """;
 
-  // Complete settings share a division id as their presence marker. A pack default therefore
-  // classifies every child without an override, including the childless pack fallback.
+  // Complete settings share a division id as their presence marker. A childless pack can
+  // still qualify for the ALL filter through its default, with zero classified pools.
   String PACK_PROJECTION =
       """
       SELECT pack.id, LEFT(pack.reference, 256) AS label, source.id AS "sourceId",
@@ -40,20 +40,25 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
         season.id AS "seasonId", LEFT(season.label, 256) AS "seasonLabel",
         pack.setting_division_id AS "divisionId", LEFT(division.name, 256) AS "divisionName",
         pack.setting_format AS format, pack.setting_gender AS gender,
-        coverage.pool_count AS "poolCount", coverage.status
+        coverage.pool_count AS "poolCount", coverage.classified_pool_count AS "classifiedPoolCount",
+        coverage.status
       """
           + PACK_CONTEXT
           + """
       LEFT JOIN sporting_division division ON division.id = pack.setting_division_id
       CROSS JOIN LATERAL (
-        SELECT COUNT(*) AS pool_count,
+        SELECT totals.pool_count, totals.classified_pool_count,
           CASE
-            WHEN pack.setting_division_id IS NOT NULL THEN 'ALL'
-            WHEN COUNT(pool.setting_division_id) = 0 THEN 'NONE'
-            WHEN COUNT(pool.setting_division_id) = COUNT(*) THEN 'ALL'
+            WHEN totals.pool_count = 0 AND pack.setting_division_id IS NOT NULL THEN 'ALL'
+            WHEN totals.classified_pool_count = 0 THEN 'NONE'
+            WHEN totals.classified_pool_count = totals.pool_count THEN 'ALL'
             ELSE 'SOME'
           END AS status
-        FROM sporting_pool pool WHERE pool.pack_id = pack.id AND pool.catalog_eligible
+        FROM (
+          SELECT COUNT(*) AS pool_count,
+            COUNT(COALESCE(pool.setting_division_id, pack.setting_division_id)) AS classified_pool_count
+          FROM sporting_pool pool WHERE pool.pack_id = pack.id AND pool.catalog_eligible
+        ) totals
       ) coverage
       """;
 
@@ -153,6 +158,8 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
 
     long getPoolCount();
 
+    long getClassifiedPoolCount();
+
     default MappingPack toPack() {
       return new MappingPack(
           getId(),
@@ -164,7 +171,8 @@ interface SportingMappingRepository extends Repository<PackEntity, UUID> {
           classification(),
           getDivisionName(),
           MappingStatusEnum.valueOf(getStatus()),
-          Math.toIntExact(getPoolCount()));
+          Math.toIntExact(getPoolCount()),
+          Math.toIntExact(getClassifiedPoolCount()));
     }
   }
 

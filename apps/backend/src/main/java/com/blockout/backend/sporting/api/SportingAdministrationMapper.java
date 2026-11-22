@@ -59,7 +59,8 @@ public interface SportingAdministrationMapper {
         source.seasonLabel(),
         toDto(source.defaultClassification(), source.defaultDivisionName()),
         source.status(),
-        source.poolCount());
+        source.poolCount(),
+        source.classifiedPoolCount());
   }
 
   /** Uses the generated constructor to emit the required null for an unclassified pool. */

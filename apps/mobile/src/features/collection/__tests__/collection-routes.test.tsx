@@ -7,7 +7,6 @@ import type {
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
-import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
   layoutNativeTabs,
   scrollNativeTabs,
@@ -40,6 +39,8 @@ import BilanRoute from "@/app/(operations)/collection/[seasonId]/controls/[provi
 import BilanFiltersRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/bilan-filters";
 import SourcesFiltersRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/sources-filters";
 import ClubRoute from "@/app/(operations)/collection/clubs/[family]";
+import SeasonActionsRoute from "@/app/(operations)/collection/[seasonId]/actions";
+import ActivateSeasonRoute from "@/app/(operations)/collection/[seasonId]/activation";
 import CloseSeasonRoute from "@/app/(operations)/collection/[seasonId]/closure";
 import { control, refused, result } from "../test-support/collection-peer";
 import SourceRoute from "@/app/(operations)/collection/[seasonId]/sources/[sourceId]";
@@ -247,6 +248,8 @@ async function openRoute(path: string) {
       "(operations)/collection/[seasonId]/controls/[provider]/sources-filters":
         SourcesFiltersRoute,
       "(operations)/collection/clubs/[family]": ClubRoute,
+      "(operations)/collection/[seasonId]/actions": SeasonActionsRoute,
+      "(operations)/collection/[seasonId]/activation": ActivateSeasonRoute,
       "(operations)/collection/[seasonId]/closure": CloseSeasonRoute,
       "(operations)/collection/[seasonId]/sources/[sourceId]/index":
         SourceRoute,
@@ -354,7 +357,17 @@ it("opens collection from the administration entry during maintenance with colle
   expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
 });
 
-it("activates only the selected season after native confirmation and acknowledges it once", async () => {
+async function chooseSeasonAction(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.press(
+    await screen.findByRole("button", { name: "Actions de la saison" }),
+  );
+  await user.press(await screen.findByRole("button", { name }));
+}
+
+it("activates only the selected season after exact typed confirmation and acknowledges it once", async () => {
   // Given
   let currentSeason: CollectionSeasonResponse = {
     ...season,
@@ -370,21 +383,46 @@ it("activates only the selected season after native confirmation and acknowledge
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  const activation = await screen.findByRole("button", {
-    name: "Activer la saison",
-  });
+  const activation = { name: "Activer la saison" };
+  const seasonPath = new RegExp(`^/collection/${seasonId}$`);
 
   // When
-  await user.press(activation);
-  expect(jest.mocked(Alert.alert).mock.lastCall?.[0]).toBe(
-    "Activer la saison ?",
+  await user.press(
+    await screen.findByRole("button", { name: "Actions de la saison" }),
   );
-  await act(async () => nativeAlertAction("Annuler")());
+  expect(
+    await screen.findByRole("header", { name: "Actions de la saison" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", activation)).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Clôturer la saison" }),
+  ).toBeEnabled();
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(seasonPath);
+
+  await chooseSeasonAction(user, activation.name);
+  await user.press(await screen.findByRole("button", { name: "Annuler" }));
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(seasonPath);
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
-  await user.press(activation);
-  await act(async () => nativeAlertAction("Activer")());
+
+  await chooseSeasonAction(user, activation.name);
+  expect(
+    await screen.findByRole("header", { name: "Activer 2026/2027 ?" }),
+  ).toBeOnTheScreen();
+  const input = await screen.findByLabelText(
+    "Saisissez 2026/2027 pour confirmer",
+  );
+  await user.type(input, "2026/2027 ");
+  expect(screen.getByRole("button", activation)).toBeDisabled();
+  await user.press(screen.getByRole("button", activation));
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
+  await user.clear(input);
+  await user.type(input, "2026/2027");
+  await user.press(screen.getByRole("button", activation));
   expect(
     await screen.findByRole("button", {
       name: "Activer la saison",
@@ -400,12 +438,22 @@ it("activates only the selected season after native confirmation and acknowledge
     await screen.findByRole("alert", { name: "Saison activée." }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText("Saison activée.")).toHaveLength(1);
-  expect(screen.getByText("Collectes de la saison · Active")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(seasonPath);
+  expect(
+    screen.getByRole("header", { name: "Collectes de la saison" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Active")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Clôturer la saison" }),
+  ).not.toBeOnTheScreen();
+  await user.press(
+    screen.getByRole("button", { name: "Actions de la saison" }),
+  );
   expect(
     screen.queryByRole("button", { name: "Activer la saison" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Clôturer la saison" }),
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
   ).toBeEnabled();
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "POST",
@@ -435,13 +483,20 @@ it("keeps the explicit activation action after a refusal without verifying or re
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  const activation = await screen.findByRole("button", {
-    name: "Activer la saison",
-  });
+  const activation = { name: "Activer la saison" };
+  await chooseSeasonAction(user, activation.name);
+  await user.type(
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
+    "2026/2027",
+  );
+  const seasonReads = () =>
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).endsWith(`/collection-seasons/${seasonId}`),
+    );
+  const readsBeforeSubmission = seasonReads().length;
 
   // When
-  await user.press(activation);
-  await act(async () => nativeAlertAction("Activer")());
+  await user.press(screen.getByRole("button", activation));
 
   // Then
   expect(
@@ -449,15 +504,10 @@ it("keeps the explicit activation action after a refusal without verifying or re
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Activer la saison" }),
-  ).toBeEnabled();
+  expect(screen.getByRole("button", activation)).toBeEnabled();
+  expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
   expect(screen.queryByText("Saison activée.")).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      String(url).endsWith(`/collection-seasons/${seasonId}`),
-    ),
-  ).toHaveLength(1);
+  expect(seasonReads()).toHaveLength(readsBeforeSubmission);
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
@@ -474,10 +524,11 @@ it("discards an open season activation confirmation after collection access is r
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  await user.press(
-    await screen.findByRole("button", { name: "Activer la saison" }),
+  await chooseSeasonAction(user, "Activer la saison");
+  await user.type(
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
+    "2026/2027",
   );
-  const confirm = nativeAlertAction("Activer");
   mockFetch.mockImplementation((url) =>
     String(url).endsWith("/accounts/me")
       ? Promise.resolve(refused(403))
@@ -492,7 +543,6 @@ it("discards an open season activation confirmation after collection access is r
     }),
   );
   await screen.findByRole("header", { name: "Blockout est en maintenance" });
-  await act(async () => confirm());
 
   // Then
   expect(
@@ -519,7 +569,7 @@ it("keeps season actions hidden during a failed required read until its own Retr
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  await screen.findByRole("button", { name: "Activer la saison" });
+  await screen.findByRole("button", { name: "Actions de la saison" });
   status = 403;
 
   // When
@@ -533,10 +583,7 @@ it("keeps season actions hidden during a failed required read until its own Retr
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
   );
   expect(
-    screen.queryByRole("button", { name: "Activer la saison" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Clôturer la saison" }),
+    screen.queryByRole("button", { name: "Actions de la saison" }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("link", {
@@ -550,7 +597,7 @@ it("keeps season actions hidden during a failed required read until its own Retr
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Activer la saison" }),
+    await screen.findByRole("button", { name: "Actions de la saison" }),
   ).toBeEnabled();
   expect(
     screen.queryByRole("alert", { name: "Une erreur est survenue" }),
@@ -590,6 +637,9 @@ it("switches from Suivi to the read-only source catalogue in the provider tabs",
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/controls/lnv`,
   );
+  await act(async () => router.setParams({ scope: "regional" }));
+  expect(screen.getByRole("button", { name: "Filtres" })).toBeEnabled();
+  expect(screen.getByText(source.label)).toBeOnTheScreen();
 });
 
 it("searches the native FFVB reference and applies status and perimeter together", async () => {
@@ -629,6 +679,14 @@ it("searches the native FFVB reference and applies status and perimeter together
 
   // When
   await user.type(screen.getByLabelText("Rechercher une source"), "lira");
+  await user.press(screen.getByRole("tab", { name: "Suivi" }));
+  await scrollNativeTabs(0, true);
+  expect(screen.queryByLabelText("Rechercher une source")).toBeNull();
+  await user.press(screen.getByRole("tab", { name: "Sources" }));
+  await scrollNativeTabs(1, true);
+  expect(screen.getByLabelText("Rechercher une source")).toHaveDisplayValue(
+    "lira",
+  );
   expect(screen.getByRole("link", { name: regional.label })).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: departmental.label }),
@@ -1056,6 +1114,74 @@ it.each(["partial", "unavailable"] as const)(
   },
 );
 
+it("keeps historical preparation eligible for typed closure and shows the closed season before rereading it", async () => {
+  // Given
+  let current: CollectionSeasonResponse = {
+    ...season,
+    label: "2025/2026",
+    startYear: 2025,
+    state: "preparing",
+  };
+  const reread = Promise.withResolvers<void>();
+  let rereading = false;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "POST") {
+      current = { ...current, state: "closed" };
+      return Response.json(current);
+    }
+    if (
+      current.state === "closed" &&
+      String(url).endsWith(`/collection-seasons/${seasonId}`)
+    ) {
+      rereading = true;
+      await reread.promise;
+    }
+    return responses({ manageCollection: true }, false, current)(url);
+  });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}`));
+
+  // When
+  await chooseSeasonAction(user, "Clôturer la saison");
+  expect(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  ).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
+  await user.type(
+    await screen.findByLabelText("Saisissez 2025/2026 pour confirmer"),
+    "2025/2026",
+  );
+  try {
+    await user.press(
+      screen.getByRole("button", { name: "Clôturer la saison" }),
+    );
+    await user.press(
+      await screen.findByRole("button", { name: "Retour à la saison" }),
+    );
+
+    // Then
+    await waitFor(() => expect(rereading).toBe(true));
+    expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+      new RegExp(`^/collection/${seasonId}$`),
+    );
+    expect(screen.getByText("Clôturée")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", {
+        name: "LNV, Les trois championnats professionnels",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Actions de la saison" }),
+    ).not.toBeOnTheScreen();
+  } finally {
+    await act(async () => reread.resolve());
+  }
+});
+
 it("discards a closure draft on protected-route removal and confirms discard only for new input", async () => {
   // Given
   const serve = responses({ manageCollection: true });
@@ -1069,11 +1195,9 @@ it("discards a closure draft on protected-route removal and confirms discard onl
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await act(async () => router.push(`/collection/${seasonId}`));
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
-  );
+  await chooseSeasonAction(user, "Clôturer la saison");
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/",
   );
 
@@ -1095,15 +1219,16 @@ it("discards a closure draft on protected-route removal and confirms discard onl
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
-  );
+  await chooseSeasonAction(user, "Clôturer la saison");
 
   // Then
   expect(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
   ).toHaveDisplayValue("");
-  await user.type(screen.getByLabelText("Nom exact de la saison"), "2026/");
+  await user.type(
+    screen.getByLabelText("Saisissez 2026/2027 pour confirmer"),
+    "2026/",
+  );
   // When
   await user.press(screen.getByRole("button", { name: "Annuler" }));
   const discard = jest
@@ -1115,8 +1240,11 @@ it("discards a closure draft on protected-route removal and confirms discard onl
   await act(async () => discard.onPress?.());
   // Then
   expect(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
+    await screen.findByRole("button", { name: "Actions de la saison" }),
   ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+    new RegExp(`^/collection/${seasonId}$`),
+  );
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
@@ -1130,11 +1258,9 @@ it("retains the admitted closure route and its draft after a technical account r
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
-  );
+  await chooseSeasonAction(user, "Clôturer la saison");
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/",
   );
   mockFetch.mockImplementation((url) =>
@@ -1160,9 +1286,9 @@ it("retains the admitted closure route and its draft after a technical account r
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/closure`,
   );
-  expect(screen.getByLabelText("Nom exact de la saison")).toHaveDisplayValue(
-    "2026/",
-  );
+  expect(
+    screen.getByLabelText("Saisissez 2026/2027 pour confirmer"),
+  ).toHaveDisplayValue("2026/");
   expect(
     mockFetch.mock.calls.every(
       ([, options]) => !options?.method || options.method === "GET",
@@ -1182,18 +1308,14 @@ it("requires fresh confirmation after discarding a pending closure form without 
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}`));
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
-  );
+  await chooseSeasonAction(user, "Clôturer la saison");
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/2027",
   );
-  await user.press(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Clôturer la saison" }));
   await screen.findByRole("button", {
-    name: "Clôturer définitivement",
+    name: "Clôturer la saison",
     busy: true,
   });
 
@@ -1206,29 +1328,27 @@ it("requires fresh confirmation after discarding a pending closure form without 
     throw new Error("Missing native discard confirmation");
   }
   await act(async () => discard.onPress?.());
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer la saison" }),
-  );
+  await chooseSeasonAction(user, "Clôturer la saison");
   await screen.findByRole("button", {
-    name: "Clôturer définitivement",
+    name: "Clôturer la saison",
     busy: false,
   });
-  expect(screen.getByLabelText("Nom exact de la saison")).toHaveDisplayValue(
-    "",
-  );
+  expect(
+    screen.getByLabelText("Saisissez 2026/2027 pour confirmer"),
+  ).toHaveDisplayValue("");
   await act(async () => pending.reject(new TypeError("Lost acknowledgement")));
   await screen.findByRole("button", {
-    name: "Clôturer définitivement",
+    name: "Clôturer la saison",
     busy: false,
   });
   await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
+    await screen.findByLabelText("Saisissez 2026/2027 pour confirmer"),
     "2026/2027",
   );
 
   // Then
   expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
+    screen.getByRole("button", { name: "Clôturer la saison" }),
   ).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),

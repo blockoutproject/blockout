@@ -49,9 +49,13 @@ export function collectionSourceRouteFocus(
 
 export function sourceFiltersFromRoute(
   params: Record<string, string | string[] | undefined>,
+  provider: CollectionProviderEnum,
 ): SourceFilters {
   return {
     status: SourceCatalogStatusEnum.safeParse(params.status).data,
-    scope: CollectionSourceScopeEnum.safeParse(params.scope).data,
+    scope:
+      provider === "ffvb"
+        ? CollectionSourceScopeEnum.safeParse(params.scope).data
+        : undefined,
   };
 }

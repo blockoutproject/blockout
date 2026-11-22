@@ -1,6 +1,5 @@
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { MappingStatusEnum } from "../../../../.generated/schemas/index.zod";
 import { controlOpacity } from "@/shared/components/control-styles";
 import {
   StatusBadge,
@@ -9,31 +8,32 @@ import {
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-export const mappingStatusLabels = {
-  all: "Classé",
-  some: "Partiel",
-  none: "À classer",
-} satisfies Record<MappingStatusEnum, string>;
+type RowBadge = Readonly<{ label: string; tone: StatusBadgeTone }>;
 
 /** Pack and pool rows share one visual and accessible disclosure pattern. */
 export function MappingRow({
   label,
   detail,
-  badge,
-  tone,
+  badges,
+  badgePlacement = "trailing",
   onPress,
 }: Readonly<{
   label: string;
   detail?: string;
-  badge: string;
-  tone: StatusBadgeTone;
+  badges: readonly RowBadge[];
+  badgePlacement?: "trailing" | "below";
   onPress: () => void;
 }>) {
   const { colors } = useTheme();
+  const status = badges.map((badge) => (
+    <StatusBadge key={badge.label} {...badge} />
+  ));
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={[label, detail, badge].filter(Boolean).join(", ")}
+      accessibilityLabel={[label, detail, ...badges.map((badge) => badge.label)]
+        .filter(Boolean)
+        .join(", ")}
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
@@ -58,8 +58,11 @@ export function MappingRow({
             {detail}
           </Text>
         )}
+        {badgePlacement === "below" && (
+          <View style={styles.badges}>{status}</View>
+        )}
       </View>
-      <StatusBadge label={badge} tone={tone} />
+      {badgePlacement === "trailing" && status}
       <ChevronRight
         accessible={false}
         size={tokens.size.icon.sm}
@@ -80,4 +83,5 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.panelInset,
   },
   copy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.xs },
 });

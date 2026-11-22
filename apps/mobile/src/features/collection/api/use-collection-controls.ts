@@ -1,8 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  closeCollectionSeason,
-  getCloseCollectionSeasonMutationKey,
-  getListCollectionControlsQueryKey,
   getRequestCollectionMutationKey,
   getSetCollectionActivityMutationKey,
   requestCollection,
@@ -10,16 +7,11 @@ import {
 } from "../../../../.generated/mobile";
 import {
   CollectionControlResponse,
-  type CloseCollectionSeasonRequest,
   type CollectionControlListResponse,
   type SetCollectionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createCollectionQueries } from "./collection-queries";
-import { invalidateCollectionSeason } from "./invalidate-collection-reads";
-import {
-  useCollectionAuthority,
-  useCollectionSeason,
-} from "./use-collection-season";
+import { useCollectionAuthority } from "./use-collection-season";
 
 /** Reads the complete controls for exactly one season, or the two seasonless families. */
 export function useCollectionControls(seasonId?: string) {
@@ -83,27 +75,4 @@ export function useCollectionControl(
     activity,
     request,
   };
-}
-
-/** Exact terminal closure targets its original season and never retries an uncertain acknowledgement. */
-export function useCloseCollectionSeason(seasonId: string) {
-  const { authority, season, seasonKey: key } = useCollectionSeason(seasonId);
-  const client = useQueryClient();
-
-  /** Invalidates the season and its related controls after accepted closure. */
-  function accept() {
-    invalidateCollectionSeason(client, seasonId);
-    void client.invalidateQueries({
-      queryKey: getListCollectionControlsQueryKey({ seasonId }),
-      exact: true,
-    });
-  }
-
-  const close = useMutation({
-    mutationKey: [...key, ...getCloseCollectionSeasonMutationKey()],
-    mutationFn: async (body: CloseCollectionSeasonRequest) =>
-      closeCollectionSeason(seasonId, body, await authority.request()),
-    onSuccess: accept,
-  });
-  return { authority, season, close };
 }
