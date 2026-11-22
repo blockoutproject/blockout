@@ -8,7 +8,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { SportingLink } from "../link";
 import { MatchSurface } from "./match-surface";
-import { SportingLogo } from "./sporting-identity";
+import { MatchLogo } from "./sporting-identity";
 
 /** Accepted set sequence and its original home/away identities; missing detail never becomes zeros. */
 export interface MatchSetScoresProps {
@@ -123,19 +123,11 @@ function MatchScoreTeam({
       label={`Ouvrir l’équipe ${identity.name} · ${sideLabel}`}
       style={styles.team}
     >
-      <SportingLogo
+      <MatchLogo
         identity={identity}
         kind="team"
         size={tokens.sporting.setLogo}
-        atmosphere={{
-          testID: `match-score-atmosphere-${identity.id}`,
-        }}
-        renderWithAtmosphere={(logo, halo) => (
-          <>
-            {halo}
-            {logo}
-          </>
-        )}
+        haloTestID={`match-score-atmosphere-${identity.id}`}
       />
       <Text
         numberOfLines={2}

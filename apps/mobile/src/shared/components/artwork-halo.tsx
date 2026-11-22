@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import Svg, {
   Defs,
+  G,
   LinearGradient,
   Mask,
   RadialGradient,
@@ -18,19 +19,45 @@ const halo = tokens.media.halo;
 const leadingFade =
   halo.leadingFadeWidth / (halo.width + halo.leadingFadeWidth);
 const artworkWidth = 1 - leadingFade;
-// Keep the identity gradient in its original position within the extended mask.
-const horizontalCenter = `${(leadingFade + artworkWidth * 0.3) * 100}%`;
-const horizontalRadius = `${artworkWidth * 78}%`;
+const identityRadial = {
+  centers: [0.3],
+  radiusX: 0.78,
+  radiusY: "60%",
+  fadeEnd: 0.8,
+  trailingOpacity: 1,
+};
+const washFadeEnd = 0.7;
+
+const treatments = {
+  identity: identityRadial,
+  crest: {
+    ...identityRadial,
+    centers: [0.5],
+    // The radial fade reaches zero at both sides of the centered frame.
+    radiusX: 0.5 / identityRadial.fadeEnd,
+  },
+  standingsRow: {
+    centers: [0.4, 0.65],
+    radiusX: 0.8,
+    radiusY: `${50 / washFadeEnd}%`,
+    fadeEnd: washFadeEnd,
+    trailingOpacity: 0,
+  },
+};
+
+export type ArtworkHaloTreatment = keyof typeof treatments;
 
 interface ArtworkHaloProps {
   uri: string;
+  treatment?: ArtworkHaloTreatment;
   testID?: string;
   onError?: () => void;
 }
 
-/** Centers vertically in the media surface and keeps decode failure local to the current source. */
+/** Uses the host's media alignment and keeps decode failure local to the current source. */
 export function ArtworkHalo({
   uri,
+  treatment = "identity",
   testID = "sporting-logo-atmosphere",
   onError,
 }: Readonly<ArtworkHaloProps>) {
@@ -43,12 +70,19 @@ export function ArtworkHalo({
 
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
+  const radial = treatments[treatment];
+  const radiusX = `${artworkWidth * radial.radiusX * 100}%`;
+  const gradients = radial.centers.map((center, index) => ({
+    id: `${id}-${index}`,
+    center: `${(leadingFade + artworkWidth * center) * 100}%`,
+  }));
   return (
     <View
       accessible={false}
       pointerEvents="none"
       style={[
         styles.halo,
+        treatment === "standingsRow" ? styles.compact : styles.centered,
         {
           opacity: halo.opacity[scheme],
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
@@ -63,31 +97,46 @@ export function ArtworkHalo({
         maskElement={
           <Svg accessible={false} width="100%" height="100%">
             <Defs>
-              <RadialGradient
-                id={id}
-                cx={horizontalCenter}
-                cy="50%"
-                rx={horizontalRadius}
-                ry="60%"
-              >
-                <Stop offset={0} stopColor="white" stopOpacity={1} />
-                <Stop offset={0.8} stopColor="white" stopOpacity={0} />
-              </RadialGradient>
+              {gradients.map((gradient) => (
+                <RadialGradient
+                  key={gradient.id}
+                  id={gradient.id}
+                  cx={gradient.center}
+                  cy="50%"
+                  rx={radiusX}
+                  ry={radial.radiusY}
+                >
+                  <Stop offset={0} stopColor="white" stopOpacity={1} />
+                  <Stop
+                    offset={radial.fadeEnd}
+                    stopColor="white"
+                    stopOpacity={0}
+                  />
+                </RadialGradient>
+              ))}
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
                 <Stop offset={0} stopColor="white" stopOpacity={0} />
                 <Stop offset={leadingFade} stopColor="white" stopOpacity={1} />
-                <Stop offset={1} stopColor="white" stopOpacity={1} />
+                <Stop
+                  offset={1}
+                  stopColor="white"
+                  stopOpacity={radial.trailingOpacity}
+                />
               </LinearGradient>
               <Mask id={mask} x={0} y={0} width="100%" height="100%">
                 <Rect width="100%" height="100%" fill={`url(#${fade})`} />
               </Mask>
             </Defs>
-            <Rect
-              width="100%"
-              height="100%"
-              fill={`url(#${id})`}
-              mask={`url(#${mask})`}
-            />
+            <G mask={`url(#${mask})`}>
+              {gradients.map((gradient) => (
+                <Rect
+                  key={gradient.id}
+                  width="100%"
+                  height="100%"
+                  fill={`url(#${gradient.id})`}
+                />
+              ))}
+            </G>
           </Svg>
         }
       >
@@ -110,11 +159,14 @@ export function ArtworkHalo({
 const styles = StyleSheet.create({
   halo: {
     position: "absolute",
+    width: halo.width,
+  },
+  centered: {
     top: "50%",
     marginTop: -halo.height / 2,
-    width: halo.width,
     height: halo.height,
   },
+  compact: { height: halo.compactHeight },
   // The fade can extend outside the artwork frame. The surface clips it at its own outline.
   mask: {
     ...StyleSheet.absoluteFill,

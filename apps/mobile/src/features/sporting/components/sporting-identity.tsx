@@ -46,6 +46,29 @@ export function SportingLogo({
   );
 }
 
+/** The match heading and team scores anchor the same halo to their logo slot. */
+export function MatchLogo({
+  haloTestID,
+  ...logo
+}: Readonly<
+  Pick<SportingLogoProps, "identity" | "kind" | "size"> & {
+    haloTestID?: string;
+  }
+>) {
+  return (
+    <SportingLogo
+      {...logo}
+      atmosphere={{ treatment: "crest", testID: haloTestID }}
+      renderWithAtmosphere={(image, halo) => (
+        <View style={styles.matchLogo}>
+          {halo}
+          {image}
+        </View>
+      )}
+    />
+  );
+}
+
 /** An optional, noninteractive competition-logo cover; absence/loading/failure adds no fake artwork. */
 export function SportingArtwork({
   division,
@@ -215,6 +238,7 @@ function ClubBadge({ clubId }: Readonly<{ clubId: string }>) {
 }
 
 const styles = StyleSheet.create({
+  matchLogo: { alignItems: "center", flexShrink: 1 },
   heading: { gap: tokens.spacing.xs },
   name: { ...tokens.typography.heading },
   clubName: { ...tokens.typography.navigation },
