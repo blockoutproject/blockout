@@ -22,6 +22,7 @@ import {
   listCollectionSourceChildren,
   listCollectionSources,
 } from "../../../../.generated/mobile";
+import type { ListCollectionResultsParams } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** A refused permission or missing exact collection resource cannot authorize another command. */
@@ -37,6 +38,12 @@ export interface CollectionQueryAuthority {
   enabled: boolean;
   request(): Promise<ApiFetchOptions>;
 }
+
+/** Route-owned result criteria. Page and page size belong to the read consuming them. */
+export type CollectionResultCriteria = Pick<
+  ListCollectionResultsParams,
+  "query" | "status" | "sourceId" | "stage"
+>;
 
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
@@ -67,6 +74,21 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         ?.setState({ data: undefined, dataUpdatedAt: 0 });
     }
     throw error;
+  }
+
+  async function readResults(
+    controlId: string,
+    params: ListCollectionResultsParams,
+    context: QueryFunctionContext,
+  ) {
+    try {
+      return await listCollectionResults(controlId, params, {
+        ...(await authority.request()),
+        signal: context.signal,
+      });
+    } catch (error) {
+      return rejectDenied(error, context);
+    }
   }
 
   return {
@@ -178,25 +200,31 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
           }
         },
       }),
-    /** Paged evidence includes response-shaping size in the key without creating one cache per page. */
-    results: (controlId: string) => {
-      const params = { size: 50 };
+    /** Suivi reads one page of evidence for its whole-control totals, independently of the Bilan traversal. */
+    resultSummary: (controlId: string) => {
+      const params = { size: 1 };
+      return queryOptions({
+        queryKey: getListCollectionResultsQueryKey(controlId, params),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          readResults(controlId, { ...params, page: 0 }, context),
+      });
+    },
+    /** Page identity stays in pageParam. Every response-shaping criterion belongs in the generated key. */
+    results: (controlId: string, criteria: CollectionResultCriteria = {}) => {
+      const params = { ...criteria, size: 50 };
       return infiniteQueryOptions({
         queryKey: getListCollectionResultsQueryKey(controlId, params),
         enabled: authority.enabled,
         gcTime: 0,
         initialPageParam: 0,
-        queryFn: async (context) => {
-          try {
-            return await listCollectionResults(
-              controlId,
-              { ...params, page: context.pageParam },
-              { ...(await authority.request()), signal: context.signal },
-            );
-          } catch (error) {
-            return rejectDenied(error, context);
-          }
-        },
+        queryFn: (context) =>
+          readResults(
+            controlId,
+            { ...params, page: context.pageParam },
+            context,
+          ),
         getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
       });
     },

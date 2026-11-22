@@ -1,9 +1,4 @@
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   closeCollectionSeason,
   getCloseCollectionSeasonMutationKey,
@@ -34,7 +29,7 @@ export function useCollectionControls(seasonId?: string) {
   return { authority, query };
 }
 
-/** Current control, paged evidence and explicit commands share generated keys and the F05/F12 authority. */
+/** Current control and explicit commands share generated keys and the F05/F12 authority. */
 export function useCollectionControl(controlId: string, seasonId?: string) {
   const authority = useCollectionAuthority();
   const client = useQueryClient();
@@ -42,7 +37,6 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const controlOptions = queries.control(controlId);
   const key = controlOptions.queryKey;
   const query = useQuery(controlOptions);
-  const results = useInfiniteQuery(queries.results(controlId));
 
   /** An acknowledged command cannot revive withdrawn data. */
   function acceptResponse(accepted: CollectionControlResponse) {
@@ -73,7 +67,6 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   return {
     authority,
     query,
-    results,
     activity,
     request,
   };

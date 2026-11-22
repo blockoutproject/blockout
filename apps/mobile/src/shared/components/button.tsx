@@ -116,7 +116,10 @@ export function Button({
             size === "compact" && styles.compact,
             size === "compact" && outlined && styles.compactOutline,
             {
-              backgroundColor,
+              backgroundColor:
+                size === "compact" && outlined && !contextColor
+                  ? colors.subtle
+                  : backgroundColor,
               backgroundImage:
                 variant === "primary"
                   ? `linear-gradient(120deg, ${stops.join(", ")})`

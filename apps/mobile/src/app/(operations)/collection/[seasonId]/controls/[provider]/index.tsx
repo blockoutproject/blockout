@@ -4,16 +4,21 @@ import { Page, PageScrollView } from "@/shared/components/page";
 import { ErrorState } from "@/shared/components/state-card";
 
 import { useLocalSearchParams } from "expo-router";
-import { ProviderSourcesScreen } from "@/features/collection/screens/provider-sources-screen";
+import { CollectionProviderScreen } from "@/features/collection/screens/collection-provider-screen";
 
-/** Only the two contract-owned official providers expose preparation; form discard uses native navigation. */
-export default function ProviderSourcesRoute() {
-  const { seasonId, provider } = useLocalSearchParams<{
+/** Both provider tabs share the selected canonical season. */
+export default function CollectionProviderRoute() {
+  const { seasonId, provider, tab } = useLocalSearchParams<{
     seasonId: string;
     provider: string;
+    tab?: string;
   }>();
   return provider === "ffvb" || provider === "lnv" ? (
-    <ProviderSourcesScreen seasonId={seasonId} provider={provider} />
+    <CollectionProviderScreen
+      provider={provider}
+      seasonId={seasonId}
+      tab={tab === "sources" ? "sources" : "suivi"}
+    />
   ) : (
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>

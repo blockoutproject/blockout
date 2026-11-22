@@ -1,5 +1,6 @@
 import { Surface } from "@/shared/components/surface";
 import { formatCollectionTimestamp } from "../model/collection-time";
+import { stageLabels } from "../model/collection-result-presentation";
 import { Text } from "react-native";
 import type { CollectionResultResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
@@ -17,15 +18,7 @@ export function CollectionResult({
   diagnostics,
 }: Readonly<CollectionResultProps>) {
   const { colors } = useTheme();
-  const stage = {
-    discovery: "Découverte",
-    calendar: "Calendrier",
-    details: "Détails",
-    standings: "Classement",
-    "club-sheet": "Fiche club",
-    geocoding: "Géocodage",
-    logo: "Logo",
-  }[result.stage];
+  const stage = stageLabels[result.stage];
   const outcome =
     result.phase === "integration"
       ? {

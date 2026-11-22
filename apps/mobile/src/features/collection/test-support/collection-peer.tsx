@@ -16,6 +16,7 @@ import { Pressable, Text } from "react-native";
 import type {
   CollectionControlResponse,
   CollectionResultResponse,
+  CollectionResultSummaryResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
@@ -102,6 +103,7 @@ interface CollectionPeer {
   season: CollectionSeasonResponse;
   controls: CollectionControlResponse[];
   results: CollectionResultResponse[];
+  summary: CollectionResultSummaryResponse;
   permissions: object;
   /** Serves only reads; each scenario installs its own explicit mutation response. */
   reads(url: RequestInfo | URL, options?: RequestInit): Promise<Response>;
@@ -119,6 +121,7 @@ export function collectionPeer(): CollectionPeer {
     },
     controls: [control()],
     results: [],
+    summary: { success: 0, partial: 0, failed: 0, unconfirmed: 0 },
     permissions: operator.permissions,
     reads,
   };
@@ -155,7 +158,12 @@ export function collectionPeer(): CollectionPeer {
       return json(selected);
     }
     if (path.endsWith("/results")) {
-      return json({ items: peer.results, page: 0, hasNext: false });
+      return json({
+        items: peer.results,
+        page: 0,
+        hasNext: false,
+        summary: peer.summary,
+      });
     }
     throw new Error(`Unexpected controlled request ${path}`);
   }

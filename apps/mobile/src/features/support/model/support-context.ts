@@ -16,6 +16,7 @@ export interface SupportOrigin {
 const screens = {
   home: "Accueil",
   search: "Recherche",
+  "collection-bilan": "Bilan",
   profile: "Profil",
   notifications: "Notifications",
   "sign-in": "Connexion",

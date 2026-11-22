@@ -68,6 +68,26 @@ export function CollectionResultsLoading() {
   );
 }
 
+/** Reserves the whole-control result card while its first bounded read is active. */
+export function CollectionSummaryLoading() {
+  return (
+    <LoadingGroup label="Chargement des résultats de collecte">
+      <Surface>
+        <TextSkeleton role="heading" width="52%" />
+        <TextSkeleton role="metadata" width="38%" />
+        <View style={styles.actions}>
+          <TextSkeleton role="metadata" width="36%" />
+          <TextSkeleton role="metadata" width="38%" />
+        </View>
+        <View style={styles.actions}>
+          <TextSkeleton role="metadata" width="33%" />
+          <TextSkeleton role="metadata" width="35%" />
+        </View>
+      </Surface>
+    </LoadingGroup>
+  );
+}
+
 /** Uses the source's initial closed editor with its link summary and command slot. */
 export function SourcePreparationLoading() {
   return (

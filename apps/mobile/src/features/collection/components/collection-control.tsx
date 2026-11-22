@@ -1,5 +1,5 @@
 import { useNavigation } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
   CollectionControlResponse,
@@ -20,6 +20,8 @@ export interface CollectionControlProps {
   control: CollectionControlResponse;
   editing: ReturnType<typeof useCollectionControl>;
   season?: CollectionSeasonResponse;
+  /** Retained provider tabs clear confirmation when the operator leaves Suivi. */
+  active?: boolean;
 }
 
 /** Presents desired activity, execution observations and ordinary mutation feedback. */
@@ -27,13 +29,14 @@ export function CollectionControl({
   control,
   editing,
   season,
+  active = true,
 }: Readonly<CollectionControlProps>) {
   const { colors } = useTheme();
   const { clear, error, success } = useActionFeedback();
   const navigation = useNavigation();
   const confirmAction = useActionConfirmation();
   const { authority } = editing;
-  const mounted = useRef(false);
+  const activeVisit = useRef(false);
   const closed = season?.state === "closed";
   const running = control.cycle?.state === "running";
   const canChangeActivity =
@@ -48,12 +51,15 @@ export function CollectionControl({
     (!season || season.state === "active") &&
     !control.pendingRequestId &&
     !running;
-  useEffect(() => {
-    mounted.current = true;
+  useLayoutEffect(() => {
+    activeVisit.current = active;
+    if (!active) {
+      clear("success");
+    }
     return () => {
-      mounted.current = false;
+      activeVisit.current = false;
     };
-  }, []);
+  }, [active, clear]);
   useEffect(
     () => navigation.addListener("blur", () => clear("success")),
     [clear, navigation],
@@ -62,7 +68,7 @@ export function CollectionControl({
   /** Confirms the accepted season command; mutation callbacks own its read invalidation. */
   async function send(command: "activity" | "request") {
     if (
-      !mounted.current ||
+      !activeVisit.current ||
       !(command === "request" ? canRequest : canChangeActivity)
     ) {
       return;
@@ -76,7 +82,7 @@ export function CollectionControl({
           : editing.request.mutateAsync();
       clear();
       const accepted = await attempt;
-      if (!season || !navigation.isFocused()) {
+      if (!season || !activeVisit.current || !navigation.isFocused()) {
         return;
       }
       if (command === "activity") {
@@ -151,79 +157,131 @@ export function CollectionControl({
     return "En pause";
   }
 
+  const actions = !closed && (
+    <View style={styles.actions}>
+      <View style={season ? styles.column : styles.action}>
+        <Button
+          fullWidth
+          size={season ? "compact" : "regular"}
+          variant="secondary"
+          label={control.enabled ? "Mettre en pause" : "Reprendre"}
+          disabled={!canChangeActivity}
+          loading={editing.activity.isPending}
+          onPress={() => send("activity")}
+        />
+      </View>
+      <View style={season ? styles.column : styles.action}>
+        <Button
+          fullWidth
+          size={season ? "compact" : "regular"}
+          label={requestLabel()}
+          disabled={!canRequest}
+          loading={editing.request.isPending}
+          onPress={confirmRequest}
+        />
+      </View>
+    </View>
+  );
+  const metadata = [
+    tokens.typography.metadata,
+    { color: colors.secondaryText },
+  ];
+  const drainMessage = running && !control.enabled && (
+    <Text style={metadata}>
+      Le cycle en cours se termine. Aucun nouveau cycle ne démarrera.
+    </Text>
+  );
+  const badgePaint = {
+    color:
+      control.enabled && !closed
+        ? colors.onSuccessSubtle
+        : colors.secondaryText,
+    backgroundColor:
+      control.enabled && !closed ? colors.successSubtle : colors.raised,
+  };
+
+  if (season) {
+    const execution = control.pendingRequestId
+      ? "En attente de démarrage"
+      : running ||
+          control.cycle?.state === "interrupted" ||
+          !control.lastAttemptAt
+        ? cycleLabel()
+        : "Aucun cycle en cours.";
+    return (
+      <Surface style={styles.execution}>
+        <View style={styles.heading}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.headingSm, { color: colors.text }]}
+          >
+            Exécution
+          </Text>
+          <Text
+            style={[
+              styles.compactBadge,
+              badgePaint,
+              { borderColor: colors.border },
+            ]}
+          >
+            {controlStatus()}
+          </Text>
+        </View>
+        {season.state === "preparing" && (
+          <Text style={metadata}>Saison à activer</Text>
+        )}
+        {closed && (
+          <Text style={metadata}>Saison clôturée · historique conservé</Text>
+        )}
+        <Text style={metadata}>{execution}</Text>
+        {drainMessage}
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={styles.dates}>
+          <View style={styles.date}>
+            <Text style={metadata}>Dernière tentative</Text>
+            <Text style={[tokens.typography.label, { color: colors.text }]}>
+              {control.lastAttemptAt
+                ? formatCollectionTimestamp(control.lastAttemptAt, "compact")
+                : "Jamais"}
+            </Text>
+          </View>
+          <View style={styles.date}>
+            <Text style={metadata}>Dernier succès complet</Text>
+            <Text style={[tokens.typography.label, { color: colors.text }]}>
+              {control.lastSuccessAt
+                ? formatCollectionTimestamp(control.lastSuccessAt, "compact")
+                : "Aucun"}
+            </Text>
+          </View>
+        </View>
+        {actions}
+      </Surface>
+    );
+  }
+
   return (
     <Surface>
       <View style={styles.heading}>
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           Collecte
         </Text>
-        <Text
-          style={[
-            styles.badge,
-            {
-              color: control.enabled
-                ? colors.onSuccessSubtle
-                : colors.secondaryText,
-              backgroundColor: control.enabled
-                ? colors.successSubtle
-                : colors.raised,
-            },
-          ]}
-        >
-          {controlStatus()}
-        </Text>
+        <Text style={[styles.badge, badgePaint]}>{controlStatus()}</Text>
       </View>
-      {!closed && (
-        <View style={styles.actions}>
-          <View style={styles.action}>
-            <Button
-              fullWidth
-              variant="secondary"
-              label={control.enabled ? "Mettre en pause" : "Reprendre"}
-              disabled={!canChangeActivity}
-              loading={editing.activity.isPending}
-              onPress={() => send("activity")}
-            />
-          </View>
-          <View style={styles.action}>
-            <Button
-              fullWidth
-              label={requestLabel()}
-              disabled={!canRequest}
-              loading={editing.request.isPending}
-              onPress={confirmRequest}
-            />
-          </View>
-        </View>
-      )}
+      {actions}
       {control.pendingRequestId && (
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          En attente de démarrage
-        </Text>
+        <Text style={metadata}>En attente de démarrage</Text>
       )}
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
         {cycleLabel()}
       </Text>
-      {running && !control.enabled && (
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          Le cycle en cours se termine. Aucun nouveau cycle ne démarrera.
-        </Text>
-      )}
-      <Text
-        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-      >
+      {drainMessage}
+      <Text style={metadata}>
         Dernière tentative :{" "}
         {control.lastAttemptAt
           ? formatCollectionTimestamp(control.lastAttemptAt)
           : "jamais"}
       </Text>
-      <Text
-        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-      >
+      <Text style={metadata}>
         Dernier succès complet :{" "}
         {control.lastSuccessAt
           ? formatCollectionTimestamp(control.lastSuccessAt)
@@ -244,6 +302,8 @@ function activityConfirmation(accepted: CollectionControlResponse) {
 }
 
 const styles = StyleSheet.create({
+  execution: { gap: tokens.spacing.sm },
+  divider: { height: tokens.border.thin },
   heading: {
     flexDirection: "row",
     alignItems: "center",
@@ -256,6 +316,19 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.sm,
     padding: tokens.spacing.sm,
   },
+  compactBadge: {
+    ...tokens.typography.metadata,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.sm,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.xs - tokens.border.thin,
+  },
+  dates: {
+    flexDirection: "row",
+    gap: tokens.spacing.lg,
+  },
+  date: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
+  column: { flex: 1, minWidth: 0 },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",

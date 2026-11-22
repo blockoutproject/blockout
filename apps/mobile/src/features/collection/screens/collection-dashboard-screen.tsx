@@ -1,14 +1,10 @@
 import { PageFlatList } from "@/shared/components/page-list";
-import type { QueryObserverResult } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import type {
-  CollectionFamilyEnum,
-  CollectionSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
@@ -33,10 +29,8 @@ import {
   useCollectionControl,
   useCollectionControls,
 } from "../api/use-collection-controls";
-import {
-  useCollectionSeason,
-  useCollectionSeasons,
-} from "../api/use-source-preparation";
+import { useCollectionSeasons } from "../api/use-source-preparation";
+import { createCollectionQueries } from "../api/collection-queries";
 import { CollectionControl } from "../components/collection-control";
 import {
   CollectionLoading,
@@ -45,13 +39,12 @@ import {
 } from "../components/collection-loading";
 import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
-import { SeasonIdentity, seasonStatus } from "../components/source-summary";
-import { ProviderSourcesScreen } from "./provider-sources-screen";
+import { seasonStatus } from "../components/source-summary";
+import { collectionResultKey } from "../model/collection-result-presentation";
 
-/** Navigation labels correspond to F01's four independent control families. */
-const familyLabels: Record<CollectionFamilyEnum, string> = {
-  ffvb: "FFVB",
-  lnv: "LNV",
+type ClubCollectionFamily = "club-sheets" | "geocoding";
+
+const familyLabels: Record<ClubCollectionFamily, string> = {
   "club-sheets": "Fiches clubs",
   geocoding: "Géocodage",
 };
@@ -165,101 +158,14 @@ export function CollectionDashboardScreen() {
   );
 }
 
-/** Navigable control identity comes from the route; club families deliberately have no season setting. */
-export interface CollectionControlScreenProps {
-  family: CollectionFamilyEnum;
-  seasonId?: string;
-}
-
-/** Composes current-season lifecycle only for competition controls, retaining the separate preparation destination. */
+/** Club sheets and geocoding read only the two independent seasonless controls. */
 export function CollectionControlScreen({
   family,
-  seasonId,
-}: Readonly<CollectionControlScreenProps>) {
-  return seasonId ? (
-    <SeasonControlScope family={family} seasonId={seasonId} />
-  ) : (
-    <ControlScope family={family} />
+}: Readonly<{ family: ClubCollectionFamily }>) {
+  const { authority, query } = useCollectionControls();
+  const selected = query.data?.items.find(
+    (control) => control.family === family && control.seasonId === undefined,
   );
-}
-
-/** A competition command must have a current readable season as well as its control projection. */
-function SeasonControlScope({
-  family,
-  seasonId,
-}: Readonly<Required<CollectionControlScreenProps>>) {
-  const { authority, season } = useCollectionSeason(seasonId);
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
-  const pending = !authority.enabled
-    ? sessionPending
-    : !hasReadError(season) && season.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.enabled || !season.data || hasReadError(season)) {
-    return (
-      <Page header={<PageHeader title={familyLabels[family]} />}>
-        <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={season}
-                loadingContent={<CollectionControlLoading />}
-              />
-            )}
-          </FeedbackLayout>
-        </PageScrollView>
-      </Page>
-    );
-  }
-  return (
-    <ControlScope
-      family={family}
-      season={season.data}
-      seasonFetching={season.isFetching}
-      rereadSeason={() => season.refetch({ cancelRefetch: false })}
-    />
-  );
-}
-
-/** Selection is read from the complete scope list, never inferred from a provider code or another season. */
-function ControlScope({
-  family,
-  season,
-  seasonFetching = false,
-  rereadSeason,
-}: Readonly<{
-  family: CollectionFamilyEnum;
-  season?: CollectionSeasonResponse;
-  seasonFetching?: boolean;
-  rereadSeason?: () => Promise<
-    QueryObserverResult<CollectionSeasonResponse | null>
-  >;
-}>) {
-  const { authority, query } = useCollectionControls(season?.id);
-  const selected =
-    !isAccessDenied(query.error) &&
-    query.data?.items.find(
-      (control) => control.family === family && control.seasonId === season?.id,
-    );
-  // A provider control may have yet to be created by discovery or historical reconstruction.
-  // Keep the existing source route accessible when the current read confirms no control exists.
-  if (
-    authority.enabled &&
-    season &&
-    (family === "ffvb" || family === "lnv") &&
-    query.isSuccess &&
-    !selected
-  ) {
-    return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
-  }
   const sessionPending =
     authority.sessionStatus === "restoring" ||
     (authority.sessionStatus === "authenticated" &&
@@ -296,9 +202,6 @@ function ControlScope({
       key={`${authority.session.subject}/${selected.id}`}
       controlId={selected.id}
       family={family}
-      season={season}
-      seasonFetching={seasonFetching}
-      rereadSeason={rereadSeason}
     />
   );
 }
@@ -307,25 +210,19 @@ function ControlScope({
 function ControlDashboard({
   controlId,
   family,
-  season,
-  seasonFetching,
-  rereadSeason,
 }: Readonly<{
   controlId: string;
-  family: CollectionFamilyEnum;
-  season?: CollectionSeasonResponse;
-  seasonFetching: boolean;
-  rereadSeason?: () => Promise<
-    QueryObserverResult<CollectionSeasonResponse | null>
-  >;
+  family: ClubCollectionFamily;
 }>) {
-  const editing = useCollectionControl(controlId, season?.id);
-  const { authority, query, results } = editing;
+  const editing = useCollectionControl(controlId);
+  const { authority, query } = editing;
+  const results = useInfiniteQuery(
+    createCollectionQueries(authority).results(controlId),
+  );
   const { colors } = useTheme();
-  const router = useRouter();
   const navigation = useNavigation();
   const [diagnostics, setDiagnostics] = useState(false);
-  const fetching = query.isFetching || results.isFetching || seasonFetching;
+  const fetching = query.isFetching || results.isFetching;
   const commandPending =
     editing.activity.isPending || editing.request.isPending;
   const continuationBusy =
@@ -334,7 +231,7 @@ function ControlDashboard({
   const matches =
     !hasReadError(query) &&
     current?.family === family &&
-    current.seasonId === season?.id;
+    current.seasonId === undefined;
   const continuationVisible =
     !!results.data &&
     !isAccessDenied(results.error) &&
@@ -348,7 +245,7 @@ function ControlDashboard({
           ...new Map(
             (results.data?.pages ?? [])
               .flatMap((page) => page.items)
-              .map((row) => [`${row.scopeId}/${row.stage}/${row.phase}`, row]),
+              .map((row) => [collectionResultKey(row), row]),
           ).values(),
         ];
 
@@ -360,7 +257,6 @@ function ControlDashboard({
     await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
-      rereadSeason?.(),
     ]);
   }
 
@@ -390,35 +286,7 @@ function ControlDashboard({
           styles.section,
         ]}
       >
-        {season && <SeasonIdentity season={season} />}
-        {season?.state === "closed" && (
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Saison clôturée · historique conservé
-          </Text>
-        )}
-        {current && (
-          <CollectionControl
-            control={current}
-            editing={editing}
-            season={season}
-          />
-        )}
-        {season && (family === "ffvb" || family === "lnv") && (
-          <Button
-            label={
-              season.state === "closed"
-                ? "Consulter les sources"
-                : "Préparer les sources"
-            }
-            variant="secondary"
-            onPress={() =>
-              router.push({
-                pathname: "/collection/[seasonId]/[provider]",
-                params: { seasonId: season.id, provider: family },
-              })
-            }
-          />
-        )}
+        {current && <CollectionControl control={current} editing={editing} />}
         <Text
           accessibilityRole="header"
           style={[tokens.typography.heading, { color: colors.text }]}
@@ -470,7 +338,7 @@ function ControlDashboard({
             leadingIcon={RefreshCw}
             onPress={() => void results.refetch({ cancelRefetch: false })}
             loading={results.isFetching}
-            disabled={commandPending || query.isFetching || seasonFetching}
+            disabled={commandPending || query.isFetching}
           />
         </EmptyState>
       </ScreenState>
@@ -510,7 +378,7 @@ function ControlDashboard({
             ) : undefined
           }
           data={rows}
-          keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
+          keyExtractor={collectionResultKey}
           contentContainerStyle={
             rows.length > 0 || continuationVisible
               ? pageContentStyle

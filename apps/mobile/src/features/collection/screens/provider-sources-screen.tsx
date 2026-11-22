@@ -2,8 +2,7 @@ import { StyleSheet } from "react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
-import { Page, PageContent } from "@/shared/components/page";
-import { PageHeader } from "@/shared/components/page-header";
+import { PageContent } from "@/shared/components/page";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
@@ -43,46 +42,44 @@ export function ProviderSourcesScreen({
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (
-    <Page header={<PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />}>
-      <FormScrollView
-        refreshControl={
-          <DataRefreshControl
-            fetching={sources.isFetching || season.isFetching}
-            enabled={!blocked && !editing.create.isPending}
-            onRefresh={() =>
-              Promise.all([
-                season.refetch({ cancelRefetch: false }),
-                sources.refetch({ cancelRefetch: false }),
-              ])
-            }
-          />
-        }
-      >
-        {blocked && (
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<ProviderPreparationLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={requiredRead}
-                loadingContent={<ProviderPreparationLoading />}
-              />
-            )}
-          </FeedbackLayout>
-        )}
-        <PageContent style={blocked ? styles.hidden : undefined}>
-          <ProviderPreparationForm
-            key={visitKey}
-            season={sources.data ? season.data : null}
-            provider={provider}
-            editing={editing}
-          />
-        </PageContent>
-      </FormScrollView>
-    </Page>
+    <FormScrollView
+      refreshControl={
+        <DataRefreshControl
+          fetching={sources.isFetching || season.isFetching}
+          enabled={!blocked && !editing.create.isPending}
+          onRefresh={() =>
+            Promise.all([
+              season.refetch({ cancelRefetch: false }),
+              sources.refetch({ cancelRefetch: false }),
+            ])
+          }
+        />
+      }
+    >
+      {blocked && (
+        <FeedbackLayout>
+          {!authority.enabled ? (
+            <AccessFeedback
+              {...authority}
+              loadingContent={<ProviderPreparationLoading />}
+            />
+          ) : (
+            <ReadFeedback
+              query={requiredRead}
+              loadingContent={<ProviderPreparationLoading />}
+            />
+          )}
+        </FeedbackLayout>
+      )}
+      <PageContent style={blocked ? styles.hidden : undefined}>
+        <ProviderPreparationForm
+          key={visitKey}
+          season={sources.data ? season.data : null}
+          provider={provider}
+          editing={editing}
+        />
+      </PageContent>
+    </FormScrollView>
   );
 }
 

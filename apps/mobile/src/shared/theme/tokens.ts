@@ -81,6 +81,9 @@ export const appearanceColors = {
     onSuccessSubtle: "#287E63",
     warning: "#F4C66A",
     onWarning: reference.neutral900,
+    // F01 Bilan uses the UI Library status/warning-subtle and icon/warning-on-surface roles.
+    warningSubtle: "#FFF3D6",
+    warningOnSurface: "#9A6112",
     // F01 source status: Product Design 6664:88448 and 4823:40111.
     info: "#52697A",
     onInfo: reference.white,
@@ -144,6 +147,8 @@ export const appearanceColors = {
     onSuccessSubtle: "#76BCA6",
     warning: "#F4C66A",
     onWarning: reference.neutral900,
+    warningSubtle: "#4A2F08",
+    warningOnSurface: "#F4C66A",
     info: "#A9BBC7",
     onInfo: reference.neutral900,
     errorSubtle: "#FFB3C314",
