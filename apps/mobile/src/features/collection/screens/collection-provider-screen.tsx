@@ -53,9 +53,8 @@ export function CollectionProviderScreen({
               <CollectionProviderRead
                 provider={provider}
                 reading={reading}
+                view="suivi"
                 loadingContent={followUpLoading}
-                retainControlOnError
-                reloadEmptyControls
               >
                 {(control, currentSeason, controls) => (
                   <CollectionFollowUp

@@ -214,12 +214,7 @@ export function ProviderSourcesScreen({
                   : "Aucune source découverte"
               }
             >
-              {!needle && !filtered && (
-                <ReloadButton
-                  fetching={sources.isFetching}
-                  onReload={() => sources.refetch({ cancelRefetch: false })}
-                />
-              )}
+              {!needle && !filtered && <ReloadButton query={sources} />}
             </EmptyState>
           </ScreenState>
         ) : undefined

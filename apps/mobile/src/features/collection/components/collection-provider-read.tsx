@@ -22,25 +22,23 @@ type ProviderContent = (
   controls: ReturnType<typeof useCollectionControls>,
 ) => ReactNode;
 
+type ProviderView = "suivi" | "bilan";
+
 /** Keeps admission and control selection the same for Suivi and a directly opened Bilan. */
 export function CollectionProviderRead({
   provider,
   reading,
+  view,
   header,
   loadingContent,
-  retainControlOnError = false,
-  reloadEmptyControls = false,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
   reading: ReturnType<typeof useCollectionSeason>;
+  view: ProviderView;
   /** A standalone page retains its header when context has yet to admit its content. */
   header?: ReactNode;
   loadingContent: ReactNode;
-  /** Suivi keeps its separately read results while the retained control is temporarily unavailable. */
-  retainControlOnError?: boolean;
-  /** Suivi can explicitly reread the controls before the selected provider has a control. */
-  reloadEmptyControls?: boolean;
   children: ProviderContent;
 }>) {
   const { authority, season } = reading;
@@ -65,10 +63,9 @@ export function CollectionProviderRead({
     <ProviderControlRead
       provider={provider}
       season={season.data}
+      view={view}
       header={header}
       loadingContent={loadingContent}
-      retainControlOnError={retainControlOnError}
-      reloadEmptyControls={reloadEmptyControls}
     >
       {children}
     </ProviderControlRead>
@@ -78,18 +75,16 @@ export function CollectionProviderRead({
 function ProviderControlRead({
   provider,
   season,
+  view,
   header,
   loadingContent,
-  retainControlOnError,
-  reloadEmptyControls,
   children,
 }: Readonly<{
   provider: CollectionProviderEnum;
   season: CollectionSeasonResponse;
+  view: ProviderView;
   header?: ReactNode;
   loadingContent: ReactNode;
-  retainControlOnError: boolean;
-  reloadEmptyControls: boolean;
   children: ProviderContent;
 }>) {
   const controls = useCollectionControls(season.id);
@@ -98,7 +93,8 @@ function ProviderControlRead({
   const control = query.data?.items.find(
     (item) => item.family === provider && item.seasonId === season.id,
   );
-  if (control && (!failed || retainControlOnError)) {
+  // Suivi keeps its separately read results while the retained control is unavailable.
+  if (control && (!failed || view === "suivi")) {
     return children(control, season, controls);
   }
   if (!query.data || failed) {
@@ -111,12 +107,7 @@ function ProviderControlRead({
   return (
     <ProviderReadState header={header}>
       <EmptyState title="Aucun contrôle de collecte">
-        {reloadEmptyControls && (
-          <ReloadButton
-            fetching={query.isFetching}
-            onReload={() => query.refetch({ cancelRefetch: false })}
-          />
-        )}
+        {view === "suivi" && <ReloadButton query={query} />}
       </EmptyState>
     </ProviderReadState>
   );

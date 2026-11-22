@@ -115,10 +115,7 @@ export function CollectionDashboardScreen() {
             ))}
             {query.data?.items.length === 0 && (
               <EmptyState title="Aucune saison découverte">
-                <ReloadButton
-                  fetching={query.isFetching}
-                  onReload={() => query.refetch({ cancelRefetch: false })}
-                />
+                <ReloadButton query={query} />
               </EmptyState>
             )}
             <ReadFeedback
@@ -305,8 +302,7 @@ function ControlDashboard({
       <ScreenState>
         <EmptyState title="Aucun résultat observé">
           <ReloadButton
-            fetching={results.isFetching}
-            onReload={() => results.refetch({ cancelRefetch: false })}
+            query={results}
             disabled={commandPending || query.isFetching}
           />
         </EmptyState>

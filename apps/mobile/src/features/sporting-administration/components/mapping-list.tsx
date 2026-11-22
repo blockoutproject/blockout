@@ -77,12 +77,7 @@ export function MappingList<Row extends { id: string }>({
       ListHeaderComponent={header}
       ListEmptyComponent={
         <EmptyState title={emptyLabel}>
-          {!header && (
-            <ReloadButton
-              fetching={query.isFetching}
-              onReload={() => query.refetch({ cancelRefetch: false })}
-            />
-          )}
+          {!header && <ReloadButton query={query} />}
         </EmptyState>
       }
       renderItem={renderItem}
