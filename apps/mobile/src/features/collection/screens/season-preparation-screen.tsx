@@ -1,6 +1,9 @@
 import { seasonStatus } from "../components/source-summary";
 import { PreparationLink } from "../components/preparation-link";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
@@ -23,10 +26,7 @@ export function SeasonPreparationScreen({
   const router = useRouter();
   const { colors } = useTheme();
   const pending = !authority.enabled
-    ? authority.sessionStatus === "restoring" ||
-      (authority.sessionStatus === "authenticated" &&
-        !hasReadError(authority.account) &&
-        authority.account.isLoading)
+    ? isAccessLoading(authority)
     : !hasReadError(season) && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
 

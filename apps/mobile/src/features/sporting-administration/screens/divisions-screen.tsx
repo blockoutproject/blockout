@@ -1,6 +1,9 @@
 import { PageFlatList } from "@/shared/components/page-list";
 import { ListSeparator } from "@/shared/components/list-separator";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { PageHeader } from "@/shared/components/page-header";
 
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -66,13 +69,7 @@ export function DivisionsScreen() {
               .includes(search.trim().toLocaleLowerCase()),
         ) ?? [])
       : [];
-  const FeedbackLayout =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading)
-      ? PageContent
-      : ScreenState;
+  const FeedbackLayout = isAccessLoading(authority) ? PageContent : ScreenState;
   const blockingState = !authority.enabled ? (
     <AccessFeedback {...authority} loadingContent={<DivisionsLoading />} />
   ) : undefined;

@@ -1,15 +1,11 @@
 import { PageFlatList } from "@/shared/components/page-list";
-import type { QueryObserverResult } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import type {
-  CollectionFamilyEnum,
-  CollectionSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import type { CollectionControlResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -28,15 +24,19 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { EmptyState } from "@/shared/components/state-card";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import {
   useCollectionControl,
   useCollectionControls,
 } from "../api/use-collection-controls";
+import { useCollectionSeasons } from "../api/use-source-preparation";
 import {
-  useCollectionSeason,
-  useCollectionSeasons,
-} from "../api/use-source-preparation";
+  createCollectionQueries,
+  isCollectionReadRefused,
+} from "../api/collection-queries";
 import { CollectionControl } from "../components/collection-control";
 import {
   CollectionLoading,
@@ -45,13 +45,15 @@ import {
 } from "../components/collection-loading";
 import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
-import { SeasonIdentity, seasonStatus } from "../components/source-summary";
-import { ProviderSourcesScreen } from "./provider-sources-screen";
+import { seasonStatus } from "../components/source-summary";
+import {
+  collectionResultKey,
+  collectionResultRows,
+} from "../model/collection-result-presentation";
 
-/** Navigation labels correspond to F01's four independent control families. */
-const familyLabels: Record<CollectionFamilyEnum, string> = {
-  ffvb: "FFVB",
-  lnv: "LNV",
+type ClubCollectionFamily = "club-sheets" | "geocoding";
+
+const familyLabels: Record<ClubCollectionFamily, string> = {
   "club-sheets": "Fiches clubs",
   geocoding: "Géocodage",
 };
@@ -63,13 +65,7 @@ export function CollectionDashboardScreen() {
   const router = useRouter();
   const failed = hasReadError(query);
 
-  const FeedbackLayout =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading)
-      ? PageContent
-      : ScreenState;
+  const FeedbackLayout = isAccessLoading(authority) ? PageContent : ScreenState;
   return (
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView
@@ -165,111 +161,20 @@ export function CollectionDashboardScreen() {
   );
 }
 
-/** Navigable control identity comes from the route; club families deliberately have no season setting. */
-export interface CollectionControlScreenProps {
-  family: CollectionFamilyEnum;
-  seasonId?: string;
-}
-
-/** Composes current-season lifecycle only for competition controls, retaining the separate preparation destination. */
+/** Club sheets and geocoding read only the two independent seasonless controls. */
 export function CollectionControlScreen({
   family,
-  seasonId,
-}: Readonly<CollectionControlScreenProps>) {
-  return seasonId ? (
-    <SeasonControlScope family={family} seasonId={seasonId} />
-  ) : (
-    <ControlScope family={family} />
+}: Readonly<{ family: ClubCollectionFamily }>) {
+  const controls = useCollectionControls();
+  const { authority, query } = controls;
+  const selected = query.data?.items.find(
+    (control) => control.family === family && control.seasonId === undefined,
   );
-}
-
-/** A competition command must have a current readable season as well as its control projection. */
-function SeasonControlScope({
-  family,
-  seasonId,
-}: Readonly<Required<CollectionControlScreenProps>>) {
-  const { authority, season } = useCollectionSeason(seasonId);
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
   const pending = !authority.enabled
-    ? sessionPending
-    : !hasReadError(season) && season.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.enabled || !season.data || hasReadError(season)) {
-    return (
-      <Page header={<PageHeader title={familyLabels[family]} />}>
-        <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={season}
-                loadingContent={<CollectionControlLoading />}
-              />
-            )}
-          </FeedbackLayout>
-        </PageScrollView>
-      </Page>
-    );
-  }
-  return (
-    <ControlScope
-      family={family}
-      season={season.data}
-      seasonFetching={season.isFetching}
-      rereadSeason={() => season.refetch({ cancelRefetch: false })}
-    />
-  );
-}
-
-/** Selection is read from the complete scope list, never inferred from a provider code or another season. */
-function ControlScope({
-  family,
-  season,
-  seasonFetching = false,
-  rereadSeason,
-}: Readonly<{
-  family: CollectionFamilyEnum;
-  season?: CollectionSeasonResponse;
-  seasonFetching?: boolean;
-  rereadSeason?: () => Promise<
-    QueryObserverResult<CollectionSeasonResponse | null>
-  >;
-}>) {
-  const { authority, query } = useCollectionControls(season?.id);
-  const selected =
-    !isAccessDenied(query.error) &&
-    query.data?.items.find(
-      (control) => control.family === family && control.seasonId === season?.id,
-    );
-  // A provider control may have yet to be created by discovery or historical reconstruction.
-  // Keep the existing source route accessible when the current read confirms no control exists.
-  if (
-    authority.enabled &&
-    season &&
-    (family === "ffvb" || family === "lnv") &&
-    query.isSuccess &&
-    !selected
-  ) {
-    return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
-  }
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
-  const pending = !authority.enabled
-    ? sessionPending
+    ? isAccessLoading(authority)
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.enabled || !selected || hasReadError(query)) {
+  if (!authority.enabled || !selected) {
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
@@ -294,63 +199,42 @@ function ControlScope({
   return (
     <ControlDashboard
       key={`${authority.session.subject}/${selected.id}`}
-      controlId={selected.id}
+      control={selected}
+      controls={controls}
       family={family}
-      season={season}
-      seasonFetching={seasonFetching}
-      rereadSeason={rereadSeason}
     />
   );
 }
 
 /** Results own their read recovery; continuation preserves received evidence and commands remain independent. */
 function ControlDashboard({
-  controlId,
+  control,
+  controls,
   family,
-  season,
-  seasonFetching,
-  rereadSeason,
 }: Readonly<{
-  controlId: string;
-  family: CollectionFamilyEnum;
-  season?: CollectionSeasonResponse;
-  seasonFetching: boolean;
-  rereadSeason?: () => Promise<
-    QueryObserverResult<CollectionSeasonResponse | null>
-  >;
+  control: CollectionControlResponse;
+  controls: ReturnType<typeof useCollectionControls>;
+  family: ClubCollectionFamily;
 }>) {
-  const editing = useCollectionControl(controlId, season?.id);
-  const { authority, query, results } = editing;
+  const editing = useCollectionControl(control.id, controls);
+  const { authority, query } = editing;
+  const results = useInfiniteQuery(
+    createCollectionQueries(authority).results(control.id),
+  );
   const { colors } = useTheme();
-  const router = useRouter();
   const navigation = useNavigation();
   const [diagnostics, setDiagnostics] = useState(false);
-  const fetching = query.isFetching || results.isFetching || seasonFetching;
+  const fetching = query.isFetching || results.isFetching;
   const commandPending =
     editing.activity.isPending || editing.request.isPending;
   const continuationBusy =
     fetching || commandPending || authority.account.isRefetching;
-  const current = query.data;
-  const matches =
-    !hasReadError(query) &&
-    current?.family === family &&
-    current.seasonId === season?.id;
-  const continuationVisible =
-    !!results.data &&
-    !isAccessDenied(results.error) &&
-    (results.isFetchNextPageError || results.isFetchingNextPage);
-  const resultsFailed = hasReadError(results) && !results.isFetchNextPageError;
-  // Updated evidence may cross page boundaries; keep its latest value in the first observed position.
-  const rows =
-    hasReadError(query) || resultsFailed || isAccessDenied(results.error)
-      ? []
-      : [
-          ...new Map(
-            (results.data?.pages ?? [])
-              .flatMap((page) => page.items)
-              .map((row) => [`${row.scopeId}/${row.stage}/${row.phase}`, row]),
-          ).values(),
-        ];
+  const refused = isCollectionReadRefused(results.error);
+  const continuationFailed =
+    !!results.data && results.isFetchNextPageError && !refused;
+  const continuationVisible = continuationFailed || results.isFetchingNextPage;
+  const resultsFailed = hasReadError(results) && !continuationFailed;
+  const rows = resultsFailed ? [] : collectionResultRows(results.data?.pages);
 
   /** Refreshes displayed projections independently of collection commands. */
   async function refresh() {
@@ -360,7 +244,6 @@ function ControlDashboard({
     await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
-      rereadSeason?.(),
     ]);
   }
 
@@ -368,12 +251,9 @@ function ControlDashboard({
   async function loadMore() {
     if (
       !authority.enabled ||
-      !matches ||
       !navigation.isFocused() ||
       !results.hasNextPage ||
-      isAccessDenied(query.error) ||
-      isAccessDenied(results.error) ||
-      (results.isError && !results.isFetchNextPageError) ||
+      resultsFailed ||
       continuationBusy
     ) {
       return;
@@ -390,35 +270,7 @@ function ControlDashboard({
           styles.section,
         ]}
       >
-        {season && <SeasonIdentity season={season} />}
-        {season?.state === "closed" && (
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
-            Saison clôturée · historique conservé
-          </Text>
-        )}
-        {current && (
-          <CollectionControl
-            control={current}
-            editing={editing}
-            season={season}
-          />
-        )}
-        {season && (family === "ffvb" || family === "lnv") && (
-          <Button
-            label={
-              season.state === "closed"
-                ? "Consulter les sources"
-                : "Préparer les sources"
-            }
-            variant="secondary"
-            onPress={() =>
-              router.push({
-                pathname: "/collection/[seasonId]/[provider]",
-                params: { seasonId: season.id, provider: family },
-              })
-            }
-          />
-        )}
+        <CollectionControl control={control} editing={editing} />
         <Text
           accessibilityRole="header"
           style={[tokens.typography.heading, { color: colors.text }]}
@@ -435,16 +287,6 @@ function ControlDashboard({
       </View>
     );
   }
-
-  const sessionPending =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" &&
-      !hasReadError(authority.account) &&
-      authority.account.isLoading);
-  const pending = !authority.enabled
-    ? sessionPending
-    : !hasReadError(query) && query.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
 
   /** Distinguishes the initial result skeleton from failed or genuinely empty result reads. */
   function renderEmptyResults() {
@@ -470,81 +312,71 @@ function ControlDashboard({
             leadingIcon={RefreshCw}
             onPress={() => void results.refetch({ cancelRefetch: false })}
             loading={results.isFetching}
-            disabled={commandPending || query.isFetching || seasonFetching}
+            disabled={commandPending || query.isFetching}
           />
         </EmptyState>
       </ScreenState>
     );
   }
 
-  return (
-    <Page header={<PageHeader title={familyLabels[family]} />}>
-      {!authority.enabled || !matches ? (
+  const header = <PageHeader title={familyLabels[family]} />;
+  if (hasReadError(query)) {
+    return (
+      <Page header={header}>
         <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : (
-              <ReadFeedback
-                query={query}
-                loadingContent={<CollectionControlLoading />}
-                failed={!!current && !matches}
-              />
-            )}
-          </FeedbackLayout>
+          <ScreenState>
+            <ReadFeedback query={query} loadingContent={null} />
+          </ScreenState>
         </PageScrollView>
-      ) : (
-        <PageFlatList
-          testID="collection-results-list"
-          alwaysBounceVertical
-          refreshControl={
-            authority.sessionStatus === "authenticated" ? (
-              <DataRefreshControl
-                enabled={!commandPending && !results.isFetchingNextPage}
-                onRefresh={refresh}
-                fetching={fetching}
+      </Page>
+    );
+  }
+
+  return (
+    <Page header={header}>
+      <PageFlatList
+        testID="collection-results-list"
+        alwaysBounceVertical
+        refreshControl={
+          <DataRefreshControl
+            enabled={!commandPending && !results.isFetchingNextPage}
+            onRefresh={refresh}
+            fetching={fetching}
+          />
+        }
+        data={rows}
+        keyExtractor={collectionResultKey}
+        contentContainerStyle={
+          rows.length > 0 || continuationVisible
+            ? pageContentStyle
+            : styles.emptyList
+        }
+        ListHeaderComponent={renderHeader()}
+        ItemSeparatorComponent={ListSeparator}
+        onEndReached={() => {
+          if (!results.isError) {
+            loadMore();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item }) => (
+          <CollectionResult result={item} diagnostics={diagnostics} />
+        )}
+        ListEmptyComponent={renderEmptyResults() ?? undefined}
+        ListFooterComponent={
+          <>
+            {!resultsFailed && results.hasNextPage ? (
+              <ListContinuation
+                loading={results.isFetchingNextPage}
+                failed={continuationFailed}
+                disabled={continuationBusy}
+                onRetry={loadMore}
               />
-            ) : undefined
-          }
-          data={rows}
-          keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
-          contentContainerStyle={
-            rows.length > 0 || continuationVisible
-              ? pageContentStyle
-              : styles.emptyList
-          }
-          ListHeaderComponent={renderHeader()}
-          ItemSeparatorComponent={ListSeparator}
-          onEndReached={() => {
-            if (!query.isError && !results.isError) {
-              loadMore();
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          renderItem={({ item }) => (
-            <CollectionResult result={item} diagnostics={diagnostics} />
-          )}
-          ListEmptyComponent={renderEmptyResults() ?? undefined}
-          ListFooterComponent={
-            <>
-              {!resultsFailed &&
-              !isAccessDenied(results.error) &&
-              results.hasNextPage ? (
-                <ListContinuation
-                  loading={results.isFetchingNextPage}
-                  failed={results.isFetchNextPageError}
-                  disabled={continuationBusy}
-                  onRetry={loadMore}
-                />
-              ) : undefined}
-              <BottomContentSpacer />
-            </>
-          }
-        />
-      )}
+            ) : undefined}
+            <BottomContentSpacer />
+          </>
+        }
+      />
     </Page>
   );
 }

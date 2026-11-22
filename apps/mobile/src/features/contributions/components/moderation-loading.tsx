@@ -1,6 +1,7 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { FieldSkeleton } from "@/shared/components/form-loading";
+import { FilterSheetActionsSkeleton } from "@/shared/components/filter-sheet-actions";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { EntryGroupSeparator } from "@/shared/components/entry-group";
@@ -65,10 +66,7 @@ export function ModerationFiltersLoading() {
       {["season", "platform", "state"].map((field) => (
         <FieldSkeleton key={field} labelWidth="30%" />
       ))}
-      <View style={styles.actions}>
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-      </View>
+      <FilterSheetActionsSkeleton />
     </LoadingGroup>
   );
 }
@@ -155,7 +153,6 @@ function VersionPlaceholder({
 const styles = StyleSheet.create({
   stack: { gap: tokens.spacing.md },
   form: { gap: tokens.layout.form.gap },
-  actions: { gap: tokens.layout.actions.gap },
   card: {
     padding: tokens.layout.surface.inset,
     borderRadius: tokens.radius.control,

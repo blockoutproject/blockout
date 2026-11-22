@@ -9,7 +9,7 @@ import { ListLoading } from "@/shared/components/list-loading";
 import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { EntryGroup } from "@/shared/components/entry-group";
-import { SelectionRow } from "@/shared/components/selection-row";
+import { SelectionList } from "@/shared/components/selection-list";
 import {
   formatLabel,
   sportingGenderLabels,
@@ -89,39 +89,32 @@ export function SearchFilterChoice() {
         </SheetContent>
       ) : (
         <SheetContent>
-          <EntryGroup>
-            {choices.map((choice) => (
-              <SelectionRow
-                key={choice.value ?? "all"}
-                label={choice.label}
-                selected={values[field] === choice.value}
-                onPress={() => {
-                  if (field === "format") {
-                    visit.draft.setValue(
-                      field,
-                      choice.value === undefined
-                        ? undefined
-                        : SportFormatEnum.parse(choice.value),
-                      { shouldDirty: true },
-                    );
-                  } else if (field === "gender") {
-                    visit.draft.setValue(
-                      field,
-                      choice.value === undefined
-                        ? undefined
-                        : SportGenderEnum.parse(choice.value),
-                      { shouldDirty: true },
-                    );
-                  } else {
-                    visit.draft.setValue(field, choice.value, {
-                      shouldDirty: true,
-                    });
-                  }
-                  router.back();
-                }}
-              />
-            ))}
-          </EntryGroup>
+          <SelectionList
+            options={choices}
+            selected={values[field]}
+            onSelect={(value) => {
+              if (field === "format") {
+                visit.draft.setValue(
+                  field,
+                  value === undefined
+                    ? undefined
+                    : SportFormatEnum.parse(value),
+                  { shouldDirty: true },
+                );
+              } else if (field === "gender") {
+                visit.draft.setValue(
+                  field,
+                  value === undefined
+                    ? undefined
+                    : SportGenderEnum.parse(value),
+                  { shouldDirty: true },
+                );
+              } else {
+                visit.draft.setValue(field, value, { shouldDirty: true });
+              }
+              router.back();
+            }}
+          />
         </SheetContent>
       )}
     </Sheet>

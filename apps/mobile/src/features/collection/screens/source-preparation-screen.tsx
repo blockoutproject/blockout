@@ -5,7 +5,10 @@ import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { SourcePreparationLoading } from "../components/collection-loading";
 import { useSourcePreparation } from "../api/use-source-preparation";
 import { SourceCandidateForm } from "../forms/source-candidate-form";
@@ -36,10 +39,7 @@ export function SourcePreparationScreen({
     mismatch ||
     hasReadError(requiredRead);
   const initialLoading = !authority.enabled
-    ? authority.sessionStatus === "restoring" ||
-      (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading &&
-        !hasReadError(authority.account))
+    ? isAccessLoading(authority)
     : !hasReadError(requiredRead) &&
       !mismatch &&
       (source.isLoading || season.isLoading);

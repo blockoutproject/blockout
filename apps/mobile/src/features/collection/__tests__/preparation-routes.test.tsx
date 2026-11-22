@@ -4,6 +4,10 @@ import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
+  layoutNativeTabs,
+  scrollNativeTabs,
+} from "@/shared/native/test-support/tab-view-native";
+import {
   cleanup,
   act,
   fireEvent,
@@ -11,7 +15,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Stack, router, usePathname } from "expo-router";
+import { Stack, router, useGlobalSearchParams, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
@@ -25,11 +29,12 @@ import AdministrationRoute from "@/app/(operations)/administration";
 import CollectionLayout from "@/app/(operations)/collection/_layout";
 import CollectionRoute from "@/app/(operations)/collection";
 import SeasonRoute from "@/app/(operations)/collection/[seasonId]";
-import ProviderRoute from "@/app/(operations)/collection/[seasonId]/[provider]";
 import CompetitionRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]";
+import BilanRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/bilan";
+import BilanFiltersRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/bilan-filters";
 import ClubRoute from "@/app/(operations)/collection/clubs/[family]";
 import CloseSeasonRoute from "@/app/(operations)/collection/[seasonId]/closure";
-import { control } from "../test-support/collection-peer";
+import { control, result } from "../test-support/collection-peer";
 import SourceRoute from "@/app/(operations)/collection/[seasonId]/sources/[sourceId]";
 import NotFoundRoute from "@/app/+not-found";
 import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
@@ -146,7 +151,18 @@ afterEach(async () => {
 
 /** The public router hook exposes navigation location without inspecting navigation internals. */
 function RouteLocation() {
-  return <Text accessibilityLabel="Route courante">{usePathname()}</Text>;
+  const path = usePathname();
+  const { phaseReference } = useGlobalSearchParams<{
+    phaseReference?: string;
+  }>();
+  return (
+    <>
+      <Text accessibilityLabel="Route courante">{path}</Text>
+      {phaseReference && (
+        <Text accessibilityLabel="Phase de destination">{phaseReference}</Text>
+      )}
+    </>
+  );
 }
 
 /** The route retains the real gate; scenario-level one-failure evidence disables unrelated retry backoff. */
@@ -197,9 +213,12 @@ async function openRoute(path: string) {
       "(operations)/collection/_layout": CollectionLayout,
       "(operations)/collection/index": CollectionRoute,
       "(operations)/collection/[seasonId]/index": SeasonRoute,
-      "(operations)/collection/[seasonId]/[provider]": ProviderRoute,
-      "(operations)/collection/[seasonId]/controls/[provider]":
+      "(operations)/collection/[seasonId]/controls/[provider]/index":
         CompetitionRoute,
+      "(operations)/collection/[seasonId]/controls/[provider]/bilan":
+        BilanRoute,
+      "(operations)/collection/[seasonId]/controls/[provider]/bilan-filters":
+        BilanFiltersRoute,
       "(operations)/collection/clubs/[family]": ClubRoute,
       "(operations)/collection/[seasonId]/closure": CloseSeasonRoute,
       "(operations)/collection/[seasonId]/sources/[sourceId]/index":
@@ -262,11 +281,13 @@ function responses(
     if (path.endsWith("/collection-controls")) {
       return Response.json({ items: [control({ family: "lnv", seasonId })] });
     }
-    if (path.endsWith(`/collection-controls/${control().id}`)) {
-      return Response.json(control({ family: "lnv", seasonId }));
-    }
     if (path.endsWith("/results")) {
-      return Response.json({ items: [], page: 0, hasNext: false });
+      return Response.json({
+        items: [],
+        page: 0,
+        hasNext: false,
+        summary: { success: 0, partial: 0, failed: 0, unconfirmed: 0 },
+      });
     }
     throw new Error(`Unexpected controlled request ${path}`);
   };
@@ -285,7 +306,7 @@ it.each(["candidate", "addition"])(
     const path =
       kind === "candidate"
         ? `/collection/${seasonId}/sources/${sourceId}`
-        : `/collection/${seasonId}/lnv`;
+        : `/collection/${seasonId}/controls/lnv?tab=sources`;
     await act(async () => router.push(path));
     await user.press(
       await screen.findByRole("button", {
@@ -493,7 +514,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
       : peer(url, options),
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  const path = `/collection/${seasonId}/lnv`;
+  const path = `/collection/${seasonId}/controls/lnv?tab=sources`;
   await act(async () => router.push(path));
   await user.press(
     await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
@@ -538,7 +559,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
   });
 });
 
-it("navigates through seasonal provider controls to separate source preparation", async () => {
+it("switches from Suivi to the existing source preparation in the provider tabs", async () => {
   // Given
   mockFetch.mockImplementation(responses({ manageCollection: true }));
   const user = userEvent.setup();
@@ -555,17 +576,113 @@ it("navigates through seasonal provider controls to separate source preparation"
       name: "LNV, Les trois championnats professionnels",
     }),
   );
-  await user.press(
-    await screen.findByRole("button", { name: "Préparer les sources" }),
-  );
+  await screen.findByRole("tab", { name: "Suivi", selected: true });
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Sources" }));
+  await scrollNativeTabs(1, true);
 
   // Then
   expect(
     await screen.findByText("Aucun championnat découvert"),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Sources", selected: true }),
+  ).toBeOnTheScreen();
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
-    `/collection/${seasonId}/lnv`,
+    `/collection/${seasonId}/controls/lnv`,
   );
+});
+
+it("keeps an invalid Bilan filter link dismissible without reading collection data", async () => {
+  // Given
+  mockFetch.mockImplementation(responses({ manageCollection: true }));
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
+  await act(async () =>
+    router.push(`/collection/${seasonId}/controls/unknown/bilan-filters`),
+  );
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent("/access");
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(String(url)).pathname.includes("collection-"),
+    ),
+  ).toBe(false);
+});
+
+it("opens a source-filtered Bilan and returns from the attributed source to the same criteria", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const attributed = result({
+    scopeLabel: "D1 masculine · Phase régulière",
+    source: { id: sourceId, label: source.label, phaseReference: "137" },
+  });
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith("/results")
+      ? Promise.resolve(
+          Response.json({ items: [attributed], page: 0, hasNext: false }),
+        )
+      : serve(url),
+  );
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
+  const bilan = `/collection/${seasonId}/controls/lnv/bilan`;
+  await act(async () => router.push(`${bilan}?sourceId=${sourceId}`));
+  const sourceLink = await screen.findByRole("link", {
+    name: "Voir la source",
+  });
+  // Maintenance permits this operational read while the ordinary support route is gated.
+  expect(
+    screen.queryByRole("button", { name: "Contacter le support" }),
+  ).not.toBeOnTheScreen();
+  await user.press(sourceLink);
+  await screen.findByRole("button", { name: "Modifier le lien" });
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+    `/collection/${seasonId}/sources/${sourceId}`,
+  );
+  expect(screen.getByLabelText("Phase de destination")).toHaveTextContent(
+    "137",
+  );
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+
+  // Then
+  expect(await screen.findByText(attributed.scopeLabel)).toBeOnTheScreen();
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(bilan);
+  const reads = mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter((url) => url.pathname.endsWith("/results"));
+  expect(reads.length).toBeGreaterThan(0);
+  expect(
+    reads.every((url) => url.searchParams.get("sourceId") === sourceId),
+  ).toBe(true);
+
+  await user.press(screen.getByRole("button", { name: "Filtres actifs" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Réinitialiser les filtres" }),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les filtres" }),
+  );
+  expect(
+    await screen.findByRole("button", { name: "Filtres" }),
+  ).toBeOnTheScreen();
+  await waitFor(() => {
+    const latest = mockFetch.mock.calls
+      .map(([url]) => new URL(String(url)))
+      .findLast((url) => url.pathname.endsWith("/results"));
+    expect(latest?.searchParams.has("sourceId")).toBe(false);
+  });
 });
 
 it("discards a closure draft on protected-route removal and confirms discard only for new input", async () => {
@@ -756,12 +873,14 @@ it.each([{ manageMaintenance: true }, { bypassMaintenance: true }])(
     await screen.findByRole("link", { name: "Accès administrateur" });
 
     // When
-    await act(async () => router.push(`/collection/${seasonId}/lnv`));
+    await act(async () =>
+      router.push(`/collection/${seasonId}/controls/lnv?tab=sources`),
+    );
 
     // Then
     await waitFor(() =>
       expect(screen.getByLabelText("Route courante")).not.toHaveTextContent(
-        `/collection/${seasonId}/lnv`,
+        `/collection/${seasonId}/controls/lnv`,
       ),
     );
     expect(
@@ -862,7 +981,7 @@ it("keeps an already prepared command outcome while a newer minimum changes rout
 });
 
 it.each(["preparing", "active"] as const)(
-  "opens source preparation when the %s season has no provider control yet",
+  "keeps Sources accessible when the %s season has no provider control yet",
   async (state) => {
     // Given
     const serve = responses({ manageCollection: true });
@@ -882,6 +1001,10 @@ it.each(["preparing", "active"] as const)(
 
     // When
     await act(async () => router.push(`/collection/${seasonId}/controls/ffvb`));
+    await screen.findByText("Aucun contrôle de collecte");
+    await layoutNativeTabs();
+    await user.press(screen.getByRole("tab", { name: "Sources" }));
+    await scrollNativeTabs(1, true);
     await user.press(
       await screen.findByRole("button", { name: "Ajouter une source" }),
     );
@@ -915,9 +1038,6 @@ it("shows the newly created control after the first source launch without leavin
         Response.json({ items: launched ? [firstControl] : [] }),
       );
     }
-    if (path.endsWith(`/collection-controls/${firstControl.id}`)) {
-      return Promise.resolve(Response.json(firstControl));
-    }
     if (path.endsWith("/source-bindings")) {
       return Promise.resolve(
         Response.json({ items: [{ ...source, launched, locked: launched }] }),
@@ -930,11 +1050,19 @@ it("shows the newly created control after the first source launch without leavin
   await screen.findByRole("link", { name: "Accès administrateur" });
   await act(async () => router.push(`/collection/${seasonId}/controls/lnv`));
 
+  await screen.findByText("Aucun contrôle de collecte");
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Sources" }));
+  await scrollNativeTabs(1, true);
+
   // When
   await user.press(
     await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
   );
   await act(async () => nativeAlertAction("Lancer")());
+  await screen.findByText("Sources sélectionnées lancées.");
+  await user.press(screen.getByRole("tab", { name: "Suivi" }));
+  await scrollNativeTabs(0, true);
 
   // Then: the same destination reveals the real paused-control projection, without another navigation.
   expect(

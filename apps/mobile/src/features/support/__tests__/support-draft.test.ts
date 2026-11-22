@@ -157,6 +157,20 @@ it("retains the attempted UUID after failed loading and omits unrelated payloads
   expect(supportValues(context).subject).toBe("sporting-data");
 });
 
+it("keeps the Bilan origin without transferring collection criteria", () => {
+  const origin = {
+    screen: "collection-bilan",
+    provider: "ffvb",
+    sourceId: "00000000-0000-4000-8000-000000000242",
+    query: "Recherche opérateur",
+  };
+
+  expect(supportContext(origin)).toEqual({ screen: "Bilan" });
+  expect(supportHref(origin).params).toEqual({
+    originScreen: "collection-bilan",
+  });
+});
+
 it("omits unknown routes and malformed targets", () => {
   // Given
   const origin = {

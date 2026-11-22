@@ -16,6 +16,7 @@ import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
+import { collectionSourceHref } from "../model/collection-hrefs";
 import { CreateSourceForm } from "./create-source-form";
 import { useProviderPreparationDraft } from "./use-provider-preparation-draft";
 
@@ -173,10 +174,7 @@ export function ProviderPreparationForm({
             accessibilityRole="link"
             accessibilityLabel={`Préparer ${source.label}`}
             onPress={() =>
-              router.push({
-                pathname: "/collection/[seasonId]/sources/[sourceId]",
-                params: { seasonId: baseline.id, sourceId: source.id },
-              })
+              router.push(collectionSourceHref(baseline.id, { id: source.id }))
             }
             style={({ pressed }) => [
               styles.source,

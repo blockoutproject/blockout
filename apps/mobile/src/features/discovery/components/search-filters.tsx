@@ -4,11 +4,13 @@ import { useWatch } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { SelectField } from "@/shared/components/select-field";
-import { Button } from "@/shared/components/button";
+import {
+  FilterSheetActions,
+  FilterSheetActionsSkeleton,
+} from "@/shared/components/filter-sheet-actions";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { FieldSkeleton } from "@/shared/components/form-loading";
-import { Skeleton } from "@/shared/components/skeleton";
 import { tokens } from "@/shared/theme/tokens";
 import {
   formatLabel,
@@ -89,26 +91,17 @@ export function SearchFilters() {
               value={genderLabel(values.gender) ?? "Tout afficher"}
               onPress={() => router.push("/search/choice?field=gender")}
             />
-            <View style={styles.actions}>
-              <Button
-                label="Appliquer les filtres"
-                fullWidth
-                onPress={() =>
-                  void visit.draft.handleSubmit((draft) => {
-                    apply(reconcileSearchFilters(draft, options));
-                    router.back();
-                  })()
-                }
-              />
-              <Button
-                label="Réinitialiser les filtres"
-                fullWidth
-                variant="secondary"
-                onPress={() =>
-                  visit.draft.reset(reconcileSearchFilters(undefined, options))
-                }
-              />
-            </View>
+            <FilterSheetActions
+              onApply={() =>
+                void visit.draft.handleSubmit((draft) => {
+                  apply(reconcileSearchFilters(draft, options));
+                  router.back();
+                })()
+              }
+              onReset={() =>
+                visit.draft.reset(reconcileSearchFilters(undefined, options))
+              }
+            />
           </View>
         </SheetContent>
       )}
@@ -124,15 +117,11 @@ function SearchFiltersLoading() {
       <FieldSkeleton />
       <FieldSkeleton />
       <FieldSkeleton />
-      <View style={styles.actions}>
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-        <Skeleton height={tokens.size.control.default} shape="rectangle" />
-      </View>
+      <FilterSheetActionsSkeleton />
     </LoadingGroup>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg },
-  actions: { gap: tokens.layout.actions.gap },
+  form: { gap: tokens.layout.form.gap },
 });

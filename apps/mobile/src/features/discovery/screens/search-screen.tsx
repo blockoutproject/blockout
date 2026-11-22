@@ -1,4 +1,4 @@
-import { FilterButton } from "@/shared/components/filter-button";
+import { SearchToolbar } from "@/shared/components/search-toolbar";
 import { hashKey } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Eraser, Flag, Search } from "lucide-react-native";
@@ -238,44 +238,45 @@ export function SearchScreen() {
                 />
               </IconButton>
             </View>
-            <View style={styles.toolbar}>
-              <View style={styles.search}>
-                <Controller
-                  control={control}
-                  name="q"
-                  render={({ field, fieldState }) => (
-                    <SearchField
-                      ref={field.ref}
-                      label="Rechercher"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      onClear={clearSearch}
-                      placeholder={placeholder}
-                      error={
-                        fieldState.invalid
-                          ? "La recherche est limitée à 200 caractères."
-                          : undefined
-                      }
-                      returnKeyType="search"
-                      autoCorrect={false}
-                    />
-                  )}
-                />
-              </View>
-              {resource !== "club" && !failed && (
-                <FilterButton
-                  active={hasChangedFilters(resource)}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    visit.setEditing(resource);
-                    visit.draft.reset(visit[resource].filters ?? {});
-                    void visit[resource].query.refetch();
-                    router.push("/search/filters");
-                  }}
-                />
-              )}
-            </View>
+            <SearchToolbar
+              style={styles.toolbar}
+              filter={
+                resource !== "club" && !failed
+                  ? {
+                      active: hasChangedFilters(resource),
+                      onPress: () => {
+                        visit.setEditing(resource);
+                        visit.draft.reset(visit[resource].filters ?? {});
+                        void visit[resource].query.refetch();
+                        router.push("/search/filters");
+                      },
+                    }
+                  : undefined
+              }
+            >
+              <Controller
+                control={control}
+                name="q"
+                render={({ field, fieldState }) => (
+                  <SearchField
+                    ref={field.ref}
+                    label="Rechercher"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    onClear={clearSearch}
+                    placeholder={placeholder}
+                    error={
+                      fieldState.invalid
+                        ? "La recherche est limitée à 200 caractères."
+                        : undefined
+                    }
+                    returnKeyType="search"
+                    autoCorrect={false}
+                  />
+                )}
+              />
+            </SearchToolbar>
           </>
         )}
       />
@@ -293,12 +294,5 @@ const styles = StyleSheet.create({
     paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
-  toolbar: {
-    flexDirection: "row",
-    gap: tokens.spacing.sm,
-    alignItems: "flex-start",
-    paddingHorizontal: tokens.spacing.screen,
-    paddingTop: tokens.spacing.sm,
-  },
-  search: { flex: 1, minWidth: 0 },
+  toolbar: { paddingTop: tokens.spacing.sm },
 });

@@ -2,7 +2,10 @@ import { PageFlatList } from "@/shared/components/page-list";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { Page, PageContent, pageContentStyle } from "@/shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
-import { AccessFeedback } from "@/features/access/components/access-feedback";
+import {
+  AccessFeedback,
+  isAccessLoading,
+} from "@/features/access/components/access-feedback";
 import { isCollectionReadRefused } from "../api/collection-queries";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { EmptyState } from "@/shared/components/state-card";
@@ -37,10 +40,7 @@ export function SourceChildrenScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const pending = !authority.enabled
-    ? authority.sessionStatus === "restoring" ||
-      (authority.sessionStatus === "authenticated" &&
-        !hasReadError(authority.account) &&
-        authority.account.isLoading)
+    ? isAccessLoading(authority)
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const denied = isCollectionReadRefused(query.error);
