@@ -19,12 +19,23 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 
 const {
-  initialOpacity,
-  duration: fadeDuration,
+  initialTranslateY,
+  duration: revealDuration,
   stagger,
   easing,
 } = tokens.motion.contentReveal;
 const easeOut = Easing.bezierFn(...easing);
+
+function styleAtProgress(progress: number) {
+  "worklet";
+  return {
+    opacity: progress,
+    transform: [{ translateY: initialTranslateY * (1 - progress) }],
+  };
+}
+
+const initialStyle = styleAtProgress(0);
+const settledStyle = styleAtProgress(1);
 
 /** Common detail admission can hide mounted scenes until their first presentation is possible. */
 export const ContentRevealReadyContext = createContext(true);
@@ -32,13 +43,20 @@ export const ContentRevealReadyContext = createContext(true);
 interface ContentRevealStyle {
   order: SharedValue<readonly string[] | null>;
   elapsed: SharedValue<number>;
+  blockDelay: number;
   reducedMotion: boolean;
 }
 
+export type ContentRevealOptions = Readonly<{ staggered?: boolean }>;
+
 /** One presentation samples the visible blocks. Recycled views read the same elapsed animation. */
-export function useContentReveal() {
+export function useContentReveal({
+  staggered = false,
+}: ContentRevealOptions = {}) {
+  const blockDelay = staggered ? stagger : 0;
   const ready = useContext(ContentRevealReadyContext);
   const { reducedMotion } = useTheme();
+  // Null waits for the initial sample. An empty sample keeps every block settled.
   const order = useSharedValue<readonly string[] | null>(null);
   const elapsed = useSharedValue(0);
   const started = useRef(false);
@@ -57,13 +75,21 @@ export function useContentReveal() {
           "worklet";
           order.set(reduce ? [] : keys);
           if (!reduce && keys.length) {
-            const duration = fadeDuration + (keys.length - 1) * stagger;
+            const duration = revealDuration + (keys.length - 1) * blockDelay;
             elapsed.set(
-              withTiming(duration, {
+              withTiming(
                 duration,
-                easing: Easing.linear,
-                reduceMotion: ReduceMotion.Never,
-              }),
+                {
+                  duration,
+                  easing: Easing.linear,
+                  reduceMotion: ReduceMotion.Never,
+                },
+                (finished) => {
+                  if (finished) {
+                    order.set([]);
+                  }
+                },
+              ),
             );
           }
         },
@@ -72,12 +98,13 @@ export function useContentReveal() {
       );
       return true;
     },
-    [elapsed, order, ready, reducedMotion],
+    [blockDelay, elapsed, order, ready, reducedMotion],
   );
 
   const style: ContentRevealStyle = {
     order,
     elapsed,
+    blockDelay,
     reducedMotion,
   };
   return { start, style };
@@ -87,33 +114,31 @@ export function useContentReveal() {
 function useContentRevealStyle(style: ContentRevealStyle, key: string) {
   return useAnimatedStyle(() => {
     if (style.reducedMotion) {
-      return { opacity: 1 };
+      return settledStyle;
     }
     const keys = style.order.get();
     if (keys === null) {
-      return { opacity: initialOpacity };
-    }
-    const elapsed = style.elapsed.get();
-    if (elapsed >= fadeDuration + (keys.length - 1) * stagger) {
-      return { opacity: 1 };
+      return initialStyle;
     }
     const index = keys.indexOf(key);
     if (index === -1) {
-      return { opacity: 1 };
+      return settledStyle;
     }
-    const progress = Math.min(
-      1,
-      Math.max(0, (elapsed - index * stagger) / fadeDuration),
-    );
-    return {
-      opacity: initialOpacity + (1 - initialOpacity) * easeOut(progress),
-    };
+    const progress =
+      (style.elapsed.get() - index * style.blockDelay) / revealDuration;
+    if (progress <= 0) {
+      return initialStyle;
+    }
+    if (progress >= 1) {
+      return settledStyle;
+    }
+    return styleAtProgress(easeOut(progress));
   });
 }
 
 export type ContentReveal = ReturnType<typeof useContentReveal>;
 
-/** Applies opacity to one block without owning its layout or input. */
+/** Moves and fades one block within its existing layout and input ownership. */
 export function ContentRevealBlock({
   reveal,
   blockKey,
@@ -125,8 +150,8 @@ export function ContentRevealBlock({
     blockKey: string;
   }
 >) {
-  const fade = useContentRevealStyle(reveal.style, blockKey);
-  return <Animated.View {...props} style={[style, fade]} />;
+  const motion = useContentRevealStyle(reveal.style, blockKey);
+  return <Animated.View {...props} style={[style, motion]} />;
 }
 
 /** Uses the same reveal for one existing content block once its owner presents it. */
