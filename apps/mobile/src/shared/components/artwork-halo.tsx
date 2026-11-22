@@ -14,6 +14,10 @@ import { tokens } from "@/shared/theme/tokens";
 import { BlurredArtwork } from "./blurred-artwork";
 import { MaskedView } from "./masked-view";
 
+const radialFadeEnd = 0.7;
+// The radial fade reaches zero at the frame’s top and bottom edges.
+const verticalRadius = `${50 / radialFadeEnd}%`;
+
 interface ArtworkHaloProps {
   uri: string;
   testID?: string;
@@ -60,19 +64,33 @@ export function ArtworkHalo({
         maskElement={
           <Svg accessible={false} width="100%" height="100%">
             <Defs>
-              <RadialGradient id={id} cx="40%" cy="50%" rx="80%" ry="85%">
+              <RadialGradient
+                id={id}
+                cx="40%"
+                cy="50%"
+                rx="80%"
+                ry={verticalRadius}
+              >
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
-                <Stop offset={0.7} stopColor="white" stopOpacity={0} />
+                <Stop
+                  offset={radialFadeEnd}
+                  stopColor="white"
+                  stopOpacity={0}
+                />
               </RadialGradient>
               <RadialGradient
                 id={secondary}
                 cx="65%"
                 cy="50%"
                 rx="80%"
-                ry="85%"
+                ry={verticalRadius}
               >
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
-                <Stop offset={0.7} stopColor="white" stopOpacity={0} />
+                <Stop
+                  offset={radialFadeEnd}
+                  stopColor="white"
+                  stopOpacity={0}
+                />
               </RadialGradient>
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
