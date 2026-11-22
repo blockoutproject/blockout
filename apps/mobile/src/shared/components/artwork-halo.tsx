@@ -8,7 +8,8 @@ import Svg, {
   Rect,
   Stop,
 } from "react-native-svg";
-import { useId, useState } from "react";
+import { useId } from "react";
+import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { BlurredArtwork } from "./blurred-artwork";
@@ -18,8 +19,9 @@ const halo = tokens.media.halo;
 const leadingFade =
   halo.leadingFadeWidth / (halo.width + halo.leadingFadeWidth);
 const artworkWidth = 1 - leadingFade;
-const primaryCenter = `${(leadingFade + artworkWidth * 0.4) * 100}%`;
-const secondaryCenter = `${(leadingFade + artworkWidth * 0.65) * 100}%`;
+const radialCenters = [0.4, 0.65].map(
+  (center) => `${(leadingFade + artworkWidth * center) * 100}%`,
+);
 const horizontalRadius = `${artworkWidth * 80}%`;
 const radialFadeEnd = 0.7;
 // The radial fade reaches zero at the frame’s top and bottom edges.
@@ -31,22 +33,25 @@ interface ArtworkHaloProps {
   onError?: () => void;
 }
 
-/** Follows its host's flex alignment without affecting layout. Key by source to isolate decode failure. */
+/** Follows its host's flex alignment and keeps decode failure local to the current source. */
 export function ArtworkHalo({
   uri,
   testID = "sporting-logo-atmosphere",
   onError,
 }: Readonly<ArtworkHaloProps>) {
-  const [failed, setFailed] = useState(false);
+  const image = useNativeImageLifecycle(uri);
   const id = useId();
   const { scheme } = useTheme();
-  if (failed) {
+  if (image.status === "failed") {
     return null;
   }
 
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
-  const secondary = `${id}-secondary`;
+  const radials = radialCenters.map((center, index) => ({
+    id: `${id}-${index}`,
+    center,
+  }));
   return (
     <View
       accessible={false}
@@ -67,34 +72,23 @@ export function ArtworkHalo({
         maskElement={
           <Svg accessible={false} width="100%" height="100%">
             <Defs>
-              <RadialGradient
-                id={id}
-                cx={primaryCenter}
-                cy="50%"
-                rx={horizontalRadius}
-                ry={verticalRadius}
-              >
-                <Stop offset={0} stopColor="white" stopOpacity={1} />
-                <Stop
-                  offset={radialFadeEnd}
-                  stopColor="white"
-                  stopOpacity={0}
-                />
-              </RadialGradient>
-              <RadialGradient
-                id={secondary}
-                cx={secondaryCenter}
-                cy="50%"
-                rx={horizontalRadius}
-                ry={verticalRadius}
-              >
-                <Stop offset={0} stopColor="white" stopOpacity={1} />
-                <Stop
-                  offset={radialFadeEnd}
-                  stopColor="white"
-                  stopOpacity={0}
-                />
-              </RadialGradient>
+              {radials.map((radial) => (
+                <RadialGradient
+                  key={radial.id}
+                  id={radial.id}
+                  cx={radial.center}
+                  cy="50%"
+                  rx={horizontalRadius}
+                  ry={verticalRadius}
+                >
+                  <Stop offset={0} stopColor="white" stopOpacity={1} />
+                  <Stop
+                    offset={radialFadeEnd}
+                    stopColor="white"
+                    stopOpacity={0}
+                  />
+                </RadialGradient>
+              ))}
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
                 <Stop offset={0} stopColor="white" stopOpacity={0} />
                 <Stop offset={leadingFade} stopColor="white" stopOpacity={1} />
@@ -105,19 +99,25 @@ export function ArtworkHalo({
               </Mask>
             </Defs>
             <G mask={`url(#${mask})`}>
-              <Rect width="100%" height="100%" fill={`url(#${id})`} />
-              <Rect width="100%" height="100%" fill={`url(#${secondary})`} />
+              {radials.map((radial) => (
+                <Rect
+                  key={radial.id}
+                  width="100%"
+                  height="100%"
+                  fill={`url(#${radial.id})`}
+                />
+              ))}
             </G>
           </Svg>
         }
       >
         <BlurredArtwork
+          key={image.attemptKey}
           testID={testID}
           uri={uri}
-          resizeMode="contain"
           blurRadius={halo.blur}
           onError={() => {
-            setFailed(true);
+            image.onError();
             onError?.();
           }}
           style={styles.image}

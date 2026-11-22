@@ -329,7 +329,6 @@ function StandingRow({
       identity={{ name: row.sourceName }}
       kind="team"
       size={size}
-      atmosphere={false}
       renderWithAtmosphere={renderRow}
     />
   );

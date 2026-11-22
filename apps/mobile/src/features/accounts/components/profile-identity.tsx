@@ -26,7 +26,7 @@ export function ProfileIdentity({
       borderColor={proAccent ? membership.border : undefined}
       atmosphere={
         uri ? (
-          <ArtworkHalo key={uri} testID="profile-photo-atmosphere" uri={uri} />
+          <ArtworkHalo testID="profile-photo-atmosphere" uri={uri} />
         ) : undefined
       }
       artwork={

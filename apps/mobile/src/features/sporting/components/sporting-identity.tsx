@@ -67,7 +67,7 @@ export function SportingDivisionAtmosphere({
   division,
 }: Readonly<{ division: SportingDivisionResponse }>) {
   const { uri } = useSportingLogo(division, "division");
-  return uri ? <ArtworkHalo key={uri} uri={uri} /> : null;
+  return uri ? <ArtworkHalo uri={uri} /> : null;
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
@@ -122,8 +122,7 @@ export function SportingIdentity({
   const atmosphere =
     kind === "team"
       ? division && <SportingDivisionAtmosphere division={division} />
-      : logo.uri &&
-        !logo.error && <ArtworkHalo key={logo.uri} uri={logo.uri} />;
+      : logo.uri && !logo.error && <ArtworkHalo uri={logo.uri} />;
 
   return (
     <IdentityCard

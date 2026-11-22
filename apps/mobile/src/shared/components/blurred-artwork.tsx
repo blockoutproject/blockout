@@ -1,7 +1,6 @@
 import {
   Image,
   type ImageProps,
-  type ImageResizeMode,
   type ImageStyle,
   type StyleProp,
 } from "react-native";
@@ -10,7 +9,6 @@ import {
 export interface BlurredArtworkProps {
   uri: string;
   blurRadius: number;
-  resizeMode: ImageResizeMode;
   style?: StyleProp<ImageStyle>;
   onError: NonNullable<ImageProps["onError"]>;
   testID?: string;
@@ -20,7 +18,6 @@ export interface BlurredArtworkProps {
 export function BlurredArtwork({
   uri,
   blurRadius,
-  resizeMode,
   style,
   onError,
   testID,
@@ -31,7 +28,7 @@ export function BlurredArtwork({
       pointerEvents="none"
       source={{ uri, cache: "reload" }}
       blurRadius={blurRadius}
-      resizeMode={resizeMode}
+      resizeMode="contain"
       fadeDuration={0}
       onError={onError}
       style={style}

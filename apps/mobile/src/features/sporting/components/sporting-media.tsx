@@ -151,7 +151,6 @@ export function SportingMedia({
   const halo =
     available && atmosphere !== false ? (
       <ArtworkHalo
-        key={image.attemptKey}
         testID={atmosphere?.testID}
         uri={uri}
         onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
@@ -174,7 +173,6 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
       <BlurredArtwork
         testID="sporting-decorative-cover"
         uri={uri}
-        resizeMode="contain"
         blurRadius={tokens.sporting.coverBlur}
         onError={() => setFailedUri(uri)}
         style={styles.cover}
