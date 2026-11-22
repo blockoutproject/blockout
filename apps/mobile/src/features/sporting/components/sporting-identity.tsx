@@ -65,22 +65,9 @@ export function SportingArtwork({
 /** Resolves the team's division image independently of its foreground crest. */
 export function SportingDivisionAtmosphere({
   division,
-  presentation,
-}: Readonly<{
-  division: SportingDivisionResponse;
-  presentation: "identity" | "entity";
-}>) {
+}: Readonly<{ division: SportingDivisionResponse }>) {
   const { uri } = useSportingLogo(division, "division");
-  if (!uri) {
-    return null;
-  }
-  return (
-    <ArtworkHalo
-      key={uri}
-      uri={uri}
-      placement={presentation === "identity" ? "centered-leading" : undefined}
-    />
-  );
+  return uri ? <ArtworkHalo key={uri} uri={uri} /> : null;
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
@@ -134,20 +121,9 @@ export function SportingIdentity({
 
   const atmosphere =
     kind === "team"
-      ? division && (
-          <SportingDivisionAtmosphere
-            division={division}
-            presentation="identity"
-          />
-        )
+      ? division && <SportingDivisionAtmosphere division={division} />
       : logo.uri &&
-        !logo.error && (
-          <ArtworkHalo
-            key={logo.uri}
-            uri={logo.uri}
-            placement="centered-leading"
-          />
-        );
+        !logo.error && <ArtworkHalo key={logo.uri} uri={logo.uri} />;
 
   return (
     <IdentityCard

@@ -1,4 +1,4 @@
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, {
   Defs,
   G,
@@ -14,25 +14,27 @@ import { tokens } from "@/shared/theme/tokens";
 import { BlurredArtwork } from "./blurred-artwork";
 import { MaskedView } from "./masked-view";
 
+const halo = tokens.media.halo;
+const leadingFade =
+  halo.leadingFadeWidth / (halo.width + halo.leadingFadeWidth);
+const artworkWidth = 1 - leadingFade;
+const primaryCenter = `${(leadingFade + artworkWidth * 0.4) * 100}%`;
+const secondaryCenter = `${(leadingFade + artworkWidth * 0.65) * 100}%`;
+const horizontalRadius = `${artworkWidth * 80}%`;
 const radialFadeEnd = 0.7;
 // The radial fade reaches zero at the frame’s top and bottom edges.
 const verticalRadius = `${50 / radialFadeEnd}%`;
 
-export type ArtworkHaloPlacement = "centered-leading" | ViewStyle;
-
 interface ArtworkHaloProps {
   uri: string;
   testID?: string;
-  /** Custom positions fade at the leading edge because they can start inside the card. */
-  placement?: ArtworkHaloPlacement;
   onError?: () => void;
 }
 
-/** Callers key the halo by its artwork source so a decode failure stays local to that source. */
+/** Follows its host's flex alignment without affecting layout. Key by source to isolate decode failure. */
 export function ArtworkHalo({
   uri,
   testID = "sporting-logo-atmosphere",
-  placement,
   onError,
 }: Readonly<ArtworkHaloProps>) {
   const [failed, setFailed] = useState(false);
@@ -45,19 +47,14 @@ export function ArtworkHalo({
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const secondary = `${id}-secondary`;
-  const centeredLeading = placement === "centered-leading";
-  const atCardEdge = placement === undefined || centeredLeading;
   return (
     <View
       accessible={false}
       pointerEvents="none"
       style={[
         styles.halo,
-        centeredLeading
-          ? styles.centeredLeading
-          : (placement ?? styles.upperLeft),
         {
-          opacity: tokens.media.halo.opacity[scheme],
+          opacity: halo.opacity[scheme],
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
         },
@@ -66,15 +63,15 @@ export function ArtworkHalo({
       <MaskedView
         accessible={false}
         pointerEvents="none"
-        style={StyleSheet.absoluteFill}
+        style={styles.mask}
         maskElement={
           <Svg accessible={false} width="100%" height="100%">
             <Defs>
               <RadialGradient
                 id={id}
-                cx="40%"
+                cx={primaryCenter}
                 cy="50%"
-                rx="80%"
+                rx={horizontalRadius}
                 ry={verticalRadius}
               >
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
@@ -86,9 +83,9 @@ export function ArtworkHalo({
               </RadialGradient>
               <RadialGradient
                 id={secondary}
-                cx="65%"
+                cx={secondaryCenter}
                 cy="50%"
-                rx="80%"
+                rx={horizontalRadius}
                 ry={verticalRadius}
               >
                 <Stop offset={0} stopColor="white" stopOpacity={1} />
@@ -99,12 +96,8 @@ export function ArtworkHalo({
                 />
               </RadialGradient>
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
-                <Stop
-                  offset={0}
-                  stopColor="white"
-                  stopOpacity={atCardEdge ? 1 : 0}
-                />
-                <Stop offset={0.1} stopColor="white" stopOpacity={0.9} />
+                <Stop offset={0} stopColor="white" stopOpacity={0} />
+                <Stop offset={leadingFade} stopColor="white" stopOpacity={1} />
                 <Stop offset={1} stopColor="white" stopOpacity={0} />
               </LinearGradient>
               <Mask id={mask} x={0} y={0} width="100%" height="100%">
@@ -122,7 +115,7 @@ export function ArtworkHalo({
           testID={testID}
           uri={uri}
           resizeMode="contain"
-          blurRadius={tokens.media.halo.blur}
+          blurRadius={halo.blur}
           onError={() => {
             setFailed(true);
             onError?.();
@@ -137,17 +130,17 @@ export function ArtworkHalo({
 const styles = StyleSheet.create({
   halo: {
     position: "absolute",
-    width: tokens.media.halo.width,
-    aspectRatio: tokens.media.halo.width / tokens.media.halo.height,
+    width: halo.width,
+    height: halo.height,
   },
-  upperLeft: { top: 0, left: 0 },
-  centeredLeading: {
-    left: 0,
-    top: "50%",
-    marginTop: -tokens.media.halo.height / 2,
+  // The fade can extend outside the artwork frame. The surface clips it at its own outline.
+  mask: {
+    ...StyleSheet.absoluteFill,
+    left: -halo.leadingFadeWidth,
   },
   image: {
     ...StyleSheet.absoluteFill,
-    transform: [{ scale: tokens.media.halo.scale }],
+    left: halo.leadingFadeWidth,
+    transform: [{ scale: halo.scale }],
   },
 });

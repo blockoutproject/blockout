@@ -250,6 +250,7 @@ export const tokens = {
     halo: {
       width: 150,
       height: 120,
+      leadingFadeWidth: 15,
       blur: 14,
       scale: 3,
       opacity: { light: 0.34, dark: 0.42 },

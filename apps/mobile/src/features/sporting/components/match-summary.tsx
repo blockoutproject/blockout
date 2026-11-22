@@ -56,7 +56,6 @@ export function MatchSummary({
         <SportingLogo
           kind="division"
           identity={division}
-          atmosphere={{ placement: "centered-leading" }}
           renderWithAtmosphere={
             contextual
               ? undefined

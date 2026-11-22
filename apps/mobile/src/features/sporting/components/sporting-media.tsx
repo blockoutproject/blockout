@@ -1,8 +1,5 @@
 import { Image } from "expo-image";
-import {
-  ArtworkHalo,
-  type ArtworkHaloPlacement,
-} from "@/shared/components/artwork-halo";
+import { ArtworkHalo } from "@/shared/components/artwork-halo";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
@@ -32,7 +29,6 @@ export interface SportingMediaProps {
   atmosphere?:
     | false
     | Readonly<{
-        placement?: ArtworkHaloPlacement;
         testID?: string;
         /** Standings retain their paired fallback if either native image fails. */
         withdrawLogoOnError?: boolean;
@@ -158,7 +154,6 @@ export function SportingMedia({
         key={image.attemptKey}
         testID={atmosphere?.testID}
         uri={uri}
-        placement={atmosphere?.placement}
         onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
       />
     ) : null;

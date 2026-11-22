@@ -215,7 +215,7 @@ function StandingRow({
     const content = (
       <>
         {podium && <RankTint color={rankFill} />}
-        {atmosphere}
+        {!podium && atmosphere}
         {list && highlighted && (
           <View
             pointerEvents="none"
@@ -258,6 +258,7 @@ function StandingRow({
               podium ? styles.podiumLogo : styles.rowLogo,
             ]}
           >
+            {podium && atmosphere}
             {logo}
             {!podium && (
               <View style={[styles.copy, list && styles.listCopy]}>
@@ -318,7 +319,6 @@ function StandingRow({
       nativeSize={nativeLogoSize}
       atmosphere={
         !list && {
-          placement: podium ? styles.podiumAtmosphere : undefined,
           withdrawLogoOnError: true,
         }
       }
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   rowLogo: { flex: 1 },
-  podiumLogo: { flexShrink: 1 },
+  podiumLogo: { flexShrink: 1, justifyContent: "center" },
   rank: {
     alignItems: "center",
     justifyContent: "center",
@@ -447,6 +447,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   podiumRank: {
+    zIndex: 1,
     minWidth: card.podiumRankWidth,
     minHeight: card.podiumRankHeight,
   },
@@ -487,12 +488,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: tokens.spacing.xs,
-  },
-  podiumAtmosphere: {
-    top:
-      tokens.spacing.sm +
-      (card.podiumIdentityMinHeight - tokens.media.halo.height) / 2,
-    end:
-      tokens.spacing.sm + (tokens.size.media.row - tokens.media.halo.width) / 2,
   },
 });

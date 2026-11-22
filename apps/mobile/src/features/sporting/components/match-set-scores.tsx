@@ -128,7 +128,6 @@ function MatchScoreTeam({
         kind="team"
         size={tokens.sporting.setLogo}
         atmosphere={{
-          placement: styles.teamHalo,
           testID: `match-score-atmosphere-${identity.id}`,
         }}
         renderWithAtmosphere={(logo, halo) => (
@@ -165,13 +164,6 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.tight,
     paddingTop: tokens.spacing.md,
     paddingBottom: tokens.sporting.setTeamBottom,
-    overflow: "hidden",
-  },
-  teamHalo: {
-    top: 0,
-    alignSelf: "center",
-    width: "100%",
-    maxWidth: tokens.media.halo.width,
   },
   name: {
     ...tokens.typography.setTeam,
