@@ -30,7 +30,6 @@ export function SourceCatalogBadge({
 const styles = StyleSheet.create({
   badge: {
     ...tokens.typography.metadata,
-    alignSelf: "flex-start",
     flexShrink: 1,
     paddingHorizontal: tokens.spacing.sm,
     paddingVertical: tokens.spacing.optical,

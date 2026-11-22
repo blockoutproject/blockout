@@ -30,6 +30,7 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { IconButton } from "@/shared/components/icon-button";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { ListLoading } from "@/shared/components/list-loading";
+import { LoadingGroup } from "@/shared/components/loading-group";
 import {
   Page,
   PageContent,
@@ -42,6 +43,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -51,6 +53,7 @@ import {
   type CollectionQueryAuthority,
 } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-collection-season";
+import { CollectionEmptyReload } from "../components/collection-empty-reload";
 import { CollectionLink } from "../components/collection-link";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionBilanHref } from "../model/collection-hrefs";
@@ -207,7 +210,8 @@ function SourceCatalogue({
     !!(ffvb ? focus.packId : focus.phaseReference) &&
     focusIndex < 0 &&
     catalogue.hasNextPage &&
-    !catalogue.isError;
+    !catalogue.isError &&
+    catalogue.fetchStatus !== "paused";
   const { fetchNextPage, isFetching } = catalogue;
 
   useEffect(() => {
@@ -239,6 +243,18 @@ function SourceCatalogue({
     if (focused && catalogue.hasNextPage && !isFetching) {
       void fetchNextPage({ cancelRefetch: false });
     }
+  }
+
+  const refreshing = sourceFetching || childrenFetching > 0;
+
+  function refreshCatalogue() {
+    return Promise.all([
+      refreshSource(),
+      client.refetchQueries(
+        { queryKey: childrenKey, type: "active" },
+        { cancelRefetch: false },
+      ),
+    ]);
   }
 
   if (failed || !catalogue.data || (lookingForFocus && !listReady)) {
@@ -273,20 +289,15 @@ function SourceCatalogue({
         }
       }}
       onEndReachedThreshold={0.5}
+      alwaysBounceVertical={rows.length > 0}
       refreshControl={
-        <DataRefreshControl
-          fetching={sourceFetching || childrenFetching > 0}
-          enabled={!catalogue.isFetchingNextPage && !continuationFailed}
-          onRefresh={() =>
-            Promise.all([
-              refreshSource(),
-              client.refetchQueries(
-                { queryKey: childrenKey, type: "active" },
-                { cancelRefetch: false },
-              ),
-            ])
-          }
-        />
+        rows.length > 0 ? (
+          <DataRefreshControl
+            fetching={refreshing}
+            enabled={!catalogue.isFetchingNextPage && !continuationFailed}
+            onRefresh={refreshCatalogue}
+          />
+        ) : undefined
       }
       ListHeaderComponent={
         <View style={styles.summary}>
@@ -363,7 +374,12 @@ function SourceCatalogue({
         !catalogue.hasNextPage ? (
           <EmptyState
             title={ffvb ? "Aucun pack découvert" : "Aucune phase découverte"}
-          />
+          >
+            <CollectionEmptyReload
+              fetching={refreshing}
+              onReload={refreshCatalogue}
+            />
+          </EmptyState>
         ) : undefined
       }
       ListFooterComponent={
@@ -595,14 +611,9 @@ function CatalogPools({
         <ReadFeedback
           query={query}
           loadingContent={
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              Chargement des poules…
-            </Text>
+            <LoadingGroup label="Chargement des poules">
+              <TextSkeleton role="metadata" width="40%" />
+            </LoadingGroup>
           }
         />
       </View>
@@ -610,6 +621,13 @@ function CatalogPools({
   }
   return (
     <View style={styles.pools}>
+      {!pools.length && !hasNextPage && (
+        <Text
+          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
+        >
+          Aucune poule découverte
+        </Text>
+      )}
       <View style={styles.poolChips}>
         {pools.map((pool) => (
           <Text

@@ -828,6 +828,64 @@ it("can continue past another group of an already displayed LNV phase", async ()
   expect(screen.queryByText("Groupe 2")).not.toBeOnTheScreen();
 });
 
+it("reloads a confirmed empty catalogue and then uses Réessayer for a failed application read", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const childrenPath = `/source-bindings/${ffvbSource.id}/children`;
+  const deferred = Promise.withResolvers<Response>();
+  let next = Promise.resolve(
+    Response.json({ items: [], page: 0, hasNext: false }),
+  );
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith(childrenPath) ? next : serve(url),
+  );
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () =>
+    router.push(`/collection/${seasonId}/sources/${ffvbSource.id}`),
+  );
+  await screen.findByRole("header", { name: "Aucun pack découvert" });
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  next = deferred.promise;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+  expect(
+    await screen.findByRole("button", { name: "Actualiser", busy: true }),
+  ).toBeDisabled();
+  await act(() => deferred.resolve(refused(503)));
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  next = Promise.resolve(
+    Response.json({
+      items: [
+        {
+          id: "00000000-0000-4000-8000-000000000186",
+          label: "N2F",
+          kind: "pack",
+          poolCount: 1,
+        },
+      ],
+      page: 0,
+      hasNext: false,
+    }),
+  );
+  await user.press(retry);
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "N2F, 1 poule" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+  ).not.toBeOnTheScreen();
+});
+
 it.each(["partial", "unavailable"] as const)(
   "shows retained FFVB pools for provider status %s and keeps a failed mobile read at its own scope",
   async (status) => {

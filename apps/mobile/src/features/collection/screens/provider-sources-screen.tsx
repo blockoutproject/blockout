@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { ChevronRight, RefreshCw } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import type {
@@ -11,7 +11,6 @@ import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { Button } from "@/shared/components/button";
 import { controlOpacity } from "@/shared/components/control-styles";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListLoading } from "@/shared/components/list-loading";
@@ -31,6 +30,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { createCollectionQueries } from "../api/collection-queries";
 import type { useCollectionSeason } from "../api/use-collection-season";
+import { CollectionEmptyReload } from "../components/collection-empty-reload";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionSourceHref } from "../model/collection-hrefs";
 import {
@@ -212,7 +212,7 @@ export function ProviderSourcesScreen({
       }}
       ListFooterComponent={
         !rows.length ? (
-          <ScreenState>
+          <ScreenState style={styles.empty}>
             <EmptyState
               title={
                 needle || filtered
@@ -221,11 +221,9 @@ export function ProviderSourcesScreen({
               }
             >
               {!needle && !filtered && (
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  loading={sources.isFetching}
-                  onPress={() => void sources.refetch({ cancelRefetch: false })}
+                <CollectionEmptyReload
+                  fetching={sources.isFetching}
+                  onReload={() => sources.refetch({ cancelRefetch: false })}
                 />
               )}
             </EmptyState>
@@ -241,6 +239,7 @@ function searchKey(value: string) {
 }
 
 const styles = StyleSheet.create({
+  empty: { paddingHorizontal: 0 },
   search: { paddingHorizontal: 0, marginBottom: tokens.spacing.xs },
   heading: {
     ...tokens.typography.navigation,
