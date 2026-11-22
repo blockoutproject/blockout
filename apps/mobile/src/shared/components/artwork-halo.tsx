@@ -93,7 +93,8 @@ export function ArtworkHalo({
                 />
               </RadialGradient>
               <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
-                <Stop offset={0} stopColor="white" stopOpacity={1} />
+                <Stop offset={0} stopColor="white" stopOpacity={0} />
+                <Stop offset={0.1} stopColor="white" stopOpacity={0.9} />
                 <Stop offset={1} stopColor="white" stopOpacity={0} />
               </LinearGradient>
               <Mask id={mask} x={0} y={0} width="100%" height="100%">
