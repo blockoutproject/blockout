@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
 import type {
   CollectionProviderEnum,
   SourceCatalogStatusEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { FilterSheetActions } from "@/shared/components/filter-sheet-actions";
+import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
 import { SelectField } from "@/shared/components/select-field";
 import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
-import { tokens } from "@/shared/theme/tokens";
 import {
   sourceCatalogLabels,
   sourceScopes,
@@ -75,7 +73,10 @@ export function SourceFiltersSheet({
             }}
           />
         ) : (
-          <View style={styles.form}>
+          <FilterSheetForm
+            onApply={() => onApply(draft)}
+            onReset={() => setDraft({})}
+          >
             <SelectField
               label="Statut"
               value={
@@ -93,17 +94,9 @@ export function SourceFiltersSheet({
                 onPress={() => setChoice("scope")}
               />
             )}
-            <FilterSheetActions
-              onApply={() => onApply(draft)}
-              onReset={() => setDraft({})}
-            />
-          </View>
+          </FilterSheetForm>
         )}
       </SheetContent>
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: tokens.layout.form.gap },
-});

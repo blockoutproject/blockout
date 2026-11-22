@@ -1,6 +1,7 @@
 import {
-  CollectionSourceScopeEnum,
-  SourceCatalogStatusEnum,
+  type CollectionSourceScopeEnum,
+  type SourceCatalogReadResponse,
+  type SourceCatalogStatusEnum,
 } from "../../../../.generated/schemas/index.zod";
 
 export const sourceCatalogLabels = {
@@ -24,12 +25,7 @@ export type SourceFilters = {
   scope?: CollectionSourceScopeEnum;
 };
 
-export function sourceFiltersFromRoute(params: {
-  status?: string | string[];
-  scope?: string | string[];
-}): SourceFilters {
-  return {
-    status: SourceCatalogStatusEnum.safeParse(params.status).data,
-    scope: CollectionSourceScopeEnum.safeParse(params.scope).data,
-  };
+/** Older source bindings have no catalogue read until evidence is available. */
+export function sourceCatalogStatus(catalog?: SourceCatalogReadResponse) {
+  return catalog?.status ?? "not-read";
 }

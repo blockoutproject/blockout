@@ -232,7 +232,7 @@ it.each([403, 404])(
       });
 
       // Then
-      expect(client.getQueryData(options.queryKey)).toBeNull();
+      expect(client.getQueryData(options.queryKey)).toBeUndefined();
 
       // When
       mockFetch.mockResolvedValue(
@@ -246,7 +246,7 @@ it.each([403, 404])(
       expect(client.getQueryState(options.queryKey)?.error).toMatchObject({
         status: 503,
       });
-      expect(client.getQueryData(options.queryKey)).toBeNull();
+      expect(client.getQueryData(options.queryKey)).toBeUndefined();
     } finally {
       client.clear();
     }

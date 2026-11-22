@@ -5,8 +5,10 @@ import { ErrorState } from "@/shared/components/state-card";
 
 import { useLocalSearchParams } from "expo-router";
 import { CollectionProviderScreen } from "@/features/collection/screens/collection-provider-screen";
-import { sourceFiltersFromRoute } from "@/features/collection/model/source-catalogue";
-import { collectionProviderFromRoute } from "@/features/collection/model/collection-route-params";
+import {
+  collectionProviderFromRoute,
+  sourceFiltersFromRoute,
+} from "@/features/collection/model/collection-route-params";
 
 /** Both provider tabs share the selected canonical season. */
 export default function CollectionProviderRoute() {

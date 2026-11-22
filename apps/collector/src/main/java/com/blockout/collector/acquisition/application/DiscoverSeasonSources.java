@@ -305,7 +305,9 @@ public class DiscoverSeasonSources {
           observedAt = read.observedAt();
         }
         ProviderResponse page = read.response();
-        pools.addAll(lnv.phasePools(page.body(), page.url(), phase.url(), target.seasonLabel()));
+        pools.addAll(
+            lnv.phasePools(
+                page.body(), page.url(), target.organizerReference(), phase, target.seasonLabel()));
         if (phase.label() != null) {
           phaseLabels.put(phase.reference(), phase.label());
         }
@@ -362,17 +364,15 @@ public class DiscoverSeasonSources {
           ProviderResponse source = ffvbHttp.page(candidate.target());
           Document page = FfvbPage.document(source.body(), source.url());
           List<NavigationLink> links = ffvb.publishedNavigation(page);
-          List<Map<String, String>> fields =
-              links.stream().map(NavigationLink::target).map(this::query).toList();
           List<String> organizers =
-              fields.stream()
-                  .map(link -> link.get("codent"))
+              links.stream()
+                  .map(NavigationLink::organizerReference)
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
           List<String> seasons =
-              fields.stream()
-                  .map(link -> link.get("saison"))
+              links.stream()
+                  .map(NavigationLink::seasonLabel)
                   .filter(Objects::nonNull)
                   .distinct()
                   .toList();
@@ -428,7 +428,7 @@ public class DiscoverSeasonSources {
     if (scope == CollectionSourceScopeEnum.NATIONAL) {
       return "Championnats nationaux";
     }
-    String linkedOrganizer = query(link.target()).get("codent");
+    String linkedOrganizer = link.organizerReference();
     if (!(organizer.equals(linkedOrganizer) || linkedOrganizer == null && singleMenu)) {
       return null;
     }
@@ -482,17 +482,6 @@ public class DiscoverSeasonSources {
             displayName,
             scope));
     return true;
-  }
-
-  /**
-   * Reads native query values from a published discovery reference.
-   *
-   * @param uri published reference
-   * @return exact native query fields
-   */
-  private Map<String, String> query(URI uri) {
-    return ProviderQuery.fields(
-        uri, () -> new IllegalArgumentException("Contradictory official entry URL"));
   }
 
   /**

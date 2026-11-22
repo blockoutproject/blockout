@@ -11,9 +11,11 @@ import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react-native";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
-  type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -28,19 +30,17 @@ import {
 import { controlOpacity } from "@/shared/components/control-styles";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { IconButton } from "@/shared/components/icon-button";
-import { ListContinuation } from "@/shared/components/list-continuation";
+import {
+  ListContinuation,
+  type ListContinuationProps,
+} from "@/shared/components/list-continuation";
 import { ListLoading } from "@/shared/components/list-loading";
 import { LoadingGroup } from "@/shared/components/loading-group";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-  pageContentStyle,
-} from "@/shared/components/page";
+import { Page, pageContentStyle } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { PageList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { ScreenState } from "@/shared/components/screen-state";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
@@ -53,26 +53,15 @@ import {
   type CollectionQueryAuthority,
 } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-collection-season";
-import { CollectionEmptyReload } from "../components/collection-empty-reload";
 import { CollectionLink } from "../components/collection-link";
+import { CollectionReadState } from "../components/collection-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionBilanHref } from "../model/collection-hrefs";
 import type { SourceCatalogueFocus } from "../model/collection-route-params";
 import { formatCollectionTimestamp } from "../model/collection-time";
+import { sourceCatalogStatus } from "../model/source-catalogue";
 
 const loading = <ListLoading label="Chargement du catalogue" />;
-
-function CatalogueFeedback({
-  pending = false,
-  children,
-}: Readonly<PropsWithChildren<{ pending?: boolean }>>) {
-  const Layout = pending ? PageContent : ScreenState;
-  return (
-    <PageScrollView>
-      <Layout>{children}</Layout>
-    </PageScrollView>
-  );
-}
 
 export function SourceCatalogueScreen({
   seasonId,
@@ -127,35 +116,9 @@ export function SourceCatalogueScreen({
     />
   );
 
-  if (!authority.enabled) {
-    return (
-      <Page header={header}>
-        <CatalogueFeedback pending={isAccessLoading(authority)}>
-          <AccessFeedback {...authority} loadingContent={loading} />
-        </CatalogueFeedback>
-      </Page>
-    );
-  }
-
-  if (!current) {
-    const required = !season.data || hasReadError(season) ? season : source;
-    return (
-      <Page header={header}>
-        <CatalogueFeedback
-          pending={required.isPending && !hasReadError(required)}
-        >
-          {source.data && !matchesRoute ? (
-            <ErrorState />
-          ) : (
-            <ReadFeedback query={required} loadingContent={loading} />
-          )}
-        </CatalogueFeedback>
-      </Page>
-    );
-  }
-
-  return (
-    <Page header={header}>
+  let content: ReactNode;
+  if (current) {
+    content = (
       <SourceCatalogue
         key={current.id}
         source={current}
@@ -164,8 +127,29 @@ export function SourceCatalogueScreen({
         sourceFetching={source.isFetching}
         refreshSource={() => source.refetch({ cancelRefetch: false })}
       />
-    </Page>
-  );
+    );
+  } else if (!authority.enabled) {
+    content = (
+      <CollectionReadState pending={isAccessLoading(authority)}>
+        <AccessFeedback {...authority} loadingContent={loading} />
+      </CollectionReadState>
+    );
+  } else {
+    const required = !season.data || hasReadError(season) ? season : source;
+    content = (
+      <CollectionReadState
+        pending={required.isPending && !hasReadError(required)}
+      >
+        {source.data && !matchesRoute ? (
+          <ErrorState />
+        ) : (
+          <ReadFeedback query={required} loadingContent={loading} />
+        )}
+      </CollectionReadState>
+    );
+  }
+
+  return <Page header={header}>{content}</Page>;
 }
 
 function SourceCatalogue({
@@ -182,66 +166,47 @@ function SourceCatalogue({
   refreshSource: () => Promise<unknown>;
 }>) {
   const router = useRouter();
-  const focused = useIsFocused();
   const { colors } = useTheme();
   const client = useQueryClient();
   const childrenKey = getListCollectionSourceChildrenQueryKey(source.id);
   const childrenFetching = useIsFetching({ queryKey: childrenKey });
   const ffvb = source.provider === "ffvb";
   const list = useRef<LegendListRef>(null);
-  const [listReady, setListReady] = useState(false);
   const positionedRow = useRef<string>(undefined);
   const focusedPool = useRef<string>(undefined);
   const [expansion, setExpansion] = useState(new Map<string, boolean>());
-  const catalogue = useInfiniteQuery(
-    createCollectionQueries(authority).children(source.id),
-  );
-  const continuationFailed =
-    catalogue.isFetchNextPageError && !isCollectionReadRefused(catalogue.error);
-  const failed = hasReadError(catalogue) && !continuationFailed;
-  const rows = catalogueRows(catalogue.data?.pages, ffvb ? "pack" : "phase");
-  const focusIndex = rows.findIndex((row) =>
-    ffvb
-      ? row.id === focus.packId
-      : !!focus.phaseReference && row.phaseReference === focus.phaseReference,
-  );
-  const focusRow = rows[focusIndex]?.id;
-  const lookingForFocus =
-    !!(ffvb ? focus.packId : focus.phaseReference) &&
-    focusIndex < 0 &&
-    catalogue.hasNextPage &&
-    !catalogue.isError &&
-    catalogue.fetchStatus !== "paused";
-  const { fetchNextPage, isFetching } = catalogue;
+  const { query, rows, failed, continuation, target, loadMore, focused } =
+    useCatalogueChildren(authority, source.id, ffvb ? "pack" : "phase", {
+      focusKey: ffvb ? focus.packId : focus.phaseReference,
+    });
 
-  useEffect(() => {
-    if (focused && lookingForFocus && !isFetching) {
-      void fetchNextPage({ cancelRefetch: false });
-    }
-  }, [fetchNextPage, focused, isFetching, lookingForFocus]);
-
-  const positionFocus = useCallback(() => {
+  useLayoutEffect(() => {
     const current = list.current;
-    if (focused && current && focusRow && positionedRow.current !== focusRow) {
-      positionedRow.current = focusRow;
-      void current.scrollToIndex({
-        index: focusIndex,
+    if (!current) {
+      positionedRow.current = undefined;
+      focusedPool.current = undefined;
+    } else if (focused && target && positionedRow.current !== target) {
+      positionedRow.current = target;
+      void current.scrollToKey({
+        key: target,
         animated: false,
         viewPosition: 0.15,
       });
     }
-  }, [focusIndex, focusRow, focused]);
+  }, [focused, target]);
 
-  // A continuation failure can present the list before the requested row arrives.
-  useEffect(() => {
-    if (listReady) {
-      positionFocus();
+  function showFocusedPool(packKey: string, poolId: string, offset: number) {
+    if (!focused || focusedPool.current === poolId) {
+      return;
     }
-  }, [listReady, positionFocus]);
-
-  function loadMore() {
-    if (focused && catalogue.hasNextPage && !isFetching) {
-      void fetchNextPage({ cancelRefetch: false });
+    focusedPool.current = poolId;
+    if (offset > 0) {
+      void list.current?.scrollToKey({
+        key: packKey,
+        animated: false,
+        viewPosition: 0.15,
+        viewOffset: -offset,
+      });
     }
   }
 
@@ -257,44 +222,29 @@ function SourceCatalogue({
     ]);
   }
 
-  if (failed || !catalogue.data || (lookingForFocus && !listReady)) {
+  if (failed || !query.data) {
     return (
-      <CatalogueFeedback pending={!failed}>
-        {lookingForFocus ? (
-          loading
-        ) : (
-          <ReadFeedback query={catalogue} loadingContent={loading} />
-        )}
-      </CatalogueFeedback>
+      <CollectionReadState pending={!failed}>
+        <ReadFeedback query={query} loadingContent={loading} />
+      </CollectionReadState>
     );
   }
 
   return (
     <PageList
       ref={list}
-      onReady={() => {
-        setListReady(true);
-        positionFocus();
-      }}
       data={rows}
       extraData={expansion}
-      keyExtractor={(row) => (!ffvb && row.phaseReference) || row.id}
-      initialScrollIndex={
-        focusIndex > 0 ? { index: focusIndex, viewPosition: 0.15 } : undefined
-      }
+      keyExtractor={(row) => row.key}
       contentContainerStyle={pageContentStyle}
-      onEndReached={() => {
-        if (!catalogue.isError) {
-          loadMore();
-        }
-      }}
+      onEndReached={query.isError ? undefined : loadMore}
       onEndReachedThreshold={0.5}
       alwaysBounceVertical={rows.length > 0}
       refreshControl={
         rows.length > 0 ? (
           <DataRefreshControl
             fetching={refreshing}
-            enabled={!catalogue.isFetchingNextPage && !continuationFailed}
+            enabled={!continuation.loading && !continuation.failed}
             onRefresh={refreshCatalogue}
           />
         ) : undefined
@@ -318,7 +268,7 @@ function SourceCatalogue({
               style={[tokens.typography.navigation, { color: colors.text }]}
             >
               {ffvb
-                ? catalogue.hasNextPage
+                ? query.hasNextPage
                   ? "Packs découverts"
                   : `Packs découverts (${rows.length})`
                 : "Phases découvertes"}
@@ -326,69 +276,48 @@ function SourceCatalogue({
           )}
         </View>
       }
-      renderItem={({ item, index }) => {
-        const target = index === focusIndex;
+      renderItem={({ item: { key, resource } }) => {
+        const isTarget = key === target;
         if (!ffvb) {
           return (
             <Surface
-              style={[styles.phase, target && { borderColor: colors.focus }]}
+              style={[styles.phase, isTarget && { borderColor: colors.focus }]}
             >
               <Text style={[tokens.typography.strong, { color: colors.text }]}>
-                {item.phaseLabel ?? `Phase ${item.phaseReference}`}
+                {resource.phaseLabel ?? `Phase ${key}`}
               </Text>
             </Surface>
           );
         }
-        const expanded = expansion.get(item.id) ?? target;
+        const expanded = expansion.get(key) ?? isTarget;
         return (
           <CatalogPack
-            pack={item}
+            pack={resource}
             sourceId={source.id}
             authority={authority}
             expanded={expanded}
-            highlighted={target && !focus.poolId}
-            focusPoolId={target ? focus.poolId : undefined}
+            highlighted={isTarget && !focus.poolId}
+            focusPoolId={isTarget ? focus.poolId : undefined}
             onToggle={() =>
-              setExpansion((current) =>
-                new Map(current).set(item.id, !expanded),
-              )
+              setExpansion((current) => new Map(current).set(key, !expanded))
             }
-            onFocusPool={(id, offset) => {
-              if (focusedPool.current === id) {
-                return;
-              }
-              focusedPool.current = id;
-              if (offset > tokens.spacing.lg) {
-                void list.current?.scrollToIndex({
-                  index,
-                  animated: false,
-                  viewPosition: 0.15,
-                  viewOffset: -offset,
-                });
-              }
-            }}
+            onFocusPool={(id, offset) => showFocusedPool(key, id, offset)}
           />
         );
       }}
       ListEmptyComponent={
-        !catalogue.hasNextPage ? (
+        !query.hasNextPage ? (
           <EmptyState
             title={ffvb ? "Aucun pack découvert" : "Aucune phase découverte"}
           >
-            <CollectionEmptyReload
-              fetching={refreshing}
-              onReload={refreshCatalogue}
-            />
+            <ReloadButton fetching={refreshing} onReload={refreshCatalogue} />
           </EmptyState>
         ) : undefined
       }
       ListFooterComponent={
-        catalogue.hasNextPage ? (
+        query.hasNextPage ? (
           <CatalogContinuation
-            loading={catalogue.isFetchingNextPage}
-            failed={continuationFailed}
-            disabled={isFetching}
-            onMore={loadMore}
+            {...continuation}
             moreLabel={ffvb ? undefined : "Afficher plus de phases"}
           />
         ) : undefined
@@ -407,9 +336,13 @@ function CatalogSummary({
   onOpenBilan: () => void;
 }>) {
   const { colors } = useTheme();
-  const status = catalog?.status ?? "not-read";
+  const status = sourceCatalogStatus(catalog);
   const degraded = status === "partial" || status === "unavailable";
   const lastComplete = catalog?.lastCompleteAt;
+  const metadata = [
+    tokens.typography.metadata,
+    { color: colors.secondaryText },
+  ];
   const lastRead = catalog?.observedAt
     ? `Dernière lecture · ${formatCollectionTimestamp(catalog.observedAt, "compact")}`
     : status === "not-read"
@@ -427,46 +360,22 @@ function CatalogSummary({
         <SourceCatalogBadge status={status} />
       </View>
       <View style={styles.catalogInfo}>
-        {lastRead && (
-          <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
-          >
-            {lastRead}
-          </Text>
-        )}
+        {lastRead && <Text style={metadata}>{lastRead}</Text>}
         {degraded && (
           <>
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
+            <Text style={metadata}>
               {catalog?.reason ||
                 (status === "partial"
                   ? "La dernière lecture du catalogue est incomplète."
                   : "Le catalogue n’a pas pu être lu.")}
             </Text>
             {hasEntries && (
-              <Text
-                style={[
-                  tokens.typography.metadata,
-                  { color: colors.secondaryText },
-                ]}
-              >
+              <Text style={metadata}>
                 Le dernier catalogue connu reste affiché.
               </Text>
             )}
             {lastComplete && (
-              <Text
-                style={[
-                  tokens.typography.metadata,
-                  { color: colors.secondaryText },
-                ]}
-              >
+              <Text style={metadata}>
                 Dernière lecture complète ·{" "}
                 {formatCollectionTimestamp(lastComplete, "compact")}
               </Text>
@@ -573,37 +482,12 @@ function CatalogPools({
   onFocusPool: (id: string, offset: number) => void;
 }>) {
   const { colors } = useTheme();
-  const focused = useIsFocused();
-  const query = useInfiniteQuery(
-    createCollectionQueries(authority).children(sourceId, packId),
+  const { query, rows, target, failed, continuation } = useCatalogueChildren(
+    authority,
+    sourceId,
+    "pool",
+    { parentId: packId, focusKey: focusPoolId },
   );
-  const continued =
-    query.isFetchNextPageError && !isCollectionReadRefused(query.error);
-  const failed = hasReadError(query) && !continued;
-  const pools = catalogueRows(query.data?.pages, "pool");
-  const target = pools.find((pool) => pool.id === focusPoolId);
-  const { fetchNextPage, isFetching, hasNextPage, isError } = query;
-
-  useEffect(() => {
-    if (
-      focusPoolId &&
-      focused &&
-      !target &&
-      hasNextPage &&
-      !isFetching &&
-      !isError
-    ) {
-      void fetchNextPage({ cancelRefetch: false });
-    }
-  }, [
-    fetchNextPage,
-    focusPoolId,
-    focused,
-    hasNextPage,
-    isError,
-    isFetching,
-    target,
-  ]);
 
   if (failed || !query.data) {
     return (
@@ -621,7 +505,7 @@ function CatalogPools({
   }
   return (
     <View style={styles.pools}>
-      {!pools.length && !hasNextPage && (
+      {!rows.length && !query.hasNextPage && (
         <Text
           style={[tokens.typography.metadata, { color: colors.secondaryText }]}
         >
@@ -629,13 +513,12 @@ function CatalogPools({
         </Text>
       )}
       <View style={styles.poolChips}>
-        {pools.map((pool) => (
+        {rows.map(({ key, resource }) => (
           <Text
-            key={pool.id}
+            key={key}
             onLayout={
-              pool.id === focusPoolId
-                ? ({ nativeEvent }) =>
-                    onFocusPool(pool.id, nativeEvent.layout.y)
+              key === target
+                ? ({ nativeEvent }) => onFocusPool(key, nativeEvent.layout.y)
                 : undefined
             }
             style={[
@@ -643,21 +526,17 @@ function CatalogPools({
               {
                 color: colors.secondaryText,
                 backgroundColor: colors.subtle,
-                borderColor:
-                  pool.id === focusPoolId ? colors.focus : colors.border,
+                borderColor: key === target ? colors.focus : colors.border,
               },
             ]}
           >
-            {pool.label}
+            {resource.label}
           </Text>
         ))}
       </View>
-      {hasNextPage && (
+      {query.hasNextPage && (
         <CatalogContinuation
-          loading={query.isFetchingNextPage}
-          failed={continued}
-          disabled={isFetching}
-          onMore={() => void fetchNextPage({ cancelRefetch: false })}
+          {...continuation}
           moreLabel="Afficher plus de poules"
         />
       )}
@@ -667,51 +546,93 @@ function CatalogPools({
 
 /** An explicit edge remains available when a page adds no visible row or sits inside an expanded pack. */
 function CatalogContinuation({
-  loading,
-  failed,
-  disabled,
-  onMore,
   moreLabel,
-}: Readonly<{
-  loading: boolean;
-  failed: boolean;
-  disabled: boolean;
-  onMore: () => void;
-  moreLabel?: string;
-}>) {
-  if (loading || failed) {
-    return (
-      <ListContinuation
-        loading={loading}
-        failed={failed}
-        disabled={disabled}
-        onRetry={onMore}
-      />
-    );
+  ...feedback
+}: Readonly<ListContinuationProps & { moreLabel?: string }>) {
+  if (
+    moreLabel &&
+    !feedback.loading &&
+    !feedback.failed &&
+    !feedback.disabled
+  ) {
+    return <CollectionLink label={moreLabel} onPress={feedback.onRetry} />;
   }
-  return moreLabel && !disabled ? (
-    <CollectionLink label={moreLabel} onPress={onMore} />
-  ) : null;
+  return <ListContinuation {...feedback} />;
 }
+
+type CatalogueLevel = "pack" | "phase" | "pool";
 
 /** Offset pages can repeat entries after catalogue changes. LNV groups share the published phase identity. */
 function catalogueRows(
   pages: DiscoveredCollectionResourcePageResponse[] = [],
-  kind: "pack" | "phase" | "pool",
+  level: CatalogueLevel,
 ) {
+  const phase = level === "phase";
+  const kind = phase ? "pool" : level;
   const rows = new Map<string, DiscoveredCollectionResourceResponse>();
   for (const { items } of pages) {
     for (const item of items) {
-      if (item.kind !== (kind === "phase" ? "pool" : kind)) {
+      if (item.kind !== kind) {
         continue;
       }
-      const key = kind === "phase" ? item.phaseReference : item.id;
+      const key = phase ? item.phaseReference : item.id;
       if (key && !rows.has(key)) {
         rows.set(key, item);
       }
     }
   }
-  return [...rows.values()];
+  return Array.from(rows, ([key, resource]) => ({ key, resource }));
+}
+
+/** Roots and expanded packs advance the same generated read, including when seeking an attributed row. */
+function useCatalogueChildren(
+  authority: CollectionQueryAuthority,
+  sourceId: string,
+  level: CatalogueLevel,
+  { parentId, focusKey }: Readonly<{ parentId?: string; focusKey?: string }>,
+) {
+  const focused = useIsFocused();
+  const query = useInfiniteQuery(
+    createCollectionQueries(authority).children(sourceId, parentId),
+  );
+  const continuationFailed =
+    query.isFetchNextPageError && !isCollectionReadRefused(query.error);
+  const failed = hasReadError(query) && !continuationFailed;
+  const pages = query.data?.pages;
+  const rows = useMemo(() => catalogueRows(pages, level), [level, pages]);
+  const target =
+    !failed && focusKey && rows.some(({ key }) => key === focusKey)
+      ? focusKey
+      : undefined;
+  const { fetchNextPage } = query;
+  const canContinue =
+    focused && query.hasNextPage && query.fetchStatus === "idle" && !failed;
+  const loadMore = useCallback(() => {
+    if (canContinue) {
+      void fetchNextPage({ cancelRefetch: false });
+    }
+  }, [canContinue, fetchNextPage]);
+
+  useEffect(() => {
+    if (focusKey && !target && !query.isError) {
+      loadMore();
+    }
+  }, [focusKey, target, query.isError, loadMore]);
+
+  return {
+    query,
+    failed,
+    rows,
+    target,
+    focused,
+    loadMore,
+    continuation: {
+      loading: query.isFetchingNextPage,
+      failed: continuationFailed,
+      disabled: !canContinue,
+      onRetry: loadMore,
+    },
+  };
 }
 
 const styles = StyleSheet.create({

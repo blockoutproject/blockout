@@ -1,24 +1,20 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {
   getListCollectionSeasonsQueryKey,
-  getListCollectionControlsQueryKey,
+  getGetCollectionSeasonQueryKey,
 } from "../../../../.generated/mobile";
 
-/** Confirmed lifecycle changes refresh the navigation list without changing the accepted season response. */
-export function invalidateCollectionSeasons(client: QueryClient) {
-  void client.invalidateQueries({
-    queryKey: getListCollectionSeasonsQueryKey(),
-    exact: true,
-  });
-}
-
-/** Closure refreshes controls for exactly the affected season. */
-export function invalidateCollectionControls(
+/** Revalidates the selected season and its navigation entry after a confirmed lifecycle change. */
+export function invalidateCollectionSeason(
   client: QueryClient,
   seasonId: string,
 ) {
   void client.invalidateQueries({
-    queryKey: getListCollectionControlsQueryKey({ seasonId }),
+    queryKey: getGetCollectionSeasonQueryKey(seasonId),
+    exact: true,
+  });
+  void client.invalidateQueries({
+    queryKey: getListCollectionSeasonsQueryKey(),
     exact: true,
   });
 }

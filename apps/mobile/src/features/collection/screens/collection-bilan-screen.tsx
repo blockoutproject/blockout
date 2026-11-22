@@ -1,16 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { RefreshCw } from "lucide-react-native";
 import { Keyboard, StyleSheet } from "react-native";
 import {
   ListCollectionResultsParams,
   type CollectionResultSourceResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { Button } from "@/shared/components/button";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
@@ -22,6 +20,7 @@ import {
 } from "@/shared/components/page";
 import { PageList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
 import { SearchToolbar } from "@/shared/components/search-toolbar";
@@ -76,7 +75,6 @@ export function CollectionBilanScreen({
     ...options,
     enabled: (state) => authority.enabled && state.state.status !== "error",
   });
-  const [reloading, setReloading] = useState<string>();
   const { control, handleSubmit, reset } = useForm({
     values: { query: criteria.query ?? "" },
     resolver: zodResolver(searchSchema),
@@ -117,19 +115,6 @@ export function CollectionBilanScreen({
     rows.length > 0 &&
     !continuationFailed &&
     !query.isFetchingNextPage;
-  const reloadRequested = reloading === contextKey;
-
-  async function reloadEmpty() {
-    if (!authority.enabled || reloadRequested) {
-      return;
-    }
-    setReloading(contextKey);
-    try {
-      await query.refetch({ cancelRefetch: false });
-    } finally {
-      setReloading((current) => (current === contextKey ? undefined : current));
-    }
-  }
 
   function loadMore() {
     if (
@@ -239,11 +224,10 @@ export function CollectionBilanScreen({
                     : "Aucun résultat observé"
                 }
               >
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  loading={reloadRequested && query.isFetching}
-                  onPress={() => void reloadEmpty()}
+                <ReloadButton
+                  fetching={query.isFetching}
+                  onReload={() => query.refetch({ cancelRefetch: false })}
+                  disabled={!authority.enabled}
                 />
               </EmptyState>
             </ScreenState>

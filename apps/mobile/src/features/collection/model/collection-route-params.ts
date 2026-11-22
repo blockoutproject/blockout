@@ -1,9 +1,12 @@
 import {
   CollectionProviderEnum,
   CollectionResultSourceResponse,
+  CollectionSourceScopeEnum,
   ListCollectionResultsParams,
+  SourceCatalogStatusEnum,
 } from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
+import type { SourceFilters } from "./source-catalogue";
 
 export function collectionProviderFromRoute(value: unknown) {
   return CollectionProviderEnum.safeParse(value).data;
@@ -41,5 +44,14 @@ export function collectionSourceRouteFocus(
     poolId: fields.poolId.safeParse(params.poolId).data,
     phaseReference:
       fields.phaseReference.safeParse(params.phaseReference).data || undefined,
+  };
+}
+
+export function sourceFiltersFromRoute(
+  params: Record<string, string | string[] | undefined>,
+): SourceFilters {
+  return {
+    status: SourceCatalogStatusEnum.safeParse(params.status).data,
+    scope: CollectionSourceScopeEnum.safeParse(params.scope).data,
   };
 }

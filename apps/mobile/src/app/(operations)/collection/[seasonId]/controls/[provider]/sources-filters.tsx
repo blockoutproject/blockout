@@ -1,7 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { collectionProviderHref } from "@/features/collection/model/collection-hrefs";
 import { SourceFiltersSheet } from "@/features/collection/components/source-filters-sheet";
-import { collectionProviderFromRoute } from "@/features/collection/model/collection-route-params";
-import { sourceFiltersFromRoute } from "@/features/collection/model/source-catalogue";
+import {
+  collectionProviderFromRoute,
+  sourceFiltersFromRoute,
+} from "@/features/collection/model/collection-route-params";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { ErrorState } from "@/shared/components/state-card";
 
@@ -30,17 +33,10 @@ export default function SourceFiltersRoute() {
       provider={provider}
       initial={sourceFiltersFromRoute(params)}
       onClose={onClose}
-      onApply={({ status, scope }) =>
-        router.dismissTo({
-          pathname: "/collection/[seasonId]/controls/[provider]",
-          params: {
-            seasonId: params.seasonId,
-            provider,
-            tab: "sources",
-            status: status ?? "",
-            scope: scope ?? "",
-          },
-        })
+      onApply={(filters) =>
+        router.dismissTo(
+          collectionProviderHref(params.seasonId, provider, filters),
+        )
       }
     />
   );

@@ -247,36 +247,46 @@ public class FfvbDiscovery {
     return publishedNavigation(page).stream().map(NavigationLink::target).toList();
   }
 
-  /** One navigation target with its visible labels on the same page, in publication order. */
-  public record NavigationLink(URI target, List<String> labels) {}
+  /** One navigation target with its published context and visible labels on the same page. */
+  public record NavigationLink(
+      URI target, String organizerReference, String seasonLabel, List<String> labels) {}
 
   /**
    * Uses the same native traversal when source discovery also needs the published organizer name.
    */
   public List<NavigationLink> publishedNavigation(Document page) {
-    Map<URI, List<String>> result = new LinkedHashMap<>();
-    for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
-      String attribute = "value";
-      if (link.hasAttr("src")) {
-        attribute = "src";
-      } else if (link.hasAttr("href")) {
-        attribute = "href";
-      }
-      try {
+    Map<URI, List<String>> labels = new LinkedHashMap<>();
+    List<NavigationLink> result = new ArrayList<>();
+    try {
+      for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
+        String attribute = "value";
+        if (link.hasAttr("src")) {
+          attribute = "src";
+        } else if (link.hasAttr("href")) {
+          attribute = "href";
+        }
         URI target = URI.create(link.absUrl(attribute));
         if (FfvbPage.RESULTS_HOST.equalsIgnoreCase(target.getHost())
             && hasResultsPath(target)
-            && !excludedCompetition(pack(link) + " " + link.text())
-            && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) {
-          result.computeIfAbsent(target, uri -> new ArrayList<>()).add(link.text());
+            && !excludedCompetition(pack(link) + " " + link.text())) {
+          labels.computeIfAbsent(target, uri -> new ArrayList<>()).add(link.text());
         }
-      } catch (IllegalArgumentException failure) {
-        throw invalid();
       }
+      for (Map.Entry<URI, List<String>> link : labels.entrySet()) {
+        Map<String, String> context = query(link.getKey());
+        if (!EXCLUDED.contains(context.getOrDefault("codent", ""))) {
+          result.add(
+              new NavigationLink(
+                  link.getKey(),
+                  context.get("codent"),
+                  context.get("saison"),
+                  List.copyOf(link.getValue())));
+        }
+      }
+    } catch (IllegalArgumentException failure) {
+      throw invalid();
     }
-    return result.entrySet().stream()
-        .map(entry -> new NavigationLink(entry.getKey(), List.copyOf(entry.getValue())))
-        .toList();
+    return List.copyOf(result);
   }
 
   private boolean hasResultsPath(URI target) {

@@ -828,6 +828,75 @@ it("can continue past another group of an already displayed LNV phase", async ()
   expect(screen.queryByText("Groupe 2")).not.toBeOnTheScreen();
 });
 
+it("keeps accepted packs during a failed continuation and resumes seeking the attributed pool", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const childrenPath = `/source-bindings/${ffvbSource.id}/children`;
+  const packId = "00000000-0000-4000-8000-000000000186";
+  const poolId = "00000000-0000-4000-8000-000000000187";
+  let rejectPackContinuation = true;
+  mockFetch.mockImplementation(async (url) => {
+    const { pathname, searchParams } = new URL(String(url));
+    if (!pathname.endsWith(childrenPath)) {
+      return serve(url);
+    }
+    const page = Number(searchParams.get("page"));
+    if (searchParams.get("parentId") === packId) {
+      return Response.json({
+        items: [
+          page === 0
+            ? {
+                id: "00000000-0000-4000-8000-000000000188",
+                label: "Poule A",
+                kind: "pool",
+              }
+            : { id: poolId, label: "Poule B", kind: "pool" },
+        ],
+        page,
+        hasNext: page === 0,
+      });
+    }
+    if (page === 1 && rejectPackContinuation) {
+      return refused(503);
+    }
+    return Response.json({
+      items: [
+        page === 0
+          ? {
+              id: "00000000-0000-4000-8000-000000000189",
+              label: "N1",
+              kind: "pack",
+            }
+          : { id: packId, label: "N2", kind: "pack" },
+      ],
+      page,
+      hasNext: page === 0,
+    });
+  });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () =>
+    router.push(
+      `/collection/${seasonId}/sources/${ffvbSource.id}?packId=${packId}&poolId=${poolId}`,
+    ),
+  );
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByRole("button", { name: "N1" })).toBeOnTheScreen();
+
+  // When
+  rejectPackContinuation = false;
+  await user.press(retry);
+
+  // Then
+  expect(await screen.findByText("Poule B")).toBeOnTheScreen();
+  expect(screen.getByText("Poule A")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "N2", expanded: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "N1" })).toBeOnTheScreen();
+});
+
 it("reloads a confirmed empty catalogue and then uses Réessayer for a failed application read", async () => {
   // Given
   const serve = responses({ manageCollection: true });

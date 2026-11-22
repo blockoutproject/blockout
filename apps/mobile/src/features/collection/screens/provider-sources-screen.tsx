@@ -14,11 +14,7 @@ import {
 import { controlOpacity } from "@/shared/components/control-styles";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListLoading } from "@/shared/components/list-loading";
-import {
-  PageContent,
-  PageScrollView,
-  pageContentStyle,
-} from "@/shared/components/page";
+import { pageContentStyle } from "@/shared/components/page";
 import { PageList } from "@/shared/components/page-list";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -30,11 +26,13 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { createCollectionQueries } from "../api/collection-queries";
 import type { useCollectionSeason } from "../api/use-collection-season";
-import { CollectionEmptyReload } from "../components/collection-empty-reload";
+import { ReloadButton } from "@/shared/components/reload-button";
+import { CollectionReadState } from "../components/collection-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionSourceHref } from "../model/collection-hrefs";
 import {
   sourceCatalogLabels,
+  sourceCatalogStatus,
   sourceScopes,
   type SourceFilters,
 } from "../model/source-catalogue";
@@ -77,30 +75,26 @@ export function ProviderSourcesScreen({
     const pending = authority.enabled
       ? requiredRead.isPending && !hasReadError(requiredRead)
       : isAccessLoading(authority);
-    const Layout = pending ? PageContent : ScreenState;
     return (
-      <PageScrollView>
-        <Layout>
-          {authority.enabled ? (
-            <ReadFeedback query={requiredRead} loadingContent={loading} />
-          ) : (
-            <AccessFeedback {...authority} loadingContent={loading} />
-          )}
-        </Layout>
-      </PageScrollView>
+      <CollectionReadState pending={pending}>
+        {authority.enabled ? (
+          <ReadFeedback query={requiredRead} loadingContent={loading} />
+        ) : (
+          <AccessFeedback {...authority} loadingContent={loading} />
+        )}
+      </CollectionReadState>
     );
   }
 
   const needle = searchKey(search.trim());
+  const scope = provider === "ffvb" ? filters.scope : undefined;
   const items = sources.data.items.filter((source) => {
-    const status = source.catalog?.status ?? "not-read";
+    const status = sourceCatalogStatus(source.catalog);
     return (
       source.provider === provider &&
       !!(source.acceptedUrl || status !== "not-read") &&
       (!filters.status || filters.status === status) &&
-      (provider !== "ffvb" ||
-        !filters.scope ||
-        source.scope === filters.scope) &&
+      (!scope || source.scope === scope) &&
       searchKey(`${source.label} ${source.organizerReference}`).includes(needle)
     );
   });
@@ -127,7 +121,7 @@ export function ProviderSourcesScreen({
     );
   }
 
-  const filtered = !!(filters.status || (provider === "ffvb" && filters.scope));
+  const filtered = Boolean(filters.status || scope);
   return (
     <PageList<SourceRow>
       data={["search", ...rows]}
@@ -183,13 +177,13 @@ export function ProviderSourcesScreen({
             </Text>
           );
         }
-        const label = item.label;
+        const status = sourceCatalogStatus(item.catalog);
         return (
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel={label}
+            accessibilityLabel={item.label}
             accessibilityValue={{
-              text: sourceCatalogLabels[item.catalog?.status ?? "not-read"],
+              text: sourceCatalogLabels[status],
             }}
             onPress={() => router.push(collectionSourceHref(seasonId, item))}
             style={({ pressed }) => ({
@@ -198,9 +192,9 @@ export function ProviderSourcesScreen({
           >
             <Surface style={styles.source}>
               <Text style={[styles.label, { color: colors.text }]}>
-                {label}
+                {item.label}
               </Text>
-              <SourceCatalogBadge status={item.catalog?.status ?? "not-read"} />
+              <SourceCatalogBadge status={status} />
               <ChevronRight
                 accessible={false}
                 color={colors.icon}
@@ -221,7 +215,7 @@ export function ProviderSourcesScreen({
               }
             >
               {!needle && !filtered && (
-                <CollectionEmptyReload
+                <ReloadButton
                   fetching={sources.isFetching}
                   onReload={() => sources.refetch({ cancelRefetch: false })}
                 />

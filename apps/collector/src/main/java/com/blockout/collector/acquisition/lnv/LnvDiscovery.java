@@ -116,16 +116,15 @@ public class LnvDiscovery {
    *
    * @param bytes bounded phase page HTML
    * @param actual final response URL
-   * @param published exact phase link from the root
+   * @param competition qualified root championship
+   * @param published phase qualified by that root
    * @param season expected root season
    * @return groups available from this independently qualified phase
    */
   public List<SportingObservation.Pool> phasePools(
-      byte[] bytes, URI actual, URI published, String season) {
+      byte[] bytes, URI actual, String competition, Phase published, String season) {
     Map<String, String> context = LnvPage.query(actual);
-    Map<String, String> expected = LnvPage.query(published);
-    String competition = expected.get("ID");
-    String phase = expected.get("PID");
+    String phase = published.reference();
     if (!HOST.equalsIgnoreCase(actual.getHost())
         || !actual.getPath().endsWith(MATCHES)
         || !competition.equals(context.get("ID"))

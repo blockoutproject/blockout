@@ -8,12 +8,12 @@ import {
   AccessFeedback,
   isAccessLoading,
 } from "@/features/access/components/access-feedback";
-import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { Page } from "@/shared/components/page";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
 import type { useCollectionSeason } from "../api/use-collection-season";
+import { CollectionReadState } from "./collection-read-state";
 
 type ProviderContent = (
   control: CollectionControlResponse,
@@ -109,13 +109,10 @@ function ProviderReadState({
   pending = false,
   children,
 }: Readonly<{ header?: ReactNode; pending?: boolean; children?: ReactNode }>) {
-  const Layout = pending ? PageContent : ScreenState;
   const content = (
-    <PageScrollView>
-      <Layout>
-        {children ?? <EmptyState title="Aucun contrôle de collecte" />}
-      </Layout>
-    </PageScrollView>
+    <CollectionReadState pending={pending}>
+      {children ?? <EmptyState title="Aucun contrôle de collecte" />}
+    </CollectionReadState>
   );
   return header ? <Page header={header}>{content}</Page> : content;
 }

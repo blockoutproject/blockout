@@ -1,7 +1,7 @@
 import { PageFlatList } from "@/shared/components/page-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
-import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
+import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -20,6 +20,7 @@ import {
 import { PageHeader } from "@/shared/components/page-header";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ReloadButton } from "@/shared/components/reload-button";
 
 import { EmptyState } from "@/shared/components/state-card";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -116,11 +117,9 @@ export function CollectionDashboardScreen() {
             ))}
             {query.data?.items.length === 0 && (
               <EmptyState title="Aucune saison découverte">
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  onPress={() => void query.refetch({ cancelRefetch: false })}
-                  loading={query.isFetching}
+                <ReloadButton
+                  fetching={query.isFetching}
+                  onReload={() => query.refetch({ cancelRefetch: false })}
                 />
               </EmptyState>
             )}
@@ -307,11 +306,9 @@ function ControlDashboard({
     return (
       <ScreenState>
         <EmptyState title="Aucun résultat observé">
-          <Button
-            label="Actualiser"
-            leadingIcon={RefreshCw}
-            onPress={() => void results.refetch({ cancelRefetch: false })}
-            loading={results.isFetching}
+          <ReloadButton
+            fetching={results.isFetching}
+            onReload={() => results.refetch({ cancelRefetch: false })}
             disabled={commandPending || query.isFetching}
           />
         </EmptyState>

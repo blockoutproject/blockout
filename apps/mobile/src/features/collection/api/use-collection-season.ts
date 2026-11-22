@@ -8,7 +8,7 @@ import { useAdministrationCapabilities } from "@/features/access/api/use-adminis
 import { useOperationalVersionAdmission } from "@/features/access/operational-version-admission";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { createCollectionQueries } from "./collection-queries";
-import { invalidateCollectionSeasons } from "./invalidate-collection-reads";
+import { invalidateCollectionSeason } from "./invalidate-collection-reads";
 
 /** Current F05 identity and F12 grant for collection requests; server authorization remains authoritative. */
 export function useCollectionAuthority() {
@@ -51,14 +51,11 @@ export function useActivateCollectionSeason(seasonId: string) {
 
   /** An acknowledgement updates the season without hiding a read failure or replacing terminal closure. */
   function acceptSeason(accepted: CollectionSeasonResponse) {
-    const current = client.getQueryState<CollectionSeasonResponse | null>(
-      seasonKey,
-    );
+    const current = client.getQueryState<CollectionSeasonResponse>(seasonKey);
     if (current?.status === "success" && current.data?.state === "preparing") {
       client.setQueryData(seasonKey, accepted);
     }
-    void client.invalidateQueries({ queryKey: seasonKey, exact: true });
-    invalidateCollectionSeasons(client);
+    invalidateCollectionSeason(client, seasonId);
   }
 
   const activate = useMutation({

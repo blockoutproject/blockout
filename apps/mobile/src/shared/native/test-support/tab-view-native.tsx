@@ -12,16 +12,28 @@ jest.mock("react-native-reanimated", () =>
 jest.mock("@legendapp/list/reanimated", () => {
   const { FlatList } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const { useImperativeHandle, useRef } =
+    jest.requireActual<typeof import("react")>("react");
 
   /** Preserves list content, refresh and continuation at the JavaScript boundary. */
   function NativeLegendViewport({
     ref,
     ...props
   }: Readonly<FlatListProps<unknown> & { ref?: Ref<FlatList<unknown>> }>) {
+    const viewport = useRef<FlatList<unknown>>(null);
+    useImperativeHandle<FlatList<unknown> | null, FlatList<unknown> | null>(
+      ref,
+      () =>
+        viewport.current &&
+        Object.assign(viewport.current, {
+          scrollToKey: () => Promise.resolve(),
+        }),
+      [],
+    );
     return (
       <FlatList
         {...props}
-        ref={ref}
+        ref={viewport}
         numColumns={1}
         stickyHeaderIndices={undefined}
       />

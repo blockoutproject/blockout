@@ -1,6 +1,6 @@
 import { RefreshControl, type RefreshControlProps } from "react-native";
-import { useState } from "react";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { useExplicitRead } from "./use-explicit-read";
 
 /** Native refresh inputs; ScrollView also injects its Android child and layout into this element. */
 export type DataRefreshControlProps = Pick<
@@ -25,25 +25,14 @@ export function DataRefreshControl({
   ...nativeContent
 }: Readonly<DataRefreshControlProps>) {
   const { colors, context } = useTheme();
-  const [refreshing, setRefreshing] = useState(false);
-  const progressing = refreshing && fetching;
-
-  /** The callback's promise bounds this gesture; read failures remain with the feature owner. */
-  async function refresh() {
-    setRefreshing(true);
-    try {
-      await onRefresh();
-    } finally {
-      setRefreshing(false);
-    }
-  }
+  const { requested, progressing, read } = useExplicitRead(onRefresh, fetching);
 
   return (
     <RefreshControl
       {...nativeContent}
       enabled={enabled}
       refreshing={progressing}
-      onRefresh={!enabled || refreshing ? undefined : () => void refresh()}
+      onRefresh={!enabled || requested ? undefined : () => void read()}
       accessibilityLabel="Actualiser les données"
       accessibilityState={{ busy: progressing, disabled: !enabled }}
       colors={[context.primary]}

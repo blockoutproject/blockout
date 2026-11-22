@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useWatch } from "react-hook-form";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { SelectField } from "@/shared/components/select-field";
 import {
-  FilterSheetActions,
+  FilterSheetForm,
   FilterSheetActionsSkeleton,
-} from "@/shared/components/filter-sheet-actions";
+} from "@/shared/components/filter-sheet-form";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { FieldSkeleton } from "@/shared/components/form-loading";
@@ -63,7 +63,17 @@ export function SearchFilters() {
         </SheetContent>
       ) : (
         <SheetContent>
-          <View style={styles.form}>
+          <FilterSheetForm
+            onApply={() =>
+              void visit.draft.handleSubmit((draft) => {
+                apply(reconcileSearchFilters(draft, options));
+                router.back();
+              })()
+            }
+            onReset={() =>
+              visit.draft.reset(reconcileSearchFilters(undefined, options))
+            }
+          >
             <SelectField
               label="Saison"
               value={
@@ -91,18 +101,7 @@ export function SearchFilters() {
               value={genderLabel(values.gender) ?? "Tout afficher"}
               onPress={() => router.push("/search/choice?field=gender")}
             />
-            <FilterSheetActions
-              onApply={() =>
-                void visit.draft.handleSubmit((draft) => {
-                  apply(reconcileSearchFilters(draft, options));
-                  router.back();
-                })()
-              }
-              onReset={() =>
-                visit.draft.reset(reconcileSearchFilters(undefined, options))
-              }
-            />
-          </View>
+          </FilterSheetForm>
         </SheetContent>
       )}
     </Sheet>

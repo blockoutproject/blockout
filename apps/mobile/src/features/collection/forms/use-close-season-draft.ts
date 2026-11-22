@@ -15,10 +15,10 @@ interface DraftState {
 
 /** Seeds the single editable baseline from the first available read; the mounted visit owns it thereafter. */
 export function useCloseSeasonDraft(
-  season: CollectionSeasonResponse | null | undefined,
+  season: CollectionSeasonResponse | undefined,
 ) {
   const [state, update] = useState<DraftState>({
-    baseline: season ?? undefined,
+    baseline: season,
   });
   if (!state.baseline && season) {
     update({ ...state, baseline: season });

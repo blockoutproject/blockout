@@ -1,3 +1,4 @@
+import { collectionProviderHref } from "../model/collection-hrefs";
 import { seasonStatus } from "../components/collection-season-summary";
 import { CollectionDestinationLink } from "../components/collection-destination-link";
 import {
@@ -87,10 +88,7 @@ export function CollectionSeasonScreen({
                   detail="National, régional et départemental"
                   icon={Globe}
                   onPress={() =>
-                    router.push({
-                      pathname: "/collection/[seasonId]/controls/[provider]",
-                      params: { seasonId, provider: "ffvb" },
-                    })
+                    router.push(collectionProviderHref(seasonId, "ffvb"))
                   }
                 />
                 <CollectionDestinationLink
@@ -98,10 +96,7 @@ export function CollectionSeasonScreen({
                   detail="Les trois championnats professionnels"
                   icon={Trophy}
                   onPress={() =>
-                    router.push({
-                      pathname: "/collection/[seasonId]/controls/[provider]",
-                      params: { seasonId, provider: "lnv" },
-                    })
+                    router.push(collectionProviderHref(seasonId, "lnv"))
                   }
                 />
                 {season.data.state === "preparing" && (

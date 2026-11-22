@@ -16,7 +16,7 @@ import { useCloseSeasonDraft } from "./use-close-season-draft";
 
 /** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
-  season: CollectionSeasonResponse | null | undefined;
+  season: CollectionSeasonResponse | undefined;
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
 

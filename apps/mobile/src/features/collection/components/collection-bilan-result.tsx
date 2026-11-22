@@ -15,6 +15,17 @@ import {
 } from "../model/collection-result-presentation";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { CollectionLink } from "./collection-link";
+import {
+  CollectionStatusBadge,
+  type CollectionStatusTone,
+} from "./collection-status-badge";
+
+const outcomeTones = {
+  success: "success",
+  partial: "warning",
+  failed: "error",
+  unconfirmed: "warning",
+} satisfies Record<CollectionResultResponse["outcome"], CollectionStatusTone>;
 
 /** One accepted outcome. A contextual link needs an established source from this very row. */
 export function CollectionBilanResult({
@@ -27,12 +38,6 @@ export function CollectionBilanResult({
   const { colors } = useTheme();
   const { source, reason, reasonType, lastSuccessAt } = result;
   const sourceLink = result.outcome === "success" ? undefined : source;
-  const badge = {
-    success: [colors.onSuccessSubtle, colors.successSubtle],
-    partial: [colors.warningOnSurface, colors.warningSubtle],
-    failed: [colors.error, colors.errorSubtle],
-    unconfirmed: [colors.warningOnSurface, colors.warningSubtle],
-  }[result.outcome];
   const outlinedBadge =
     result.outcome === "success" || result.outcome === "failed";
   const lastUsefulSuccess =
@@ -79,18 +84,12 @@ export function CollectionBilanResult({
             </Text>
           </View>
         </View>
-        <Text
-          style={[
-            styles.badge,
-            {
-              color: badge[0],
-              backgroundColor: badge[1],
-              borderColor: outlinedBadge ? colors.border : "transparent",
-            },
-          ]}
-        >
-          {outcomeLabels[result.outcome]}
-        </Text>
+        <CollectionStatusBadge
+          label={outcomeLabels[result.outcome]}
+          tone={outcomeTones[result.outcome]}
+          outlined={outlinedBadge}
+          style={styles.badge}
+        />
       </View>
       {!!reason && (
         <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -181,11 +180,7 @@ const styles = StyleSheet.create({
     columnGap: tokens.spacing.sm,
   },
   badge: {
-    ...tokens.typography.metadata,
-    flexShrink: 1,
     maxWidth: "48%",
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.spacing.sm - tokens.border.thin,
     paddingVertical: tokens.spacing.xs - tokens.border.thin,
   },

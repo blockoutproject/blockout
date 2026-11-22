@@ -1,19 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
 import type {
   CollectionProviderEnum,
   CollectionStageEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
-import { FilterSheetActions } from "@/shared/components/filter-sheet-actions";
+import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
 import { ListLoading } from "@/shared/components/list-loading";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { SelectField } from "@/shared/components/select-field";
 import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
-import { tokens } from "@/shared/theme/tokens";
 import {
   createCollectionQueries,
   type CollectionResultCriteria,
@@ -60,14 +57,11 @@ export function CollectionBilanFilters({
 }: Readonly<CollectionBilanFiltersProps>) {
   const authority = useCollectionAuthority();
   const [choice, setChoice] = useState<keyof FilterDraft>();
-  const { control, handleSubmit, reset, setValue } = useForm<FilterDraft>({
-    defaultValues: {
-      status: initial.status,
-      sourceId: initial.sourceId,
-      stage: initial.stage,
-    },
+  const [draft, setDraft] = useState<FilterDraft>({
+    status: initial.status,
+    sourceId: initial.sourceId,
+    stage: initial.stage,
   });
-  const draft = useWatch({ control });
   const sources = useQuery({
     ...createCollectionQueries(authority).sources(seasonId),
     enabled: authority.enabled && (choice === "sourceId" || !!draft.sourceId),
@@ -99,7 +93,10 @@ export function CollectionBilanFilters({
     }
     if (!choice) {
       return (
-        <View style={styles.form}>
+        <FilterSheetForm
+          onApply={() => onApply({ ...draft, query: initial.query })}
+          onReset={() => setDraft({})}
+        >
           <SelectField
             label={fields.status.label}
             value={
@@ -122,21 +119,7 @@ export function CollectionBilanFilters({
             value={draft.stage ? stageLabels[draft.stage] : fields.stage.all}
             onPress={() => setChoice("stage")}
           />
-          <FilterSheetActions
-            onApply={() =>
-              void handleSubmit((filters) =>
-                onApply({ ...filters, query: initial.query }),
-              )()
-            }
-            onReset={() =>
-              reset({
-                status: undefined,
-                sourceId: undefined,
-                stage: undefined,
-              })
-            }
-          />
-        </View>
+        </FilterSheetForm>
       );
     }
     if (choice === "sourceId" && (!sources.data || hasReadError(sources))) {
@@ -148,7 +131,7 @@ export function CollectionBilanFilters({
         options={[{ value: undefined, label: field.all }, ...field.options]}
         selected={draft[choice]}
         onSelect={(value) => {
-          setValue(choice, value);
+          setDraft((current) => ({ ...current, [choice]: value }));
           setChoice(undefined);
         }}
       />
@@ -164,7 +147,3 @@ export function CollectionBilanFilters({
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: tokens.layout.form.gap },
-});
