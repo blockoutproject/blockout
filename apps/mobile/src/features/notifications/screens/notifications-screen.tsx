@@ -1,4 +1,4 @@
-import { Flag, RefreshCw } from "lucide-react-native";
+import { Flag } from "lucide-react-native";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
 import {
@@ -22,7 +22,7 @@ import { supportHref } from "@/features/support";
 
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
-import { Button } from "@/shared/components/button";
+import { ReloadButton } from "@/shared/components/reload-button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { EmptyState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -223,12 +223,7 @@ function Inbox({
             title="Aucune notification pour le moment"
             description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
           >
-            <Button
-              label="Actualiser"
-              leadingIcon={RefreshCw}
-              onPress={() => void refresh()}
-              loading={query.isFetching}
-            />
+            <ReloadButton fetching={query.isFetching} onReload={refresh} />
           </EmptyState>
         </ScreenState>
       );
