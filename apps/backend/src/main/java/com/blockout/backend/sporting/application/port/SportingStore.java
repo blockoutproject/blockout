@@ -59,6 +59,7 @@ public interface SportingStore {
   /**
    * Reads one page of direct children within an exact source-season context.
    *
+   * @param sourceId binding that owns LNV phase labels
    * @param seasonId canonical season
    * @param provider designated source
    * @param organizerReference native source identity
@@ -68,6 +69,7 @@ public interface SportingStore {
    * @return child identities without mapping readiness or a total count
    */
   OffsetPage<CollectionResource> collectionChildren(
+      UUID sourceId,
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
@@ -602,7 +604,7 @@ public interface SportingStore {
    * @param presentIds unique accepted pool identities
    * @param complete whether discovery positively establishes absence
    * @param order backend-resolved token
-   * @param context independent source timestamps
+   * @param observation source timestamps and any submitted phase labels
    */
   void finishCatalog(
       UUID sourceId,
@@ -612,7 +614,7 @@ public interface SportingStore {
       Set<UUID> presentIds,
       boolean complete,
       ObservationOrder order,
-      MatchObservation.Context context);
+      CatalogObservation observation);
 
   /**
    * Reads current enrichment within the caller's read or mutation transaction.

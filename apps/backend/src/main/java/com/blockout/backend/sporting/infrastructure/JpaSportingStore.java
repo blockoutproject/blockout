@@ -151,6 +151,7 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public OffsetPage<CollectionResource> collectionChildren(
+      UUID sourceId,
       UUID seasonId,
       CollectionProviderEnum provider,
       String organizerReference,
@@ -179,13 +180,17 @@ public class JpaSportingStore implements SportingStore {
                   request.withSort(Sort.by("sourceName", "reference", "id")))
               : pools.findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
                   parentId, request);
-      resources =
-          children.map(
-              pool ->
-                  mapper.toCollectionResource(
-                      pool,
-                      parentId,
-                      provider == CollectionProviderEnum.LNV ? pool.getReference() : null));
+      if (provider == CollectionProviderEnum.LNV) {
+        Map<String, String> labels =
+            catalogs.findById(sourceId).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
+        resources =
+            children.map(
+                pool ->
+                    mapper.toCollectionResource(
+                        pool, parentId, pool.getReference(), labels.get(pool.getReference())));
+      } else {
+        resources = children.map(pool -> mapper.toCollectionResource(pool, parentId, null, null));
+      }
     }
     return new OffsetPage<>(resources.getContent(), resources.getNumber(), resources.hasNext());
   }
@@ -881,7 +886,7 @@ public class JpaSportingStore implements SportingStore {
       Set<UUID> presentIds,
       boolean complete,
       ObservationOrder order,
-      MatchObservation.Context context) {
+      CatalogObservation observation) {
     if (complete) {
       for (PoolEntity pool :
           pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
@@ -897,6 +902,7 @@ public class JpaSportingStore implements SportingStore {
     if (created) {
       catalog = new CatalogEntity(sourceId);
     }
+    MatchObservation.Context context = observation.context();
     catalog.setCycleOrder(order.cycleOrder());
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
@@ -904,6 +910,9 @@ public class JpaSportingStore implements SportingStore {
     catalog.setComplete(complete);
     if (complete) {
       catalog.setLastCompleteReadAt(context.observedAt());
+      if (observation.phaseLabels() != null) {
+        catalog.replacePhaseLabels(observation.phaseLabels());
+      }
     }
     // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
     if (created) {

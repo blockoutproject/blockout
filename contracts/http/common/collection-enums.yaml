@@ -14,6 +14,14 @@ CollectionProviderEnum:
   enum:
     - ffvb
     - lnv
+CollectionSourceScopeEnum:
+  title: CollectionSourceScopeEnum
+  type: string
+  description: FFVB source scope established by its official discovery entry.
+  enum:
+    - national
+    - regional
+    - departmental
 CollectionSeasonStateEnum:
   title: CollectionSeasonStateEnum
   type: string

@@ -61,6 +61,8 @@ SourceBindingResponse:
     label:
       type: string
       description: Source display label, using the provider and recorded native reference when only those are retained.
+    scope:
+      $ref: ../../common/collection-enums.yaml#/CollectionSourceScopeEnum
     candidateUrl:
       type: string
       description: Proposed HTTP URL without credentials; qualification verifies official scope. Null when missing.
@@ -511,6 +513,9 @@ DiscoveredCollectionResourceResponse:
     phaseReference:
       type: string
       description: Published LNV phase reference when available, shared by any groups in the same phase.
+    phaseLabel:
+      type: string
+      description: Published display name for this LNV phase; omitted when no name has been established.
     poolCount:
       type: integer
       minimum: 1

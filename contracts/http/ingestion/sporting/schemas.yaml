@@ -469,6 +469,15 @@ CatalogObservationInternalRequest:
       description: Discovered pool/phase references; conflicting native duplicates reject the catalog.
       items:
         $ref: "#/CatalogPoolInternalRequest"
+    phaseLabels:
+      type: object
+      description: >
+        LNV display names keyed by published phase reference in pools. Omission preserves
+        prior names. A supplied map replaces names only on acceptance of a complete catalogue.
+      additionalProperties:
+        type: string
+        minLength: 1
+        maxLength: 255
   required:
     - context
     - complete

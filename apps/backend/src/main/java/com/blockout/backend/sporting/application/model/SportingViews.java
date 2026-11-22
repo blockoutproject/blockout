@@ -12,13 +12,14 @@ import lombok.NoArgsConstructor;
 /** Immutable owner reads; these values alone do not establish current public visibility. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SportingViews {
-  /** Native pack or pool identity for preparation navigation, without classification metadata. */
+  /** Discovered catalogue entry without classification metadata. */
   public record CollectionResource(
       UUID id,
       String label,
       CollectionResourceKindEnum kind,
       UUID parentId,
       String phaseReference,
+      String phaseLabel,
       Integer poolCount) {}
 
   /**

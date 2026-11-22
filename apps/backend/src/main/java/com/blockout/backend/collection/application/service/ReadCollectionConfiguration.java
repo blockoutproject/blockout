@@ -182,6 +182,7 @@ public class ReadCollectionConfiguration {
       return OffsetPage.empty(page);
     }
     return acquisitionReads.collectionChildren(
+        source.id(),
         source.seasonId(),
         source.provider(),
         source.organizerReference(),

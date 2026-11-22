@@ -57,6 +57,17 @@ public class AcceptCatalog {
         throw new SportingConflictException("identity-conflict", List.of());
       }
     }
+    Map<String, String> labels = observation.phaseLabels();
+    if (labels != null && !labels.isEmpty()) {
+      Set<String> phaseReferences =
+          observation.pools().stream()
+              .map(CatalogObservation.Pool::poolReference)
+              .collect(Collectors.toSet());
+      if (source.provider() != CollectionProviderEnum.LNV
+          || !phaseReferences.containsAll(labels.keySet())) {
+        throw new SportingConflictException("identity-conflict", List.of());
+      }
+    }
     ObservationOrder previous = store.catalogOrder(sourceId);
     int precedence = previous == null ? 1 : order.compareTo(previous);
     if (precedence < 0) {
@@ -105,7 +116,7 @@ public class AcceptCatalog {
           presentIds,
           reconcile,
           order,
-          observation.context());
+          observation);
     }
     return new ObservationOutcome.Catalog(
         observation.pools().stream().map(outcomes::get).toList(), reconcile);

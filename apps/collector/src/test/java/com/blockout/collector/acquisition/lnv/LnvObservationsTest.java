@@ -338,10 +338,12 @@ class LnvObservationsTest {
         <a href="CompetitionMatches.aspx?ID=999&PID=999">Other competition</a>
         """;
     // When
-    List<URI> phases = new LnvDiscovery().root(bytes(html), CALENDAR, "901").phases();
+    List<LnvDiscovery.Phase> phases =
+        new LnvDiscovery().root(bytes(html), CALENDAR, "901").phases();
 
     // Then
     assertThat(phases)
+        .extracting(LnvDiscovery.Phase::url)
         .extracting(URI::toString)
         .containsExactly(
             "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902",

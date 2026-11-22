@@ -57,15 +57,19 @@ interface SportingPersistenceMapper {
    * Exposes a pool's original label and parent without classification readiness.
    *
    * @param source retained contextual pool
-   * @return direct child preparation entry
+   * @param parentId owning pack, when grouped
+   * @param phaseReference published LNV phase reference, when applicable
+   * @param phaseLabel confirmed display name for that phase, when available
+   * @return direct catalogue child
    */
   @Mapping(target = "label", source = "source.sourceName")
   @Mapping(target = "kind", constant = "POOL")
   @Mapping(target = "parentId", source = "parentId")
   @Mapping(target = "phaseReference", source = "phaseReference")
+  @Mapping(target = "phaseLabel", source = "phaseLabel")
   @Mapping(target = "poolCount", ignore = true)
   SportingViews.CollectionResource toCollectionResource(
-      PoolEntity source, UUID parentId, String phaseReference);
+      PoolEntity source, UUID parentId, String phaseReference, String phaseLabel);
 
   /**
    * Projects acquisition lifecycle without exposing the managed season.

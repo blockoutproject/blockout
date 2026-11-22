@@ -13,6 +13,8 @@
       <column name="season_id" type="UUID"><constraints nullable="false"/></column>
       <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="display_name" type="VARCHAR(160)"/>
+      <column name="scope" type="VARCHAR(255)"/>
       <column name="candidate_url" type="TEXT"></column>
       <column name="accepted_url" type="TEXT"></column>
       <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>

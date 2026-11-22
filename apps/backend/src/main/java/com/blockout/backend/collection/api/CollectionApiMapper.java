@@ -190,7 +190,7 @@ public interface CollectionApiMapper {
    * Maps one discovered native identity.
    *
    * @param source pack or pool with optional native parent
-   * @return preparation navigation entry
+   * @return read-only catalogue entry
    */
   @Mapping(target = "additionalProperties", ignore = true)
   DiscoveredCollectionResourceResponse toDto(SportingViews.CollectionResource source);

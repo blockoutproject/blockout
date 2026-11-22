@@ -162,6 +162,10 @@ class CollectionResultIntegrationTest {
     UUID previous = competitionControl(oldSeason, CollectionProviderEnum.FFVB);
     UUID professional = competitionControl(season, CollectionProviderEnum.LNV);
     UUID source = source(season, CollectionProviderEnum.FFVB, "LIIDF");
+    sql.update(
+        "UPDATE collection_source_binding SET display_name = ? WHERE id = ?",
+        "Ligue Île-de-France",
+        source);
     source(season, CollectionProviderEnum.FFVB, "LIRA");
     UUID outside = source(oldSeason, CollectionProviderEnum.FFVB, "LIIDF");
     UUID otherProvider = source(season, CollectionProviderEnum.LNV, "LIIDF");
@@ -195,7 +199,7 @@ class CollectionResultIntegrationTest {
         store.results(
             control,
             new ResultFilters(
-                "RESERVE, ffvb",
+                "RESERVE, Ile-de-France",
                 CollectionOutcomeEnum.PARTIAL,
                 source,
                 CollectionStageEnum.STANDINGS),
@@ -222,7 +226,7 @@ class CollectionResultIntegrationTest {
               assertThat(row.source())
                   .isEqualTo(
                       new ResultSource(
-                          source, "FFVB / LIIDF", selected.packId(), selected.id(), null));
+                          source, "Ligue Île-de-France", selected.packId(), selected.id(), null));
             });
     assertThat(filtered.hasNext()).isFalse();
     assertThat(filtered.summary()).isEqualTo(new ResultSummary(1, 4, 1, 1));

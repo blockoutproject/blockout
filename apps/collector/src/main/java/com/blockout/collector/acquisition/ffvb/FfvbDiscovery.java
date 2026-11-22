@@ -244,7 +244,17 @@ public class FfvbDiscovery {
    * @return deduplicated navigation, never a fabricated year or identifier
    */
   public List<URI> navigation(Document page) {
-    List<URI> result = new ArrayList<>();
+    return publishedNavigation(page).stream().map(NavigationLink::target).toList();
+  }
+
+  /** One navigation target with its visible labels on the same page, in publication order. */
+  public record NavigationLink(URI target, List<String> labels) {}
+
+  /**
+   * Uses the same native traversal when source discovery also needs the published organizer name.
+   */
+  public List<NavigationLink> publishedNavigation(Document page) {
+    Map<URI, List<String>> result = new LinkedHashMap<>();
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
       String attribute = "value";
       if (link.hasAttr("src")) {
@@ -258,13 +268,15 @@ public class FfvbDiscovery {
             && hasResultsPath(target)
             && !excludedCompetition(pack(link) + " " + link.text())
             && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) {
-          result.add(target);
+          result.computeIfAbsent(target, uri -> new ArrayList<>()).add(link.text());
         }
       } catch (IllegalArgumentException failure) {
         throw invalid();
       }
     }
-    return result.stream().distinct().toList();
+    return result.entrySet().stream()
+        .map(entry -> new NavigationLink(entry.getKey(), List.copyOf(entry.getValue())))
+        .toList();
   }
 
   private boolean hasResultsPath(URI target) {

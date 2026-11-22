@@ -350,7 +350,15 @@ class InitialReconstructionIntegrationTest {
     ObserveCollectionSource.Resolved observed =
         officialSources.observe(
             new ObserveCollectionSource.Proposal(
-                STARTUP, 2026, CollectionProviderEnum.FFVB, "ABCCS", current, current, NOW));
+                STARTUP,
+                2026,
+                CollectionProviderEnum.FFVB,
+                "ABCCS",
+                current,
+                current,
+                NOW,
+                null,
+                null));
     Source qualified =
         validation.submitValidation(
             historical.id(),
@@ -381,7 +389,7 @@ class InitialReconstructionIntegrationTest {
     // When
     officialSources.observe(
         new ObserveCollectionSource.Proposal(
-            STARTUP, 2026, CollectionProviderEnum.FFVB, "ABCCS", url, url, NOW));
+            STARTUP, 2026, CollectionProviderEnum.FFVB, "ABCCS", url, url, NOW, null, null));
 
     // Then
     Source accepted = configuration.source(OPERATOR, candidate.id());
@@ -403,7 +411,7 @@ class InitialReconstructionIntegrationTest {
     // When
     officialSources.observe(
         new ObserveCollectionSource.Proposal(
-            STARTUP, 2026, CollectionProviderEnum.FFVB, "LIRA", url, url, NOW));
+            STARTUP, 2026, CollectionProviderEnum.FFVB, "LIRA", url, url, NOW, null, null));
 
     // Then
     Control shared = configuration.control(OPERATOR, pending.id()).control();
@@ -972,7 +980,9 @@ class InitialReconstructionIntegrationTest {
             source.organizerReference(),
             officialUrl,
             officialUrl,
-            NOW));
+            NOW,
+            null,
+            null));
     preparation.activate(OPERATOR, season.id());
     Control current = configuration.control(OPERATOR, initial.id()).control();
     controls.setActivity(OPERATOR, current.id(), true);

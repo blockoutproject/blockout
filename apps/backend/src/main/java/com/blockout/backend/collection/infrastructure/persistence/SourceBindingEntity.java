@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -36,6 +37,17 @@ class SourceBindingEntity {
   private CollectionProviderEnum provider;
 
   private String organizerReference;
+
+  // Presentation evidence does not replace the qualified binding or invalidate its admitted work.
+  @OptimisticLock(excluded = true)
+  @Setter
+  private String displayName;
+
+  @OptimisticLock(excluded = true)
+  @Enumerated(EnumType.STRING)
+  @Setter
+  private CollectionSourceScopeEnum scope;
+
   @Setter private String candidateUrl;
   @Setter private String acceptedUrl;
   @Version private long revision;

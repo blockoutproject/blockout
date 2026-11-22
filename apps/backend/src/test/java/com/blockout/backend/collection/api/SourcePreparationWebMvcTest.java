@@ -189,7 +189,7 @@ class SourcePreparationWebMvcTest {
             new OffsetPage<>(
                 List.of(
                     new CollectionResource(
-                        SEASON, "National", CollectionResourceKindEnum.PACK, null, null, 2)),
+                        SEASON, "National", CollectionResourceKindEnum.PACK, null, null, null, 2)),
                 0,
                 false));
 
@@ -202,6 +202,7 @@ class SourcePreparationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items[0].kind").value("pack"))
         .andExpect(jsonPath("$.items[0].parentId").doesNotExist())
+        .andExpect(jsonPath("$.items[0].phaseLabel").doesNotExist())
         .andExpect(jsonPath("$.items[0].poolCount").value(2))
         .andExpect(jsonPath("$.items[0].classification").doesNotExist())
         .andExpect(jsonPath("$.total").doesNotExist())

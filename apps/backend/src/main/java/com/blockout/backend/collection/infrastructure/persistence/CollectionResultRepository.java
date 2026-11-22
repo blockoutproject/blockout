@@ -69,6 +69,7 @@ interface CollectionResultRepository
               END, '') AS "scopeLabel",
               s.id AS "sourceId", s.provider AS "sourceProvider",
               s.organizer_reference AS "organizerReference",
+              s.display_name AS "sourceDisplayName",
               CASE WHEN s.provider = 'FFVB' THEN p.pack_id END AS "packId",
               CASE WHEN s.provider = 'FFVB' THEN p.id END AS "poolId",
               CASE WHEN s.provider = 'LNV' THEN p.reference END AS "phaseReference"
@@ -106,7 +107,7 @@ interface CollectionResultRepository
           """
               + FOLD_PREFIX
               + """
-              CONCAT_WS(' ', "scopeLabel", "sourceProvider", "organizerReference",
+              CONCAT_WS(' ', "scopeLabel", "sourceDisplayName", "sourceProvider", "organizerReference",
                 CASE stage
                   WHEN 'DISCOVERY' THEN 'Découverte'
                   WHEN 'CALENDAR' THEN 'Calendrier'
@@ -178,6 +179,8 @@ interface CollectionResultRepository
     String getSourceProvider();
 
     String getOrganizerReference();
+
+    String getSourceDisplayName();
 
     UUID getPackId();
 

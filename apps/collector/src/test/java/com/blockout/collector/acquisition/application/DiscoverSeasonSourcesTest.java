@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionSourceScopeEnum;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -268,8 +270,8 @@ class DiscoverSeasonSourcesTest {
         .thenReturn(
             response(root, title + regularLink),
             response(root, title + regularLink + playoffsLink));
-    when(http.page(regular)).thenReturn(response(regular, lnvGroup("903", "Regular")));
-    when(http.page(playoffs)).thenReturn(response(playoffs, lnvGroup("905", "Playoffs")));
+    when(http.page(regular)).thenReturn(response(regular, lnvGroup("903", "Groupe A")));
+    when(http.page(playoffs)).thenReturn(response(playoffs, lnvGroup("905", "Groupe B")));
     DiscoverSeasonSources service = discovery(http);
     CollectionBackend.Target target = lnvTarget(root);
 
@@ -286,7 +288,9 @@ class DiscoverSeasonSourcesTest {
     assertThat(updated.catalog().pools())
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("902", "904");
-    assertThat(updated.catalog().pools().getLast().sourceName()).isEqualTo("Playoffs");
+    assertThat(updated.catalog().pools().getLast().sourceName()).isEqualTo("Groupe B");
+    assertThat(updated.catalog().phaseLabels())
+        .containsOnly(entry("902", "Regular"), entry("904", "Playoffs"));
   }
 
   @ParameterizedTest
@@ -330,6 +334,7 @@ class DiscoverSeasonSourcesTest {
     assertThat(read.catalog().pools())
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("902");
+    assertThat(read.catalog().phaseLabels()).containsOnly(entry("902", "Regular"));
     assertThat(read.reason()).startsWith("LNV phase ");
     assertThat(consumed).extracting(page -> page.response().url()).containsExactly(regular);
   }
@@ -378,7 +383,15 @@ class DiscoverSeasonSourcesTest {
         .when(http)
         .page(any());
     doReturn(
-            response(entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"))
+            response(
+                entry,
+                "<a href='"
+                    + broken
+                    + "'>First</a><iframe src='"
+                    + valid
+                    + "'></iframe><a href='"
+                    + valid
+                    + "'>Ligue Auvergne Rhône-Alpes</a>"))
         .when(http)
         .page(entry);
     doReturn(
@@ -407,6 +420,9 @@ class DiscoverSeasonSourcesTest {
     verify(backend).observeSource(proposal.capture());
     assertThat(proposal.getValue().organizerReference()).isEqualTo("LIRA");
     assertThat(proposal.getValue().startYear()).isEqualTo(2026);
+    assertThat(proposal.getValue().scope()).isEqualTo(CollectionSourceScopeEnum.REGIONAL);
+    assertThat(proposal.getValue().displayName()).isEqualTo("Ligue Auvergne Rhône-Alpes");
+    verify(http).page(valid);
   }
 
   @ParameterizedTest

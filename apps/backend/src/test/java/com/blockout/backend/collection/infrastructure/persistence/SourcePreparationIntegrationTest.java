@@ -30,6 +30,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
@@ -55,6 +56,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -128,7 +130,9 @@ class SourcePreparationIntegrationTest {
             "ABCCS",
             URI.create(URL + "&saison=2026/2027"),
             URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
-            NOW);
+            NOW,
+            "Championnats nationaux",
+            CollectionSourceScopeEnum.NATIONAL);
 
     // When
     ObserveCollectionSource.Resolved resolved = discovery.observe(proposal);
@@ -138,12 +142,49 @@ class SourcePreparationIntegrationTest {
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     Source source = store.source(SOURCE).orElseThrow();
     assertThat(source.acceptedUrl()).isEqualTo(URL + "&saison=2026/2027");
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).source())
+        .satisfies(
+            binding -> {
+              assertThat(binding.label()).isEqualTo("Championnats nationaux");
+              assertThat(binding.scope()).isEqualTo(CollectionSourceScopeEnum.NATIONAL);
+            });
     assertThat(store.ordinarySources(season, CollectionProviderEnum.FFVB))
         .extracting(Source::id)
         .containsExactly(SOURCE);
     assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
     assertThat(collectionWork.work(STARTUP).validations()).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "Discovery enriches a retained official binding without changing its collector revision")
+  void enrichesRetainedBinding() {
+    // Given
+    discovery.observe(officialFfvb(2026, URL));
+    Source retained = store.source(SOURCE).orElseThrow();
+    assertThat(retained.label()).isEqualTo("FFVB / ABCCS");
+    ObserveCollectionSource.Proposal published =
+        new ObserveCollectionSource.Proposal(
+            STARTUP,
+            2026,
+            CollectionProviderEnum.FFVB,
+            "ABCCS",
+            URI.create(URL),
+            URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
+            NOW,
+            "Championnats nationaux",
+            CollectionSourceScopeEnum.NATIONAL);
+
+    // When
+    discovery.observe(published);
+    discovery.observe(officialFfvb(2026, URL));
+
+    // Then
+    Source source = store.source(SOURCE).orElseThrow();
+    assertThat(source.label()).isEqualTo("Championnats nationaux");
+    assertThat(source.scope()).isEqualTo(CollectionSourceScopeEnum.NATIONAL);
+    assertThat(source.revision()).isEqualTo(retained.revision());
   }
 
   @Test
@@ -163,7 +204,9 @@ class SourcePreparationIntegrationTest {
             "ABCCS",
             URI.create(URL),
             URI.create(URL),
-            NOW);
+            NOW,
+            null,
+            null);
     Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
     boolean enabled = statistics.isStatisticsEnabled();
     statistics.setStatisticsEnabled(true);
@@ -258,7 +301,9 @@ class SourcePreparationIntegrationTest {
             "ABCCS",
             URI.create(URL),
             URI.create(URL),
-            NOW);
+            NOW,
+            null,
+            null);
 
     // When / Then
     assertThatThrownBy(() -> discovery.observe(proposal))
@@ -605,15 +650,18 @@ class SourcePreparationIntegrationTest {
         discovery
             .observe(
                 new ObserveCollectionSource.Proposal(
-                    STARTUP, 2026, CollectionProviderEnum.LNV, "135", url, url, NOW))
+                    STARTUP, 2026, CollectionProviderEnum.LNV, "135", url, url, NOW, null, null))
             .sourceBindingId();
     Cycle cycle = admitOrdinary(CollectionFamilyEnum.LNV, CYCLE);
     CatalogObservation.Pool regular =
-        new CatalogObservation.Pool("135", "135", "193", null, "310", url, null, "Regular");
+        new CatalogObservation.Pool("135", "135", "193", null, "310", url, null, "Groupe A");
     catalogs.accept(
         lnv,
         new CatalogObservation(
-            new MatchObservation.Context(cycle.id(), 1, NOW, null), true, List.of(regular)));
+            new MatchObservation.Context(cycle.id(), 1, NOW, null),
+            true,
+            List.of(regular),
+            Map.of("193", "Saison régulière")));
 
     // When / Then
     CatalogObservation.Pool foreignStage =
@@ -627,11 +675,24 @@ class SourcePreparationIntegrationTest {
                         true,
                         List.of(foreignStage))))
         .isInstanceOf(SportingConflictException.class);
+
+    // When
+    catalogs.accept(
+        lnv,
+        new CatalogObservation(
+            new MatchObservation.Context(cycle.id(), 3, NOW, null),
+            false,
+            List.of(regular),
+            Map.of("193", "Partial observation name")));
+
+    // Then
     assertThat(configurationReads.children(ACCOUNT, lnv, null, 0, 50).items())
         .singleElement()
         .satisfies(
             resource -> {
               assertThat(resource.phaseReference()).isEqualTo("193");
+              assertThat(resource.phaseLabel()).isEqualTo("Saison régulière");
+              assertThat(resource.label()).isEqualTo("Groupe A");
               assertThat(resource.parentId()).isNull();
             });
   }
@@ -893,7 +954,9 @@ class SourcePreparationIntegrationTest {
         "ABCCS",
         URI.create(url),
         URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
-        NOW);
+        NOW,
+        null,
+        null);
   }
 
   private Cycle admitOrdinary(CollectionFamilyEnum family, UUID cycleId) {

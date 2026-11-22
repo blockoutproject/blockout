@@ -524,6 +524,13 @@ ObserveSeasonSourceInternalRequest:
       type: string
       description: Official discovery entry establishing scope and season.
       format: uri
+    displayName:
+      type: string
+      description: Published organizer name or established championship label. Omitted when the entry supplies no attributable name.
+      minLength: 1
+      maxLength: 160
+    scope:
+      $ref: ../../common/collection-enums.yaml#/CollectionSourceScopeEnum
     observedAt:
       type: string
       description: Actual discovery completion time.

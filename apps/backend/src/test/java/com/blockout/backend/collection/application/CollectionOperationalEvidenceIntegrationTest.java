@@ -765,7 +765,9 @@ class CollectionOperationalEvidenceIntegrationTest {
         organizer,
         URI.create("https://example.invalid/source"),
         URI.create("https://example.invalid/entry"),
-        observedAt);
+        observedAt,
+        null,
+        null);
   }
 
   /**
