@@ -32,7 +32,7 @@ import {
   useCollectionControl,
   useCollectionControls,
 } from "../api/use-collection-controls";
-import { useCollectionSeasons } from "../api/use-source-preparation";
+import { useCollectionSeasons } from "../api/use-collection-season";
 import {
   createCollectionQueries,
   isCollectionReadRefused,
@@ -44,8 +44,8 @@ import {
   CollectionResultsLoading,
 } from "../components/collection-loading";
 import { CollectionResult } from "../components/collection-result";
-import { PreparationLink } from "../components/preparation-link";
-import { seasonStatus } from "../components/source-summary";
+import { CollectionDestinationLink } from "../components/collection-destination-link";
+import { seasonStatus } from "../components/collection-season-summary";
 import {
   collectionResultKey,
   collectionResultRows,
@@ -101,7 +101,7 @@ export function CollectionDashboardScreen() {
               Compétitions
             </Text>
             {query.data?.items.map((season) => (
-              <PreparationLink
+              <CollectionDestinationLink
                 key={season.id}
                 label={season.label}
                 detail={seasonStatus(season)}
@@ -134,7 +134,7 @@ export function CollectionDashboardScreen() {
             >
               Clubs · indépendants des saisons
             </Text>
-            <PreparationLink
+            <CollectionDestinationLink
               label="Fiches clubs"
               icon={Users}
               onPress={() =>
@@ -144,7 +144,7 @@ export function CollectionDashboardScreen() {
                 })
               }
             />
-            <PreparationLink
+            <CollectionDestinationLink
               label="Géocodage"
               icon={MapPin}
               onPress={() =>

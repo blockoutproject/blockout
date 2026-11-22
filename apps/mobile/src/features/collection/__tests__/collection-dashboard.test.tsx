@@ -78,7 +78,12 @@ const mockNavigation = {
   addListener: jest.fn(() => jest.fn()),
 };
 const ffvbSuivi = (
-  <CollectionProviderScreen provider="ffvb" seasonId={seasonId} tab="suivi" />
+  <CollectionProviderScreen
+    provider="ffvb"
+    seasonId={seasonId}
+    tab="suivi"
+    filters={{}}
+  />
 );
 const environment = { ...process.env };
 let peer: ReturnType<typeof collectionPeer>;
@@ -1071,6 +1076,7 @@ it.each(["ffvb", "lnv"] as const)(
         provider={provider}
         seasonId={seasonId}
         tab="suivi"
+        filters={{}}
       />,
       client,
     );
@@ -1150,6 +1156,7 @@ it.each([
         provider="ffvb"
         seasonId={seasonId}
         tab="sources"
+        filters={{}}
       />,
     );
     await screen.findByRole("tab", { name: "Sources", selected: true });

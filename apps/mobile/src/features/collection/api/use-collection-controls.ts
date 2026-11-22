@@ -21,7 +21,7 @@ import {
 import {
   useCollectionAuthority,
   useCollectionSeason,
-} from "./use-source-preparation";
+} from "./use-collection-season";
 
 /** Reads the complete controls for exactly one season, or the two seasonless families. */
 export function useCollectionControls(seasonId?: string) {

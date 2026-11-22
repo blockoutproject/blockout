@@ -1,4 +1,4 @@
-import { SeasonIdentity } from "../components/source-summary";
+import { SeasonIdentity } from "../components/collection-season-summary";
 import { useRouter } from "expo-router";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";

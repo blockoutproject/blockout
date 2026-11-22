@@ -13,7 +13,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
-import type { useCollectionSeason } from "../api/use-source-preparation";
+import type { useCollectionSeason } from "../api/use-collection-season";
 
 type ProviderContent = (
   control: CollectionControlResponse,

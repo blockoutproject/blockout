@@ -8,7 +8,7 @@ import { PageHeader } from "@/shared/components/page-header";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import type { CollectionResultCriteria } from "../api/collection-queries";
-import { useCollectionSeason } from "../api/use-source-preparation";
+import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionBilanResultsLoading } from "../components/collection-bilan-result";
 import { CollectionProviderRead } from "../components/collection-provider-read";
 import { collectionSourceHref } from "../model/collection-hrefs";

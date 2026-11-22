@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from "expo-router";
-import { SeasonPreparationScreen } from "@/features/collection/screens/season-preparation-screen";
+import { CollectionSeasonScreen } from "@/features/collection/screens/collection-season-screen";
 
 /** Canonical season context is selected by navigation, never inferred from source URLs. */
-export default function SeasonPreparationRoute() {
+export default function CollectionSeasonRoute() {
   const { seasonId } = useLocalSearchParams<{ seasonId: string }>();
-  return <SeasonPreparationScreen seasonId={seasonId} />;
+  return <CollectionSeasonScreen seasonId={seasonId} />;
 }

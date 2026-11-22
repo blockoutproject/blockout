@@ -22,6 +22,13 @@ export default function CollectionLayout() {
           contentStyle: { backgroundColor: colors.surface },
         }}
       />
+      <Stack.Screen
+        name="[seasonId]/controls/[provider]/sources-filters"
+        options={{
+          ...sheetScreenOptions,
+          contentStyle: { backgroundColor: colors.surface },
+        }}
+      />
     </Stack>
   ) : (
     <Page header={<PageHeader title="Collectes" />}>

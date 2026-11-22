@@ -18,7 +18,7 @@ import {
   createCollectionQueries,
   type CollectionResultCriteria,
 } from "../api/collection-queries";
-import { useCollectionAuthority } from "../api/use-source-preparation";
+import { useCollectionAuthority } from "../api/use-collection-season";
 import {
   outcomeLabels,
   stageLabels,

@@ -45,8 +45,8 @@ export type CollectionResultCriteria = Pick<
 
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
-  /** Withdraws refused preparation data without masking a later read error; mounted forms own their drafts. */
-  async function readPreparation<T>(
+  /** Withdraws a refused season read while the mounted closure form owns its draft. */
+  async function readSeason<T>(
     context: QueryFunctionContext,
     execute: (options: ApiFetchOptions) => Promise<T>,
   ): Promise<T | null> {
@@ -100,29 +100,29 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readSeason(context, (options) =>
             getCollectionSeason(seasonId, options),
           ),
       }),
-    /** Complete source configuration for the selected season. */
+    /** Official source catalogue bindings for the selected season. */
     sources: (seasonId: string) =>
       queryOptions({
         queryKey: getListCollectionSourcesQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readCollection(context, (options) =>
             listCollectionSources(seasonId, options),
           ),
       }),
-    /** Exact source binding supplies the retained candidate editor and its ordinary commands. */
+    /** Exact source binding supplies the independently observed catalogue facts. */
     source: (sourceId: string) =>
       queryOptions({
         queryKey: getGetCollectionSourceQueryKey(sourceId),
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readPreparation(context, (options) =>
+          readCollection(context, (options) =>
             getCollectionSource(sourceId, options),
           ),
       }),
@@ -132,7 +132,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
       return infiniteQueryOptions({
         queryKey: getListCollectionSourceChildrenQueryKey(sourceId, params),
         enabled: authority.enabled,
-        gcTime: 0,
+        // An expanded pack can leave the native list's render window while browsing the same visit.
         initialPageParam: 0,
         queryFn: (context) =>
           readCollection(context, (options) =>

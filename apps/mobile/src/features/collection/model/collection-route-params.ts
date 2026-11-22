@@ -1,5 +1,6 @@
 import {
   CollectionProviderEnum,
+  CollectionResultSourceResponse,
   ListCollectionResultsParams,
 } from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
@@ -22,5 +23,23 @@ export function collectionBilanRouteCriteria(
     sourceId: sourceId.data,
     status: status.data,
     stage: stage.data,
+  };
+}
+
+export type SourceCatalogueFocus = Pick<
+  CollectionResultSourceResponse,
+  "packId" | "poolId" | "phaseReference"
+>;
+
+/** Optional focus can identify only an actual row in the destination binding. */
+export function collectionSourceRouteFocus(
+  params: Record<string, string | string[] | undefined>,
+): SourceCatalogueFocus {
+  const fields = CollectionResultSourceResponse.shape;
+  return {
+    packId: fields.packId.safeParse(params.packId).data,
+    poolId: fields.poolId.safeParse(params.poolId).data,
+    phaseReference:
+      fields.phaseReference.safeParse(params.phaseReference).data || undefined,
   };
 }
