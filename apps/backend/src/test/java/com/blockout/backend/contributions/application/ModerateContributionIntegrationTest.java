@@ -15,7 +15,6 @@ import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,8 +37,8 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
   @EnumSource(
       value = DecisionKind.class,
       names = {"APPROVAL", "REACTIVATION"})
-  @DisplayName("A later moderation publication creates replay at the announcement processing time")
-  void announcesLaterPublication(DecisionKind kind) {
+  @DisplayName("Moderation allocates live when announcement processing reaches the reliable start")
+  void announcesWhenProcessingReachesStart(DecisionKind kind) {
     // Given
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
@@ -50,9 +49,10 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
       moderation.change(
           OTHER, matchId, pending.version().id(), "1", StreamModerationActionEnum.REJECT);
     }
-    Instant decisionAt = NOW.plusSeconds(10);
-    Instant announcedAt = NOW.plusSeconds(15);
-    when(clock.instant()).thenReturn(decisionAt, announcedAt);
+    // The result correction keeps the moderation target and restores live eligibility.
+    result(3, null);
+    Instant decisionAt = NOW.minusSeconds(1);
+    when(clock.instant()).thenReturn(decisionAt, NOW);
 
     // When
     SubmitContribution.Outcome published =
@@ -72,17 +72,14 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
       assertThat(published.version().id()).isEqualTo(pending.version().id());
     }
     assertThat(sql.queryForList("SELECT family FROM notification", String.class))
-        .containsExactlyInAnyOrder("PLAIN_RESULT", "POST_RESULT_LINK");
+        .containsExactlyInAnyOrder("PLAIN_RESULT", "LIVE_LINK");
     assertThat(
             sql.queryForObject(
-                "SELECT account_id FROM notification WHERE family='POST_RESULT_LINK'", UUID.class))
-        .isEqualTo(FOLLOWER);
-    assertThat(
-            sql.queryForObject(
-                    "SELECT created_at FROM notification WHERE family='POST_RESULT_LINK'",
-                    OffsetDateTime.class)
+                    "SELECT created_at FROM notification WHERE family='LIVE_LINK' AND account_id=?",
+                    OffsetDateTime.class,
+                    FOLLOWER)
                 .toInstant())
-        .isEqualTo(announcedAt);
+        .isEqualTo(NOW);
   }
 
   @Test
