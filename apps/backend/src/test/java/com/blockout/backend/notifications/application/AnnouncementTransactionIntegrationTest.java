@@ -2,13 +2,18 @@ package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.following.application.ReadFollowEligibility;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.notifications.infrastructure.NotificationEntity;
@@ -41,7 +46,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -51,7 +58,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Real F07/F06/F05 SQL and public-link reads with controlled sporting, link and account writes. */
-@SpringBootTest
+@SpringBootTest(properties = "blockout.notifications.push.enabled=false")
 @DisplayName("Atomic announcement and recipient transactions on PostgreSQL")
 @Import(PostgresTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -72,11 +79,17 @@ class AnnouncementTransactionIntegrationTest {
   private static final Instant ORIGIN = Instant.parse("2026-10-24T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private ProcessResultAnnouncement processor;
+  @Autowired private AfterCommitAnnouncements handoff;
   @Autowired private NotificationStore notifications;
   @Autowired private EntityManager entities;
   @Autowired private AccountAccess accounts;
   @Autowired private PlatformTransactionManager transactions;
+  @Autowired private ChangePushSubscriptions registrations;
   @MockitoSpyBean private ReadFollowEligibility follows;
+  @MockitoSpyBean private PushSubscriptionStore subscriptions;
+
+  @MockitoBean(name = "pushExecutor")
+  private ThreadPoolTaskExecutor executor;
 
   /**
    * Creates synthetic accepted identities and confirmed follows, with no provider input.
@@ -184,6 +197,37 @@ class AnnouncementTransactionIntegrationTest {
     assertThat(sql.queryForObject("SELECT is_read FROM notification", Boolean.class)).isFalse();
     assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
         .isTrue();
+  }
+
+  @Test
+  @DisplayName("Commits the result, allowance and inbox without capturing disabled push")
+  void commitsWithoutCapturingDisabledPush() {
+    // Given
+    UUID connection = UUID.fromString("00000000-0000-4000-8000-000000002855");
+    registrations.replace(new Registration(connection, connection, ACCOUNT, "Expo[disabled]"));
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              roots(MATCH);
+              sql.update(
+                  "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                  MATCH);
+              handoff.submit(processor.process(transition(MATCH)));
+            });
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactly(ACCOUNT);
+    assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
+        .isTrue();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isEqualTo("FINAL");
+    verify(subscriptions, never()).targets(anyList());
+    verifyNoInteractions(executor);
   }
 
   @Test

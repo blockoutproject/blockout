@@ -18,11 +18,20 @@ retry recommendations are not delivery requirements: this implementation deliber
 approved single attempt and single delayed receipt observation. Support for some emulators/simulators
 does not supersede the accepted physical iOS/Android qualification.
 
-`AfterCommitAnnouncements` captures association row incarnations inside the existing producer
-transaction, preventing a later registration from receiving historical work. It publishes one immutable
-event; the actual `DeliverPush` consumer uses Spring’s `@TransactionalEventListener(AFTER_COMMIT)`
-with highest precedence and its safe handoff failure boundary. No wrapper event or republication
-stage is needed. Java 25 `Gatherers.windowFixed` owns ordered send/projection batching. `ReadPushEligibility`
+`AfterCommitAnnouncements` uses the existing push activation setting before reading destinations.
+When enabled, a single projection for the selected accounts captures the original association rows
+inside the producer transaction. One statement gives those accounts a common read snapshot under
+[PostgreSQL Read Committed](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED).
+The account filter binds one UUID array so the capture keeps that snapshot without expanding to one
+SQL parameter per recipient.
+Registrations committed after that read cannot receive this work through the captured context. A
+deployment with push disabled publishes the allocations with no destinations and skips the read.
+
+The `DeliverPush` consumer handles the immutable event through Spring’s
+`@TransactionalEventListener(AFTER_COMMIT)` with highest precedence and its safe handoff failure
+boundary. It returns immediately when the captured destination map is empty. No wrapper event or
+republication stage is needed. Java 25 `Gatherers.windowFixed` owns
+ordered send/projection batching. `ReadPushEligibility`
 uses the existing current inbox/F03/F08 projection and F06 current-follow API in a short read-only
 transaction. It requires a current qualifying follow for the selected account, without captured
 relation UUID continuity; destination row identity/revision still protects the exact association. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a

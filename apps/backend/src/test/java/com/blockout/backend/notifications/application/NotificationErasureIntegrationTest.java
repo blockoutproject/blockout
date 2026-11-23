@@ -2,6 +2,7 @@ package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -14,7 +15,6 @@ import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements.Ready;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -23,8 +23,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -34,10 +36,16 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Real F05/F06/F07 erasure with synthetic accounts and no enabled external sender. */
+/** Real F05/F06/F07 erasure with synthetic accounts and controlled push I/O. */
 @RecordApplicationEvents
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.environment=disabled",
+      "blockout.notifications.push.enabled=true",
+      "blockout.notifications.push.project-id=00000000-0000-4000-8000-000000000001",
+      "blockout.notifications.push.access-token=synthetic-not-a-credential"
+    })
 @DisplayName("Notification account erasure")
 class NotificationErasureIntegrationTest extends ContributionScenario {
   private static final UUID CONNECTION = UUID.fromString("10000000-0000-4000-8000-000000000701");
@@ -52,8 +60,11 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
   @Autowired private EraseAccount erasure;
   @MockitoSpyBean private AccountStore accounts;
   @Autowired private PushSubscriptionStore store;
-  @Autowired private DeliverPush delivery;
   @MockitoBean private PushProvider provider;
+
+  @MockitoBean(name = "pushExecutor")
+  private ThreadPoolTaskExecutor executor;
+
   @Autowired private ApplicationEvents events;
   @Autowired private ChangePushSubscriptions subscriptions;
 
@@ -239,13 +250,13 @@ class NotificationErasureIntegrationTest extends ContributionScenario {
     submit(AUTHOR, "0", "https://youtu.be/inflight", false);
     Ready ready = events.stream(Ready.class).findFirst().orElseThrow();
     PushSubscriptionStore.Target old = ready.targets().get(FOLLOWER).getFirst();
-    List<DeliverPush.Attempt> attempts =
-        ready.entries().stream().map(created -> new DeliverPush.Attempt(created, old)).toList();
+    ArgumentCaptor<Runnable> work = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor).execute(work.capture());
 
     // When
     erasure.erase("https://identity.example.invalid/", FOLLOWER.toString(), FOLLOWER);
     subscriptions.replace(new Registration(NEXT, installation, OTHER, "Expo[original]"));
-    delivery.deliver(attempts);
+    work.getValue().run();
     boolean invalidated =
         new TransactionTemplate(transactions)
             .execute(status -> store.invalidate(old.id(), old.revision(), old.address()));
