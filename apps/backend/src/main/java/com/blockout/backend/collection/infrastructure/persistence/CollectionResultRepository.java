@@ -41,7 +41,9 @@ interface CollectionResultRepository
   /**
    * Searches displayable labels and localized stage/phase, using PostgreSQL text normalization and
    * term matching. Joins resolve only stable, in-scope identities because superseded cycle
-   * snapshots are discarded while their latest results are retained.
+   * snapshots are discarded while their latest results are retained. Competition catalogue
+   * attribution follows the supported family-to-provider mapping. Seasonless evidence uses the
+   * independently controlled club scope.
    *
    * @param controlId independent owner
    * @param query optional literal search text
@@ -74,23 +76,26 @@ interface CollectionResultRepository
               CASE WHEN s.provider = 'FFVB' THEN p.id END AS "poolId",
               CASE WHEN s.provider = 'LNV' THEN p.reference END AS "phaseReference"
             FROM collection_result r JOIN collection_control c ON c.id = r.control_id
+            CROSS JOIN LATERAL (
+              SELECT CASE c.family WHEN 'FFVB' THEN 'FFVB' WHEN 'LNV' THEN 'LNV' END AS provider
+            ) competition
             LEFT JOIN sporting_match m ON r.stage = 'DETAILS' AND m.id = r.scope_id
             LEFT JOIN sporting_pool p ON
               p.id = CASE WHEN r.stage = 'DETAILS' THEN m.pool_id
                 WHEN r.stage IN ('CALENDAR', 'STANDINGS') THEN r.scope_id END
-              AND p.season_id = c.season_id AND p.provider = c.family
+              AND p.season_id = c.season_id AND p.provider = competition.provider
             LEFT JOIN sporting_team home ON p.id IS NOT NULL AND home.id = m.home_team_id
-              AND home.season_id = c.season_id AND home.provider = c.family
+              AND home.season_id = c.season_id AND home.provider = competition.provider
             LEFT JOIN sporting_team away ON p.id IS NOT NULL AND away.id = m.away_team_id
-              AND away.season_id = c.season_id AND away.provider = c.family
+              AND away.season_id = c.season_id AND away.provider = competition.provider
             LEFT JOIN sporting_team team ON r.stage = 'LOGO' AND team.id = r.scope_id
-              AND team.season_id = c.season_id AND team.provider = c.family
+              AND team.season_id = c.season_id AND team.provider = competition.provider
             LEFT JOIN sporting_club club ON c.season_id IS NULL AND club.provider = 'FFVB'
               AND club.id = r.scope_id AND (
                 (r.stage = 'CLUB_SHEET' AND c.family = 'CLUB_SHEETS') OR
                 (r.stage = 'GEOCODING' AND c.family = 'GEOCODING'))
             LEFT JOIN collection_source_binding s ON s.season_id = c.season_id
-              AND s.provider = c.family AND (
+              AND s.provider = competition.provider AND (
                 (r.stage = 'DISCOVERY' AND s.id = r.scope_id) OR
                 s.organizer_reference = COALESCE(p.organizer_reference,
                   CASE WHEN team.provider = 'LNV' THEN team.organizer_reference END))

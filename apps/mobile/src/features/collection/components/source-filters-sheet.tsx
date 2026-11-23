@@ -7,6 +7,7 @@ import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
 import { SelectField } from "@/shared/components/select-field";
 import { SelectionList } from "@/shared/components/selection-list";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { supportsSourceScopeFilter } from "../model/collection-operator-source";
 import {
   sourceCatalogLabels,
   sourceScopes,
@@ -84,7 +85,7 @@ export function SourceFiltersSheet({
               }
               onPress={() => setChoice("status")}
             />
-            {provider === "ffvb" && (
+            {supportsSourceScopeFilter(provider) && (
               <SelectField
                 label="Périmètre"
                 value={

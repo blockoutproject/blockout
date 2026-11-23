@@ -612,7 +612,7 @@ it("keeps season actions hidden during a failed required read until its own Retr
   ).toBe(false);
 });
 
-it("switches from Suivi to the read-only source catalogue in the provider tabs", async () => {
+it("opens the LNV Sources tab with its championship grouping and status filter", async () => {
   // Given
   mockFetch.mockImplementation(responses({ manageCollection: true }));
   const user = userEvent.setup();
@@ -633,18 +633,26 @@ it("switches from Suivi to the read-only source catalogue in the provider tabs",
   await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Sources" }));
   await scrollNativeTabs(1, true);
+  await act(async () => router.setParams({ scope: "regional" }));
 
   // Then
   expect(await screen.findByText(source.label)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Championnats" }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("tab", { name: "Sources", selected: true }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/controls/lnv`,
   );
-  await act(async () => router.setParams({ scope: "regional" }));
-  expect(screen.getByRole("button", { name: "Filtres" })).toBeEnabled();
-  expect(screen.getByText(source.label)).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Filtres" }));
+
+  // Then
+  expect(await screen.findByRole("button", { name: "Statut" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Périmètre" })).toBeNull();
 });
 
 it("searches the native FFVB reference and applies status and perimeter together", async () => {

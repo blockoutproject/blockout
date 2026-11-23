@@ -15,6 +15,7 @@ import { EmptyState } from "@/shared/components/state-card";
 import { useCollectionControls } from "../api/use-collection-controls";
 import type { useCollectionSeason } from "../api/use-collection-season";
 import { PageReadState } from "@/shared/components/page-read-state";
+import { collectionOperatorSources } from "../model/collection-operator-source";
 
 type ProviderContent = (
   control: CollectionControlResponse,
@@ -62,7 +63,7 @@ export function CollectionProviderRead({
   }
   return (
     <CollectionControlRead
-      family={provider}
+      family={collectionOperatorSources[provider].controlFamily}
       seasonId={current.id}
       view={view}
       header={header}

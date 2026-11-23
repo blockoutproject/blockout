@@ -143,12 +143,16 @@ npm run generate
   -Dtest=CollectionResultsWebMvcTest,RecordCollectionResultsTest \
   -Dit.test=CollectionResultIntegrationTest,CollectionControlIntegrationTest,CollectionOperationalEvidenceIntegrationTest
 npm run test --workspace=@blockout/mobile -- --runInBand \
-  src/features/collection/__tests__/collection-contract.test.ts
+  src/features/collection/__tests__
 ```
 
 - Submit repeated and older observations beside independent acquisition and integration results. Page equal-time rows to verify one current row per key, retained useful success and stable ties.
 - Combine text, outcome, source and stage criteria so the match falls beyond the unfiltered first page. Check scope, source, stage and phase terms, accents, established catalogue links and seasonless names. Check omissions for unknown evidence and keep machine categories distinct from factual reasons.
 - Compare Suivi totals across unfiltered, filtered and empty pages. Verify provider, season and seasonless scope isolation, unavailable controls, grant withdrawal and independent command authorization. The mobile contract test covers the unfiltered call and enriched response. The dashboard tests exercise one control-list read for the selected scope, acknowledgment of its original target and retry of the failed read without resending a command. Qualify the native presentation through [Suivi and Bilan](#suivi-and-bilan).
+
+Exercise FFVB and LNV discovery integration through result recording and check that each after-commit catalogue report uses the admitted competition provider, including a partial result with available counts. Follow the Bilan attribution to its retained catalogue binding and focus. Cover both seasonless families with their independent controls and result scopes.
+
+When evaluating a new publisher, exercise the current generated mobile decoder with an otherwise valid season source list containing a known provider and the proposed provider. Check rejection of the whole response before Query admits it as a successful read. In a disposable copy, widen the provider and family enums separately and regenerate the affected consumers. Use their compile results to locate the choices for a seasonal control and operator destination. Then exercise the proposed catalogue entries through the rebuilt source detail with their actual meaning, filter and focus. Check compatibility of the deployed contract with all admitted versions under [F13's coordinated changes](../003-shared-quality/contracts/README.md#compatibility-and-coordinated-changes).
 
 On native iOS/Android builds, use the [F13 runtime matrix and native procedure](../003-shared-quality/quickstart.md#native-ui-and-approved-design) for the dashboard and typed closure routes. Verify pending versus running, direct pause/resume and exact typed closure. Acquire representative light/dark, narrow widths and enlarged-text evidence. Identify simulator/emulator evidence separately from physical-device evidence and retain the untested iOS floor. Remove admission during a pending command and verify original-session ownership. Back or cancel issues no write.
 

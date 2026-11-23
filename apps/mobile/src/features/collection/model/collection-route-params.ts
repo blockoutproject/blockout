@@ -6,6 +6,7 @@ import {
   SourceCatalogStatusEnum,
 } from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
+import { supportsSourceScopeFilter } from "./collection-operator-source";
 import type { SourceFilters } from "./source-catalogue";
 
 export function collectionProviderFromRoute(value: unknown) {
@@ -66,9 +67,8 @@ export function sourceFiltersFromRoute(
 ): SourceFilters {
   return {
     status: SourceCatalogStatusEnum.safeParse(params.status).data,
-    scope:
-      provider === "ffvb"
-        ? CollectionSourceScopeEnum.safeParse(params.scope).data
-        : undefined,
+    scope: supportsSourceScopeFilter(provider)
+      ? CollectionSourceScopeEnum.safeParse(params.scope).data
+      : undefined,
   };
 }

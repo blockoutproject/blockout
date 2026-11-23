@@ -33,6 +33,10 @@ import { CollectionLink } from "../components/collection-link";
 import { PageReadState } from "@/shared/components/page-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionBilanHref } from "../model/collection-hrefs";
+import {
+  collectionOperatorSources,
+  collectionProviderSubtitle,
+} from "../model/collection-operator-source";
 import type { SourceCatalogueFocus } from "../model/collection-route-params";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { sourceCatalogStatus } from "../model/source-catalogue";
@@ -71,7 +75,7 @@ export function SourceCatalogueScreen({
       title={current?.label ?? "Source"}
       subtitle={
         current && season.data
-          ? `${current.provider.toUpperCase()}  ${season.data.label}`
+          ? collectionProviderSubtitle(current.provider, season.data.label)
           : undefined
       }
       action={
@@ -139,17 +143,11 @@ function SourceCatalogue({
   const router = useRouter();
   const { colors } = useTheme();
   const focused = useIsFocused();
-  const ffvb = source.provider === "ffvb";
-  const rows = ffvb ? source.packs : source.phases;
+  const { rows, target, heading, emptyTitle } = catalogueContent(source, focus);
   const list = useRef<LegendListRef>(null);
   const positionedRow = useRef<string>(undefined);
   const positionedPool = useRef<string>(undefined);
   const [expansion, setExpansion] = useState(new Map<string, boolean>());
-  const target = ffvb
-    ? source.packs.find(({ id }) => id === focus.packId)?.id
-    : source.phases.find(({ reference }) => reference === focus.phaseReference)
-        ?.reference;
-
   useLayoutEffect(() => {
     if (list.current && focused && target && positionedRow.current !== target) {
       positionedRow.current = target;
@@ -208,9 +206,7 @@ function SourceCatalogue({
               accessibilityRole="header"
               style={[tokens.typography.navigation, { color: colors.text }]}
             >
-              {ffvb
-                ? `Packs découverts (${rows.length})`
-                : "Phases découvertes"}
+              {heading}
             </Text>
           )}
         </View>
@@ -249,14 +245,36 @@ function SourceCatalogue({
         );
       }}
       ListEmptyComponent={
-        <EmptyState
-          title={ffvb ? "Aucun pack découvert" : "Aucune phase découverte"}
-        >
+        <EmptyState title={emptyTitle}>
           <ReloadButton fetching={fetching} onReload={refreshSource} />
         </EmptyState>
       }
     />
   );
+}
+
+function catalogueContent(
+  source: SourceCatalogueResponse,
+  focus: SourceCatalogueFocus,
+) {
+  switch (collectionOperatorSources[source.provider].catalogue) {
+    case "packs":
+      return {
+        rows: source.packs,
+        target: source.packs.find(({ id }) => id === focus.packId)?.id,
+        heading: `Packs découverts (${source.packs.length})`,
+        emptyTitle: "Aucun pack découvert",
+      };
+    case "phases":
+      return {
+        rows: source.phases,
+        target: source.phases.find(
+          ({ reference }) => reference === focus.phaseReference,
+        )?.reference,
+        heading: "Phases découvertes",
+        emptyTitle: "Aucune phase découverte",
+      };
+  }
 }
 
 function CatalogSummary({

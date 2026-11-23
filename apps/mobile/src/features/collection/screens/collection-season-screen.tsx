@@ -1,4 +1,6 @@
+import { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { collectionProviderHref } from "../model/collection-hrefs";
+import { collectionOperatorSources } from "../model/collection-operator-source";
 import { seasonStatus } from "../components/collection-season-summary";
 import { CollectionDestinationLink } from "../components/collection-destination-link";
 import {
@@ -13,7 +15,7 @@ import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { StatusBadge } from "@/shared/components/status-badge";
 import { useRouter } from "expo-router";
-import { Globe, Power, Trophy } from "lucide-react-native";
+import { Power } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "@/shared/theme/tokens";
@@ -90,22 +92,21 @@ export function CollectionSeasonScreen({
               </Text>
               <StatusBadge {...seasonStatus(current)} />
             </View>
-            <CollectionDestinationLink
-              label="FFVB"
-              detail="National, régional et départemental"
-              icon={Globe}
-              onPress={() =>
-                router.push(collectionProviderHref(seasonId, "ffvb"))
-              }
-            />
-            <CollectionDestinationLink
-              label="LNV"
-              detail="Les trois championnats professionnels"
-              icon={Trophy}
-              onPress={() =>
-                router.push(collectionProviderHref(seasonId, "lnv"))
-              }
-            />
+            {CollectionProviderEnum.options.map((provider) => {
+              const { label, detail, icon } =
+                collectionOperatorSources[provider];
+              return (
+                <CollectionDestinationLink
+                  key={provider}
+                  label={label}
+                  detail={detail}
+                  icon={icon}
+                  onPress={() =>
+                    router.push(collectionProviderHref(seasonId, provider))
+                  }
+                />
+              );
+            })}
           </PageContent>
         </PageScrollView>
       ) : (

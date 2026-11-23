@@ -10,6 +10,7 @@ import type {
   CollectionControlResponse,
   CollectionResultResponse,
   CollectionSeasonResponse,
+  SourceBindingResponse,
   SourceCatalogueResponse,
 } from "../../../../.generated/schemas/index.zod";
 
@@ -164,6 +165,60 @@ it("reads an empty source and a retained catalogue with pools grouped by pack", 
   // Then
   expect(emptyResponse).toEqual(empty);
   expect(currentResponse).toEqual(source);
+});
+
+it("rejects a mixed-provider source list before admitting any rows to Query", async () => {
+  // Given
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const known: SourceBindingResponse = {
+    id: "00000000-0000-4000-8000-000000000005",
+    seasonId: "00000000-0000-4000-8000-000000000006",
+    provider: "ffvb",
+    organizerReference: "ABCCS",
+    label: "Championnats nationaux",
+    candidateUrl: null,
+    acceptedUrl: "https://provider.example.invalid/official",
+    locked: true,
+    validation: "qualified",
+    validatedAt: null,
+    seasonEvidence: "2026/2027",
+    reason: null,
+    launched: false,
+  };
+  const unknown = {
+    ...known,
+    id: "00000000-0000-4000-8000-000000000009",
+    provider: "unknown-provider",
+    organizerReference: "future",
+    label: "Future source",
+  };
+  const options = createCollectionQueries({
+    enabled: true,
+    request: async () => ({}),
+  }).sources(known.seasonId);
+  mockFetch
+    .mockResolvedValueOnce(Response.json({ items: [known, unknown] }))
+    .mockResolvedValueOnce(Response.json({ items: [known] }));
+
+  try {
+    // When
+    const mixedRead = client.fetchQuery(options);
+
+    // Then
+    await expect(mixedRead).rejects.toMatchObject({ kind: "schema" });
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+
+    // When
+    const supportedRead = await client.fetchQuery(options);
+
+    // Then
+    expect(supportedRead).toEqual({ items: [known] });
+    expect(client.getQueryData(options.queryKey)).toEqual({ items: [known] });
+  } finally {
+    client.clear();
+  }
 });
 
 it("activates the confirmed season through a bodyless command", async () => {

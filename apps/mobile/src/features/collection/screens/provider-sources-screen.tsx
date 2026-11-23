@@ -27,6 +27,7 @@ import { ReloadButton } from "@/shared/components/reload-button";
 import { PageReadState } from "@/shared/components/page-read-state";
 import { SourceCatalogBadge } from "../components/source-catalog-badge";
 import { collectionSourceHref } from "../model/collection-hrefs";
+import { collectionOperatorSources } from "../model/collection-operator-source";
 import {
   sourceCatalogLabels,
   sourceCatalogStatus,
@@ -104,19 +105,22 @@ export function ProviderSourcesScreen({
     }
   }
 
-  if (provider === "lnv") {
-    addSection("Championnats", items);
-  } else {
-    for (const scope of sourceScopes) {
+  switch (collectionOperatorSources[provider].sourceGrouping) {
+    case "championships":
+      addSection("Championnats", items);
+      break;
+    case "scope":
+      for (const scope of sourceScopes) {
+        addSection(
+          scope.label,
+          items.filter((source) => source.scope === scope.value),
+        );
+      }
       addSection(
-        scope.label,
-        items.filter((source) => source.scope === scope.value),
+        "Autres sources",
+        items.filter((source) => !source.scope),
       );
-    }
-    addSection(
-      "Autres sources",
-      items.filter((source) => !source.scope),
-    );
+      break;
   }
 
   return (
