@@ -19,13 +19,14 @@ public class AnnounceContribution {
   private final AfterCommitAnnouncements handoff;
 
   /**
-   * Sends an accepted publication to F07 while the match and account locks are still held.
+   * Sends the established publication to F07 after F08 makes the version active and advances the
+   * revision, while the match and account locks are still held in the same transaction.
    *
    * @param facts current F02 context
    * @param now actual publication-processing instant
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void published(Facts facts, Instant now) {
-    handoff.submit(announcements.processPublication(facts, now));
+    handoff.submit(announcements.processAcceptedPublication(facts, now));
   }
 }

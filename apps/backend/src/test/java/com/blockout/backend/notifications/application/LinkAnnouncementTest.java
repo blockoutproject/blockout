@@ -93,20 +93,21 @@ class LinkAnnouncementTest {
     verifyNoInteractions(store, links, recipients);
   }
 
-  @Test
-  @DisplayName(
-      "Allocates the unused post-result allowance for a later publication with a current link")
-  void consumesLaterPublication() {
+  @ParameterizedTest(name = "{1}")
+  @CsvSource({"false,LIVE_LINK", "true,POST_RESULT_LINK"})
+  @DisplayName("Allocates an accepted publication without rereading the link")
+  void consumesAcceptedPublication(boolean finalized, NotificationFamily family) {
     // Given
-    Facts sporting = sporting(null, FINAL_RESULT, true);
+    Facts sporting = finalized ? sporting(null, FINAL_RESULT, true) : sporting(START, null, true);
     UUID follower = UUID.fromString("00000000-0000-4000-8000-000000000253");
+    NotificationFamily resultComposition = finalized ? NotificationFamily.PLAIN_RESULT : null;
     when(store.facts(MATCH_ID))
-        .thenReturn(new MatchAnnouncementFacts(MATCH_ID, false, true, false, null));
-    when(links.availableForConsultableMatch(MATCH_ID)).thenReturn(true);
+        .thenReturn(
+            new MatchAnnouncementFacts(MATCH_ID, false, finalized, false, resultComposition));
     when(recipients.select(sporting.match())).thenReturn(Set.of(follower));
 
     // When
-    List<Entry> created = processor.processPublication(sporting, START);
+    List<Entry> created = processor.processAcceptedPublication(sporting, START);
 
     // Then
     assertThat(created)
@@ -114,11 +115,15 @@ class LinkAnnouncementTest {
         .satisfies(
             entry -> {
               assertThat(entry.accountId()).isEqualTo(follower);
-              assertThat(entry.family()).isEqualTo(NotificationFamily.POST_RESULT_LINK);
+              assertThat(entry.family()).isEqualTo(family);
               assertThat(entry.createdAt()).isEqualTo(START);
             });
-    verify(store).saveFacts(new MatchAnnouncementFacts(MATCH_ID, false, true, true, null));
+    verify(store)
+        .saveFacts(
+            new MatchAnnouncementFacts(
+                MATCH_ID, !finalized, finalized, finalized, resultComposition));
     verify(store).create(created.getFirst());
+    verifyNoInteractions(links);
   }
 
   @ParameterizedTest(name = "Final result: {0}")
@@ -131,7 +136,7 @@ class LinkAnnouncementTest {
         .thenReturn(new MatchAnnouncementFacts(MATCH_ID, !finalized, finalized, finalized, null));
 
     // When
-    List<Entry> created = processor.processPublication(sporting, START);
+    List<Entry> created = processor.processAcceptedPublication(sporting, START);
 
     // Then
     assertThat(created).isEmpty();
@@ -140,16 +145,15 @@ class LinkAnnouncementTest {
   }
 
   @Test
-  @DisplayName("Preserves the post-result allowance if a publication has no current public link")
+  @DisplayName("Preserves the live allowance if a due candidate has no current public link")
   void preservesAllowanceWithoutCurrentLink() {
     // Given
-    Facts sporting = sporting(null, FINAL_RESULT, true);
-    when(store.facts(MATCH_ID))
-        .thenReturn(new MatchAnnouncementFacts(MATCH_ID, false, true, false, null));
+    LinkAnnouncementFacts sporting = new LinkAnnouncementFacts(MATCH, START, false, true);
+    when(store.facts(MATCH_ID)).thenReturn(MatchAnnouncementFacts.empty(MATCH_ID));
     when(links.availableForConsultableMatch(MATCH_ID)).thenReturn(false);
 
     // When
-    List<Entry> created = processor.processPublication(sporting, START);
+    List<Entry> created = processor.processDueMatch(sporting, START);
 
     // Then
     assertThat(created).isEmpty();
@@ -158,16 +162,17 @@ class LinkAnnouncementTest {
   }
 
   @Test
-  @DisplayName("Propagates a required contribution read failure before consuming the allowance")
+  @DisplayName(
+      "Propagates a due candidate's contribution read failure before consuming the allowance")
   void propagatesRequiredPresenceFailure() {
     // Given
-    Facts sporting = sporting(START, null, true);
+    LinkAnnouncementFacts sporting = new LinkAnnouncementFacts(MATCH, START, false, true);
     IllegalStateException unavailable = new IllegalStateException("Fixture contribution outage");
     when(store.facts(MATCH_ID)).thenReturn(MatchAnnouncementFacts.empty(MATCH_ID));
     when(links.availableForConsultableMatch(MATCH_ID)).thenThrow(unavailable);
 
     // When / Then
-    assertThatThrownBy(() -> processor.processPublication(sporting, START)).isSameAs(unavailable);
+    assertThatThrownBy(() -> processor.processDueMatch(sporting, START)).isSameAs(unavailable);
     verify(store, never()).saveFacts(any());
     verifyNoInteractions(recipients);
   }

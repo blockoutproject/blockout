@@ -3,13 +3,18 @@ package com.blockout.backend.contributions.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
+import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,6 +32,55 @@ import org.springframework.transaction.support.TransactionTemplate;
 class ModerateContributionIntegrationTest extends ContributionScenario {
   @Autowired private ModerateContribution moderation;
   @Autowired private AccountAccess accountLocks;
+
+  @ParameterizedTest(name = "{0}")
+  @EnumSource(
+      value = DecisionKind.class,
+      names = {"APPROVAL", "REACTIVATION"})
+  @DisplayName("Moderation allocates live when announcement processing reaches the reliable start")
+  void announcesWhenProcessingReachesStart(DecisionKind kind) {
+    // Given
+    follow(FOLLOWER);
+    result(2, ResultStateEnum.FINAL);
+    SubmitContribution.Outcome pending = submit(AUTHOR, "0", "https://youtu.be/pending", false);
+    moderator(OTHER);
+    boolean reactivation = kind == DecisionKind.REACTIVATION;
+    if (reactivation) {
+      moderation.change(
+          OTHER, matchId, pending.version().id(), "1", StreamModerationActionEnum.REJECT);
+    }
+    // The result correction keeps the moderation target and restores live eligibility.
+    result(3, null);
+    Instant decisionAt = NOW.minusSeconds(1);
+    when(clock.instant()).thenReturn(decisionAt, NOW);
+
+    // When
+    SubmitContribution.Outcome published =
+        reactivation
+            ? moderation.reactivate(OTHER, matchId, pending.version().id(), "2")
+            : moderation.change(
+                OTHER, matchId, pending.version().id(), "1", StreamModerationActionEnum.APPROVE);
+
+    // Then
+    assertThat(published.revision()).isEqualTo(reactivation ? "3" : "2");
+    assertThat(published.version().publication()).isEqualTo(new Decision(kind, decisionAt, OTHER));
+    assertThat(contributions.active(matchId)).contains(published.version());
+    if (reactivation) {
+      assertThat(published.version().id()).isNotEqualTo(pending.version().id());
+      assertThat(published.version().sourceVersionId()).isEqualTo(pending.version().id());
+    } else {
+      assertThat(published.version().id()).isEqualTo(pending.version().id());
+    }
+    assertThat(sql.queryForList("SELECT family FROM notification", String.class))
+        .containsExactlyInAnyOrder("PLAIN_RESULT", "LIVE_LINK");
+    assertThat(
+            sql.queryForObject(
+                    "SELECT created_at FROM notification WHERE family='LIVE_LINK' AND account_id=?",
+                    OffsetDateTime.class,
+                    FOLLOWER)
+                .toInstant())
+        .isEqualTo(NOW);
+  }
 
   @Test
   @DisplayName("Approval retains the owner and supersedes every alternative")

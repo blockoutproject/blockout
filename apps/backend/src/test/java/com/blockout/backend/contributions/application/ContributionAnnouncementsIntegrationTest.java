@@ -3,6 +3,7 @@ package com.blockout.backend.contributions.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
@@ -15,6 +16,7 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,9 +44,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Real producers/recipient union/SQL and after-commit handoff; no provider or actual moderation.
- */
+/** Real producers, recipient union, SQL and a controlled after-commit handoff. */
 @Import(ContributionAnnouncementsIntegrationTest.ProbeConfiguration.class)
 @DisplayName("Atomic contribution, result and announcement composition")
 class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
@@ -52,11 +52,7 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   @Autowired private Probe probe;
   @Autowired private SportingProjectionChanges projectionChanges;
   @Autowired private ProcessDueMatch dueMatch;
-
-  @Autowired
-  private com.blockout.backend.sporting.application.service.MatchContributionAccess sportingContext;
-
-  @Autowired private AnnounceContribution transitions;
+  @Autowired private ModerateContribution moderation;
 
   /** Clears only this test's ephemeral handoff observations. */
   @BeforeEach
@@ -133,6 +129,8 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     result(2, ResultStateEnum.FINAL);
     follow(OTHER);
     moderator(AUTHOR);
+    Instant publishedAt = NOW.plusSeconds(15);
+    when(clock.instant()).thenReturn(publishedAt);
 
     // When
     submit(AUTHOR, "0", "https://youtube.com/replay", true);
@@ -144,6 +142,12 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
             sql.queryForList(
                 "SELECT family FROM notification WHERE account_id=?", String.class, OTHER))
         .containsExactly("POST_RESULT_LINK");
+    assertThat(
+            sql.queryForList(
+                "SELECT created_at FROM notification WHERE family='POST_RESULT_LINK'",
+                OffsetDateTime.class))
+        .extracting(OffsetDateTime::toInstant)
+        .containsOnly(publishedAt);
     assertThat(
             sql.queryForObject(
                 "SELECT result_composition FROM match_announcement WHERE match_id=?",
@@ -281,28 +285,8 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     sql.update("DELETE FROM notification");
     moderator(AUTHOR);
 
-    // When: explicit source-linked reactivation fixture; no actual moderation command exists here.
-    UUID reactivated = UUID.fromString("00000000-0000-4000-8000-000000000252");
-    new TransactionTemplate(transactions)
-        .executeWithoutResult(
-            status -> {
-              com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts
-                  facts = sportingContext.lock(matchId);
-              sql.update(
-                  "INSERT INTO contribution_version(id,match_id,address,platform,owner_id,state,created_at,quota_participating,source_version_id,publication_kind,publication_at,publication_actor_id) VALUES (?,?,?,'YOUTUBE',?,'ACTIVE',?,FALSE,?,'REACTIVATION',?,?)",
-                  reactivated,
-                  matchId,
-                  original.version().address().value(),
-                  AUTHOR,
-                  java.sql.Timestamp.from(NOW),
-                  original.version().id(),
-                  java.sql.Timestamp.from(NOW),
-                  AUTHOR);
-              sql.update(
-                  "UPDATE contribution_state SET revision=revision+1,report_hold_version_id=NULL WHERE match_id=?",
-                  matchId);
-              transitions.published(facts, NOW);
-            });
+    // When
+    moderation.reactivate(AUTHOR, matchId, original.version().id(), "1");
 
     // Then
     assertThat(count("notification")).isZero();
@@ -526,7 +510,8 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
         matchId);
     submit(AUTHOR, "0", "https://youtube.com/advance", true);
     follow(FOLLOWER);
-    org.mockito.Mockito.when(clock.instant()).thenReturn(NOW.plusSeconds(90));
+    Instant processedAt = NOW.plusSeconds(90);
+    when(clock.instant()).thenReturn(processedAt);
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate tx = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -552,6 +537,10 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
 
       // Then
       assertThat(families()).containsExactly("LIVE_LINK");
+      assertThat(
+              sql.queryForObject("SELECT created_at FROM notification", OffsetDateTime.class)
+                  .toInstant())
+          .isEqualTo(processedAt);
     }
   }
 
