@@ -15,7 +15,9 @@
     <module name="StringLiteralEquality"/>
     <module name="InnerAssignment"/>
     <module name="FallThrough"/>
-    <module name="PackageName"/>
+    <module name="PackageName">
+      <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+    </module>
     <module name="TypeName"/>
     <module name="MethodName"/>
     <module name="ConstantName"/>

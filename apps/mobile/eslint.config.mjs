@@ -131,7 +131,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    files: ["src/**/*.{js,cjs,mjs,jsx,ts,tsx}"],
     ignores: ["src/app/**/{_layout,+*,\\[*\\]}.*"],
     plugins: { "check-file": checkFile },
     rules: {

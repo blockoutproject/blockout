@@ -101,9 +101,9 @@ statements, around function/class/export declarations, and between methods.
 Exported overload signatures also receive a separating line. Related fields
 stay together. The mobile lint command fails on warnings as well as errors.
 
-Use kebab-case mobile filenames with Expo Router's reserved forms and ordinary
-platform or test suffixes. Use PascalCase for TypeScript type names. Mark
-type-only imports with `import type` or inline `type` specifiers.
+Use kebab-case basenames for mobile source files and preserve Expo Router's
+reserved names and platform or test suffixes. Use PascalCase for TypeScript type
+names. Mark type-only imports with `import type` or inline `type` specifiers.
 
 ESLint checks switch fall-through and case declarations, redundant `else`
 branches and unnecessary ternaries. Keep debug statements out of committed
@@ -115,8 +115,9 @@ Java retains Google Java Format's 100-column style. Checkstyle requires braces
 and separates methods while allowing related fields to stay together. It also
 checks empty catch blocks, `equals`/`hashCode` pairs, reference comparisons with
 string literals, nested assignments, and unintended switch fall-through.
-It also checks package, type, method and constant names, one top-level type per
-file with a matching filename, modifier order, and unused local variables.
+It also checks lowercase package names, type, method and constant names, one
+top-level type per file with a matching filename, modifier and declaration
+annotation order, and unused local variables.
 Review expression readability, including nested ternaries, and use blank lines
 where they clarify the flow.
 
@@ -134,12 +135,13 @@ npm run verify         # Formatting and application checks
 ```
 
 Spotless formats Java but does not add braces reported by Checkstyle. Fix remaining
-lint errors directly. There are no custom analyzers, regex/XPath style checks,
-arbitrary function-size limits, Git hooks or suppression baselines.
+lint errors directly. There are no custom analyzers, source-text regex or XPath
+checks, arbitrary function-size limits, Git hooks or suppression baselines.
 
-Integration references: [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
+See [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
 [Prettier with linters](https://prettier.io/docs/integrating-with-linters),
-and [Stylistic spacing](https://eslint.style/rules/padding-line-between-statements).
+[Stylistic spacing](https://eslint.style/rules/padding-line-between-statements),
+and [Checkstyle package naming](https://checkstyle.org/checks/naming/packagename.html).
 
 ### Collector-to-sporting qualification
 
