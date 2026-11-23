@@ -1,6 +1,7 @@
 package com.blockout.backend.contributions.infrastructure;
 
 import com.blockout.backend.contributions.application.ContributionStore;
+import com.blockout.backend.contributions.application.ReadPublicContribution.Link;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
@@ -76,6 +77,12 @@ public class JpaContributionStore implements ContributionStore {
       return Set.of();
     }
     return Set.copyOf(versions.findMatchIdsByMatchIdInAndState(matchIds, State.ACTIVE));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Link> activeLink(UUID matchId) {
+    return versions.findLink(matchId, State.ACTIVE);
   }
 
   /** {@inheritDoc} */

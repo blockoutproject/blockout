@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.application.ModerateContribution;
 import com.blockout.backend.contributions.application.ReadModeration;
-import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.contributions.application.ReportContribution;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.support.ContributionScenario;
@@ -52,7 +51,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
   private static final UUID SUBSCRIPTION = UUID.fromString("00000000-0000-4000-8000-000000000271");
   @Autowired private ReadInbox inbox;
   @Autowired private ReadSportingResources sporting;
-  @Autowired private ReadPublicContribution publicLinks;
   @Autowired private NotificationApiMapper transport;
   @Autowired private NotificationStore notifications;
   @Autowired private MarkNotificationRead marks;
@@ -111,7 +109,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
         .isInstanceOf(NotificationNotFoundException.class);
     assertThatThrownBy(() -> sporting.match(matchId))
         .isInstanceOf(SportingResourceNotFoundException.class);
-    assertThat(publicLinks.read(matchId)).isEmpty();
     verifyNoInteractions(provider);
     assertThat(count("notification")).isEqualTo(1);
     assertThat(
@@ -181,7 +178,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     // Then
     assertThat(hidden.publicLink()).isFalse();
     assertThat(transport.text(hidden)).contains("Le lien n’est plus proposé.");
-    assertThat(publicLinks.read(matchId)).isEmpty();
     assertThat(sporting.match(matchId).stream()).isNull();
     assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(active.version().id());
     assertThat(hidden).usingRecursiveComparison().ignoringFields("publicLink").isEqualTo(original);
@@ -200,7 +196,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(reappeared).isEqualTo(original);
-    assertThat(publicLinks.read(matchId).orElseThrow().contributionId())
+    assertThat(sporting.match(matchId).stream().contributionId())
         .isEqualTo(restored.version().id());
     assertThat(contributions.state(matchId).reportHoldVersionId()).isNull();
     assertThat(privateLinks.reports(AUTHOR, matchId, active.version().id(), 0).count())

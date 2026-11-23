@@ -3,6 +3,7 @@ package com.blockout.backend.contributions.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,7 +40,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   @Autowired private MockMvc mvc;
   @Autowired private ChangeOwnContribution changes;
-  @Autowired private ReadPublicContribution publicLinks;
 
   @Test
   @DisplayName("The retired cancellation action cannot change a proposal or its consumed quota")
@@ -81,7 +81,10 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         .andExpect(header().string("Accept-Patch", "application/json"))
         .andExpect(jsonPath("$.contribution.state").value("withdrawn"));
     assertThat(contributions.active(matchId)).isEmpty();
-    assertThat(publicLinks.read(matchId)).isEmpty();
+    mvc.perform(get("/matches/{id}", matchId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.streamUrl").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.streamContributionId").doesNotHaveJsonPath());
     assertThat(contributions.pending(matchId, AUTHOR).orElseThrow()).isEqualTo(pending.version());
     ContributionVersion withdrawn = contributions.version(active.version().id()).orElseThrow();
     assertThat(withdrawn.publication()).isEqualTo(active.version().publication());

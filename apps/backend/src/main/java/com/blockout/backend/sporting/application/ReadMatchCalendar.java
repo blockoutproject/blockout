@@ -37,9 +37,7 @@ public class ReadMatchCalendar {
    * @throws SportingResourceNotFoundException when the exact selector or club season is unavailable
    */
   public ConsultationViews.Calendar read(CalendarRequest request) {
-    owners
-        .publicPresentation(request.kind(), request.id())
-        .orElseThrow(SportingResourceNotFoundException::new);
+    owners.requireViewable(request.kind(), request.id());
     if (request.seasonId() != null && owners.season(request.seasonId()).isEmpty()) {
       throw new SportingResourceNotFoundException();
     }

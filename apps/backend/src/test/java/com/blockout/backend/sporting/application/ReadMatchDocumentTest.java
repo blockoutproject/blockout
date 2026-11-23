@@ -3,6 +3,8 @@ package com.blockout.backend.sporting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +19,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,11 +43,9 @@ class ReadMatchDocumentTest {
   private final ReadMatchDocument reader =
       new ReadMatchDocument(owners, store, source, transactions);
 
-  @ParameterizedTest
-  @EnumSource(ResultStateEnum.class)
-  @DisplayName(
-      "Keeps information independent while requiring final results for professional result documents")
-  void appliesCurrentFinality(ResultStateEnum state) {
+  @Test
+  @DisplayName("Relays the selected professional statistics reference when all documents qualify")
+  void selectsRequestedStatistics() {
     // Given
     visible(CollectionProviderEnum.LNV);
     MatchDetails details =
@@ -53,12 +54,40 @@ class ReadMatchDocumentTest {
             .informationSheet(new MatchObservation.InformationSheet("2026/2027", "AALNV", "DOC259"))
             .scoresheetUrl("https://documents.example.invalid/score.pdf")
             .statisticsUrl("https://documents.example.invalid/stats.pdf")
-            .result(new MatchObservation.Result(state, null, null, "Forfeit"))
+            .result(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 1, null))
             .build();
     when(store.matchDetails(ID)).thenReturn(details);
+    MatchDocumentSource.Reference requested =
+        new MatchDocumentSource.Reference(
+            URI.create("https://documents.example.invalid/stats.pdf"), null);
+    byte[] pdf = {1, 2, 3};
+    when(source.fetch(requested)).thenReturn(pdf);
 
     // When
-    List<ConsultationViews.Document> actions = reader.actions(ID);
+    byte[] received = reader.read(ID, MatchDocumentKindEnum.STATISTICS);
+
+    // Then
+    assertThat(received).isEqualTo(pdf);
+    verify(source, only()).fetch(requested);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ResultStateEnum.class)
+  @DisplayName(
+      "Keeps information independent while requiring final results for professional result documents")
+  void appliesCurrentFinality(ResultStateEnum state) {
+    // Given
+    MatchDetails details =
+        MatchDetails.builder()
+            .id(ID)
+            .informationSheet(new MatchObservation.InformationSheet("2026/2027", "AALNV", "DOC259"))
+            .scoresheetUrl("https://documents.example.invalid/score.pdf")
+            .statisticsUrl("https://documents.example.invalid/stats.pdf")
+            .result(new MatchObservation.Result(state, null, null, "Forfeit"))
+            .build();
+
+    // When
+    List<ConsultationViews.Document> actions = reader.actions(details, CollectionProviderEnum.LNV);
 
     // Then
     assertThat(actions)
@@ -83,16 +112,16 @@ class ReadMatchDocumentTest {
   void refusesMissingReferences() {
     // Given
     visible(CollectionProviderEnum.FFVB);
-    when(store.matchDetails(ID))
-        .thenReturn(
-            MatchDetails.builder()
-                .id(ID)
-                .result(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 0, null))
-                .statisticsUrl("https://documents.example.invalid/stats.pdf")
-                .build());
+    MatchDetails details =
+        MatchDetails.builder()
+            .id(ID)
+            .result(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 0, null))
+            .statisticsUrl("https://documents.example.invalid/stats.pdf")
+            .build();
+    when(store.matchDetails(ID)).thenReturn(details);
 
     // When
-    List<ConsultationViews.Document> actions = reader.actions(ID);
+    List<ConsultationViews.Document> actions = reader.actions(details, CollectionProviderEnum.FFVB);
 
     // Then
     assertThat(actions).isEmpty();

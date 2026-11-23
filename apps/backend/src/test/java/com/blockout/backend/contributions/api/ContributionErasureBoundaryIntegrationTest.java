@@ -72,7 +72,8 @@ class ContributionErasureBoundaryIntegrationTest extends ContributionScenario {
   void preservesErasedVisibilityAcrossSportingReturn(boolean hidden) throws Exception {
     // Given
     moderator(OTHER);
-    SubmitContribution.Outcome submitted = submit(AUTHOR, "0", "https://youtu.be/retained", false);
+    String address = "https://youtu.be/retained?at=%2F#match";
+    SubmitContribution.Outcome submitted = submit(AUTHOR, "0", address, false);
     UUID version = submitted.version().id();
     if (hidden) {
       UUID thirdReporter = UUID.fromString("00000000-0000-4000-8000-000000000289");
@@ -145,12 +146,12 @@ class ContributionErasureBoundaryIntegrationTest extends ContributionScenario {
     ResultActions publicMatch = mvc.perform(get("/matches/" + matchId)).andExpect(status().isOk());
     if (hidden) {
       publicMatch
-          .andExpect(jsonPath("$.streamUrl").doesNotExist())
-          .andExpect(jsonPath("$.streamContributionId").doesNotExist());
+          .andExpect(jsonPath("$.streamUrl").doesNotHaveJsonPath())
+          .andExpect(jsonPath("$.streamContributionId").doesNotHaveJsonPath());
       assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(version);
     } else {
       publicMatch
-          .andExpect(jsonPath("$.streamUrl").value("https://youtu.be/retained"))
+          .andExpect(jsonPath("$.streamUrl").value(address))
           .andExpect(jsonPath("$.streamContributionId").value(version.toString()));
     }
     assertThat(contributions.version(version).orElseThrow()).isEqualTo(retained);

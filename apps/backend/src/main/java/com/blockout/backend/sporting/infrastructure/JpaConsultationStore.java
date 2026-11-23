@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,16 +55,23 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
 
   /** {@inheritDoc} */
   @Override
-  public URI officialCalendar(UUID poolId) {
-    return entityManager
-        .createQuery("SELECT p.calendarUrl FROM PoolEntity p WHERE p.id = :id", String.class)
-        .setParameter("id", poolId)
-        .getResultStream()
-        .filter(Objects::nonNull)
-        .map(URI::create)
-        .filter(SportingReferences::qualified)
+  public Optional<MatchDetailInput> matchDetail(UUID id) {
+    return matches.findPresentationByIdIn(Set.of(id)).stream()
         .findFirst()
-        .orElse(null);
+        .map(
+            match -> {
+              PoolEntity pool = match.getPool();
+              URI calendar =
+                  Optional.ofNullable(pool.getCalendarUrl())
+                      .map(URI::create)
+                      .filter(SportingReferences::qualified)
+                      .orElse(null);
+              return new MatchDetailInput(
+                  mapper.toMatchInput(match),
+                  mapper.toDetails(match),
+                  pool.getProvider(),
+                  calendar);
+            });
   }
 
   /** {@inheritDoc} */

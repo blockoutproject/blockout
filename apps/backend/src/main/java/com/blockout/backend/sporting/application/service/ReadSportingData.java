@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.application.service;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
@@ -46,6 +47,20 @@ public class ReadSportingData {
    */
   public Optional<SportingVisibility> visibility(Kind kind, UUID id) {
     return publicReads.visibility(kind, id);
+  }
+
+  /**
+   * Checks current visibility without loading a presentation. Dependent public reads share the
+   * caller's transaction.
+   *
+   * @param kind owning resource kind
+   * @param id stable identity
+   * @throws SportingResourceNotFoundException when the resource is hidden or unknown
+   */
+  public void requireViewable(Kind kind, UUID id) {
+    visibility(kind, id)
+        .filter(SportingVisibility::viewable)
+        .orElseThrow(SportingResourceNotFoundException::new);
   }
 
   /**
@@ -153,12 +168,11 @@ public class ReadSportingData {
    * Keeps official row order and labels while removing links to currently unavailable participants.
    *
    * @param poolId current pool identity
-   * @return authorized retained official table, or empty for a hidden pool or unknown table
+   * @return authorized retained official table, or empty when none is retained
+   * @throws SportingResourceNotFoundException when the pool is hidden or unknown
    */
   public Optional<StandingsView> publicStandings(UUID poolId) {
-    if (visibility(Kind.POOL, poolId).filter(SportingVisibility::viewable).isEmpty()) {
-      return Optional.empty();
-    }
+    requireViewable(Kind.POOL, poolId);
     return store
         .standings(poolId)
         .map(
@@ -207,19 +221,6 @@ public class ReadSportingData {
    */
   public Optional<DivisionView> division(UUID id) {
     return store.division(id);
-  }
-
-  /**
-   * Reads current names and effective artwork only while the addressed sporting owner is viewable.
-   *
-   * @param kind club, team or pool
-   * @param id stable owner
-   * @return current detached presentation, or empty for a hidden/unknown owner
-   */
-  public Optional<SportingPresentation.View> publicPresentation(Kind kind, UUID id) {
-    return visibility(kind, id)
-        .filter(SportingVisibility::viewable)
-        .flatMap(ignored -> store.presentation(mapper.toProjectionKind(kind), id));
   }
 
   /**
