@@ -7,13 +7,6 @@ import type { SessionSnapshot } from "@/features/accounts";
 import { type ProOperation, type ProSessionState } from "./pro-state";
 import { verifiedProOperation } from "./pro-operations";
 
-/** Current native evidence and verification lifecycle; rights remain SDK-owned. */
-export interface ProSessionSnapshot {
-  evidence: ProSessionState | null;
-  /** The latest attributed read controls which SDK response can update current evidence. */
-  read: symbol | null;
-}
-
 /** Records bounded context only; raw SDK errors never enter the diagnostic pipeline. */
 function diagnose(
   operation: "association" | "read" | "operation",
@@ -42,63 +35,58 @@ function sameSession(
 export function createProSession() {
   let target: SessionSnapshot | null = null;
   let identityInFlight: Promise<void> | null = null;
-  let snapshot: ProSessionSnapshot = {
-    evidence: null,
-    read: null,
-  };
+  // A new target or supplied CustomerInfo retires the previous read.
+  let latestRead: symbol | null = null;
+  let evidence: ProSessionState | null = null;
   const listeners = new Set<() => void>();
 
-  /** Notifies React without storing a derived entitlement or a second account lifetime. */
-  function publish(next: ProSessionSnapshot) {
-    snapshot = next;
+  /** Keeps the snapshot stable until its attributed evidence changes. */
+  function publish(next: ProSessionState | null) {
+    if (
+      evidence?.session === next?.session &&
+      evidence?.association === next?.association &&
+      evidence?.customerInfo === next?.customerInfo &&
+      evidence?.operation === next?.operation
+    ) {
+      return;
+    }
+    evidence = next;
     listeners.forEach((listener) => listener());
   }
 
-  /** Accepts only reads started after successful association for the still-current target. */
-  function isAssociated(session: SessionSnapshot) {
-    return (
+  function associatedEvidence(session: SessionSnapshot) {
+    if (
       sameSession(target, session) &&
-      snapshot.evidence?.association === "associated"
-    );
+      evidence?.association === "associated"
+    ) {
+      return evidence;
+    }
+    return null;
   }
 
-  /** Returns the accepted read outcome; obsolete or unstarted attempts return undefined. */
-  async function refresh(
-    session: SessionSnapshot,
-  ): Promise<boolean | undefined> {
-    if (!isAssociated(session)) {
+  /** Publishes current rights after an attributed read and retains them on SDK failure. */
+  async function refresh(session: SessionSnapshot) {
+    if (!associatedEvidence(session)) {
       return;
     }
     const request = Symbol();
-    publish({ ...snapshot, read: request });
+    latestRead = request;
+    let customerInfo: CustomerInfo;
     try {
-      const customerInfo = await Purchases.getCustomerInfo();
-      if (
-        isAssociated(session) &&
-        snapshot.read === request &&
-        snapshot.evidence
-      ) {
-        publish({
-          evidence: {
-            ...snapshot.evidence,
-            customerInfo,
-            operation: verifiedProOperation(
-              snapshot.evidence.operation,
-              customerInfo,
-            ),
-          },
-          read: null,
-        });
-        return true;
-      }
+      customerInfo = await Purchases.getCustomerInfo();
     } catch {
       diagnose("read", "failed");
-      if (isAssociated(session) && snapshot.read === request) {
-        // A failed refresh never withdraws independently known current rights.
-        publish({ ...snapshot, read: null });
-        return false;
-      }
+      return;
     }
+    const current = associatedEvidence(session);
+    if (latestRead !== request || !current) {
+      return;
+    }
+    publish({
+      ...current,
+      customerInfo,
+      operation: verifiedProOperation(current.operation, customerInfo),
+    });
   }
 
   /** Configures or logs in exactly one captured account, publishing rights only while that target remains current. */
@@ -126,13 +114,10 @@ export function createProSession() {
     }
     if (sameSession(target, desired)) {
       publish({
-        evidence: {
-          session: desired,
-          association: "associated",
-          customerInfo,
-          operation: "idle",
-        },
-        read: null,
+        session: desired,
+        association: "associated",
+        customerInfo,
+        operation: "idle",
       });
       if (!customerInfo) {
         void refresh(desired);
@@ -161,13 +146,10 @@ export function createProSession() {
         diagnose("association", "failed");
         if (sameSession(target, desired) && desired?.accountId) {
           publish({
-            evidence: {
-              session: desired,
-              association: "failed",
-              customerInfo: null,
-              operation: "idle",
-            },
-            read: null,
+            session: desired,
+            association: "failed",
+            customerInfo: null,
+            operation: "idle",
           });
         }
       }
@@ -186,20 +168,18 @@ export function createProSession() {
     operation: ProOperation,
     customerInfo?: CustomerInfo,
   ) {
-    if (!isAssociated(session) || !snapshot.evidence) {
+    const current = associatedEvidence(session);
+    if (!current) {
       return;
     }
+    if (customerInfo) {
+      latestRead = null;
+    }
+    const nextInfo = customerInfo ?? current.customerInfo;
     publish({
-      ...snapshot,
-      ...(customerInfo ? { read: null } : {}),
-      evidence: {
-        ...snapshot.evidence,
-        operation: verifiedProOperation(
-          operation,
-          customerInfo ?? snapshot.evidence.customerInfo,
-        ),
-        customerInfo: customerInfo ?? snapshot.evidence.customerInfo,
-      },
+      ...current,
+      operation: verifiedProOperation(operation, nextInfo),
+      customerInfo: nextInfo,
     });
     if (operation === "pending" || operation === "failed") {
       diagnose("operation", operation);
@@ -210,7 +190,7 @@ export function createProSession() {
   }
 
   return {
-    getSnapshot: () => snapshot,
+    getSnapshot: () => evidence,
 
     /** Subscribes to transient evidence; disposing removes only this observer. */
     subscribe(listener: () => void) {
@@ -226,8 +206,9 @@ export function createProSession() {
         return;
       }
       target = next;
-      publish({
-        evidence: next?.accountId
+      latestRead = null;
+      publish(
+        next?.accountId
           ? {
               session: next,
               association: "pending",
@@ -235,8 +216,7 @@ export function createProSession() {
               operation: "idle",
             }
           : null,
-        read: null,
-      });
+      );
       void associate();
     },
 
@@ -247,10 +227,10 @@ export function createProSession() {
       if (!sameSession(target, session) || !session.accountId) {
         return false;
       }
-      if (!isAssociated(session)) {
+      if (!associatedEvidence(session)) {
         await associate();
       }
-      return isAssociated(session);
+      return associatedEvidence(session) !== null;
     },
 
     completeOperation,

@@ -49,9 +49,7 @@ it("retains independent paid rights and their native billing facts when the SDK 
     .mockResolvedValue({ customerInfo: initial, created: false });
   const owner = createProSession();
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(initial),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(initial));
   const current = {
     ...initial,
     entitlements: {
@@ -66,11 +64,11 @@ it("retains independent paid rights and their native billing facts when the SDK 
   await owner.refresh(session);
 
   // Then
-  expect(getProState(account, owner.getSnapshot().evidence)).toMatchObject({
+  expect(getProState(account, owner.getSnapshot())).toMatchObject({
     status: "active",
     entitlement: paid,
   });
-  expect(owner.getSnapshot().evidence?.customerInfo).toBe(current);
+  expect(owner.getSnapshot()?.customerInfo).toBe(current);
   expect(current.activeSubscriptions).toEqual(["monthly"]);
   expect(current.allExpirationDates.monthly).toBe(
     initial.allExpirationDates.monthly,
@@ -95,15 +93,13 @@ it("preserves an independent gift on restoration, then accepts SDK-inactive gift
     .mockResolvedValue({ customerInfo: info, created: false });
   const owner = createProSession();
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
 
   // When
   await owner.completeOperation(session, "restored", info);
 
   // Then
-  expect(getProState(account, owner.getSnapshot().evidence)).toMatchObject({
+  expect(getProState(account, owner.getSnapshot())).toMatchObject({
     status: "active",
     entitlement: gift,
   });
@@ -118,7 +114,7 @@ it("preserves an independent gift on restoration, then accepts SDK-inactive gift
   await owner.refresh(session);
 
   // Then
-  expect(getProState(account, owner.getSnapshot().evidence)).toMatchObject({
+  expect(getProState(account, owner.getSnapshot())).toMatchObject({
     status: "inactive",
   });
 });

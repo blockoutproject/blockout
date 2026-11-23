@@ -319,6 +319,35 @@ it.each(["APP_STORE", "PLAY_STORE", "PROMOTIONAL"] as const)(
   },
 );
 
+it("shows established Pro rights when Profile opens without another SDK read", async () => {
+  // Given
+  mockAccountExists = true;
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor("auth0|current-pro-profile"),
+  );
+  mockPurchases.getCustomerInfo.mockResolvedValue(rights("PROMOTIONAL"));
+  await openInstallation();
+  await waitFor(() => {
+    expect(owners.session.subject).toBe("auth0|current-pro-profile");
+    expect(owners.pro.state.status).toBe("active");
+  });
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+
+  // When
+  await act(() => router.push("/profile"));
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Blockout Pro",
+      value: { text: "Compte Pro" },
+    }),
+  ).toBeOnTheScreen();
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+});
+
 it("keeps two unlinked principals with equal emails in distinct account and entitlement lifetimes", async () => {
   // Given
   prepareLogin("google-oauth2|a");

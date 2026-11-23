@@ -285,7 +285,7 @@ it("rejects a detached read and callbacks after provider remount into the same b
     mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
   const read = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
-  let refreshing: Promise<boolean | undefined> | undefined;
+  let refreshing: Promise<void> | undefined;
   await act(() => {
     refreshing = proSessionModule.proSession.refresh(account);
     listener(info);
@@ -350,7 +350,7 @@ it("reads operation completion without waiting for an earlier read and rejects i
         verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     );
-  let refresh: Promise<boolean | undefined> | undefined;
+  let refresh: Promise<void> | undefined;
   let completion: Promise<void> | undefined;
   await act(() => {
     refresh = proSessionModule.proSession.refresh(account);
@@ -467,7 +467,7 @@ it.each([
     mockPurchases.getCustomerInfo
       .mockReturnValueOnce(pending.promise)
       .mockResolvedValue(current);
-    let refresh: Promise<boolean | undefined> | undefined;
+    let refresh: Promise<void> | undefined;
     await act(() => {
       refresh = proSessionModule.proSession.refresh(account);
     });

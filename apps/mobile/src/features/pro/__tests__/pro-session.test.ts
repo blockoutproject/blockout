@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import type { SessionSnapshot } from "@/features/accounts";
 import { waitFor } from "@testing-library/react-native";
 import Purchases from "react-native-purchases";
@@ -42,7 +43,6 @@ beforeEach(() => {
   jest.mocked(Purchases.getCustomerInfo).mockResolvedValue(info);
   session = { subject: null, accountId: null };
   owner = createProSession();
-  // Real F05 publication, with only RevenueCat I/O controlled.
 });
 
 it("waits for a usable UUID before configuring once and reading current information", async () => {
@@ -53,9 +53,7 @@ it("waits for a usable UUID before configuring once and reading current informat
   // When
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   session = { subject: `auth0|${b}`, accountId: b };
   owner.setTarget(session);
 
@@ -72,9 +70,7 @@ it("accepts current login-supplied rights without another information read", asy
   // Given
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   const active = { "Blockout Pro": entitlement() };
   const loginInfo = customerInfo({
     active,
@@ -92,10 +88,60 @@ it("accepts current login-supplied rights without another information read", asy
 
   // Then
   await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo),
+    expect(owner.getSnapshot()?.customerInfo).toBe(loginInfo),
   );
-  expect(owner.getSnapshot().read).toBeNull();
   expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
+});
+
+it("keeps known rights without notifying subscribers when an attributed read fails", async () => {
+  // Given
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
+  const knownEvidence = owner.getSnapshot();
+  const onEvidenceChange = jest.fn();
+  const unsubscribe = owner.subscribe(onEvidenceChange);
+  jest
+    .mocked(Purchases.getCustomerInfo)
+    .mockClear()
+    .mockRejectedValueOnce(new Error("Synthetic private SDK payload"));
+
+  // When
+  await owner.refresh(session);
+  unsubscribe();
+
+  // Then
+  expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+  expect(owner.getSnapshot()).toBe(knownEvidence);
+  expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+  expect(Sentry.captureException).toHaveBeenCalledWith(
+    new Error("Pro verification"),
+    { tags: { feature: "pro", operation: "read", outcome: "failed" } },
+  );
+  expect(onEvidenceChange).toHaveBeenCalledTimes(0);
+});
+
+it("retains the snapshot without notifying subscribers when a successful read supplies the same evidence", async () => {
+  // Given
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
+  const knownEvidence = owner.getSnapshot();
+  const onEvidenceChange = jest.fn();
+  const unsubscribe = owner.subscribe(onEvidenceChange);
+  jest
+    .mocked(Purchases.getCustomerInfo)
+    .mockClear()
+    .mockResolvedValueOnce(info);
+
+  // When
+  await owner.refresh(session);
+  unsubscribe();
+
+  // Then
+  expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+  expect(owner.getSnapshot()).toBe(knownEvidence);
+  expect(onEvidenceChange).toHaveBeenCalledTimes(0);
 });
 
 it.each(["completed", "failed"])(
@@ -104,13 +150,7 @@ it.each(["completed", "failed"])(
     // Given
     session = { subject: `auth0|${a}`, accountId: a };
     owner.setTarget(session);
-    await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-    );
-    jest
-      .mocked(Purchases.getCustomerInfo)
-      .mockRejectedValueOnce(new Error("Synthetic verification failure"));
-    await owner.refresh(session);
+    await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
     const earlier = Promise.withResolvers<typeof info>();
     jest.mocked(Purchases.getCustomerInfo).mockReturnValueOnce(earlier.promise);
     const reading = owner.refresh(session);
@@ -124,8 +164,7 @@ it.each(["completed", "failed"])(
     await owner.completeOperation(session, "restored", supplied);
 
     // Then
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
-    expect(owner.getSnapshot().read).toBeNull();
+    expect(owner.getSnapshot()?.customerInfo).toBe(supplied);
     expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
 
     // When
@@ -137,7 +176,7 @@ it.each(["completed", "failed"])(
     await reading;
 
     // Then
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
+    expect(owner.getSnapshot()?.customerInfo).toBe(supplied);
   },
 );
 
@@ -157,7 +196,7 @@ it("finishes configuration before logging out when its account is erased", async
   owner.setTarget(session);
 
   // Then
-  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(owner.getSnapshot()).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
 
   // When
@@ -189,18 +228,16 @@ it.each([
     owner.setTarget(session);
     session = { subject: `auth0|${target}`, accountId: target };
     owner.setTarget(session);
-    expect(owner.getSnapshot().evidence?.customerInfo ?? null).toBeNull();
+    expect(owner.getSnapshot()?.customerInfo ?? null).toBeNull();
     expect(Purchases.logIn).not.toHaveBeenCalled();
     expect(Purchases.logOut).not.toHaveBeenCalled();
     configured.resolve(true);
 
     // Then
     await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.session).toEqual({ ...session }),
+      expect(owner.getSnapshot()?.session).toEqual({ ...session }),
     );
-    await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-    );
+    await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
     expect(Purchases.logIn).toHaveBeenCalledTimes(target === a ? 0 : 1);
     if (target !== a) {
       expect(Purchases.logIn).toHaveBeenCalledWith(target);
@@ -213,9 +250,7 @@ it("clears immediately on accepted erasure and waits for login before native log
   // Given
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   const login =
     Promise.withResolvers<Awaited<ReturnType<typeof Purchases.logIn>>>();
   jest.mocked(Purchases.logIn).mockReturnValueOnce(login.promise);
@@ -227,7 +262,7 @@ it("clears immediately on accepted erasure and waits for login before native log
   owner.setTarget(session);
 
   // Then
-  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(owner.getSnapshot()).toBeNull();
   expect(Purchases.logOut).not.toHaveBeenCalled();
 
   // When
@@ -235,16 +270,14 @@ it("clears immediately on accepted erasure and waits for login before native log
 
   // Then
   await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
-  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(owner.getSnapshot()).toBeNull();
 });
 
 it("waits for logout before login and skips an intermediate known account", async () => {
   // Given
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   const logout = Promise.withResolvers<typeof info>();
   jest.mocked(Purchases.logOut).mockReturnValueOnce(logout.promise);
   session = { subject: null, accountId: null };
@@ -260,9 +293,7 @@ it("waits for logout before login and skips an intermediate known account", asyn
   logout.resolve(info);
 
   // Then
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   expect(Purchases.logIn).toHaveBeenCalledTimes(1);
   expect(Purchases.logIn).toHaveBeenCalledWith(a);
 });
@@ -271,17 +302,13 @@ it("leaves a failed current association unavailable until explicit retry", async
   // Given
   session = { subject: `auth0|${a}`, accountId: a };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   jest
     .mocked(Purchases.logIn)
     .mockRejectedValueOnce(new Error("private SDK payload"));
   session = { subject: `auth0|${b}`, accountId: b };
   owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("failed"),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.association).toBe("failed"));
 
   // When
   owner.setTarget({ ...session });
@@ -290,9 +317,7 @@ it("leaves a failed current association unavailable until explicit retry", async
   await owner.prepare({ ...session });
 
   // Then
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   expect(Purchases.logIn).toHaveBeenCalledTimes(2);
 });
 
@@ -310,24 +335,19 @@ it.each([
     await waitFor(() =>
       expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1),
     );
-    const old = { ...session };
 
     // When
     session = { subject: null, accountId: null };
     owner.setTarget(session);
     session = { subject: `auth0|${target}`, accountId: target };
     owner.setTarget(session);
-    await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-    );
+    await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
     read.resolve({ ...info, originalAppUserId: "obsolete-synthetic-customer" });
     await read.promise;
-    await owner.refresh(old);
-    await owner.prepare(old);
 
     // Then
-    expect(owner.getSnapshot().evidence?.session).toEqual({ ...session });
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info);
+    expect(owner.getSnapshot()?.session).toEqual({ ...session });
+    expect(owner.getSnapshot()?.customerInfo).toBe(info);
     expect(Purchases.configure).toHaveBeenCalledTimes(1);
   },
 );
@@ -341,9 +361,7 @@ it("uses SDK configuration when a React owner is recreated", async () => {
   owner.setTarget(session);
 
   // Then
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   expect(Purchases.configure).not.toHaveBeenCalled();
   expect(Purchases.logIn).toHaveBeenCalledWith(a);
 });
@@ -361,9 +379,7 @@ it("abandons an obsolete account before mutating native identity after an SDK co
   configured.resolve(false);
 
   // Then
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
-  );
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
   expect(Purchases.configure).toHaveBeenCalledTimes(1);
   expect(Purchases.configure).toHaveBeenCalledWith({
     apiKey: "test_public",
