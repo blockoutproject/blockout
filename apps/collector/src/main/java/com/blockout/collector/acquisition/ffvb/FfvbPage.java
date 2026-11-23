@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -32,7 +33,7 @@ public final class FfvbPage {
   private static final String INFORMATION_PATH = "/ffvbapp/adressier/fiche_match_ffvb.php";
   private static final String SCORESHEET_PATH = "/ffvbapp/resu/ffvolley_fdme.php";
   private final FfvbScope scope;
-  private final FormElement export;
+  private final ExportForm export;
   private final Element standings;
   private final Map<String, List<Element>> matchRows;
   private final Set<String> allReferences;
@@ -63,7 +64,7 @@ public final class FfvbPage {
   FfvbPage(Publication publication, FfvbScope scope) {
     this.scope = scope;
     export = publication.export;
-    Map<String, String> fields = publication.fields;
+    Map<String, String> fields = export.fields();
     if (!scope.seasonLabel().equals(fields.get("cal_saison"))
         || !scope.organizerReference().equals(fields.get("cal_codent"))
         || !value(scope.tourReference()).equals(fields.get("cal_codtour"))
@@ -105,8 +106,7 @@ public final class FfvbPage {
   /** Retains the published form and table index for the sequential scopes of one HTML resource. */
   static final class Publication {
     private final Document document;
-    private final FormElement export;
-    private final Map<String, String> fields;
+    private final ExportForm export;
     private final Map<String, Group> groups = new LinkedHashMap<>();
     private final Set<String> allReferences = new LinkedHashSet<>();
     private Boolean emptyPoolContainer;
@@ -120,15 +120,9 @@ public final class FfvbPage {
       if (!COMPLETE_CALENDAR.equals(query.get(CALENDAR_MODE))) {
         throw new FfvbAcquisitionException("A complete FFVB calendar is required");
       }
-      export =
-          page.select(EXPORT_FORM).stream()
-              .filter(FormElement.class::isInstance)
-              .map(FormElement.class::cast)
-              .filter(form -> "E".equals(fields(form).get("typ_edition")))
-              .findFirst()
-              .orElseThrow(() -> new FfvbAcquisitionException("Missing FFVB export context"));
-      fields = fields(export);
-      if (!fields
+      export = selectExport(page);
+      if (!export
+          .fields()
           .keySet()
           .containsAll(
               List.of(
@@ -147,7 +141,7 @@ public final class FfvbPage {
 
     private boolean hasEmptyPoolContainer() {
       if (emptyPoolContainer == null) {
-        String poolHeading = fields.get("cal_codpoule") + " - ";
+        String poolHeading = export.fields().get("cal_codpoule") + " - ";
         emptyPoolContainer =
             document.select("td").stream()
                     .map(cell -> cell.ownText().strip())
@@ -245,8 +239,8 @@ public final class FfvbPage {
    *
    * @return the published export action, still subject to the existing HTTP origin allowlist
    */
-  public URI exportUrl() {
-    return URI.create(export.absUrl("action"));
+  URI exportUrl() {
+    return URI.create(export.form().absUrl("action"));
   }
 
   /**
@@ -254,8 +248,10 @@ public final class FfvbPage {
    *
    * @return native published form values; no guessed pool inventory or transport instructions
    */
-  public List<NameValuePair> exportFields() {
-    return requestFields(export);
+  List<NameValuePair> exportFields() {
+    return export.fields().entrySet().stream()
+        .<NameValuePair>map(field -> new BasicNameValuePair(field.getKey(), field.getValue()))
+        .toList();
   }
 
   /**
@@ -386,16 +382,25 @@ public final class FfvbPage {
         .toList();
   }
 
-  /**
-   * Indexes the provider-published form fields without inventing defaults.
-   *
-   * @param form published native form
-   * @return exact field names and values
-   */
-  private static Map<String, String> fields(FormElement form) {
-    return form.formData().stream()
-        .collect(Collectors.toMap(field -> field.key(), field -> field.value()));
+  /** Shares the native submitted order and values between qualification and the export request. */
+  private static ExportForm selectExport(Document page) {
+    for (Element candidate : page.select(EXPORT_FORM)) {
+      if (candidate instanceof FormElement form) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        for (Connection.KeyVal field : form.formData()) {
+          if (fields.putIfAbsent(field.key(), field.value()) != null) {
+            throw new IllegalStateException("Duplicate FFVB export form field");
+          }
+        }
+        if ("E".equals(fields.get("typ_edition"))) {
+          return new ExportForm(form, fields);
+        }
+      }
+    }
+    throw new FfvbAcquisitionException("Missing FFVB export context");
   }
+
+  private record ExportForm(FormElement form, Map<String, String> fields) {}
 
   private static List<NameValuePair> requestFields(FormElement form) {
     return form.formData().stream()

@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.LnvAcquisition;
+import com.blockout.collector.acquisition.application.ProviderObservation;
 import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
@@ -68,13 +69,16 @@ public class LnvObservationReader implements LnvAcquisition {
   @Override
   public Resource fromPage(Document page, URI url, Instant observedAt) {
     return new Resource() {
+      // Each admitted scope reports a contradictory heading through its own acquisition outcome.
+      private final ProviderReadAttempt<String> seasonHeading =
+          ProviderReadAttempt.capture(() -> LnvPage.seasonHeading(page));
       private LnvCalendarParser calendars;
 
       /** {@inheritDoc} */
       @Override
       public Calendar calendar(CollectionBackend.Target target) {
         if (calendars == null) {
-          calendars = new LnvCalendarParser(page);
+          calendars = new LnvCalendarParser(page, url, seasonHeading);
         }
         LnvCalendarParser.Read read =
             calendars.parse(
@@ -91,32 +95,33 @@ public class LnvObservationReader implements LnvAcquisition {
 
       /** {@inheritDoc} */
       @Override
-      public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
-        requireSeason(page, target);
+      public ProviderObservation<SportingObservation.Standings> standings(
+          CollectionBackend.Target target) {
+        requireSeason(seasonHeading.value(), target);
         Map<String, String> fields = LnvPage.query(url);
         if (!target.competitionReference().equals(fields.get("ID"))
             || fields.containsKey("PID") && !target.poolReference().equals(fields.get("PID"))) {
           throw LnvPage.invalid();
         }
-        return new Read<>(standings.parse(page, target.groupReference()), observedAt);
+        return new ProviderObservation<>(
+            standings.parse(page, target.groupReference()), observedAt);
       }
 
       /** {@inheritDoc} */
       @Override
-      public Read<SportingObservation.Facts> detail(CollectionBackend.Target target) {
-        requireSeason(page, target);
+      public Detail detail(CollectionBackend.Target target) {
+        requireSeason(seasonHeading.value(), target);
         requireMatch(url, target);
         LnvDetailParser.Read read = details.inspect(page);
-        return new Read<>(read.facts(), observedAt, read.complete());
+        return new Detail(read.facts(), observedAt, read.complete());
       }
 
       /** {@inheritDoc} */
       @Override
-      public Read<SportingObservation.Facts> document(
-          CollectionBackend.Target target, String label) {
-        requireSeason(page, target);
+      public Detail document(CollectionBackend.Target target, String label) {
+        requireSeason(seasonHeading.value(), target);
         requireMatch(url, target);
-        LnvDocumentReferences.Form form = documents.form(page, label);
+        LnvDocumentReferences.Form form = documents.form(page, url, label);
         if (form == null) {
           return null;
         }
@@ -124,7 +129,7 @@ public class LnvObservationReader implements LnvAcquisition {
         ProviderResponse document = http.postPage(form.action(), form.fields(), LnvPage.CHARSET);
         requireMatch(document.url(), target);
         Document published = LnvPage.parse(document.body(), document.url());
-        requireSeason(published, target);
+        requireSeason(LnvPage.seasonHeading(published), target);
         URI pdf = documents.publishedPdf(published);
         if (pdf == null && documents.unavailableFile(published)) {
           return null;
@@ -136,7 +141,7 @@ public class LnvObservationReader implements LnvAcquisition {
             label.equals("Scoresheet")
                 ? SportingObservation.Facts.builder().scoresheetUrl(JsonNullable.of(pdf)).build()
                 : SportingObservation.Facts.builder().statisticsUrl(JsonNullable.of(pdf)).build();
-        return new Read<>(facts, clock.instant());
+        return new Detail(facts, clock.instant());
       }
     };
   }
@@ -204,12 +209,11 @@ public class LnvObservationReader implements LnvAcquisition {
   /**
    * Checks the published season heading on standings, detail and document pages.
    *
-   * @param page decoded provider response
+   * @param season heading resolved from the relevant response, if published
    * @param target admitted seasonal scope
    * @throws LnvAcquisitionException when source context is unreadable or contradicts the season
    */
-  private void requireSeason(Document page, CollectionBackend.Target target) {
-    String season = LnvPage.seasonHeading(page);
+  private void requireSeason(String season, CollectionBackend.Target target) {
     if (season != null && !season.equals(target.seasonLabel())) {
       throw LnvPage.invalid();
     }
@@ -239,8 +243,10 @@ public class LnvObservationReader implements LnvAcquisition {
    * observation time; cache reuse cannot advance collection evidence.
    */
   @Override
-  public Read<byte[]> image(URI uri) {
+  public ProviderObservation<byte[]> image(URI uri) {
     ProviderResponse response = http.get(uri);
-    return response.supplierRead() ? new Read<>(response.body(), clock.instant()) : null;
+    return response.supplierRead()
+        ? new ProviderObservation<>(response.body(), clock.instant())
+        : null;
   }
 }

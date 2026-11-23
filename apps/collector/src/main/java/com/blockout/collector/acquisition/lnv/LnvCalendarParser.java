@@ -29,15 +29,15 @@ final class LnvCalendarParser {
   private final SeasonDates seasonDates;
   private final Map<String, RosterTeam> roster;
 
-  LnvCalendarParser(Document page) {
+  LnvCalendarParser(Document page, URI url, ProviderReadAttempt<String> headingSeason) {
     this.page = page;
-    url = LnvPage.location(page);
+    this.url = url;
+    this.headingSeason = headingSeason;
     seasonGroups =
         new Elements(
             LnvPage.phaseGroups(page).stream()
                 .filter(group -> LnvPage.phaseGroupTitle(group) != null)
                 .toList());
-    headingSeason = ProviderReadAttempt.capture(() -> LnvPage.seasonHeading(page));
     seasonDates = LnvPage.seasonDates(seasonGroups);
     roster = readRoster(page);
   }

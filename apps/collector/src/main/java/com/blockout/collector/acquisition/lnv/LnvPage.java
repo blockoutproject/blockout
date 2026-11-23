@@ -51,11 +51,6 @@ public final class LnvPage {
     return Jsoup.parse(new String(bytes, CHARSET), url.toString());
   }
 
-  /** Recovers the final response URL independently of any published HTML base element. */
-  static URI location(Document page) {
-    return URI.create(page.location());
-  }
-
   /**
    * Reads native query parameters without accepting contradictory duplicates.
    *

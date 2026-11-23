@@ -260,7 +260,7 @@ class CollectorSportingReadIntegrationTest {
 
     // When
     SportingObservation.Calendar interpreted =
-        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page, FFVB_SCOPE);
+        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page);
     UUID id =
         sporting
             .calendar(POOL, context(cycle, ordinal, FIRST, null), interpreted)
@@ -319,7 +319,7 @@ class CollectorSportingReadIntegrationTest {
 
     // When: first obtain the documents, then the result from a page without document forms.
     SportingObservation.Calendar beforeResult =
-        parser.parse(csv.formatted("").getBytes(FFVB_CHARSET), withDocuments, FFVB_SCOPE);
+        parser.parse(csv.formatted("").getBytes(FFVB_CHARSET), withDocuments);
     UUID id =
         sporting
             .calendar(POOL, context(cycle, cycle.nextReadOrdinal(), FIRST, null), beforeResult)
@@ -328,7 +328,7 @@ class CollectorSportingReadIntegrationTest {
             .resourceId();
     JsonNode before = read("/matches/" + id);
     SportingObservation.Calendar withResult =
-        parser.parse(csv.formatted("3/0").getBytes(FFVB_CHARSET), ffvbPage(html), FFVB_SCOPE);
+        parser.parse(csv.formatted("3/0").getBytes(FFVB_CHARSET), ffvbPage(html));
     sporting.calendar(
         POOL, context(cycle, cycle.nextReadOrdinal(), FIRST.plusSeconds(30), null), withResult);
     JsonNode after = read("/matches/" + id);

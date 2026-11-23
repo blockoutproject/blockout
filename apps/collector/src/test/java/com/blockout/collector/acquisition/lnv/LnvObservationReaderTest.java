@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.LnvAcquisition;
+import com.blockout.collector.acquisition.application.ProviderObservation;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
@@ -82,7 +83,7 @@ class LnvObservationReaderTest {
         .postPage(any(), any(), eq(StandardCharsets.UTF_8));
 
     // When
-    LnvAcquisition.Read<SportingObservation.Facts> read = resource.document(target, label);
+    LnvAcquisition.Detail read = resource.document(target, label);
 
     // Then
     assertThat(read).isNull();
@@ -100,7 +101,7 @@ class LnvObservationReaderTest {
     LnvObservationReader reader = documentReader(http);
 
     // When
-    LnvAcquisition.Read<byte[]> read = reader.image(image);
+    ProviderObservation<byte[]> read = reader.image(image);
 
     // Then
     assertThat(read.observation()).containsExactly(1, 2, 3);
@@ -119,7 +120,7 @@ class LnvObservationReaderTest {
     LnvObservationReader reader = documentReader(http);
 
     // When
-    LnvAcquisition.Read<byte[]> read = reader.image(image);
+    ProviderObservation<byte[]> read = reader.image(image);
 
     // Then
     assertThat(read).isNull();
@@ -370,7 +371,7 @@ class LnvObservationReaderTest {
             .build();
 
     // When
-    LnvAcquisition.Read<SportingObservation.Standings> read = resource.standings(target);
+    ProviderObservation<SportingObservation.Standings> read = resource.standings(target);
 
     // Then
     assertThat(read.observation().rows())
@@ -396,7 +397,7 @@ class LnvObservationReaderTest {
             .build();
 
     // When
-    LnvAcquisition.Read<SportingObservation.Facts> read = resource.detail(target);
+    LnvAcquisition.Detail read = resource.detail(target);
 
     // Then
     assertThat(read.complete()).isFalse();

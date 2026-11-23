@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.application.AcquisitionFailure;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderObservation;
 import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
@@ -84,28 +85,30 @@ public class FfvbObservationReader implements FfvbAcquisition {
   private final class SharedResource implements Resource {
     private final Instant htmlObservedAt;
     private final ProviderReadAttempt<FfvbPage.Publication> html;
-    private ProviderReadAttempt<Read<FfvbCalendarParser.Export>> export;
+    private ProviderReadAttempt<ProviderObservation<FfvbCalendarParser.Export>> export;
 
     /** {@inheritDoc} */
     @Override
-    public Read<SportingObservation.Calendar> calendar(CollectionBackend.Target target) {
+    public ProviderObservation<SportingObservation.Calendar> calendar(
+        CollectionBackend.Target target) {
       FfvbPage page = new FfvbPage(html.value(), scope(target));
       if (export == null) {
         export = ProviderReadAttempt.capture(() -> readExport(page));
       }
-      Read<FfvbCalendarParser.Export> csv = export.value();
-      return new Read<>(calendars.parse(csv.observation(), page), csv.observedAt());
+      ProviderObservation<FfvbCalendarParser.Export> csv = export.value();
+      return new ProviderObservation<>(calendars.parse(csv.observation(), page), csv.observedAt());
     }
 
     /** {@inheritDoc} */
     @Override
-    public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
+    public ProviderObservation<SportingObservation.Standings> standings(
+        CollectionBackend.Target target) {
       FfvbPage page = new FfvbPage(html.value(), scope(target));
-      return new Read<>(standings.parse(page), htmlObservedAt);
+      return new ProviderObservation<>(standings.parse(page), htmlObservedAt);
     }
   }
 
-  private Read<FfvbCalendarParser.Export> readExport(FfvbPage page) {
+  private ProviderObservation<FfvbCalendarParser.Export> readExport(FfvbPage page) {
     byte[] body;
     try {
       body = http.post(page.exportUrl(), page.exportFields(), StandardCharsets.UTF_8);
@@ -113,8 +116,7 @@ public class FfvbObservationReader implements FfvbAcquisition {
       throw readFailure(failure);
     }
     Instant observedAt = clock.instant();
-    return new Read<>(
-        calendars.decode(body, page.allReferences(), page.organizerReference()), observedAt);
+    return new ProviderObservation<>(calendars.decode(body, page), observedAt);
   }
 
   /**

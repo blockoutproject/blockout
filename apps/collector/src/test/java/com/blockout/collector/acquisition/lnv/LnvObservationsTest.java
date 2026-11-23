@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.lnv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.io.InputStream;
 import java.net.URI;
@@ -45,8 +46,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser(LnvPage.parse(bytes(page.html()), CALENDAR))
-            .parse("901", "902", "903", "2026/2027");
+        calendarParser(bytes(page.html())).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches())
@@ -77,8 +77,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser(LnvPage.parse(bytes(page.html()), CALENDAR))
-            .parse("901", "902", "903", "2026/2027");
+        calendarParser(bytes(page.html())).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().complete()).isFalse();
@@ -119,8 +118,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser(LnvPage.parse(bytes(html), CALENDAR))
-            .parse("901", "902", "903", "2026/2027");
+        calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().complete()).isTrue();
@@ -141,7 +139,7 @@ class LnvObservationsTest {
 
     // When
     SportingObservation.Facts facts =
-        new LnvCalendarParser(LnvPage.parse(bytes(html), CALENDAR))
+        calendarParser(bytes(html))
             .parse("901", "902", "903", "2026/2027")
             .calendar()
             .matches()
@@ -160,10 +158,7 @@ class LnvObservationsTest {
     String html = "<div id=Content_Main_903><span id=group_lbl_title>Alterna VOLSTAR</span></div>";
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                new LnvCalendarParser(LnvPage.parse(bytes(html), CALENDAR))
-                    .parse("901", "902", "903", "2026/2027"))
+    assertThatThrownBy(() -> calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -264,8 +259,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser(LnvPage.parse(bytes(html), CALENDAR))
-            .parse("901", "902", "903", "2026/2027");
+        calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
@@ -305,10 +299,7 @@ class LnvObservationsTest {
     byte[] page = bytes(html);
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                new LnvCalendarParser(LnvPage.parse(page, CALENDAR))
-                    .parse("901", "902", "903", "2026/2027"))
+    assertThatThrownBy(() -> calendarParser(page).parse("901", "902", "903", "2026/2027"))
         .isInstanceOf(LnvAcquisitionException.class)
         .hasMessage("LNV phase match dates contradict the season");
   }
@@ -332,7 +323,7 @@ class LnvObservationsTest {
 
     // When
     SportingObservation.Result result =
-        new LnvCalendarParser(LnvPage.parse(bytes(html), CALENDAR))
+        calendarParser(bytes(html))
             .parse("901", "902", "903", "2026/2027")
             .calendar()
             .matches()
@@ -423,9 +414,7 @@ class LnvObservationsTest {
     }
 
     // When
-    LnvCalendarParser.Read read =
-        new LnvCalendarParser(LnvPage.parse(html, CALENDAR))
-            .parse("901", "902", "903", "2026/2027");
+    LnvCalendarParser.Read read = calendarParser(html).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
@@ -449,6 +438,12 @@ class LnvObservationsTest {
     // When / Then
     assertThatThrownBy(() -> parser.parse(LnvPage.parse(html, CALENDAR), "903"))
         .isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  private LnvCalendarParser calendarParser(byte[] bytes) {
+    Document page = LnvPage.parse(bytes, CALENDAR);
+    return new LnvCalendarParser(
+        page, CALENDAR, ProviderReadAttempt.capture(() -> LnvPage.seasonHeading(page)));
   }
 
   /**

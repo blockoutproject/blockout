@@ -29,6 +29,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.message.StatusLine.StatusClass;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
@@ -155,7 +156,7 @@ public class AcquisitionConfiguration {
                 (response, entity, context) ->
                     context.setAttribute(
                         ProviderHttpClient.SUPPLIER_BODY,
-                        response.getCode() >= 200 && response.getCode() < 300));
+                        StatusClass.from(response.getCode()) == StatusClass.SUCCESSFUL));
     return client(
         "lnv",
         properties.lnvOrigins(),

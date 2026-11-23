@@ -49,6 +49,8 @@ Compare controlled 8- and 24-group selections with the same bodies, target order
 
 Use `FfvbObservationReaderIntegrationTest` and `LnvHttpCachingIntegrationTest` for loopback publication reads and later independent reads. Check that the FFVB export is interpreted again when a later passage obtains a new body, and that LNV fresh image reuse, a conditional 304 and a fresh 200 have distinct read evidence. Check that calendar and standings documents and FFVB export indexes stay within the lifetime of their shared resource. The LNV image cache has its own native origin-directed lifetime. These checks measure controlled work and source-read provenance.
 
+Check that FFVB export validation and submission use the same ordered form fields. A repeated active field refuses the export before POST. LNV document postbacks preserve repeated names in the provider's submitted order. Use `CollectPassageTest` to verify both publishers can submit a valid standings observation with its original read time and ordinal when calendar acquisition fails. Use `ProviderHttpClientIntegrationTest` to verify that request URIs with embedded credentials, a fragment or a missing scheme are refused before a network exchange.
+
 ### Source preparation and seasons
 
 Use controlled official-entry and catalog fixtures, the normal collector scheduler and generated consumers against isolated migrated PostgreSQL. Select supported reference formats through the [source policy](research.md#ffvb-source-patterns).

@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -328,7 +329,7 @@ public class CollectPassage {
       if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
         calendar(context, target, resource, ordinal);
       } else {
-        standings(context, target, resource, ordinal);
+        collectStandings(context, target, ordinal, resource::standings);
       }
     }
   }
@@ -353,14 +354,7 @@ public class CollectPassage {
       if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
         enrichment.calendar(target, resource, ordinal);
       } else {
-        LnvAcquisition.Read<SportingObservation.Standings> read;
-        try {
-          read = resource.standings(target);
-        } catch (RuntimeException failure) {
-          acquisitionFailed(context, target, ordinal, failure);
-          continue;
-        }
-        submitStandings(context, target, ordinal, read.observation(), read.observedAt());
+        collectStandings(context, target, ordinal, resource::standings);
       }
     }
   }
@@ -378,7 +372,7 @@ public class CollectPassage {
       CollectionBackend.Target target,
       FfvbAcquisition.Resource resource,
       long ordinal) {
-    FfvbAcquisition.Read<SportingObservation.Calendar> read;
+    ProviderObservation<SportingObservation.Calendar> read;
     try {
       read = resource.calendar(target);
     } catch (RuntimeException failure) {
@@ -447,17 +441,18 @@ public class CollectPassage {
    *
    * @param context admitted capability
    * @param target independently selected standings scope
-   * @param resource one shared read, independent of export success
    * @param ordinal order allocated before this resource was read
+   * @param readStandings reads the selected table from the provider's shared publication
    */
-  private void standings(
+  private void collectStandings(
       CollectorLifecycle.AdmittedCycle context,
       CollectionBackend.Target target,
-      FfvbAcquisition.Resource resource,
-      long ordinal) {
-    FfvbAcquisition.Read<SportingObservation.Standings> read;
+      long ordinal,
+      Function<CollectionBackend.Target, ProviderObservation<SportingObservation.Standings>>
+          readStandings) {
+    ProviderObservation<SportingObservation.Standings> read;
     try {
-      read = resource.standings(target);
+      read = readStandings.apply(target);
     } catch (RuntimeException failure) {
       acquisitionFailed(context, target, ordinal, failure);
       return;
@@ -751,7 +746,7 @@ public class CollectPassage {
         if (part > 0) {
           ordinal = context.nextReadOrdinal();
         }
-        LnvAcquisition.Read<SportingObservation.Facts> read;
+        LnvAcquisition.Detail read;
         try {
           read =
               switch (part) {
@@ -901,7 +896,7 @@ public class CollectPassage {
         return;
       }
       long ordinal = context.nextReadOrdinal();
-      LnvAcquisition.Read<byte[]> read;
+      ProviderObservation<byte[]> read;
       try {
         read = lnv.image(url);
       } catch (RuntimeException failure) {

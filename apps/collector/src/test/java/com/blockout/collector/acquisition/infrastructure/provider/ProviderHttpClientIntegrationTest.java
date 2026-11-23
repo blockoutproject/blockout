@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPOutputStream;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.RedirectException;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.ConnectionRequestTimeoutException;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -380,13 +380,39 @@ class ProviderHttpClientIntegrationTest {
     }
   }
 
-  @Test
-  @DisplayName("Returns a complete HTTP 400 body at the configured byte boundary")
-  void returnsBoundedBadRequestBody() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"application/pdf", "Application/Octet-Stream; charset=UTF-8"})
+  @DisplayName("Refuses declared binary content on page form reads")
+  void refusesBinaryPageForm(String contentType) throws Exception {
     // Given
     server.createContext(
         "/source",
         exchange -> {
+          try (exchange) {
+            exchange.getResponseHeaders().set("Content-Type", contentType);
+            exchange.sendResponseHeaders(200, 1);
+            exchange.getResponseBody().write(1);
+          }
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      URI url = origin.resolve("/source");
+
+      // When / Then
+      assertThatThrownBy(() -> client.postPage(url, List.of(), StandardCharsets.UTF_8))
+          .hasRootCauseMessage("Binary document bodies are not collection pages");
+      assertThat(client.post(url, List.of(), StandardCharsets.UTF_8)).containsExactly(1);
+    }
+  }
+
+  @Test
+  @DisplayName("Returns a complete HTTP 400 body at the configured byte boundary")
+  void returnsBoundedBadRequestBody() throws Exception {
+    // Given
+    AtomicReference<String> accept = new AtomicReference<>();
+    server.createContext(
+        "/source",
+        exchange -> {
+          accept.set(exchange.getRequestHeaders().getFirst("Accept"));
           exchange.sendResponseHeaders(400, 32);
           exchange.getResponseBody().write(new byte[32]);
           exchange.close();
@@ -394,11 +420,39 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       ProviderHttpClient.StatusResponse response =
-          client.readStatus(new HttpGet(origin.resolve("/source")), Set.of(200, 400));
+          client.readStatus(
+              origin.resolve("/source"),
+              List.of(new BasicHeader("Accept", "application/json")),
+              Set.of(200, 400));
 
       // Then
+      assertThat(accept).hasValue("application/json");
       assertThat(response.status()).isEqualTo(400);
       assertThat(response.body()).hasSize(32);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"http://demo@%s/source", "http://%s/source#fragment", "//%s/source"})
+  @DisplayName("Status reads refuse an unqualified original URI before network I/O")
+  void refusesUnqualifiedStatusRead(String rawUrl) throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    server.createContext(
+        "/source",
+        exchange -> {
+          try (exchange) {
+            requests.incrementAndGet();
+            exchange.sendResponseHeaders(200, -1);
+          }
+        });
+    URI url = URI.create(rawUrl.formatted(origin.getRawAuthority()));
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      // When / Then
+      assertThatThrownBy(() -> client.readStatus(url, List.of(), Set.of(200, 400)))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Unsupported provider origin");
+      assertThat(requests).hasValue(0);
     }
   }
 
@@ -416,7 +470,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When / Then
       assertThatThrownBy(
-              () -> client.readStatus(new HttpGet(origin.resolve("/source")), Set.of(200, 400)))
+              () -> client.readStatus(origin.resolve("/source"), List.of(), Set.of(200, 400)))
           .hasRootCauseMessage("Provider response exceeds the configured byte limit");
     }
   }

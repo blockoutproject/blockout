@@ -70,12 +70,12 @@ public class LnvDocumentReferences {
    * controls and HTML action resolution without executing scripts. An ordinary tab postback has no
    * clicked submit button; unrelated image-navigation buttons must not override its event.
    *
-   * @param document decoded match page with its qualified response URL
+   * @param document decoded match page
+   * @param page qualified response URL independently of the HTML base
    * @param label exact published Scoresheet or DataVolley label
    * @return source form, or null when that document tab is not published
    */
-  public Form form(Document document, String label) {
-    URI page = LnvPage.location(document);
+  public Form form(Document document, URI page, String label) {
     for (Element script : document.select("script")) {
       Matcher controls = TAB.matcher(script.data());
       while (controls.find()) {

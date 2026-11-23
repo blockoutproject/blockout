@@ -66,7 +66,7 @@ class LnvDocumentReferencesTest {
     assertThatThrownBy(
             () ->
                 references.form(
-                    LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), "Scoresheet"))
+                    LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "Scoresheet"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -101,7 +101,8 @@ class LnvDocumentReferencesTest {
     Document document = LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page);
 
     // When
-    LnvDocumentReferences.Form form = new LnvDocumentReferences().form(document, "Scoresheet");
+    LnvDocumentReferences.Form form =
+        new LnvDocumentReferences().form(document, page, "Scoresheet");
 
     // Then
     assertThat(form.fields())
@@ -150,7 +151,7 @@ class LnvDocumentReferencesTest {
     // When
     LnvDocumentReferences.Form form =
         new LnvDocumentReferences()
-            .form(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), "Scoresheet");
+            .form(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "Scoresheet");
 
     // Then
     assertThat(form.action()).isEqualTo(page);

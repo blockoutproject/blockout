@@ -107,7 +107,7 @@ The modular backend separates HTTP adaptation, application decisions and domain-
 
 The collector acquires/parses supplier material independently, then calls the ingestion API. It has no database credentials. PostgreSQL commits backend business changes atomically within the owning use case. Slow supplier/Auth0 calls occur outside SQL transactions; any result applied later must recheck the relevant current state and ownership. Domain plans choose concrete concurrency/version checks and duplicate semantics where required; F13 adds no universal operation ledger, lock service or recovery engine.
 
-F01 owns immutable provider-page observations and the page-reading port in collector application code. Discovery, qualification and FFVB/LNV readers consume the same value; the HTTP adapter supplies actual supplier-read/cache provenance, final URI, timestamps and ordinal. Result recording resolves one authorized cycle target and reuses its source attribution; result and image admission share bounded multi-pool selection while preserving role-specific checks, runtime/season fences and initial reconstruction.
+F01 owns the page-reading port in collector application code. Discovery, qualification and FFVB/LNV readers consume bounded content with the final URI and supplier-read provenance from the HTTP adapter. The acquisition owner records response time and the passage allocates logical order before the read. Result recording resolves one authorized cycle target and reuses its source attribution; result and image admission share bounded multi-pool selection while preserving role-specific checks, runtime/season fences and initial reconstruction.
 
 ### Application use-case families
 

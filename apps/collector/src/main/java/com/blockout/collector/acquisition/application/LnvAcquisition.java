@@ -27,7 +27,7 @@ public interface LnvAcquisition {
      * @return independently interpreted standings
      * @throws RuntimeException when source context or the official table cannot be interpreted
      */
-    Read<SportingObservation.Standings> standings(CollectionBackend.Target target);
+    ProviderObservation<SportingObservation.Standings> standings(CollectionBackend.Target target);
 
     /**
      * Interprets usable sporting details and retains partial-field evidence.
@@ -36,7 +36,7 @@ public interface LnvAcquisition {
      * @return independently interpreted sporting detail
      * @throws RuntimeException when the source contradicts the admitted match or is uninterpretable
      */
-    Read<SportingObservation.Facts> detail(CollectionBackend.Target target);
+    Detail detail(CollectionBackend.Target target);
 
     /**
      * Resolves a published document tab only within the admitted match context.
@@ -47,7 +47,7 @@ public interface LnvAcquisition {
      *     supplies no withdrawal of an accepted reference
      * @throws RuntimeException when the source contradicts the admitted context or cannot be read
      */
-    Read<SportingObservation.Facts> document(CollectionBackend.Target target, String label);
+    Detail document(CollectionBackend.Target target, String label);
   }
 
   /**
@@ -101,15 +101,15 @@ public interface LnvAcquisition {
    */
   DocumentIndexes documentIndexes(LongSupplier nextOrdinal);
 
-  /** One actual independently timestamped source read. */
-  record Read<T>(T observation, Instant observedAt, boolean complete) {
+  /** Match or document facts with their own acquisition completeness. */
+  record Detail(SportingObservation.Facts observation, Instant observedAt, boolean complete) {
     /**
      * Creates a fully usable independently interpreted observation.
      *
      * @param observation acquired facts
      * @param observedAt actual source completion time
      */
-    public Read(T observation, Instant observedAt) {
+    public Detail(SportingObservation.Facts observation, Instant observedAt) {
       this(observation, observedAt, true);
     }
   }
@@ -129,5 +129,5 @@ public interface LnvAcquisition {
    * @throws RuntimeException when the finite shared permit budget cannot be obtained
    * @throws UncheckedIOException when the bounded synchronous image read fails
    */
-  Read<byte[]> image(URI uri);
+  ProviderObservation<byte[]> image(URI uri);
 }

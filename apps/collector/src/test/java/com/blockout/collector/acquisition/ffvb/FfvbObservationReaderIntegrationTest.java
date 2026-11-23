@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderObservation;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionConfiguration;
@@ -22,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +38,7 @@ class FfvbObservationReaderIntegrationTest {
   private final Clock clock = mock(Clock.class);
   private final AtomicInteger htmlReads = new AtomicInteger();
   private final AtomicInteger exportReads = new AtomicInteger();
+  private final AtomicReference<String> submittedExport = new AtomicReference<>();
   private HttpServer server;
   private ProviderHttpClient http;
   private FfvbObservationReader reader;
@@ -68,7 +71,8 @@ class FfvbObservationReaderIntegrationTest {
         "/vbspo_calendrier_export.php",
         exchange -> {
           exportReads.incrementAndGet();
-          exchange.getRequestBody().readAllBytes();
+          submittedExport.set(
+              new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
           byte[] body = csv.getBytes(FfvbPage.CHARSET);
           exchange.sendResponseHeaders(exportStatus, body.length);
           try (exchange) {
@@ -173,7 +177,7 @@ class FfvbObservationReaderIntegrationTest {
     when(clock.instant()).thenReturn(HTML_TIME, EXPORT_TIME);
 
     // When
-    FfvbAcquisition.Read<SportingObservation.Calendar> result =
+    ProviderObservation<SportingObservation.Calendar> result =
         reader.read(reader.resourceUrl(target)).calendar(target);
 
     // Then
@@ -187,20 +191,24 @@ class FfvbObservationReaderIntegrationTest {
   @DisplayName("Reuses one HTML and export for different groups with original read times")
   void sharesGroupedResource() {
     // Given
-    html = groupedHtml();
+    html = groupedHtml().replace("</form>", "<input name=type value=OTHER disabled></form>");
     CollectionBackend.Target first = target("A", "02", "A");
     CollectionBackend.Target second = target("B", "02", "B");
     when(clock.instant()).thenReturn(HTML_TIME, EXPORT_TIME, HTML_TIME.plusSeconds(100));
 
     // When
     FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(first));
-    FfvbAcquisition.Read<SportingObservation.Calendar> firstCalendar = resource.calendar(first);
-    FfvbAcquisition.Read<SportingObservation.Calendar> secondCalendar = resource.calendar(second);
-    FfvbAcquisition.Read<SportingObservation.Standings> standings = resource.standings(first);
+    ProviderObservation<SportingObservation.Calendar> firstCalendar = resource.calendar(first);
+    ProviderObservation<SportingObservation.Calendar> secondCalendar = resource.calendar(second);
+    ProviderObservation<SportingObservation.Standings> standings = resource.standings(first);
 
     // Then
     assertThat(htmlReads).hasValue(1);
     assertThat(exportReads).hasValue(1);
+    assertThat(submittedExport)
+        .hasValue(
+            "cal_saison=2026%2F2027&cal_codent=ABCCS&cal_codpoule=&cal_coddiv=TEST"
+                + "&cal_codtour=02&typ_edition=E&type=RES&rech_equipe=");
     assertThat(firstCalendar.observation().matches())
         .singleElement()
         .satisfies(match -> assertThat(match.nativeMatchReference()).isEqualTo("TST001"));
@@ -210,6 +218,20 @@ class FfvbObservationReaderIntegrationTest {
     assertThat(firstCalendar.observedAt()).isEqualTo(EXPORT_TIME);
     assertThat(secondCalendar.observedAt()).isEqualTo(EXPORT_TIME);
     assertThat(standings.observedAt()).isEqualTo(HTML_TIME);
+  }
+
+  @Test
+  @DisplayName("Refuses an ambiguous submitted export field before posting")
+  void refusesDuplicateExportField() {
+    // Given
+    html = html.replace("</form>", "<input name=cal_codent value=OTHER></form>");
+    CollectionBackend.Target target = target("TST", null, null);
+    when(clock.instant()).thenReturn(HTML_TIME);
+    FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(target));
+
+    // When / Then
+    assertThatThrownBy(() -> resource.calendar(target)).isInstanceOf(IllegalStateException.class);
+    assertThat(exportReads).hasValue(0);
   }
 
   @Test
@@ -274,12 +296,12 @@ class FfvbObservationReaderIntegrationTest {
     CollectionBackend.Target target = target("TST", null, null);
     when(clock.instant())
         .thenReturn(HTML_TIME, EXPORT_TIME, HTML_TIME.plusSeconds(60), EXPORT_TIME.plusSeconds(60));
-    FfvbAcquisition.Read<SportingObservation.Calendar> first =
+    ProviderObservation<SportingObservation.Calendar> first =
         reader.read(reader.resourceUrl(target)).calendar(target);
     csv = csv.replace("Équipe A; espoirs", "Updated team");
 
     // When
-    FfvbAcquisition.Read<SportingObservation.Calendar> next =
+    ProviderObservation<SportingObservation.Calendar> next =
         reader.read(reader.resourceUrl(target)).calendar(target);
 
     // Then

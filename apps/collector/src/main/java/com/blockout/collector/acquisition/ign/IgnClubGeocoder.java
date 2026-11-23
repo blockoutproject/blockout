@@ -7,9 +7,11 @@ import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -23,6 +25,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class IgnClubGeocoder implements ClubGeocoder {
   private static final URI SEARCH = URI.create("https://data.geopf.fr/geocodage/search");
+  private static final List<Header> SEARCH_HEADERS =
+      List.of(
+          new BasicHeader("Cache-Control", "no-store"),
+          new BasicHeader("Accept", "application/json"));
   private static final Set<Integer> ACCEPTED_STATUSES = Set.of(200, 400);
   private static final JsonMapper JSON = JsonMapper.builder().build();
   private final ProviderHttpClient http;
@@ -84,10 +90,7 @@ public class IgnClubGeocoder implements ClubGeocoder {
       if (postalCode != null) {
         uri.setParameter("postcode", postalCode);
       }
-      HttpGet request = new HttpGet(uri.build());
-      request.setHeader("Cache-Control", "no-store");
-      request.setHeader("Accept", "application/json");
-      return http.readStatus(request, ACCEPTED_STATUSES);
+      return http.readStatus(uri.build(), SEARCH_HEADERS, ACCEPTED_STATUSES);
     } catch (URISyntaxException invalid) {
       throw invalid();
     }

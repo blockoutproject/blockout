@@ -48,19 +48,20 @@ public class FfvbCalendarParser {
    *
    * @param body complete bounded Windows-1252 export
    * @param page positively qualified full calendar context
-   * @param scope expected native identity
    * @return independently usable matches and attributable failures, never synthesized absence
    * @throws FfvbAcquisitionException for unreadable structure or unqualified overall context
    */
-  public SportingObservation.Calendar parse(byte[] body, FfvbPage page, FfvbScope scope) {
-    return parse(decode(body, page.allReferences(), scope.organizerReference()), page);
+  public SportingObservation.Calendar parse(byte[] body, FfvbPage page) {
+    return parse(decode(body, page), page);
   }
 
   /**
    * Indexes qualified match rows once, retaining CSV-wide diagnostics in published order. A
    * deferred export refusal lets each HTML scope retain its own structural outcome.
    */
-  Export decode(byte[] body, Set<String> publishedReferences, String organizerReference) {
+  Export decode(byte[] body, FfvbPage page) {
+    Set<String> publishedReferences = page.allReferences();
+    String organizerReference = page.organizerReference();
     Map<String, CSVRecord> selected = new LinkedHashMap<>();
     Set<String> contradictions = new LinkedHashSet<>();
     Set<String> malformed = new LinkedHashSet<>();
