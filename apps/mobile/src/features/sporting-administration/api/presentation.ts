@@ -2,13 +2,9 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  skipToken,
   type QueryKey,
 } from "@tanstack/react-query";
 import {
-  createDivision,
-  getGetDivisionQueryKey,
-  getCreateDivisionMutationKey,
   getSetClubPresentationMutationKey,
   getSetDivisionPresentationMutationKey,
   getSetPoolPresentationMutationKey,
@@ -30,52 +26,26 @@ import {
   invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
-import { createPresentationLogoQueryOptions } from "./presentation-logo-query";
 import {
   toClubPresentationBody,
-  toCreateDivisionBody,
-  toDivisionPresentationBody,
+  toDivisionBody,
   toPoolPresentationBody,
   toTeamPresentationBody,
 } from "./presentation-request";
 import { createSportingAdministrationQueries } from "./sporting-administration-queries";
 
 /** Stable original target; no identity, classification or activity can be changed by this editor. */
-export type PresentationTarget =
-  | {
-      kind: "club" | "team" | "pool" | "division";
-      id: string;
-    }
-  | {
-      kind: "division-creation";
-      id?: never;
-    };
+export interface PresentationTarget {
+  kind: "club" | "team" | "pool" | "division";
+  id: string;
+}
 
 /** Validated generated projections retain their resource-specific meaning at the form boundary. */
 export type Presentation =
-  | {
-      kind: "club" | "team";
-      data: SportingPresentationResponse;
-    }
-  | {
-      kind: "pool";
-      data: PoolPresentationResponse;
-    }
-  | {
-      kind: "division";
-      data: DivisionResponse;
-    }
-  | {
-      kind: "division-creation";
-    };
+  | { kind: "club" | "team"; data: SportingPresentationResponse }
+  | { kind: "pool"; data: PoolPresentationResponse }
+  | { kind: "division"; data: DivisionResponse };
 
-/** A confirmed write always returns one resource. */
-type SavedPresentation = Exclude<
-  Presentation,
-  {
-    kind: "division-creation";
-  }
->;
 /** Raw generated response families remain canonical regardless of the editor observing them. */
 type PresentationData =
   SportingPresentationResponse | PoolPresentationResponse | DivisionResponse;
@@ -100,15 +70,15 @@ function toPresentation(
 /** Original-target reads, single atomic writes and current-session cache admission; never replays a mutation. */
 export function usePresentation(target: PresentationTarget, enabled: boolean) {
   const authority = useSportingAuthority(
-    target.kind === "division-creation" || target.kind === "division"
-      ? "divisions"
-      : "presentation",
+    target.kind === "division" ? "divisions" : "presentation",
   );
   const { session } = authority;
   const client = useQueryClient();
+  const canRead =
+    enabled && authority.enabled && session.status === "authenticated";
   const queries = createSportingAdministrationQueries({
     ...authority,
-    enabled: enabled && authority.enabled && session.status === "authenticated",
+    enabled: canRead,
   });
   let options;
   if (target.kind === "club") {
@@ -117,10 +87,10 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     options = queries.teamPresentation(target.id);
   } else if (target.kind === "pool") {
     options = queries.poolPresentation(target.id);
-  } else if (target.kind === "division") {
+  } else {
     options = queries.division(target.id);
   }
-  const queryKey = options?.queryKey ?? getCreateDivisionMutationKey();
+  const { queryKey } = options;
   const query = useQuery<
     PresentationData | null,
     Error,
@@ -128,13 +98,9 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     QueryKey
   >({
     queryKey,
-    queryFn: options?.queryFn ?? skipToken,
+    queryFn: options.queryFn,
     gcTime: 0,
-    enabled:
-      target.kind !== "division-creation" &&
-      enabled &&
-      authority.enabled &&
-      session.status === "authenticated",
+    enabled: canRead,
     select: (data) => toPresentation(target, data),
   });
 
@@ -152,25 +118,15 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     operationKey = getSetTeamPresentationMutationKey();
   } else if (target.kind === "pool") {
     operationKey = getSetPoolPresentationMutationKey();
-  } else if (target.kind === "division") {
-    operationKey = getSetDivisionPresentationMutationKey();
   } else {
-    operationKey = getCreateDivisionMutationKey();
+    operationKey = getSetDivisionPresentationMutationKey();
   }
   const save = useMutation({
     mutationKey: [...queryKey, ...operationKey],
-    mutationFn: async (
-      values: PresentationValues,
-    ): Promise<SavedPresentation> => {
+    mutationFn: async (values: PresentationValues): Promise<Presentation> => {
       const options = await authority.request();
-      let accepted: SavedPresentation;
+      let accepted: Presentation;
       switch (target.kind) {
-        case "division-creation":
-          accepted = {
-            kind: "division",
-            data: await createDivision(toCreateDivisionBody(values), options),
-          };
-          break;
         case "club":
           accepted = {
             kind: "club",
@@ -206,7 +162,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "division",
             data: await setDivisionPresentation(
               target.id,
-              toDivisionPresentationBody(values),
+              toDivisionBody(values),
               options,
             ),
           };
@@ -216,11 +172,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     },
     onSuccess: (accepted) => {
       // An acknowledged save cannot restore data withdrawn by a current refusal.
-      const acceptedKey =
-        target.kind === "division-creation"
-          ? getGetDivisionQueryKey(accepted.data.id)
-          : queryKey;
-      client.setQueryData<PresentationData | null>(acceptedKey, (current) =>
+      client.setQueryData<PresentationData | null>(queryKey, (current) =>
         current === null ? undefined : accepted.data,
       );
       if (target.kind === "division") {
@@ -229,29 +181,5 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     },
     onSettled: invalidateReads,
   });
-  return { query, save, queryKey };
-}
-
-/** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */
-export function usePresentationLogo(
-  target: PresentationTarget,
-  selection: "effective" | "automatic",
-  enabled: boolean,
-) {
-  const authority = useSportingAuthority(
-    target.kind === "division" ? "divisions" : "presentation",
-  );
-  return useQuery(
-    createPresentationLogoQueryOptions(
-      {
-        ...authority,
-        enabled:
-          enabled &&
-          authority.enabled &&
-          authority.session.status === "authenticated",
-      },
-      target,
-      selection,
-    ),
-  );
+  return { query, save };
 }

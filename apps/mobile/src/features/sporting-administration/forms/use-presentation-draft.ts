@@ -18,11 +18,13 @@ interface DraftState {
 
 /** Owns a mounted draft and loans a submitted file until the native upload settles. */
 export function usePresentationDraft(
-  presentation: Presentation | null | undefined,
+  presentation?: Presentation | null,
+  defaultValues?: PresentationValues,
 ) {
   const [state, update] = useState<DraftState>({});
   const form = useForm<PresentationValues>({
     resolver: zodResolver(presentationSchema),
+    defaultValues,
   });
   const uploading = useRef<File | undefined>(undefined);
   const released = useRef(false);

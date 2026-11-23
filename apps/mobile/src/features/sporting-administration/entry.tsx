@@ -8,7 +8,7 @@ import type { PresentationTarget } from "./api/presentation";
 
 /** Resource actions can compose this entry without importing the editor or duplicating F12's permission rules. */
 export interface PresentationEntryProps {
-  target: Exclude<PresentationTarget, { kind: "division-creation" }>;
+  target: PresentationTarget;
 }
 
 /** Discreet contextual editor; route admission and server authorization remain independently enforced. */

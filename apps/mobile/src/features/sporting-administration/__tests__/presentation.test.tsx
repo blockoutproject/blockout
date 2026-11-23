@@ -66,6 +66,7 @@ import {
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
 import { PresentationScreen } from "../screens/presentation-screen";
+import { CreateDivisionScreen } from "../screens/create-division-screen";
 
 jest.mock(
   "react-native-safe-area-context",
@@ -274,11 +275,11 @@ async function renderEditor(
     index: () => (
       <>
         {peers}
-        <PresentationScreen
-          target={
-            kind === "division-creation" ? { kind } : { kind, id: resourceId }
-          }
-        />
+        {kind === "division-creation" ? (
+          <CreateDivisionScreen />
+        ) : (
+          <PresentationScreen target={{ kind, id: resourceId }} />
+        )}
       </>
     ),
   });
@@ -2070,10 +2071,15 @@ it("opens without a catalogue read and directly creates an active division with 
 });
 
 it.each([
-  { type: "conflict", feedback: "Ce nom de division est déjà utilisé." },
+  {
+    status: 409,
+    type: "conflict",
+    feedback: "Ce nom de division est déjà utilisé.",
+  },
+  { status: 503, type: "service-unavailable", feedback: TECHNICAL_ERROR },
 ])(
-  "retains creation input after a server $type without proposing an unavailable reread",
-  async ({ type, feedback }) => {
+  "retains creation input after HTTP $status without proposing an unavailable reread",
+  async ({ status, type, feedback }) => {
     // Given
     permissions = { manageDivisionLifecycle: true };
     stored = { items: [] };
@@ -2083,10 +2089,10 @@ it.each([
             json(
               {
                 type: `urn:blockout:problem:${type}`,
-                title: "Conflict",
-                status: 409,
+                title: "Creation refused",
+                status,
               },
-              409,
+              status,
             ),
           )
         : respond(url, options),
@@ -2415,44 +2421,79 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
   ).not.toBeOnTheScreen();
 });
 
-it("keeps a sent logo until upload settlement after session invalidation", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderEditor();
-  await screen.findByDisplayValue("Current name");
-  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
-    canceled: false,
-    assets: [
-      { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
-    ],
-  });
-  await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("image", { name: "Miniature : Logo" });
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PATCH" ? response.promise : respond(url, options),
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await waitFor(() =>
+it.each([
+  { kind: "team", method: "PATCH" },
+  { kind: "division-creation", method: "POST" },
+] as const)(
+  "keeps a sent logo until $method settles after logout",
+  async ({ kind, method }) => {
+    // Given
+    const user = userEvent.setup();
+    permissions = {
+      manageSportingPresentation: true,
+      manageDivisionLifecycle: true,
+    };
+    await renderEditor(kind);
+    const originalClient = client;
+    const created = {
+      id: resourceId,
+      name: "New division",
+      color: "#245FD8",
+      gradient: null,
+      logo,
+      active: true,
+    };
+    if (kind === "division-creation") {
+      await user.type(
+        await screen.findByLabelText("Nom de la division"),
+        created.name,
+      );
+    } else {
+      await screen.findByDisplayValue("Current name");
+    }
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+      canceled: false,
+      assets: [
+        { uri: "file:///cache/ImagePicker/source.png", width: 120, height: 60 },
+      ],
+    });
+    await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+    await act(nativeImageChoiceAction("Choisir un logo"));
+    await screen.findByRole("image", { name: "Miniature : Logo" });
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === method ? response.promise : respond(url, options),
+    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByRole("button", { name: "Enregistrer", busy: true });
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Quitter la session" }),
+    );
+    expect(mockFile.delete).not.toHaveBeenCalled();
+    await act(async () =>
+      response.resolve(
+        kind === "division-creation" ? json(created, 201) : json(initial),
+      ),
+    );
+
+    // Then
+    await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+    expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
     expect(
-      mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
-    ).toBe(true),
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-
-  // Then
-  expect(mockFile.delete).not.toHaveBeenCalled();
-
-  // When
-  await act(async () => response.resolve(json(initial)));
-
-  // Then
-  await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
-  expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
-});
+      mockFetch.mock.calls.filter(([, options]) => options?.method === method),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "Voir les divisions" }),
+    ).not.toBeOnTheScreen();
+    if (kind === "division-creation") {
+      expect(
+        originalClient.getQueryData(getGetDivisionQueryKey(resourceId)),
+      ).toBeUndefined();
+    }
+  },
+);
 
 it("deletes a prepared logo completed after its form unmounts", async () => {
   // Given
@@ -2684,44 +2725,63 @@ it.each([200, 503])(
   },
 );
 
-it("keeps the shared division read authorized when creation loses its separate lifecycle grant", async () => {
+it("keeps catalogue access and the dirty creation draft when a delayed 201 follows grant revocation", async () => {
   // Given
   permissions = {
     manageDivisionLifecycle: true,
     manageSportingPresentation: true,
   };
   stored = { items: [] };
+  const created = {
+    id: resourceId,
+    name: "New division",
+    color: "#245FD8",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  const creation = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST" ? creation.promise : respond(url, options),
+  );
   const user = userEvent.setup();
   await renderEditor("division-creation", <DivisionListObserver />);
-  await screen.findByLabelText("Nom de la division");
-  permissions = { manageSportingPresentation: true };
+  await user.type(
+    await screen.findByLabelText("Nom de la division"),
+    created.name,
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
   // When
+  permissions = { manageSportingPresentation: true };
   await user.press(screen.getByRole("button", { name: "Refresh permissions" }));
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(screen.queryByLabelText("Nom de la division")).not.toBeOnTheScreen();
-  stored = {
-    items: [
-      {
-        id: resourceId,
-
-        name: "Current division",
-        color: "#123456",
-        gradient: null,
-        logo,
-        active: true,
-      },
-    ],
-  };
-  await user.press(screen.getByRole("button", { name: "Refresh divisions" }));
+  stored = { items: [created] };
+  await act(async () => creation.resolve(json(created, 201)));
 
   // Then
   expect(
-    await screen.findByText("Known divisions: Current division"),
+    await screen.findByText("Known divisions: New division"),
   ).toBeOnTheScreen();
   expect(
+    client.getQueryData(getGetDivisionQueryKey(resourceId)),
+  ).toBeUndefined();
+  permissions = {
+    manageSportingPresentation: true,
+    manageDivisionLifecycle: true,
+  };
+  await user.press(screen.getByRole("button", { name: "Refresh permissions" }));
+  expect(await screen.findByDisplayValue(created.name)).toBeOnTheScreen();
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Voir les divisions" }),
+  ).not.toBeOnTheScreen();
+  expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(0);
+  ).toHaveLength(1);
 });
 
 it("keeps a fresh editor usable when an abandoned save fails later", async () => {

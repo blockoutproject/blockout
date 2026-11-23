@@ -34,7 +34,7 @@ import { DivisionsLoading } from "../components/divisions-loading";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useDivisions } from "../api/classification";
-import { usePresentationLogo } from "../api/presentation";
+import { usePresentationLogo } from "../api/presentation-logo-query";
 import { DivisionPaint } from "@/features/sporting/components/division-paint";
 import { SportingMedia } from "@/features/sporting/components/sporting-media";
 
@@ -306,13 +306,13 @@ function DivisionCard({
       <View style={styles.artwork}>
         <DivisionPaint division={division} />
         <SportingMedia
-          key={artwork.dataUpdatedAt}
+          key={artwork?.dataUpdatedAt}
           identity={division}
           kind="division"
           size={52}
-          uri={artwork.data ?? undefined}
-          loading={!!division.logo.effectiveUrl && artwork.isLoading}
-          error={!!division.logo.effectiveUrl && artwork.isError}
+          uri={artwork?.data ?? undefined}
+          loading={!!division.logo.effectiveUrl && artwork?.isLoading}
+          error={!!division.logo.effectiveUrl && artwork?.isError}
         />
       </View>
       <View style={styles.identity}>

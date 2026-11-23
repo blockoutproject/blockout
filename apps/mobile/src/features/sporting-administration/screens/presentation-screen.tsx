@@ -1,13 +1,14 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import {
-  getGetClubLogoQueryKey,
-  getGetDivisionLogoQueryKey,
-  getGetTeamLogoQueryKey,
-} from "../../../../.generated/mobile";
+import { presentationLogoKey } from "../api/presentation-logo-query";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import type { useActionFeedback } from "@/shared/components/action-feedback";
+import type { ImageSelection } from "@/shared/images/use-image-selection";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
+import { useDivisionActivity } from "../api/classification";
+import { DivisionActivityAction } from "../components/division-activity-action";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -24,6 +25,7 @@ import {
   type Presentation,
   type PresentationTarget,
 } from "../api/presentation";
+import { presentationValues } from "../forms/presentation-values";
 import { PresentationForm } from "../forms/presentation-form";
 import { usePresentationDraft } from "../forms/use-presentation-draft";
 
@@ -55,43 +57,16 @@ function PresentationScreenContent({
   const ordinary = useOrdinaryRequest();
   const consultation = useConsultationQueries();
 
-  /** Selects the exact existing binary cache owner for refresh after a presentation refresh. */
-  function getLogoKey() {
-    if (target.kind === "team") {
-      return getGetTeamLogoQueryKey(target.id);
-    } else if (target.kind === "club") {
-      return getGetClubLogoQueryKey(target.id);
-    } else if (target.kind === "division") {
-      return getGetDivisionLogoQueryKey(target.id);
-    }
-    return ["presentation-logo-unavailable", target.kind];
-  }
-
-  const logoKey = getLogoKey();
-
-  /** Keeps permission to read a division distinct from permission to edit its presentation. */
-  function presentationCapabilities() {
-    const canManage =
-      target.kind === "division-creation"
-        ? permissions?.manageDivisionLifecycle === true
-        : permissions?.manageSportingPresentation === true;
-    const canRead =
-      canManage ||
-      (target.kind === "division" &&
-        permissions?.manageDivisionLifecycle === true);
-    return { canManage, canRead };
-  }
-
-  const { canManage, canRead } = presentationCapabilities();
+  const canManage = permissions?.manageSportingPresentation === true;
+  const canRead =
+    canManage ||
+    (target.kind === "division" &&
+      permissions?.manageDivisionLifecycle === true);
   const editing = usePresentation(target, canRead);
-  const presentation: Presentation | null | undefined =
-    sessionStatus !== "authenticated"
-      ? undefined
-      : target.kind === "division-creation"
-        ? canRead
-          ? { kind: "division-creation" }
-          : undefined
-        : editing.query.data;
+  const presentation =
+    sessionStatus === "authenticated" ? editing.query.data : undefined;
+  const activity = useDivisionActivity(target.id);
+  const confirmAction = useActionConfirmation();
   const editor = usePresentationDraft(presentation);
   const baseline = editor.state.baseline;
   const publicContextEnabled =
@@ -99,11 +74,11 @@ function PresentationScreenContent({
   const [teamContext, poolContext] = useQueries({
     queries: [
       {
-        ...consultation.team(target.id ?? ""),
+        ...consultation.team(target.id),
         enabled: publicContextEnabled && target.kind === "team",
       },
       {
-        ...consultation.pool(target.id ?? ""),
+        ...consultation.pool(target.id),
         enabled: publicContextEnabled && target.kind === "pool",
       },
     ],
@@ -127,11 +102,9 @@ function PresentationScreenContent({
       ? target.kind
       : undefined;
 
-  /** Names creation separately from editing the addressed sporting resource. */
+  /** Names the addressed sporting resource. */
   function getTitle() {
-    if (target.kind === "division-creation") {
-      return "Créer une division";
-    } else if (target.kind === "team") {
+    if (target.kind === "team") {
       return "Modifier l’équipe";
     } else if (target.kind === "club") {
       return "Modifier le club";
@@ -153,24 +126,17 @@ function PresentationScreenContent({
       return;
     }
     const result = await editing.query.refetch();
-    if (result.isError) {
-      return;
-    }
-    if (editing.save.isPending) {
+    if (result.isError || editing.save.isPending || target.kind === "pool") {
       return;
     }
     await client.refetchQueries(
-      { queryKey: logoKey, type: "active" },
+      { queryKey: presentationLogoKey(target.kind, target.id), type: "active" },
       { cancelRefetch: false },
     );
   }
 
   const requiredRead =
-    account.isPending ||
-    hasReadError(account) ||
-    target.kind === "division-creation"
-      ? account
-      : editing.query;
+    account.isPending || hasReadError(account) ? account : editing.query;
   const blocked =
     sessionStatus !== "authenticated" ||
     !canRead ||
@@ -180,6 +146,72 @@ function PresentationScreenContent({
     sessionStatus === "restoring" ||
     (!hasReadError(requiredRead) && requiredRead.isLoading);
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
+
+  /** Keeps the original division's independent command after the presentation save. */
+  function renderActivity(
+    imageSelection: ImageSelection,
+    feedback: ReturnType<typeof useActionFeedback>,
+  ) {
+    if (
+      baseline?.kind !== "division" ||
+      activity.authority.permissions?.manageDivisionLifecycle !== true
+    ) {
+      return undefined;
+    }
+    const division = baseline.data;
+
+    /** Confirms the independent activity change without consuming edits to the presentation. */
+    async function changeActivity() {
+      if (
+        imageSelection.isPending() ||
+        editing.save.isPending ||
+        activity.save.isPending ||
+        editing.query.data === null ||
+        !activity.authority.enabled
+      ) {
+        return;
+      }
+      const confirmed = await confirmAction({
+        title: `${division.active ? "Désactiver" : "Réactiver"} la division ?`,
+        message: division.active
+          ? "Les poules, équipes et matchs seront masqués sans effacer leur historique. La collecte s’arrêtera selon ses règles habituelles."
+          : "Seule l’inactivité sera levée. Les autres restrictions de visibilité et de collecte restent applicables.",
+        confirmLabel: division.active ? "Désactiver" : "Réactiver",
+      });
+      if (!confirmed || imageSelection.isPending()) {
+        return;
+      }
+      try {
+        const attempt = activity.save.mutateAsync({ active: !division.active });
+        editor.update({ ...editor.state, feedback: undefined });
+        feedback.clear();
+        const response = await attempt;
+        const accepted: Presentation = { kind: "division", data: response };
+        editor.update({
+          baseline: accepted,
+          feedback: response.active
+            ? "Division réactivée. Les autres restrictions restent applicables."
+            : "Division désactivée. L’historique est conservé.",
+        });
+        editor.reset(presentationValues(accepted), true);
+      } catch {
+        feedback.error();
+      }
+    }
+
+    return (
+      <DivisionActivityAction
+        division={division}
+        executing={activity.save.isPending}
+        disabled={
+          imageSelection.pending ||
+          editing.save.isPending ||
+          editing.query.data === null
+        }
+        onPress={() => void changeActivity()}
+      />
+    );
+  }
 
   return (
     <Page
@@ -202,17 +234,11 @@ function PresentationScreenContent({
     >
       <FormScrollView
         refreshControl={
-          target.kind !== "division-creation" ? (
-            <DataRefreshControl
-              enabled={
-                !blocked &&
-                sessionStatus === "authenticated" &&
-                !editing.save.isPending
-              }
-              fetching={editing.query.isFetching}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            enabled={!blocked && !editing.save.isPending}
+            fetching={editing.query.isFetching}
+            onRefresh={refresh}
+          />
         }
       >
         {blocked && (
@@ -239,9 +265,12 @@ function PresentationScreenContent({
         >
           {baseline && (
             <PresentationForm
-              presentation={presentation ?? baseline}
-              target={target}
-              editing={editing}
+              kind={target.kind}
+              logoTarget={editing.query.data === null ? undefined : target}
+              onSave={editing.save.mutateAsync}
+              saving={editing.save.isPending}
+              activityPending={activity.save.isPending}
+              afterSave={renderActivity}
               editor={editor}
               disabled={blocked || !canManage || editing.query.data === null}
               seasonLabel={seasonLabel}
