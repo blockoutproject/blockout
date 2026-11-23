@@ -144,7 +144,6 @@ public class PushDeliveryConfiguration {
    * @param executor bounded single-project worker
    * @param scheduler volatile single receipt observation
    * @param clock application time for the delayed observation
-   * @param properties explicit environment transport activation
    * @return after-commit event consumer, without a durable queue
    */
   @Bean
@@ -155,16 +154,8 @@ public class PushDeliveryConfiguration {
       PushProvider provider,
       @Qualifier("pushExecutor") ThreadPoolTaskExecutor executor,
       @Qualifier("pushReceiptScheduler") ThreadPoolTaskScheduler scheduler,
-      Clock clock,
-      PushProperties properties) {
+      Clock clock) {
     return new DeliverPush(
-        eligibility,
-        subscriptions,
-        admission,
-        provider,
-        executor,
-        scheduler,
-        clock,
-        properties.enabled());
+        eligibility, subscriptions, admission, provider, executor, scheduler, clock);
   }
 }

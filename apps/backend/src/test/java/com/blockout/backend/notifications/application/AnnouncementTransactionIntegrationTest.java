@@ -79,6 +79,7 @@ class AnnouncementTransactionIntegrationTest {
   private static final Instant ORIGIN = Instant.parse("2026-10-24T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private ProcessResultAnnouncement processor;
+  @Autowired private AfterCommitAnnouncements handoff;
   @Autowired private NotificationStore notifications;
   @Autowired private EntityManager entities;
   @Autowired private AccountAccess accounts;
@@ -213,7 +214,7 @@ class AnnouncementTransactionIntegrationTest {
               sql.update(
                   "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
                   MATCH);
-              processor.process(transition(MATCH));
+              handoff.submit(processor.process(transition(MATCH)));
             });
 
     // Then

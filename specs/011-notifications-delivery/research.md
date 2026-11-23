@@ -29,7 +29,8 @@ deployment with push disabled publishes the allocations with no destinations and
 
 The `DeliverPush` consumer handles the immutable event through Spring’s
 `@TransactionalEventListener(AFTER_COMMIT)` with highest precedence and its safe handoff failure
-boundary. No wrapper event or republication stage is needed. Java 25 `Gatherers.windowFixed` owns
+boundary. It returns immediately when the captured destination map is empty. No wrapper event or
+republication stage is needed. Java 25 `Gatherers.windowFixed` owns
 ordered send/projection batching. `ReadPushEligibility`
 uses the existing current inbox/F03/F08 projection and F06 current-follow API in a short read-only
 transaction. It requires a current qualifying follow for the selected account, without captured

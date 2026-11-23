@@ -26,7 +26,7 @@ interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntit
         p.accountId, NEW com.blockout.backend.notifications.application.PushSubscriptionStore$Target(
           p.id, p.revision, p.expoPushToken))
       FROM PushSubscriptionEntity p
-      WHERE CAST(SQL('? = ANY(CAST(? AS uuid[]))', p.accountId, :accountIds) AS Boolean) = TRUE
+      WHERE CAST(SQL('? = ANY(?)', p.accountId, :accountIds) AS Boolean)
       """)
   List<AccountTarget> targets(UUID[] accountIds);
 

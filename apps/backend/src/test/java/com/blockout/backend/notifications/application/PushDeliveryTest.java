@@ -52,8 +52,7 @@ class PushDeliveryTest {
           provider,
           executor,
           scheduler,
-          Clock.fixed(NOW, ZoneOffset.UTC),
-          true);
+          Clock.fixed(NOW, ZoneOffset.UTC));
   private final Target target = new Target(SUBSCRIPTION_ID, 7, "ExponentPushToken[synthetic]");
   private final Entry created =
       new Entry(

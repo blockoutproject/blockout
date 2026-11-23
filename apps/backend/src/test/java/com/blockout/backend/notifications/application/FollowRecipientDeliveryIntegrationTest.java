@@ -180,9 +180,7 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
         .containsExactlyInAnyOrder(FOLLOWER, OTHER);
     Ready captured = events.stream(Ready.class).findFirst().orElseThrow();
-    assertThat(captured.targets().entrySet())
-        .filteredOn(targets -> !targets.getValue().isEmpty())
-        .containsExactly(entry(FOLLOWER, List.of(rotated)));
+    assertThat(captured.targets()).containsExactly(entry(FOLLOWER, List.of(rotated)));
     ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
     verify(provider).send(sent.capture());
     assertThat(sent.getValue())
