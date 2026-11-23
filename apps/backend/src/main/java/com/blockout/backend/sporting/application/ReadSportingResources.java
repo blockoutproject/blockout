@@ -6,6 +6,7 @@ import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
+import com.blockout.backend.sporting.application.ConsultationStore.MatchDetailInput;
 import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchDetails;
@@ -237,7 +238,7 @@ public class ReadSportingResources {
   }
 
   /**
-   * Reads current dated match facts without private source references.
+   * Composes current dated match facts and actions within one admitted sporting snapshot.
    *
    * @param id exact encounter identity
    * @return permitted detail with independent freshness
@@ -245,11 +246,15 @@ public class ReadSportingResources {
    */
   public ConsultationViews.MatchDetail match(UUID id) {
     Instant evaluatedAt = clock.instant();
-    owners.publicMatch(id).orElseThrow(SportingResourceNotFoundException::new);
-    MatchInput input = reads.matches(Set.of(id)).get(id);
-    MatchDetails details = facts.matchDetails(id);
+    owners
+        .visibility(Kind.MATCH, id)
+        .filter(SportingVisibility::viewable)
+        .orElseThrow(SportingResourceNotFoundException::new);
+    MatchDetailInput input =
+        reads.matchDetail(id).orElseThrow(SportingResourceNotFoundException::new);
+    MatchDetails details = input.details();
     return new ConsultationViews.MatchDetail(
-        composeMatchSummaries(List.of(input), evaluatedAt).get(id),
+        composeMatchSummaries(List.of(input.summary()), evaluatedAt).get(id),
         details.sets() == null
             ? null
             : new ConsultationViews.Sets(
@@ -257,9 +262,9 @@ public class ReadSportingResources {
         details.venueName(),
         details.venueAddress(),
         details.referees(),
-        contributions.read(id).map(mapper::toView).orElse(null),
-        reads.officialCalendar(input.pool().id()),
-        documents.actions(id));
+        contributions.readForConsultableMatch(id).map(mapper::toView).orElse(null),
+        input.officialCalendarUrl(),
+        documents.actions(details, input.provider()));
   }
 
   /**

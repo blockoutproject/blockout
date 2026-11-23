@@ -46,7 +46,6 @@ class ReadMatchDocumentTest {
       "Keeps information independent while requiring final results for professional result documents")
   void appliesCurrentFinality(ResultStateEnum state) {
     // Given
-    visible(CollectionProviderEnum.LNV);
     MatchDetails details =
         MatchDetails.builder()
             .id(ID)
@@ -55,10 +54,9 @@ class ReadMatchDocumentTest {
             .statisticsUrl("https://documents.example.invalid/stats.pdf")
             .result(new MatchObservation.Result(state, null, null, "Forfeit"))
             .build();
-    when(store.matchDetails(ID)).thenReturn(details);
 
     // When
-    List<ConsultationViews.Document> actions = reader.actions(ID);
+    List<ConsultationViews.Document> actions = reader.actions(details, CollectionProviderEnum.LNV);
 
     // Then
     assertThat(actions)
@@ -83,16 +81,16 @@ class ReadMatchDocumentTest {
   void refusesMissingReferences() {
     // Given
     visible(CollectionProviderEnum.FFVB);
-    when(store.matchDetails(ID))
-        .thenReturn(
-            MatchDetails.builder()
-                .id(ID)
-                .result(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 0, null))
-                .statisticsUrl("https://documents.example.invalid/stats.pdf")
-                .build());
+    MatchDetails details =
+        MatchDetails.builder()
+            .id(ID)
+            .result(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 0, null))
+            .statisticsUrl("https://documents.example.invalid/stats.pdf")
+            .build();
+    when(store.matchDetails(ID)).thenReturn(details);
 
     // When
-    List<ConsultationViews.Document> actions = reader.actions(ID);
+    List<ConsultationViews.Document> actions = reader.actions(details, CollectionProviderEnum.FFVB);
 
     // Then
     assertThat(actions).isEmpty();

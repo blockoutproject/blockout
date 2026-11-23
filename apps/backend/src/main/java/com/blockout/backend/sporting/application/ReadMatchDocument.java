@@ -76,32 +76,30 @@ public class ReadMatchDocument {
   }
 
   /**
-   * Shares the delivery rules with current match actions, joining the resource read transaction.
+   * Applies the download eligibility rules to facts already admitted in the match detail read.
    *
-   * @param id exact viewable match
+   * @param details accepted detail of the viewable match
+   * @param provider current provider of its pool
    * @return only backend subresources, with no provider locator
    */
-  public List<ConsultationViews.Document> actions(UUID id) {
-    return reads.execute(
-        status ->
-            references(id).keySet().stream()
-                .map(
-                    kind ->
-                        new ConsultationViews.Document(
-                            kind, "/matches/" + id + "/documents/" + kind.getValue()))
-                .toList());
+  List<ConsultationViews.Document> actions(MatchDetails details, CollectionProviderEnum provider) {
+    return references(details, provider).keySet().stream()
+        .map(
+            kind ->
+                new ConsultationViews.Document(
+                    kind, "/matches/" + details.id() + "/documents/" + kind.getValue()))
+        .toList();
   }
 
-  /**
-   * Reads current accepted references only; time classification never establishes finality.
-   *
-   * @param id exact current match identity inside the caller's read transaction
-   * @return independently eligible locators, with absent references omitted
-   */
   private Map<MatchDocumentKindEnum, Reference> references(UUID id) {
     MatchView match = owners.publicMatch(id).orElseThrow(SportingResourceNotFoundException::new);
     PoolView pool = store.pool(match.poolId()).orElseThrow(SportingResourceNotFoundException::new);
-    MatchDetails details = store.matchDetails(id);
+    return references(store.matchDetails(id), pool.key().provider());
+  }
+
+  /** Time classification never grants access to a final-result document. */
+  private Map<MatchDocumentKindEnum, Reference> references(
+      MatchDetails details, CollectionProviderEnum provider) {
     Map<MatchDocumentKindEnum, Reference> result = new EnumMap<>(MatchDocumentKindEnum.class);
     if (details.informationSheet() != null) {
       result.put(
@@ -113,7 +111,7 @@ public class ReadMatchDocument {
             MatchDocumentKindEnum.SCORESHEET,
             new Reference(URI.create(details.scoresheetUrl()), null));
       }
-      if (pool.key().provider() == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
+      if (provider == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
         result.put(
             MatchDocumentKindEnum.STATISTICS,
             new Reference(URI.create(details.statisticsUrl()), null));

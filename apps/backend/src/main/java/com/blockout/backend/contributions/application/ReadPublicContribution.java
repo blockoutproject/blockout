@@ -1,14 +1,12 @@
 package com.blockout.backend.contributions.application;
 
-import com.blockout.backend.sporting.application.model.SportingVisibility;
-import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
-import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Supplies only the currently permitted active contribution; no private moderation data. */
@@ -16,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ReadPublicContribution {
   private final ContributionStore store;
-  private final ReadSportingData sporting;
 
   /**
    * Supplies current link presence after the caller has established sporting visibility in the same
@@ -37,16 +34,13 @@ public class ReadPublicContribution {
   }
 
   /**
-   * Resolves the public contribution identity and address for match consultation.
+   * Resolves the public contribution for a match admitted by the caller in the same snapshot.
    *
-   * @param matchId current sporting identity
+   * @param matchId currently consultable match identity
    * @return exact contributed identity/address when publicly permitted
    */
-  @Transactional(readOnly = true)
-  public Optional<Link> read(UUID matchId) {
-    if (sporting.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isEmpty()) {
-      return Optional.empty();
-    }
+  @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+  public Optional<Link> readForConsultableMatch(UUID matchId) {
     return store.active(matchId).map(version -> new Link(version.id(), version.address().value()));
   }
 

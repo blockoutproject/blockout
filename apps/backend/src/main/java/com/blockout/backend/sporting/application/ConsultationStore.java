@@ -1,5 +1,7 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
@@ -12,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,12 +24,12 @@ import java.util.UUID;
  */
 public interface ConsultationStore {
   /**
-   * Reads the qualified calendar reference retained for the already admitted pool.
+   * Loads accepted detail and its pool context together for a match admitted in this snapshot.
    *
-   * @param poolId current viewable owning pool
-   * @return its published HTTP(S) calendar, or null when no usable reference is retained
+   * @param id exact current match identity
+   * @return detached detail and the current pool's source context, or empty if missing
    */
-  URI officialCalendar(UUID poolId);
+  Optional<MatchDetailInput> matchDetail(UUID id);
 
   /**
    * Builds the exact public resource predicate; consumers use their own selection instead.
@@ -130,6 +133,13 @@ public interface ConsultationStore {
    *     public viewability
    */
   Map<UUID, MatchInput> matches(Set<UUID> ids);
+
+  /** Detail-only facts and the pool's qualified calendar, which may be absent. */
+  record MatchDetailInput(
+      MatchInput summary,
+      MatchDetails details,
+      CollectionProviderEnum provider,
+      URI officialCalendarUrl) {}
 
   /**
    * Accepted owner values needed to compose one public match without exposing persistence objects.
