@@ -13,7 +13,7 @@ Use the unique account/target indexes for owner reads and indexes beginning with
 
 True from absence creates a UUID; repeated true retains it. False removes the row; repeated false has no effect. Re-follow creates another UUID, so consumers can distinguish a new relationship without retaining deleted rows. No audit history, negative-state row or version ledger.
 
-Account deletion removes both associations in the same local transaction under F05's account lock. Never cascade a follow removal into a sporting target. Sporting hiding/restoration preserves associations and only changes their visibility in reads. A newly established account receives a new identity and no old relationships. F14 does not import V1 personal follows.
+F06 explicitly removes both associations before account deletion in the same local transaction under F05's account lock. Never cascade a follow removal into a sporting target. Sporting hiding/restoration preserves associations and only changes their visibility in reads. A newly established account receives a new identity and no old relationships. F14 does not import V1 personal follows.
 
 Follow [F13's predeployment schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency): keep the current follow tables, keys and indexes in the initial Liquibase XML definitions for fresh disposable V2 databases, without alteration changeSets. Application startup validates the schema and performs no initialization or reset.
 

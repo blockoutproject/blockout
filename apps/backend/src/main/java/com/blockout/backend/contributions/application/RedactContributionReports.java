@@ -1,4 +1,4 @@
-package com.blockout.backend.access.application;
+package com.blockout.backend.contributions.application;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -6,19 +6,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Narrow access participant in the original-account erasure transaction; takes no domain roots. */
+/** Owns the redaction of private report text during account erasure. */
 @Service
 @RequiredArgsConstructor
-public class EraseAccountGrants {
-  private final PermissionStore permissions;
+public class RedactContributionReports {
+  private final ContributionStore contributions;
 
   /**
-   * Clears only original-owned personal associations while retaining protected business facts.
+   * Removes the original reporter's private text before the account deletion clears attribution.
    *
    * @param accountId original lifecycle already locked by F05
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public void erase(UUID accountId) {
-    permissions.erase(accountId);
+  public void redact(UUID accountId) {
+    contributions.redactReports(accountId);
   }
 }

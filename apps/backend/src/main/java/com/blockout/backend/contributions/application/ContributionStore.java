@@ -16,12 +16,11 @@ public interface ContributionStore {
   int PAGE_SIZE = 20;
 
   /**
-   * Removes this original account's personal data in the caller's erasure transaction. Retained
-   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   * Clears the original reporter's reasons while retaining each counted report and its timestamp.
    *
    * @param accountId original lifecycle protected by its account row lock
    */
-  void erase(UUID accountId);
+  void redactReports(UUID accountId);
 
   /**
    * Locates a version's immutable sporting root without hydrating mutable attribution before locks.

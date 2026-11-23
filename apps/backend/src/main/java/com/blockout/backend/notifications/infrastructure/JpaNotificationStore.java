@@ -19,13 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Transactional(propagation = Propagation.MANDATORY)
 public class JpaNotificationStore implements NotificationStore {
-  /** {@inheritDoc} */
-  @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public void erase(UUID accountId) {
-    notifications.erase(accountId);
-  }
-
   private final EntityManager entities;
   private final NotificationRepository notifications;
   private final NotificationPersistenceMapper mapper;

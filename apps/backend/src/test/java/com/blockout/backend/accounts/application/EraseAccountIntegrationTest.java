@@ -192,7 +192,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
   @DisplayName("A required SQL failure rolls back all owners and prevents provider effects")
-  void rollsBackAllOwners(boolean failAtAccount) throws Exception {
+  void rollsBackAllOwners(boolean failAtCommit) throws Exception {
     // Given
     ProfilePhoto originalPhoto = photos.prepare(png(8), "image/png");
     profiles.change(
@@ -219,25 +219,33 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     reports.report(FOLLOWER, active.version().id(), "Synthetic private reason");
     destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
     moderator(FOLLOWER);
+    submit(FOLLOWER, "2", "https://youtu.be/replacement", true);
+    String attributionRows =
+        "SELECT id, owner_id, publication_actor_id, decision_actor_id FROM contribution_version ORDER BY id";
+    List<Map<String, Object>> originalAttributions = sql.queryForList(attributionRows);
     try (Connection connection =
             DriverManager.getConnection(
                 database.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
         Statement statement = connection.createStatement()) {
-      if (failAtAccount) {
+      if (failAtCommit) {
+        // Reject at commit so the account delete and its referential actions have executed.
         statement.execute(
             "CREATE FUNCTION synthetic_refuse_account_erasure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic erasure refusal' USING ERRCODE = '23514'; END $$");
         statement.execute(
-            "CREATE TRIGGER synthetic_refuse_erasure BEFORE DELETE ON account FOR EACH ROW EXECUTE FUNCTION synthetic_refuse_account_erasure()");
+            "CREATE CONSTRAINT TRIGGER synthetic_refuse_erasure AFTER DELETE ON account DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION synthetic_refuse_account_erasure()");
       } else {
         statement.execute(
-            "ALTER TABLE contribution_report ADD CONSTRAINT synthetic_reject_erasure CHECK (reporter_id IS NOT NULL)");
+            "ALTER TABLE contribution_report ADD CONSTRAINT synthetic_reject_erasure CHECK (reason IS NOT NULL)");
       }
       try {
         // When / Then
         assertThatThrownBy(() -> erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER))
-            .isInstanceOf(DataIntegrityViolationException.class);
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .rootCause()
+            .hasMessageContaining(
+                failAtCommit ? "synthetic erasure refusal" : "synthetic_reject_erasure");
         assertThat(accounts.findById(FOLLOWER).orElseThrow().username()).isEqualTo("Retained");
         assertThat(readsAccount.photo(ISSUER, FOLLOWER.toString(), FOLLOWER).bytes())
             .isEqualTo(originalPhoto.bytes());
@@ -247,6 +255,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                     String.class,
                     FOLLOWER))
             .isEqualTo("Synthetic private reason");
+        assertThat(sql.queryForList(attributionRows)).isEqualTo(originalAttributions);
         for (String table :
             List.of(
                 "account_permission",
@@ -270,7 +279,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
             .isEqualTo(originalRelations);
         verifyNoInteractions(auth0, revenueCat);
       } finally {
-        if (failAtAccount) {
+        if (failAtCommit) {
           statement.execute("DROP TRIGGER synthetic_refuse_erasure ON account");
           statement.execute("DROP FUNCTION synthetic_refuse_account_erasure()");
         } else {
@@ -563,6 +572,8 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     List<Map<String, Object>> facts = retainedFacts();
     List<Map<String, Object>> announcements =
         sql.queryForList("SELECT * FROM match_announcement ORDER BY match_id");
+    String reportRows = "SELECT id, version_id, reported_at FROM contribution_report ORDER BY id";
+    List<Map<String, Object>> reportFacts = sql.queryForList(reportRows);
     assertThat(count("notification")).isPositive();
     when(auth0.remove(any(), any())).thenReturn(AccountCleanup.Outcome.UNAVAILABLE_OR_UNCERTAIN);
     when(revenueCat.remove(any())).thenReturn(AccountCleanup.Outcome.QUEUED);
@@ -611,8 +622,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                 FOLLOWER,
                 replacement))
         .isZero();
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM contribution_report", Long.class))
-        .isEqualTo(2);
+    assertThat(sql.queryForList(reportRows)).hasSize(2).isEqualTo(reportFacts);
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM contribution_report WHERE reporter_id IS NULL AND reason IS NULL",

@@ -8,14 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 /** Report existence and all-row totals; anonymous facts remain independently counted. */
 interface ContributionReportRepository extends JpaRepository<ContributionReportEntity, UUID> {
   /**
-   * Removes private reporter/reason while retaining each independently counted report fact.
+   * Clears the text while the reporter UUID still identifies the original account's reports.
    *
    * @param accountId original lifecycle protected by its account lock
    */
   @Modifying
-  @Query(
-      "UPDATE ContributionReportEntity r SET r.reporterId = NULL, r.reason = NULL WHERE r.reporterId = :accountId")
-  void eraseReporters(UUID accountId);
+  @Query("UPDATE ContributionReportEntity r SET r.reason = NULL WHERE r.reporterId = :accountId")
+  void redactReasons(UUID accountId);
 
   /**
    * Reads only the original caller's reporting state, without hydrating its private reason.
