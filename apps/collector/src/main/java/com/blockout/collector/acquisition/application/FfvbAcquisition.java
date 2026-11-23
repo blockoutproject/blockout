@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import java.net.URI;
 import java.time.Instant;
+import org.jsoup.nodes.Document;
 
 /**
  * Explicit FFVB boundary; a passage reads each shared resource once before interpreting its scopes.
@@ -26,13 +27,14 @@ public interface FfvbAcquisition {
   Resource read(URI url);
 
   /**
-   * Reuses a discovery response only while its already admitted scopes are consumed.
+   * Reuses a decoded discovery page only while its already admitted scopes are consumed.
    *
-   * @param page complete bounded native response
+   * @param page read-only source document
+   * @param url final source URL
    * @param observedAt actual response completion time
    * @return transient resource without another page request
    */
-  Resource fromPage(ProviderResponse page, Instant observedAt);
+  Resource fromPage(Document page, URI url, Instant observedAt);
 
   /** One sequentially consumed HTML resource and optional export, discarded after its scopes. */
   interface Resource {
@@ -43,7 +45,7 @@ public interface FfvbAcquisition {
      * @return interpreted calendar with the actual export completion time
      * @throws FfvbAcquisitionException when the context or export is unavailable or uninterpretable
      */
-    Read<SportingObservation.Calendar> calendar(CollectionBackend.Target target);
+    ProviderObservation<SportingObservation.Calendar> calendar(CollectionBackend.Target target);
 
     /**
      * Interprets an independent official table from the already-read HTML.
@@ -52,9 +54,6 @@ public interface FfvbAcquisition {
      * @return official publication with the original HTML completion time
      * @throws FfvbAcquisitionException when the source context or table cannot be interpreted
      */
-    Read<SportingObservation.Standings> standings(CollectionBackend.Target target);
+    ProviderObservation<SportingObservation.Standings> standings(CollectionBackend.Target target);
   }
-
-  /** Interpretation retains the original read time even when several targets share its bytes. */
-  record Read<T>(T observation, Instant observedAt) {}
 }

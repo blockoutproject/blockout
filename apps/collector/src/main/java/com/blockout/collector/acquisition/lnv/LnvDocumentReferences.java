@@ -70,13 +70,12 @@ public class LnvDocumentReferences {
    * controls and HTML action resolution without executing scripts. An ordinary tab postback has no
    * clicked submit button; unrelated image-navigation buttons must not override its event.
    *
-   * @param html complete match page
-   * @param page qualified match URL
+   * @param document decoded match page
+   * @param page qualified response URL independently of the HTML base
    * @param label exact published Scoresheet or DataVolley label
    * @return source form, or null when that document tab is not published
    */
-  public Form form(byte[] html, URI page, String label) {
-    Document document = LnvPage.parse(html, page);
+  public Form form(Document document, URI page, String label) {
     for (Element script : document.select("script")) {
       Matcher controls = TAB.matcher(script.data());
       while (controls.find()) {
@@ -111,10 +110,14 @@ public class LnvDocumentReferences {
             || !form.attr("method").equalsIgnoreCase("post")) {
           throw LnvPage.invalid();
         }
-        form.elements()
-            .removeIf(
-                element ->
-                    element.is("input[type=submit], input[type=image], input[type=reset], button"));
+        // Exclude unused buttons with their descendants without changing the shared page.
+        FormElement postback = new FormElement(form.tag(), form.baseUri(), null);
+        for (Element element : form.elements()) {
+          if (element.closest("input[type=submit], input[type=image], input[type=reset], button")
+              == null) {
+            postback.addElement(element);
+          }
+        }
         List<NameValuePair> fields = new ArrayList<>();
         String state = configuration.path("clientStateFieldID").asText();
         Element previous = document.getElementById(state);
@@ -122,7 +125,7 @@ public class LnvDocumentReferences {
         if (stateName.isBlank()) {
           throw LnvPage.invalid();
         }
-        for (Connection.KeyVal field : form.formData()) {
+        for (Connection.KeyVal field : postback.formData()) {
           String name = field.key();
           if (name.equals("__EVENTTARGET")
               || name.equals("__EVENTARGUMENT")
@@ -209,13 +212,12 @@ public class LnvDocumentReferences {
   /**
    * Reads a published PDF link from an ordinary form response without fetching the PDF body.
    *
-   * @param html bounded page after the source's published document form request
-   * @param page qualified match/form base
+   * @param page decoded response to the source's published document form request
    * @return one unambiguous PDF reference, otherwise unavailable
    */
-  public URI publishedPdf(byte[] html, URI page) {
+  public URI publishedPdf(Document page) {
     List<URI> links =
-        LnvPage.parse(html, page).select("iframe[src], embed[src], object[data], a[href]").stream()
+        page.select("iframe[src], embed[src], object[data], a[href]").stream()
             .map(
                 element -> {
                   String attribute = "href";
@@ -237,15 +239,13 @@ public class LnvDocumentReferences {
    * Recognizes the provider's explicit missing-file notice after a qualified document postback. It
    * supplies no withdrawal or replacement for a previously accepted reference.
    *
-   * @param html complete document-tab response
-   * @param page qualified match/form base
+   * @param page decoded document-tab response
    * @return true only for the native container and its explicit unavailable-file label
    */
-  public boolean unavailableFile(byte[] html, URI page) {
+  public boolean unavailableFile(Document page) {
     Element notice =
-        LnvPage.parse(html, page)
-            .selectFirst(
-                "[id$=_DIVNoDataAvailableScoresheet] [id$=_LBL_DataNotAvailableScoresheet]");
+        page.selectFirst(
+            "[id$=_DIVNoDataAvailableScoresheet] [id$=_LBL_DataNotAvailableScoresheet]");
     return notice != null && notice.text().equals("Fichier non disponible");
   }
 

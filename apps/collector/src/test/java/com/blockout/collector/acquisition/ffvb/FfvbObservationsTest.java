@@ -56,7 +56,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar result =
-        calendars.parse(bytes(csv), new FfvbPage(bytes(html), URL, scope), scope);
+        calendars.parse(bytes(csv), new FfvbPage(bytes(html), URL, scope));
 
     // Then
     assertThat(result.complete()).isTrue();
@@ -78,7 +78,7 @@ class FfvbObservationsTest {
     FfvbPage context = page(html);
 
     // When
-    SportingObservation.Calendar calendar = calendars.parse(header, context, SCOPE);
+    SportingObservation.Calendar calendar = calendars.parse(header, context);
 
     // Then
     assertThat(calendar.complete()).isTrue();
@@ -114,7 +114,7 @@ class FfvbObservationsTest {
     byte[] export = bytes(fixture("calendar.csv"));
 
     // When / Then
-    assertThatThrownBy(() -> calendars.parse(export, context, SCOPE))
+    assertThatThrownBy(() -> calendars.parse(export, context))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -141,7 +141,7 @@ class FfvbObservationsTest {
     FfvbPage context = page(incomplete);
 
     // When / Then
-    assertThatThrownBy(() -> calendars.parse(header, context, SCOPE))
+    assertThatThrownBy(() -> calendars.parse(header, context))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -155,7 +155,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar calendar =
-        calendars.parse(bytes(csv), page(fixture("calendar.html")), SCOPE);
+        calendars.parse(bytes(csv), page(fixture("calendar.html")));
 
     // Then
     assertThat(calendar.complete()).isFalse();
@@ -173,7 +173,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar result =
-        calendars.parse(bytes(csv), page(fixture("calendar.html")), SCOPE);
+        calendars.parse(bytes(csv), page(fixture("calendar.html")));
 
     // Then
     assertThat(result.matches()).hasSize(1);
@@ -190,8 +190,7 @@ class FfvbObservationsTest {
     FfvbPage page = page(fixture("calendar.html"));
 
     // When
-    SportingObservation.Calendar result =
-        calendars.parse(bytes(fixture("calendar.csv")), page, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(fixture("calendar.csv")), page);
 
     // Then
     assertThat(result.complete()).isTrue();
@@ -233,8 +232,7 @@ class FfvbObservationsTest {
                 + repeatedForm);
 
     // When
-    SportingObservation.Calendar result =
-        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(fixture("calendar.csv")), context);
 
     // Then
     URI expected =
@@ -266,7 +264,7 @@ class FfvbObservationsTest {
     String csv = fixture("calendar.csv").replace("3/0;25-22,25-18,25-16;75-56", ";;");
 
     // When
-    SportingObservation.Calendar result = calendars.parse(bytes(csv), context, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(csv), context);
 
     // Then
     assertThat(result.matches())
@@ -295,8 +293,7 @@ class FfvbObservationsTest {
             """);
 
     // When
-    SportingObservation.Calendar result =
-        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(fixture("calendar.csv")), context);
 
     // Then
     assertThat(result.complete()).isTrue();
@@ -320,8 +317,7 @@ class FfvbObservationsTest {
         calendarWithDocumentForm("<form method=post action=\"" + action + "\"><td></td></form>");
 
     // When
-    SportingObservation.Calendar result =
-        calendars.parse(bytes(fixture("calendar.csv")), context, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(fixture("calendar.csv")), context);
 
     // Then
     assertThat(result.complete()).isTrue();
@@ -344,7 +340,7 @@ class FfvbObservationsTest {
     // When
     SportingObservation.Result result =
         calendars
-            .parse(bytes(csv), page(fixture("calendar.html")), SCOPE)
+            .parse(bytes(csv), page(fixture("calendar.html")))
             .matches()
             .getFirst()
             .facts()
@@ -367,7 +363,7 @@ class FfvbObservationsTest {
     FfvbPage context = page(fixture("calendar.html"));
 
     // When
-    SportingObservation.Calendar result = calendars.parse(bytes(csv + row + "\n"), context, SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(csv + row + "\n"), context);
 
     // Then
     assertThat(result.matches()).hasSize(1);
@@ -384,7 +380,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar result =
-        calendars.parse(bytes(csv + row.replace("3/0", "0/3") + "\n"), context, SCOPE);
+        calendars.parse(bytes(csv + row.replace("3/0", "0/3") + "\n"), context);
 
     // Then
     assertThat(result.matches()).isEmpty();
@@ -416,7 +412,7 @@ class FfvbObservationsTest {
         """;
 
     // When
-    SportingObservation.Calendar result = calendars.parse(bytes(csv), page(html), SCOPE);
+    SportingObservation.Calendar result = calendars.parse(bytes(csv), page(html));
 
     // Then
     assertThat(result.matches())
@@ -436,7 +432,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar result =
-        calendars.parse(bytes(csv), page(fixture("calendar.html")), SCOPE);
+        calendars.parse(bytes(csv), page(fixture("calendar.html")));
 
     // Then
     assertThat(result.matches())
@@ -483,7 +479,7 @@ class FfvbObservationsTest {
 
     // When
     SportingObservation.Calendar result =
-        calendars.parse(bytes(header), page(fixture("calendar.html")), SCOPE);
+        calendars.parse(bytes(header), page(fixture("calendar.html")));
 
     // Then
     assertThat(result.complete()).isFalse();

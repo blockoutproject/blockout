@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -22,10 +22,15 @@ import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.protocol.RedirectLocations;
 import org.apache.hc.client5.http.routing.RoutingSupport;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.message.StatusLine.StatusClass;
 
 /**
  * Synchronous provider reads through native pooled connections; parsing requires complete bounded
@@ -39,65 +44,56 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   private final CloseableHttpClient http;
   private final Set<HttpHost> origins;
   private final int maxResponseBytes;
+  private final List<Header> pageHeaders;
 
   /** {@inheritDoc} */
   @Override
   public ProviderResponse page(URI uri) {
     requireOrigin(uri, origins);
-    HttpGet request = new HttpGet(uri);
-    request.setHeader("Cache-Control", "no-store");
-    request.setHeader("Cookie", "timezoneoffset=0");
-    return response(request, true);
+    return pageResponse(new HttpGet(uri));
   }
 
   /**
-   * Reads an image through native origin-directed caching; cache hits are explicitly identified.
+   * Reads a resource under its client's native HTTP cache policy.
    *
-   * @param uri qualified published image URL
+   * @param uri qualified published resource URL
    * @return bounded response without treating cache reuse as a new observation, or a direct
    *     acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
    * @throws UncheckedIOException for transport, status or complete-body failure
    * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public ProviderResponse image(URI uri) {
+  public ProviderResponse get(URI uri) {
     requireOrigin(uri, origins);
-    return response(new HttpGet(uri));
+    return response(new HttpGet(uri), false);
   }
 
-  /** Status and bounded body for the one provider error whose meaning needs interpretation. */
+  /** Status and bounded body for responses the source accepts for interpretation. */
   public record StatusResponse(int status, byte[] body) {}
 
   /**
-   * Reads JSON while retaining HTTP 400 for provider-specific semantic qualification. Other failed
-   * statuses retain the ordinary transport failure and native retry/redirect behavior.
+   * Reads a native GET with explicitly accepted statuses after ordinary retries and redirects.
    *
-   * @param uri official provider URL, subject to the same origin checks and shared budget
-   * @return complete bounded body with 200 or 400 status, or a direct acquisition failure; never an
-   *     archived error payload
+   * @param uri original source URL, checked before Apache normalizes it
+   * @param headers source representation headers
+   * @param acceptedStatuses statuses the source can interpret
+   * @return actual status and bounded body
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
    * @throws UncheckedIOException for transport, status or complete-body failure
    * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public StatusResponse getWithBadRequest(URI uri) {
+  public StatusResponse readStatus(URI uri, List<Header> headers, Set<Integer> acceptedStatuses) {
     requireOrigin(uri, origins);
     HttpGet request = new HttpGet(uri);
-    request.setHeader("Cache-Control", "no-store");
-    request.setHeader("Accept", "application/json");
-    try {
-      return http.execute(
-          request,
-          response -> {
-            int status = response.getCode();
-            if (status != 200 && status != 400) {
-              request.cancel();
-              throw new HttpResponseException(status, "Provider read failed");
-            }
-            return new StatusResponse(status, boundedBody(request, response.getEntity()));
-          });
-    } catch (IOException failure) {
-      throw new UncheckedIOException("Provider read failed", failure);
-    }
+    headers.forEach(request::setHeader);
+    return execute(
+        request,
+        null,
+        response -> {
+          int status = response.getCode();
+          return new StatusResponse(
+              status, boundedBody(request, response, acceptedStatuses.contains(status), false));
+        });
   }
 
   /**
@@ -105,16 +101,16 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri official form action
    * @param fields qualified source form fields, never copied to diagnostics
+   * @param charset native form encoding
    * @return complete decompressed response, or a direct acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
    * @throws UncheckedIOException for transport, status or complete-body failure
    * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public byte[] post(URI uri, List<? extends NameValuePair> fields) {
-    requireOrigin(uri, origins);
-    HttpPost request = new HttpPost(uri);
-    request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
-    return response(request).body();
+  public byte[] post(URI uri, List<? extends NameValuePair> fields, Charset charset) {
+    HttpPost request = form(uri, fields, charset);
+    return execute(
+        request, null, response -> boundedBody(request, response, isSuccessful(response), false));
   }
 
   /**
@@ -123,18 +119,27 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    *
    * @param uri qualified match form action
    * @param fields ephemeral published form state
+   * @param charset native form encoding
    * @return final allowed response context, or a direct acquisition failure
    * @throws IllegalArgumentException for an unsupported origin or embedded credentials
    * @throws UncheckedIOException for transport, status or complete-body failure
    * @throws RequestNotPermitted when the finite provider permit wait is exhausted or interrupted
    */
-  public ProviderResponse postPage(URI uri, List<? extends NameValuePair> fields) {
+  public ProviderResponse postPage(URI uri, List<? extends NameValuePair> fields, Charset charset) {
+    return pageResponse(form(uri, fields, charset));
+  }
+
+  private ProviderResponse pageResponse(HttpUriRequestBase request) {
+    request.setHeader("Cache-Control", "no-store");
+    pageHeaders.forEach(request::setHeader);
+    return response(request, true);
+  }
+
+  private HttpPost form(URI uri, List<? extends NameValuePair> fields, Charset charset) {
     requireOrigin(uri, origins);
     HttpPost request = new HttpPost(uri);
-    request.setHeader("Cache-Control", "no-store");
-    request.setHeader("Cookie", "timezoneoffset=0");
-    request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
-    return response(request, true);
+    request.setEntity(new UrlEncodedFormEntity(fields, charset));
+    return request;
   }
 
   /**
@@ -164,18 +169,7 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
   }
 
   /**
-   * Preserves native redirects and cache status while bounding the complete decoded body.
-   *
-   * @param request one native request with caller-selected cache policy
-   * @return actual response context
-   * @throws UncheckedIOException for status, transport or size failures
-   */
-  private ProviderResponse response(HttpUriRequestBase request) {
-    return response(request, false);
-  }
-
-  /**
-   * Applies the page-only document boundary before reading an entity stream.
+   * Preserves native redirect and cache provenance for readers that use it.
    *
    * @param request native request
    * @param page whether binary document bodies are forbidden
@@ -183,62 +177,80 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * @throws UncheckedIOException for forbidden content, status, transport or size failures
    */
   private ProviderResponse response(HttpUriRequestBase request, boolean page) {
+    HttpCacheContext context = HttpCacheContext.create();
+    return execute(
+        request,
+        context,
+        response -> {
+          byte[] body = boundedBody(request, response, isSuccessful(response), page);
+          RedirectLocations redirects = context.getRedirectLocations();
+          URI actual =
+              redirects == null || redirects.size() == 0
+                  ? requestUri(request)
+                  : redirects.get(redirects.size() - 1);
+          CacheResponseStatus status = context.getCacheResponseStatus();
+          return new ProviderResponse(
+              body,
+              actual,
+              status == null
+                  || status == CacheResponseStatus.CACHE_MISS
+                  || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
+        });
+  }
+
+  private <T> T execute(
+      HttpUriRequestBase request, HttpCacheContext context, HttpClientResponseHandler<T> read) {
     try {
-      HttpCacheContext context = HttpCacheContext.create();
-      byte[] body =
-          http.execute(
-              request,
-              context,
-              response -> {
-                if (response.getCode() < 200 || response.getCode() >= 300) {
-                  request.cancel();
-                  throw new HttpResponseException(response.getCode(), "Provider read failed");
-                }
-                if (response.getEntity() == null) {
-                  return new byte[0];
-                }
-                String type = response.getEntity().getContentType();
-                if (page
-                    && type != null
-                    && (type.toLowerCase(Locale.ROOT).startsWith("application/pdf")
-                        || type.toLowerCase(Locale.ROOT).startsWith("application/octet-stream"))) {
-                  request.cancel();
-                  throw new IOException("Binary document bodies are not collection pages");
-                }
-                return boundedBody(request, response.getEntity());
-              });
-      URI actual;
-      try {
-        actual = request.getUri();
-      } catch (URISyntaxException failure) {
-        throw new IOException("Invalid source URL", failure);
-      }
-      if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0) {
-        actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
-      }
-      CacheResponseStatus status = context.getCacheResponseStatus();
-      return new ProviderResponse(
-          body,
-          actual,
-          status == null
-              || status == CacheResponseStatus.CACHE_MISS
-              || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
+      return http.execute(request, context, read);
     } catch (IOException failure) {
       throw new UncheckedIOException("Provider read failed", failure);
     }
   }
 
+  private boolean isSuccessful(ClassicHttpResponse response) {
+    return StatusClass.from(response.getCode()) == StatusClass.SUCCESSFUL;
+  }
+
+  private URI requestUri(HttpUriRequestBase request) throws IOException {
+    try {
+      return request.getUri();
+    } catch (URISyntaxException failure) {
+      throw new IOException("Invalid source URL", failure);
+    }
+  }
+
   /**
-   * Bounds decompressed success/error bytes before a provider interpreter can inspect them.
+   * Cancels terminal refusals before consuming a body and rejects decoded overflow.
    *
    * @param request active native request, cancelled on overflow
-   * @param entity received entity, possibly absent
+   * @param response terminal native response after retries and redirects
+   * @param acceptedStatus whether the caller can interpret this response status
+   * @param page whether declared binary document bodies are forbidden
    * @return complete bytes, including an explicitly empty entity
-   * @throws IOException for stream failure or decoded overflow
+   * @throws IOException for a refused status, forbidden content, stream failure or decoded overflow
    */
-  private byte[] boundedBody(HttpUriRequestBase request, HttpEntity entity) throws IOException {
+  private byte[] boundedBody(
+      HttpUriRequestBase request,
+      ClassicHttpResponse response,
+      boolean acceptedStatus,
+      boolean page)
+      throws IOException {
+    if (!acceptedStatus) {
+      request.cancel();
+      throw new HttpResponseException(response.getCode(), "Provider read failed");
+    }
+    HttpEntity entity = response.getEntity();
     if (entity == null) {
       return new byte[0];
+    }
+    String type = entity.getContentType();
+    if (page && type != null) {
+      String normalized = type.toLowerCase(Locale.ROOT);
+      if (normalized.startsWith("application/pdf")
+          || normalized.startsWith("application/octet-stream")) {
+        request.cancel();
+        throw new IOException("Binary document bodies are not collection pages");
+      }
     }
     try (InputStream content = entity.getContent()) {
       byte[] bytes = content.readNBytes(maxResponseBytes);

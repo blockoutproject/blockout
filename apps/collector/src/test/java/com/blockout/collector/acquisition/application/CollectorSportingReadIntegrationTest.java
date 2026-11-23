@@ -17,6 +17,7 @@ import com.blockout.collector.acquisition.infrastructure.backend.CollectionBacke
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import com.blockout.collector.acquisition.lnv.LnvPage;
 import com.blockout.collector.acquisition.lnv.LnvStandingsParser;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
@@ -259,7 +260,7 @@ class CollectorSportingReadIntegrationTest {
 
     // When
     SportingObservation.Calendar interpreted =
-        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page, FFVB_SCOPE);
+        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page);
     UUID id =
         sporting
             .calendar(POOL, context(cycle, ordinal, FIRST, null), interpreted)
@@ -318,7 +319,7 @@ class CollectorSportingReadIntegrationTest {
 
     // When: first obtain the documents, then the result from a page without document forms.
     SportingObservation.Calendar beforeResult =
-        parser.parse(csv.formatted("").getBytes(FFVB_CHARSET), withDocuments, FFVB_SCOPE);
+        parser.parse(csv.formatted("").getBytes(FFVB_CHARSET), withDocuments);
     UUID id =
         sporting
             .calendar(POOL, context(cycle, cycle.nextReadOrdinal(), FIRST, null), beforeResult)
@@ -327,7 +328,7 @@ class CollectorSportingReadIntegrationTest {
             .resourceId();
     JsonNode before = read("/matches/" + id);
     SportingObservation.Calendar withResult =
-        parser.parse(csv.formatted("3/0").getBytes(FFVB_CHARSET), ffvbPage(html), FFVB_SCOPE);
+        parser.parse(csv.formatted("3/0").getBytes(FFVB_CHARSET), ffvbPage(html));
     sporting.calendar(
         POOL, context(cycle, cycle.nextReadOrdinal(), FIRST.plusSeconds(30), null), withResult);
     JsonNode after = read("/matches/" + id);
@@ -828,7 +829,9 @@ class CollectorSportingReadIntegrationTest {
         POOL,
         context(cycle, cycle.nextReadOrdinal(), FIRST, PUBLISHED),
         parser.parse(
-            html.formatted(visitor, home, away).getBytes(StandardCharsets.UTF_8), url, "903"));
+            LnvPage.parse(
+                html.formatted(visitor, home, away).getBytes(StandardCharsets.UTF_8), url),
+            "903"));
     JsonNode initial = read("/pools/" + POOL + "/standings");
 
     // When
@@ -838,7 +841,9 @@ class CollectorSportingReadIntegrationTest {
             POOL,
             context(cycle, cycle.nextReadOrdinal(), refreshedAt, PUBLISHED),
             parser.parse(
-                html.formatted(home, away, visitor).getBytes(StandardCharsets.UTF_8), url, "903"));
+                LnvPage.parse(
+                    html.formatted(home, away, visitor).getBytes(StandardCharsets.UTF_8), url),
+                "903"));
     JsonNode refreshed = read("/pools/" + POOL + "/standings");
 
     // Then

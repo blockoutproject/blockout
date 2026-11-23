@@ -316,7 +316,7 @@ class CollectorSportingBoundaryIntegrationTest {
               return resource;
             });
     when(resource.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
+        .thenReturn(new ProviderObservation<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
     passage(provider).execute(context);
@@ -435,7 +435,7 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenAnswer(call -> ((CollectionBackend.Target) call.getArgument(0)).url());
     when(provider.read(any())).thenReturn(resource);
     when(resource.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
+        .thenReturn(new ProviderObservation<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
     passage(provider).execute(cycle);
@@ -563,7 +563,7 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenAnswer(call -> ((CollectionBackend.Target) call.getArgument(0)).url());
     when(provider.read(any())).thenReturn(resource);
     when(resource.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(calendar("LATE", LocalDate.of(2026, 10, 25)), NOW));
+        .thenReturn(new ProviderObservation<>(calendar("LATE", LocalDate.of(2026, 10, 25)), NOW));
     beforeCalendar =
         () ->
             backend.register(
@@ -667,7 +667,7 @@ class CollectorSportingBoundaryIntegrationTest {
         .thenAnswer(call -> ((CollectionBackend.Target) call.getArgument(0)).url());
     when(provider.read(any())).thenReturn(resource);
     when(resource.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
+        .thenReturn(new ProviderObservation<>(calendar("M1", LocalDate.of(2026, 10, 24)), NOW));
 
     // When
     passage(provider).execute(context);

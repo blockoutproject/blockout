@@ -2,7 +2,9 @@ package com.blockout.collector.acquisition.ign;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -13,6 +15,9 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.net.URIBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,17 +37,22 @@ class IgnClubGeocoderTest {
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
         new IgnClubGeocoder(http).read(null, "ST ETIENNE", "04200", "9");
 
     // Then
-    ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
-    verify(http).getWithBadRequest(request.capture());
-    assertThat(request.getValue().getHost()).isEqualTo("data.geopf.fr");
-    assertThat(new URIBuilder(request.getValue()).getQueryParams())
+    ArgumentCaptor<URI> url = ArgumentCaptor.forClass(URI.class);
+    ArgumentCaptor<List<Header>> headers = ArgumentCaptor.captor();
+    verify(http).readStatus(url.capture(), headers.capture(), eq(Set.of(200, 400)));
+    assertThat(url.getValue().getHost()).isEqualTo("data.geopf.fr");
+    assertThat(headers.getValue())
+        .extracting(Header::getName, Header::getValue)
+        .containsExactlyInAnyOrder(
+            tuple("Accept", "application/json"), tuple("Cache-Control", "no-store"));
+    assertThat(new URIBuilder(url.getValue()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains(
             "q=ST ETIENNE",
@@ -197,7 +207,7 @@ class IgnClubGeocoderTest {
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(addressFeature("address-1", 2.345, 48.865)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
@@ -208,9 +218,9 @@ class IgnClubGeocoderTest {
     assertThat(result.latitude()).isEqualTo(48.865);
     assertThat(result.longitude()).isEqualTo(2.345);
     assertThat(result.localityRevision()).isEqualTo("9");
-    ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
-    verify(http).getWithBadRequest(request.capture());
-    assertThat(new URIBuilder(request.getValue()).getQueryParams())
+    ArgumentCaptor<URI> url = ArgumentCaptor.forClass(URI.class);
+    verify(http).readStatus(url.capture(), any(), eq(Set.of(200, 400)));
+    assertThat(new URIBuilder(url.getValue()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains("q=73 Demonstration road 00123 Testville", "city=Testville", "postcode=00123")
         .doesNotContain("type=municipality");
@@ -234,7 +244,7 @@ class IgnClubGeocoderTest {
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
@@ -244,9 +254,10 @@ class IgnClubGeocoderTest {
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.LOCATED);
     assertThat(result.latitude()).isEqualTo(48.86);
     assertThat(result.localityRevision()).isEqualTo("9");
-    ArgumentCaptor<URI> requests = ArgumentCaptor.forClass(URI.class);
-    verify(http, org.mockito.Mockito.times(2)).getWithBadRequest(requests.capture());
-    assertThat(new URIBuilder(requests.getAllValues().getLast()).getQueryParams())
+    ArgumentCaptor<URI> urls = ArgumentCaptor.forClass(URI.class);
+    verify(http, org.mockito.Mockito.times(2))
+        .readStatus(urls.capture(), any(), eq(Set.of(200, 400)));
+    assertThat(new URIBuilder(urls.getAllValues().getLast()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains("q=Paris", "type=municipality", "postcode=75015");
   }
@@ -259,13 +270,13 @@ class IgnClubGeocoderTest {
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     doReturn(new ProviderHttpClient.StatusResponse(200, bytes("{}")))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), any(), eq(Set.of(200, 400)));
 
     // When / Then
     assertThatThrownBy(
             () -> new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9"))
         .isInstanceOf(IllegalArgumentException.class);
-    verify(http).getWithBadRequest(any());
+    verify(http).readStatus(any(), any(), eq(Set.of(200, 400)));
   }
 
   /**

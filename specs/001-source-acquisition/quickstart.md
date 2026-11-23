@@ -43,6 +43,14 @@ Fail a sibling catalogue page while a qualified sibling is available. Check part
 
 Exercise LNV calendar, standings, detail and document outcomes in one passage, including repeated targets and independent failures. Check team and match attempt counts and document-index provenance within that passage, then exercise a later passage with fresh eligibility. Exercise club-sheet partial integration with an accepted field and a typed F02 refusal on another. Check the acquisition success and partial integration independently, including the original safe `reasonType` in integration evidence. Use the [ordered uncertainty cases](#ordered-uncertainty-cases) to check unique writes across the generated client and backend.
 
+### Shared publication decoding
+
+Compare controlled 8- and 24-group selections with the same bodies, target order and clock. Run the admitted passage and count actual HTTP requests, additional attempts, distinct successful decoded bodies, HTML parser calls and full CSV traversals independently. Compare contextual facts, partial evidence, order and observation times. Include a transient response that triggers a native retry and a refused FFVB export that leaves usable standings. Put a CSV-wide anomaly and a malformed row for one group in the same export to verify their different scopes.
+
+Use `FfvbObservationReaderIntegrationTest` and `LnvHttpCachingIntegrationTest` for loopback publication reads and later independent reads. Check that the FFVB export is interpreted again when a later passage obtains a new body, and that LNV fresh image reuse, a conditional 304 and a fresh 200 have distinct read evidence. Check that calendar and standings documents and FFVB export indexes stay within the lifetime of their shared resource. The LNV image cache has its own native origin-directed lifetime. These checks measure controlled work and source-read provenance.
+
+Check that FFVB export validation and submission use the same ordered form fields. A repeated active field refuses the export before POST. LNV document postbacks preserve repeated names in the provider's submitted order. Use `CollectPassageTest` to verify both publishers can submit a valid standings observation with its original read time and ordinal when calendar acquisition fails. Use `ProviderHttpClientIntegrationTest` to verify that request URIs with embedded credentials, a fragment or a missing scheme are refused before a network exchange.
+
 ### Source preparation and seasons
 
 Use controlled official-entry and catalog fixtures, the normal collector scheduler and generated consumers against isolated migrated PostgreSQL. Select supported reference formats through the [source policy](research.md#ffvb-source-patterns).

@@ -173,7 +173,7 @@ class CollectorPartialSuccessIntegrationTest {
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
     when(source.calendar(any()))
         .thenReturn(
-            new FfvbAcquisition.Read<>(
+            new ProviderObservation<>(
                 new SportingObservation.Calendar(!acquisitionFailure, matches, List.of(), failures),
                 NOW));
 
@@ -289,7 +289,7 @@ class CollectorPartialSuccessIntegrationTest {
               if (target.poolId().equals(POOL)) {
                 throw new FfvbAcquisitionException("Synthetic unreadable calendar");
               }
-              return new FfvbAcquisition.Read<>(complete(ffvbMatch("OTHER", ORIGINAL_DATE)), NOW);
+              return new ProviderObservation<>(complete(ffvbMatch("OTHER", ORIGINAL_DATE)), NOW);
             });
     when(source.standings(any()))
         .thenAnswer(
@@ -298,7 +298,7 @@ class CollectorPartialSuccessIntegrationTest {
               if (target.poolId().equals(OTHER_POOL)) {
                 throw new FfvbAcquisitionException("Synthetic unreadable standings");
               }
-              return new FfvbAcquisition.Read<>(table("Official unlinked row"), NOW);
+              return new ProviderObservation<>(table("Official unlinked row"), NOW);
             });
 
     // When
@@ -355,9 +355,9 @@ class CollectorPartialSuccessIntegrationTest {
                 new SportingObservation.Standing("Synthetic refused row", null, 1, Map.of())));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
     when(source.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(complete(ffvbMatch("GOOD", ORIGINAL_DATE)), NOW));
+        .thenReturn(new ProviderObservation<>(complete(ffvbMatch("GOOD", ORIGINAL_DATE)), NOW));
     when(source.standings(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(replacement, NOW.plusSeconds(60)));
+        .thenReturn(new ProviderObservation<>(replacement, NOW.plusSeconds(60)));
     try (Connection migration = migrationConnection();
         Statement fault = migration.createStatement()) {
       fault.execute(
@@ -479,8 +479,8 @@ class CollectorPartialSuccessIntegrationTest {
                       URI.create(
                           "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET"),
                       scope);
-              return new FfvbAcquisition.Read<>(
-                  new FfvbCalendarParser().parse(exportBytes, page, scope), NOW);
+              return new ProviderObservation<>(
+                  new FfvbCalendarParser().parse(exportBytes, page), NOW);
             });
 
     // When
@@ -510,7 +510,7 @@ class CollectorPartialSuccessIntegrationTest {
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
-    when(source.calendar(any())).thenReturn(new FfvbAcquisition.Read<>(complete(), NOW));
+    when(source.calendar(any())).thenReturn(new ProviderObservation<>(complete(), NOW));
 
     // When
     passage(source).execute(cycle);

@@ -15,7 +15,6 @@ import com.blockout.collector.acquisition.infrastructure.backend.CollectionBacke
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
-import com.blockout.collector.acquisition.lnv.LnvCalendarParser;
 import com.blockout.collector.acquisition.lnv.LnvDetailParser;
 import com.blockout.collector.acquisition.lnv.LnvDocumentReferences;
 import com.blockout.collector.acquisition.lnv.LnvObservationReader;
@@ -219,7 +218,6 @@ class CollectorPresentationBoundaryIntegrationTest {
     images =
         new LnvObservationReader(
             imageHttp,
-            new LnvCalendarParser(),
             new LnvStandingsParser(),
             new LnvDetailParser(),
             new LnvDocumentReferences(),
