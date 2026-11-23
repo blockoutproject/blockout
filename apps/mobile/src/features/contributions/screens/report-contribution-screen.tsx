@@ -63,14 +63,13 @@ export function ReportContributionScreen({
       (!match.data ? match : reporting.query));
   const readFailed = hasReadError(requiredRead);
   const blocked =
-    !authenticated ||
     !reporting.usable ||
     !match.data ||
     readFailed ||
     (!reporting.query.data && !reporting.command.data?.reported);
   const initialLoading = !authenticated
     ? sessionPending
-    : !hasReadError(requiredRead) && requiredRead.isLoading;
+    : !readFailed && requiredRead.isLoading;
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   return (

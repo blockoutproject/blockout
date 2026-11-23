@@ -891,6 +891,62 @@ it.each([401, 403, 404])(
   },
 );
 
+it("suspends season reads during native logout and retains the choice if logout is cancelled", async () => {
+  // Given: Home, its sheet and the private Query client share the confirmed season selection.
+  const browser = Promise.withResolvers<void>();
+  mockAuth0.webAuthLogout.mockReturnValueOnce(browser.promise);
+  const user = userEvent.setup();
+  const view = await mount();
+  await user.press(
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    }),
+  );
+  await user.press(await screen.findByRole("radio", { name: newer.label }));
+  await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+  await screen.findByRole("radio", { name: newer.label, checked: true });
+  let logout: Promise<void> | undefined;
+
+  // When: Query receives the ordinary options invalidation while the native browser is still open.
+  await act(async () => {
+    logout = session.signOut();
+  });
+  await waitFor(() => expect(session.status).toBe("signing-out"));
+  mockFetch.mockClear();
+  await act(() =>
+    client.invalidateQueries({
+      queryKey: followOptionsKey({ subject: session.subject, accountId }),
+      exact: true,
+    }),
+  );
+
+  // Then
+  const pathDuringLogout = view.getPathname();
+  const optionsReadsDuringLogout = mockFetch.mock.calls.filter(([url]) =>
+    url.endsWith("/follow-options"),
+  ).length;
+
+  // When
+  await act(async () => {
+    browser.reject({
+      code: "a0.session.user_cancelled",
+      message: "Logout cancelled",
+    });
+    await expect(logout).rejects.toBeDefined();
+  });
+
+  // Then
+  expect(optionsReadsDuringLogout).toBe(0);
+  expect(pathDuringLogout).toBe("/");
+  expect(
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    }),
+  ).toHaveAccessibilityValue({ text: newer.label });
+});
+
 it("removes the personal selector when its actual session signs out and uses the shared invitation", async () => {
   // Given
   const user = userEvent.setup();

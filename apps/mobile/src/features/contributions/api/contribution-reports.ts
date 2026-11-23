@@ -10,29 +10,22 @@ import {
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "@/features/accounts/current-account";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
 /** Original-account report state and explicit reason-only writes; exact-version deduplication makes a later manual retry safe without a recovery state. */
 export function useContributionReport(matchId: string, contributionId: string) {
-  const session = useAccountSession();
-  const account = useCurrentAccount();
+  const { session, account, usable: accountUsable } = useAccountAvailability();
   const admission = useOrdinaryRequest();
   const client = useQueryClient();
   const match = useConsultationQueries().match(matchId);
-  const actor = { ...session, accountId: session.accountId ?? "" };
+  const actor = { accountId: session.accountId ?? "" };
   const queryKey = [
     ...contributionKeys.ownReport(actor, contributionId),
     admission.bypass?.accountId ?? "ordinary",
   ];
-  const usable =
-    admission.admitted &&
-    session.status === "authenticated" &&
-    account.data?.accountId === actor.accountId;
+  const usable = admission.admitted && accountUsable;
 
   /** Uses the existing generated transport with no publication eligibility or persistent reason payload. */
   async function request(signal?: AbortSignal) {

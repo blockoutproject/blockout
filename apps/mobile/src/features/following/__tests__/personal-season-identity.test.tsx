@@ -9,6 +9,7 @@ import { Text, TextInput } from "react-native";
 import { useState } from "react";
 import { Button } from "@/shared/components/button";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { useCurrentAccount } from "@/features/accounts/current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -52,6 +53,7 @@ let fixture: ReturnType<typeof followingFixture>;
 /** Exercises the real shared choice and account reread without mounting Home's unrelated native pager. */
 function SeasonChoice() {
   const scope = usePersonalSeasonScope();
+  const account = useCurrentAccount();
   if (!scope) {
     return null;
   }
@@ -62,15 +64,12 @@ function SeasonChoice() {
     <>
       <Text>{selected?.label}</Text>
       {scope.season.options.isSuccess && <Text>Saisons disponibles</Text>}
-      {scope.profile.isError && <Text>Relecture du compte indisponible</Text>}
+      {account.isError && <Text>Relecture du compte indisponible</Text>}
       <Button
         label="Choisir la saison précédente"
         onPress={() => scope.season.selectSeason(older.id)}
       />
-      <Button
-        label="Relire le compte"
-        onPress={() => void scope.profile.refetch()}
-      />
+      <Button label="Relire le compte" onPress={() => void account.refetch()} />
     </>
   );
 }
