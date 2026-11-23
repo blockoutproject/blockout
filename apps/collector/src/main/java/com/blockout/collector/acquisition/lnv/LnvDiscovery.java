@@ -2,6 +2,9 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class LnvDiscovery {
   private static final String HOST = "lnv-web.dataproject.com";
   private static final String MATCHES = "/CompetitionMatches.aspx";
+  private static final DateTimeFormatter MATCH_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
   /** The covered LNV championships, including their published historical labels. */
   public enum Championship {
@@ -39,6 +43,9 @@ public class LnvDiscovery {
 
   /** A qualified native navigation target and its unambiguous visible name, when present. */
   public record Phase(URI url, String reference, String label) {}
+
+  /** Published group structure and phase name with independently established season evidence. */
+  public record PhaseCatalog(List<SportingObservation.Pool> pools, String label, String season) {}
 
   /** The native championship ID in a supported DataProject reference, or null if absent. */
   public String championshipReference(URI url) {
@@ -118,11 +125,11 @@ public class LnvDiscovery {
    * @param actual final response URL
    * @param competition qualified root championship
    * @param published phase qualified by that root
-   * @param season expected root season
-   * @return groups available from this independently qualified phase
+   * @param expectedSeason established championship season, or null during first attribution
+   * @return qualified groups and available phase evidence
    */
-  public List<SportingObservation.Pool> phasePools(
-      byte[] bytes, URI actual, String competition, Phase published, String season) {
+  public PhaseCatalog phaseCatalog(
+      byte[] bytes, URI actual, String competition, Phase published, String expectedSeason) {
     Map<String, String> context = LnvPage.query(actual);
     String phase = published.reference();
     if (!HOST.equalsIgnoreCase(actual.getHost())
@@ -134,10 +141,6 @@ public class LnvDiscovery {
     }
 
     Document page = LnvPage.parse(bytes, actual);
-    String observedSeason = LnvPage.season(page);
-    if (observedSeason != null && !season.equals(observedSeason)) {
-      throw new LnvAcquisitionException("LNV phase belongs to a different season");
-    }
     List<Element> groups = page.select("div.rmpView[id^=Content_Main_]");
     if (groups.isEmpty()) {
       throw new LnvAcquisitionException("LNV phase has no recognizable groups");
@@ -164,6 +167,57 @@ public class LnvDiscovery {
           new SportingObservation.Pool(
               competition, competition, phase, null, id, actual, standings, title.text()));
     }
-    return pools;
+    return new PhaseCatalog(
+        pools, phaseLabel(page, published), phaseSeason(page, groups, expectedSeason));
+  }
+
+  private String phaseLabel(Document page, Phase published) {
+    Element heading = page.selectFirst("#Content_Main_LYR_Header_ChampionshipMatches h3");
+    if (heading != null && !heading.text().isBlank() && heading.text().length() <= 255) {
+      return heading.text();
+    }
+    return "Calendrier".equalsIgnoreCase(published.label()) ? null : published.label();
+  }
+
+  /** A phase spanning both civil years can establish the season through published match dates. */
+  private String phaseSeason(Document page, List<Element> groups, String expectedSeason) {
+    String explicitSeason = LnvPage.season(page);
+    if (explicitSeason != null
+        && expectedSeason != null
+        && !expectedSeason.equals(explicitSeason)) {
+      throw new LnvAcquisitionException("LNV phase belongs to a different season");
+    }
+
+    String season = explicitSeason == null ? expectedSeason : explicitSeason;
+    Set<Integer> calendarYears = new HashSet<>();
+    for (Element group : groups) {
+      for (Element dateField : group.select("[id$=_MatchRow] [id$=_LB_DataOra]")) {
+        LocalDate date = publishedDate(dateField.text());
+        if (date == null) {
+          continue;
+        }
+        int startYear =
+            date.getMonthValue() >= Month.JULY.getValue() ? date.getYear() : date.getYear() - 1;
+        String matchSeason = startYear + "/" + (startYear + 1);
+        if (season != null && !season.equals(matchSeason)) {
+          throw new LnvAcquisitionException("LNV phase match dates contradict the season");
+        }
+        season = matchSeason;
+        calendarYears.add(date.getYear());
+      }
+    }
+    return explicitSeason != null || calendarYears.size() == 2 ? season : null;
+  }
+
+  private LocalDate publishedDate(String rendered) {
+    if (rendered.isBlank()) {
+      return null;
+    }
+    try {
+      return LnvPage.date(rendered.split(" - ", 2)[0], MATCH_DATE);
+    } catch (LnvAcquisitionException invalidDate) {
+      // Calendar parsing reports malformed rows independently. They supply no seasonal evidence.
+      return null;
+    }
   }
 }

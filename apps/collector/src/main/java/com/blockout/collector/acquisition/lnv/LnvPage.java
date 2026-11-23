@@ -65,15 +65,7 @@ final class LnvPage {
     }
     // Start only at a whitespace run's boundary, rather than retrying from each space in that run.
     String[] parts = rendered.strip().split("(?<=\\S)\\s+-\\s+", 2);
-    LocalDate date;
-    try {
-      date =
-          LocalDate.parse(
-              parts[0].toLowerCase(Locale.FRENCH),
-              dateFormat.withResolverStyle(ResolverStyle.STRICT));
-    } catch (DateTimeException failure) {
-      throw invalid();
-    }
+    LocalDate date = date(parts[0], dateFormat);
     if (parts.length == 1 || parts[1].equals("--:--")) {
       return SportingObservation.Facts.builder()
           .localDate(JsonNullable.of(date))
@@ -95,6 +87,15 @@ final class LnvPage {
           .localTime(JsonNullable.of(paris.toLocalTime().toString()))
           .timeZone("Europe/Paris")
           .build();
+    } catch (DateTimeException failure) {
+      throw invalid();
+    }
+  }
+
+  static LocalDate date(String rendered, DateTimeFormatter format) {
+    try {
+      return LocalDate.parse(
+          rendered.toLowerCase(Locale.FRENCH), format.withResolverStyle(ResolverStyle.STRICT));
     } catch (DateTimeException failure) {
       throw invalid();
     }

@@ -138,11 +138,21 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
   }
 
   @Test
-  @DisplayName("Missing seasonal attribution is not an unusable recognized source")
-  void preservesUnknownSeason(CapturedOutput output) {
+  @DisplayName("A readable LNV entry without seasonal evidence remains unresolved")
+  void reportsUnknownSeason(CapturedOutput output) {
     // Given
     doReturn(response(ENTRY, "<iframe src='" + SOURCE + "'></iframe>")).when(http).page(ENTRY);
-    doReturn(response(SOURCE, "<title>Alterna VOLSTAR</title><a href='" + SOURCE + "'>Regular</a>"))
+    doReturn(
+            response(
+                SOURCE,
+                """
+                <title>Alterna VOLSTAR</title>
+                <a href="CompetitionMatches.aspx?ID=901&PID=902">Calendrier</a>
+                <div class="rmpView" id="Content_Main_903">
+                  <span id="group_lbl_title">Groupe A</span>
+                  <div id="row_MatchRow"><span id="row_LB_DataOra">17/10/2026 - 20:00</span></div>
+                </div>
+                """))
         .when(http)
         .page(SOURCE);
 
@@ -152,7 +162,11 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
     // Then
     assertThat(entry(output, "lnv-men-first"))
         .singleElement()
-        .satisfies(log -> assertThat(log.path("collection_entry_usable").asInt(-1)).isEqualTo(1));
+        .satisfies(
+            log -> {
+              assertThat(log.path("collection_entry_usable").asInt(-1)).isZero();
+              assertThat(log.path("outcome").asText()).isEqualTo("failed");
+            });
     verify(backend, never()).observeSource(any());
   }
 
