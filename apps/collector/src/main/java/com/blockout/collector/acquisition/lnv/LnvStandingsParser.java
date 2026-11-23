@@ -25,7 +25,7 @@ public class LnvStandingsParser {
    *     tabular standings
    */
   public SportingObservation.Standings parse(byte[] bytes, URI url, String group) {
-    Element container = LnvPage.parse(bytes, url).getElementById("Content_Main_" + group);
+    Element container = LnvPage.group(LnvPage.parse(bytes, url), group);
     if (container == null) {
       throw LnvPage.invalid();
     }

@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /** Synthetic pages exercise native HTML URL resolution without contacting the provider. */
@@ -142,6 +143,49 @@ class LnvDiscoveryTest {
     // Then
     assertThat(phase.season()).isEqualTo("2027/2028");
     assertThat(phase.label()).isEqualTo("Saison Régulière");
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "CompetitionMatches.aspx?ID=901&PID=902, 2027/2028",
+    "CompetitionMatches.aspx?PID=902&ID=901, 2027/2028",
+    "CompetitionMatches.aspx?ID=901&PID=904,",
+    "CompetitionHome.aspx?ID=901,"
+  })
+  @DisplayName("Candidate dates can establish attribution on an identified published phase")
+  void attributesOnlyQualifiedCandidatePhase(String path, String expectedEvidence) {
+    // Given
+    URI url = CALENDAR.resolve(path);
+    byte[] page =
+        phasePage(
+            "<title>Alterna VOLSTAR</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>",
+            "03/10/2027 - 14:00",
+            "12/04/2028 - --:--");
+
+    // When
+    String evidence = new LnvDiscovery().candidateSeason(page, url, "901", "2027/2028");
+
+    // Then
+    assertThat(evidence).isEqualTo(expectedEvidence);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"Alterna VOLSTAR", "Alterna VOLSTAR 2027/2028"})
+  @DisplayName("Candidate phase without supported group structure cannot be confirmed")
+  void rejectsCandidatePhaseWithoutGroups(String heading) {
+    // Given
+    byte[] page =
+        """
+        <title>%s</title>
+        <a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>
+        """
+            .formatted(heading)
+            .getBytes(StandardCharsets.UTF_8);
+
+    // When / Then
+    assertThatThrownBy(() -> new LnvDiscovery().candidateSeason(page, CALENDAR, "901", "2027/2028"))
+        .isInstanceOf(LnvAcquisitionException.class)
+        .hasMessage("LNV phase has no recognizable groups");
   }
 
   @ParameterizedTest
