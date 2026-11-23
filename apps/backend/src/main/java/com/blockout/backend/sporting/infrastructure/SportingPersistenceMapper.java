@@ -586,8 +586,8 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Maps managed team/club state for editor reads/writes and calendar selector admission. Public
-   * match summaries use scalar presentation reads instead of loading this entity graph.
+   * Maps managed team/club state for editor reads and writes. Public match summaries use scalar
+   * presentation reads.
    *
    * @param source managed team and optional club in the caller's transaction
    * @return detached presentation using the common scalar presentation rule
@@ -609,8 +609,7 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Maps managed pool names for editor reads/writes, calendar selector admission and detached match
-   * context without inventing artwork or re-querying an already loaded presentation.
+   * Maps managed pool names for editor reads and writes and for detached match context.
    *
    * @param source managed pool in the caller's transaction
    * @return detached presentation using the common scalar presentation rule

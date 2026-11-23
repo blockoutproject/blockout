@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.infrastructure;
 
+import com.blockout.backend.contributions.application.ReadPublicContribution.Link;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import java.time.Instant;
@@ -65,6 +66,14 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
   @Query(
       "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.matchId IN :matchIds AND v.state = :state")
   List<UUID> findMatchIdsByMatchIdInAndState(Collection<UUID> matchIds, State state);
+
+  /** Selects the public pair without attaching a version or reading its attribution. */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.contributions.application.ReadPublicContribution$Link(v.id, v.address)
+      FROM ContributionVersionEntity v WHERE v.matchId = :matchId AND v.state = :state
+      """)
+  Optional<Link> findLink(UUID matchId, State state);
 
   /**
    * Selects every attribution needed before acquiring account locks in UUID order.

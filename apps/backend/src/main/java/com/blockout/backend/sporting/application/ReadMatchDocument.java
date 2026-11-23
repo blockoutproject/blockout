@@ -11,9 +11,8 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.net.URI;
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -63,62 +62,55 @@ public class ReadMatchDocument {
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public byte[] read(UUID id, MatchDocumentKindEnum kind) {
-    Reference reference =
-        reads.execute(
-            status -> {
-              Reference current = references(id).get(kind);
-              if (current == null) {
-                throw new SportingResourceNotFoundException();
-              }
-              return current;
-            });
+    Reference reference = reads.execute(status -> currentReference(id, kind));
     return source.fetch(reference);
   }
 
   /**
-   * Shares the delivery rules with current match actions, joining the resource read transaction.
+   * Applies the download eligibility rules to facts already admitted in the match detail read.
    *
-   * @param id exact viewable match
+   * @param details accepted detail of the viewable match
+   * @param provider current provider of its pool
    * @return only backend subresources, with no provider locator
    */
-  public List<ConsultationViews.Document> actions(UUID id) {
-    return reads.execute(
-        status ->
-            references(id).keySet().stream()
-                .map(
-                    kind ->
-                        new ConsultationViews.Document(
-                            kind, "/matches/" + id + "/documents/" + kind.getValue()))
-                .toList());
+  List<ConsultationViews.Document> actions(MatchDetails details, CollectionProviderEnum provider) {
+    return eligibleKinds(details, provider).stream()
+        .map(
+            kind ->
+                new ConsultationViews.Document(
+                    kind, "/matches/" + details.id() + "/documents/" + kind.getValue()))
+        .toList();
   }
 
-  /**
-   * Reads current accepted references only; time classification never establishes finality.
-   *
-   * @param id exact current match identity inside the caller's read transaction
-   * @return independently eligible locators, with absent references omitted
-   */
-  private Map<MatchDocumentKindEnum, Reference> references(UUID id) {
+  private Reference currentReference(UUID id, MatchDocumentKindEnum kind) {
     MatchView match = owners.publicMatch(id).orElseThrow(SportingResourceNotFoundException::new);
     PoolView pool = store.pool(match.poolId()).orElseThrow(SportingResourceNotFoundException::new);
     MatchDetails details = store.matchDetails(id);
-    Map<MatchDocumentKindEnum, Reference> result = new EnumMap<>(MatchDocumentKindEnum.class);
+    if (!eligibleKinds(details, pool.key().provider()).contains(kind)) {
+      throw new SportingResourceNotFoundException();
+    }
+    return switch (kind) {
+      case INFORMATION -> new Reference(null, details.informationSheet());
+      case SCORESHEET -> new Reference(URI.create(details.scoresheetUrl()), null);
+      case STATISTICS -> new Reference(URI.create(details.statisticsUrl()), null);
+    };
+  }
+
+  /** Keeps contract order and uses accepted finality for result documents. */
+  private static EnumSet<MatchDocumentKindEnum> eligibleKinds(
+      MatchDetails details, CollectionProviderEnum provider) {
+    EnumSet<MatchDocumentKindEnum> kinds = EnumSet.noneOf(MatchDocumentKindEnum.class);
     if (details.informationSheet() != null) {
-      result.put(
-          MatchDocumentKindEnum.INFORMATION, new Reference(null, details.informationSheet()));
+      kinds.add(MatchDocumentKindEnum.INFORMATION);
     }
     if (Result.isFinal(details.result())) {
       if (details.scoresheetUrl() != null) {
-        result.put(
-            MatchDocumentKindEnum.SCORESHEET,
-            new Reference(URI.create(details.scoresheetUrl()), null));
+        kinds.add(MatchDocumentKindEnum.SCORESHEET);
       }
-      if (pool.key().provider() == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
-        result.put(
-            MatchDocumentKindEnum.STATISTICS,
-            new Reference(URI.create(details.statisticsUrl()), null));
+      if (provider == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
+        kinds.add(MatchDocumentKindEnum.STATISTICS);
       }
     }
-    return result;
+    return kinds;
   }
 }

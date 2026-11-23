@@ -10,6 +10,7 @@ import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
+import com.blockout.backend.sporting.application.ReadSportingResources;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,7 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
   @Autowired private ModerateContribution moderation;
   @Autowired private ChangeOwnContribution changes;
   @Autowired private ReadModeration privateReads;
-  @Autowired private ReadPublicContribution publicLinks;
+  @Autowired private ReadSportingResources sporting;
 
   @Test
   @DisplayName("Rejecting a real held proposal preserves its hold and consumed slots")
@@ -56,7 +57,7 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     assertThat(contributions.pending(matchId, AUTHOR).orElseThrow().id())
         .isEqualTo(third.version().id());
     assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(hidden.id());
-    assertThat(publicLinks.read(matchId)).isEmpty();
+    assertThat(sporting.match(matchId).stream()).isNull();
     assertThat(reads.read(AUTHOR, matchId, 0).usage().versionsUsed()).isEqualTo(3);
     assertThatThrownBy(() -> submit(AUTHOR, "7", "https://youtu.be/fourth", false))
         .isInstanceOfSatisfying(
