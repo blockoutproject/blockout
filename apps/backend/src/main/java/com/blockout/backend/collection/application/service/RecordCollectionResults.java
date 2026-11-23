@@ -9,7 +9,6 @@ import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
@@ -99,15 +98,13 @@ public class RecordCollectionResults {
               command.obtainedCount(),
               command.rejectedCount()));
     }
-    if (command.stage() == CollectionStageEnum.DISCOVERY
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider != null
+        && control.seasonId() != null
+        && command.stage() == CollectionStageEnum.DISCOVERY
         && command.phase() == CollectionPhaseEnum.INTEGRATION
         && (command.outcome() == CollectionOutcomeEnum.SUCCESS
-            || command.outcome() == CollectionOutcomeEnum.PARTIAL)
-        && control.seasonId() != null) {
-      CollectionProviderEnum provider =
-          control.family() == CollectionFamilyEnum.LNV
-              ? CollectionProviderEnum.LNV
-              : CollectionProviderEnum.FFVB;
+            || command.outcome() == CollectionOutcomeEnum.PARTIAL)) {
       events.publishEvent(
           new CollectionOperationalDiagnostics.CatalogObserved(
               control.seasonId(),

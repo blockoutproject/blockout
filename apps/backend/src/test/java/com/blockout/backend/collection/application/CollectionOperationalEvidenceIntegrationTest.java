@@ -517,11 +517,18 @@ class CollectionOperationalEvidenceIntegrationTest {
     assertThat(output.getAll()).doesNotContain("SYNTHETIC-A", "SYNTHETIC-B", "example.invalid");
   }
 
-  @Test
-  @DisplayName("Accepted catalog reports retain measured counts and their observation time")
-  void reportsAcceptedCatalogFacts(CapturedOutput output) {
+  @ParameterizedTest(name = "Reports the accepted {0} catalogue observation")
+  @EnumSource(
+      value = CollectionProviderEnum.class,
+      names = {"FFVB", "LNV"})
+  @DisplayName(
+      "Accepted catalog reports retain their provider, measured counts and observation time")
+  void reportsAcceptedCatalogFacts(CollectionProviderEnum provider, CapturedOutput output) {
     // Given
-    UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.DISCOVERY);
+    UUID control =
+        new TransactionTemplate(transactions)
+            .execute(status -> store.ensureSeasonControl(season, provider, true).id());
+    UUID cycle = running(control, SCOPE, CollectionStageEnum.DISCOVERY);
     RecordCollectionResult partial =
         new RecordCollectionResult(
             SCOPE,
@@ -544,7 +551,7 @@ class CollectionOperationalEvidenceIntegrationTest {
     JsonNode report = reports.getFirst();
     assertThat(report.path("collection_subject").asText()).isEqualTo("classification");
     assertThat(report.path("collection_season").asText()).isEqualTo(season.toString());
-    assertThat(report.path("provider").asText()).isEqualTo("ffvb");
+    assertThat(report.path("provider").asText()).isEqualTo(provider.getValue());
     assertThat(report.path("collection_observed_at").asText()).isEqualTo(FIRST.toString());
     assertThat(report.path("affected_count").asLong()).isEqualTo(3);
     assertThat(report.path("partial_count").asLong()).isEqualTo(2);

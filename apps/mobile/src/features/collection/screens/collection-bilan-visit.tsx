@@ -16,6 +16,7 @@ import {
   type ClubCollectionFamily,
 } from "../model/collection-club-family";
 import { collectionSourceHref } from "../model/collection-hrefs";
+import { collectionProviderSubtitle } from "../model/collection-operator-source";
 import type { BilanSearchCriteria } from "../model/collection-route-params";
 import { CollectionBilanScreen } from "./collection-bilan-screen";
 
@@ -32,9 +33,10 @@ export function CollectionBilanVisit({
   const reading = useCollectionSeason(seasonId);
   const header = (
     <CollectionBilanHeader
-      subtitle={[provider.toUpperCase(), reading.season.data?.label]
-        .filter(Boolean)
-        .join("  ")}
+      subtitle={collectionProviderSubtitle(
+        provider,
+        reading.season.data?.label,
+      )}
     />
   );
   return (

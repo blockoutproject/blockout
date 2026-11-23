@@ -14,6 +14,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionProviderRead } from "../components/collection-control-read";
 import { collectionBilanHref } from "../model/collection-hrefs";
+import { collectionProviderSubtitle } from "../model/collection-operator-source";
 import {
   CollectionFollowUp,
   CollectionFollowUpLoading,
@@ -53,9 +54,7 @@ export function CollectionProviderScreen({
         header={
           <PageHeader
             title="Collecte"
-            subtitle={[provider.toUpperCase(), season.data?.label]
-              .filter(Boolean)
-              .join("  ")}
+            subtitle={collectionProviderSubtitle(provider, season.data?.label)}
           />
         }
         tabBarMinHeight={

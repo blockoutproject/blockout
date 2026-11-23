@@ -1015,13 +1015,8 @@ class CollectionResultIntegrationTest {
   }
 
   private UUID competitionControl(UUID season, CollectionProviderEnum provider) {
-    UUID id = UUID.randomUUID();
-    sql.update(
-        "INSERT INTO collection_control(id, season_id, family, enabled) VALUES (?, ?, ?, TRUE)",
-        id,
-        season,
-        provider.name());
-    return id;
+    return new TransactionTemplate(transactions)
+        .execute(status -> store.ensureSeasonControl(season, provider, true).id());
   }
 
   private UUID source(UUID season, CollectionProviderEnum provider, String organizer) {
