@@ -102,10 +102,10 @@ Run the committed backend target (`npx nx run backend:test`). For focused iterat
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
   -Dtest='AccountErasureWebMvcTest,OriginalTargetCleanupTest,ErasureDiagnosticsTest,AccountCleanupConfigurationTest' \
-  -Dit.test='EraseAccountIntegrationTest,NotificationErasureIntegrationTest,ContributionErasureIntegrationTest,AccountCleanupIntegrationTest'
+  -Dit.test='EraseAccountIntegrationTest,NotificationErasureIntegrationTest,RetentionErasureIntegrationTest,ContributionErasureIntegrationTest,AccountCleanupIntegrationTest'
 ```
 
-Use actual account/photo/F06/F07/F08/F12 persistence participants on disposable migrated PostgreSQL. Fail a required participant and final account deletion: expect complete rollback with no provider call. After commit, verify provider work has no SQL transaction, targets only captured originals and attempts each known target independently.
+Exercise the normal erasure command on disposable migrated PostgreSQL with the restricted application role and actual account/photo/F06/F07/F08/F12 persistence. Reject report redaction and, in a separate case, defer rejection of account deletion until commit. Each failure rolls back the entire transaction with zero provider calls. After commit, verify provider work has no SQL transaction, targets only captured originals and attempts each known target independently.
 
 Use controlled HTTP for exact Auth0 targets, exclusive preproduction connection/link checks, unsafe-scope refusal, total deadlines including progressive bodies, no redirect/replay after dispatched destructive calls and RevenueCat's queued acknowledgement. Force destructive cleanup off independently of inherited test configuration; qualify actual provider effects separately.
 

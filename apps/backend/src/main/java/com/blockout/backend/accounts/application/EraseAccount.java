@@ -1,11 +1,9 @@
 package com.blockout.backend.accounts.application;
 
-import com.blockout.backend.access.application.EraseAccountGrants;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.accounts.domain.Account;
-import com.blockout.backend.contributions.application.EraseContributionAttribution;
+import com.blockout.backend.contributions.application.RedactContributionReports;
 import com.blockout.backend.following.application.EraseAccountFollows;
-import com.blockout.backend.notifications.application.EraseAccountNotifications;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -20,16 +18,15 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class EraseAccount {
   private final AccountStore accounts;
+  private final AccountAccess access;
   private final EraseAccountFollows follows;
-  private final EraseAccountNotifications notifications;
-  private final EraseContributionAttribution contributions;
-  private final EraseAccountGrants grants;
+  private final RedactContributionReports reports;
   private final PlatformTransactionManager transactions;
   private final OriginalTargetCleanup cleanup;
 
   /**
-   * Locks only the original account, clears all real local owners atomically, then calls providers.
-   * An absent/foreign original never resolves a replacement or replays provider effects.
+   * Locks only the original account and commits local erasure before calling providers. An
+   * absent/foreign original never resolves a replacement or replays provider effects.
    *
    * @param issuer validated caller issuer
    * @param subject validated caller subject
@@ -42,11 +39,7 @@ public class EraseAccount {
         new TransactionTemplate(transactions)
             .execute(
                 status -> {
-                  Account original =
-                      accounts
-                          .lockById(accountId)
-                          .filter(account -> account.belongsTo(issuer, subject))
-                          .orElseThrow(AccountNotFoundException::new);
+                  Account original = access.lockOwnedOriginal(issuer, subject, accountId);
                   // The only established RevenueCat reference in this schema is the V2 business
                   // UUID.
                   OriginalAccountTargets captured =
@@ -56,9 +49,7 @@ public class EraseAccount {
                           original.subject(),
                           List.of(original.id().toString()));
                   follows.erase(accountId);
-                  notifications.erase(accountId);
-                  contributions.erase(accountId);
-                  grants.erase(accountId);
+                  reports.redact(accountId);
                   accounts.erase(accountId);
                   return captured;
                 });

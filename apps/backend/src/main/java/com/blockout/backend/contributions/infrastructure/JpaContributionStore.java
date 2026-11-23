@@ -31,11 +31,8 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public void erase(UUID accountId) {
-    versions.eraseOwners(accountId);
-    versions.erasePublicationActors(accountId);
-    versions.eraseDecisionActors(accountId);
-    reports.eraseReporters(accountId);
+  public void redactReports(UUID accountId) {
+    reports.redactReasons(accountId);
   }
 
   private final EntityManager entities;

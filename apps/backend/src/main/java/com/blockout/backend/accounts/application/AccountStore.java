@@ -14,8 +14,8 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
-   * Removes this original account's personal data in the caller's erasure transaction. Retained
-   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   * Deletes the original account and applies the database's referential actions in the caller's
+   * transaction. The caller first removes follows and redacts private report text.
    *
    * @param accountId original lifecycle protected by its account row lock
    */

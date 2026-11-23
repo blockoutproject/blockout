@@ -71,7 +71,7 @@ The owner alone uses an authorized database connection to grant/revoke rights. D
 
 F08 adds the global `stream-links.moderate` grant and `moderateStreamLinks` projection for the complete video-moderation scope, including publication and withdrawal. It supplies no unrelated administrative right; video moderation remains ordinary business access during maintenance unless separately granted explicit bypass.
 
-Grant projections control presentation only. The three F12 capabilities are separate; domain grants remain global per action while resource ownership and domain invariants still apply. Account erasure removes grants, and recreation never restores them. No business permission follows from a generic administrator identity or Pro entitlement.
+Grant projections control presentation only. The three F12 capabilities are separate; domain grants remain global per action while resource ownership and domain invariants still apply. The existing account foreign key cascades F05 account deletion to grants. Recreation never restores them. No business permission follows from a generic administrator identity or Pro entitlement.
 
 The mobile's pure access-owned `canReadDivisions` predicate defines the catalogue's three alternative grants once for entry, route, capabilities and request admission. It uses strict generated boolean values; callers use the current account and installed minimum for route/presentation availability; the backend rechecks authorization on each request, including the narrower action grants of writes. No generic permission registry or second authority is introduced.
 

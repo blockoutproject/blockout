@@ -1,5 +1,7 @@
 package com.blockout.backend.accounts.application;
 
+import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
+import com.blockout.backend.accounts.domain.Account;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -7,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Narrow account identity and erasure-coordination boundary for other business owners. */
+/** Account identity, original ownership and erasure coordination. */
 @Service
 @RequiredArgsConstructor
 public class AccountAccess {
@@ -36,6 +38,24 @@ public class AccountAccess {
   @Transactional(propagation = Propagation.MANDATORY)
   public boolean lock(UUID id) {
     return accounts.lockById(id).isPresent();
+  }
+
+  /**
+   * Locks the original lifecycle through the caller's write transaction and checks its exact
+   * holder. Absence and a different holder produce the same refusal.
+   *
+   * @param issuer validated caller issuer
+   * @param subject validated caller subject
+   * @param id original business UUID
+   * @return the locked account
+   * @throws AccountNotFoundException when the original is absent or belongs to another principal
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  Account lockOwnedOriginal(String issuer, String subject, UUID id) {
+    return accounts
+        .lockById(id)
+        .filter(account -> account.belongsTo(issuer, subject))
+        .orElseThrow(AccountNotFoundException::new);
   }
 
   /**

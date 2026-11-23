@@ -246,41 +246,26 @@ class RetentionErasureIntegrationTest {
     CompletableFuture<Void> removed = new CompletableFuture<>();
     CompletableFuture<Void> commit = new CompletableFuture<>();
     CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
-    NotificationStore target = AopTestUtils.getUltimateTargetObject(notifications);
+    NotificationStore notificationTarget = AopTestUtils.getUltimateTargetObject(notifications);
+    AccountStore accountTarget = AopTestUtils.getUltimateTargetObject(accounts);
+    Answer<Object> holdDeletion =
+        call -> {
+          Object deleted = call.callRealMethod();
+          removed.complete(null);
+          commit.get(10, TimeUnit.SECONDS);
+          return deleted;
+        };
+    Answer<Object> captureWaitingPid =
+        call -> {
+          waitingPid.complete(sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+          return call.callRealMethod();
+        };
     if (purgeFirst) {
-      doAnswer(
-              call -> {
-                Object deleted = call.callRealMethod();
-                removed.complete(null);
-                commit.get(10, TimeUnit.SECONDS);
-                return deleted;
-              })
-          .when(target)
-          .deleteExpired(any(Instant.class));
-      doAnswer(
-              call -> {
-                waitingPid.complete(sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                return call.callRealMethod();
-              })
-          .when(target)
-          .erase(ACCOUNT);
+      doAnswer(holdDeletion).when(notificationTarget).deleteExpired(any(Instant.class));
+      doAnswer(captureWaitingPid).when(accountTarget).erase(ACCOUNT);
     } else {
-      doAnswer(
-              call -> {
-                call.callRealMethod();
-                removed.complete(null);
-                commit.get(10, TimeUnit.SECONDS);
-                return null;
-              })
-          .when(AopTestUtils.<AccountStore>getUltimateTargetObject(accounts))
-          .erase(ACCOUNT);
-      doAnswer(
-              call -> {
-                waitingPid.complete(sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                return call.callRealMethod();
-              })
-          .when(target)
-          .deleteExpired(any(Instant.class));
+      doAnswer(holdDeletion).when(accountTarget).erase(ACCOUNT);
+      doAnswer(captureWaitingPid).when(notificationTarget).deleteExpired(any(Instant.class));
     }
     Runnable erase = () -> erasure.erase("https://identity.example.invalid/", "one", ACCOUNT);
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
