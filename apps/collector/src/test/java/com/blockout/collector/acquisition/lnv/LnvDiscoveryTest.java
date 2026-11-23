@@ -14,6 +14,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 /** Synthetic pages exercise native HTML URL resolution without contacting the provider. */
 @DisplayName("LNV phase navigation")
 class LnvDiscoveryTest {
+  private static final URI CALENDAR =
+      URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+
   @ParameterizedTest
   @ValueSource(strings = {"Marmara SpikeLigue", "Saforelle Power 6", "Ligue B Masculine"})
   @DisplayName("Historical championship headings qualify without inventing a season")
@@ -118,5 +121,101 @@ class LnvDiscoveryTest {
     assertThatThrownBy(
             () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Published phase dates spanning both civil years establish one sporting season")
+  void establishesSeasonFromMatchDates() {
+    // Given
+    byte[] calendar =
+        phasePage(
+            "<div id='Content_Main_LYR_Header_ChampionshipMatches'><h3>Saison Régulière</h3></div>",
+            "03/10/2027 - 14:00",
+            "31/11/2027",
+            "12/04/2028 - --:--");
+    LnvDiscovery.Phase published = new LnvDiscovery.Phase(CALENDAR, "902", "Calendrier");
+
+    // When
+    LnvDiscovery.PhaseCatalog phase =
+        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null);
+
+    // Then
+    assertThat(phase.season()).isEqualTo("2027/2028");
+    assertThat(phase.label()).isEqualTo("Saison Régulière");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "20/05/2028 - 20:00", "31/11/2027"})
+  @DisplayName("A published playoff can inherit its season without establishing one independently")
+  void acceptsPlayoffWithLimitedDates(String date) {
+    // Given
+    byte[] calendar = phasePage("<h3>1/4 Finale - Match 1</h3>", date);
+    LnvDiscovery.Phase published = new LnvDiscovery.Phase(CALENDAR, "902", "Play-Offs");
+
+    // When
+    LnvDiscovery.PhaseCatalog phase =
+        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, "2027/2028");
+
+    // Then
+    assertThat(phase.season()).isNull();
+    assertThat(phase.label()).isEqualTo("Play-Offs");
+    assertThat(phase.pools()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("Explicit season evidence still qualifies a phase with no published match dates")
+  void preservesExplicitSeasonEvidence() {
+    // Given
+    byte[] calendar = phasePage("<title>Alterna VOLSTAR 2027/2028</title>");
+    LnvDiscovery.Phase published = new LnvDiscovery.Phase(CALENDAR, "902", "Calendrier");
+
+    // When
+    LnvDiscovery.PhaseCatalog phase =
+        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null);
+
+    // Then
+    assertThat(phase.season()).isEqualTo("2027/2028");
+    assertThat(phase.label()).isNull();
+  }
+
+  @Test
+  @DisplayName("A date outside the established season refuses the phase")
+  void rejectsDateOutsideExpectedSeason() {
+    // Given
+    byte[] calendar = phasePage("", "03/10/2028");
+    LnvDiscovery.Phase published = new LnvDiscovery.Phase(CALENDAR, "902", null);
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, "2027/2028"))
+        .isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Dates in different sporting periods cannot establish a season")
+  void rejectsDatesFromMultipleSportingPeriods() {
+    // Given
+    byte[] calendar = phasePage("", "30/06/2027", "03/10/2028");
+    LnvDiscovery.Phase published = new LnvDiscovery.Phase(CALENDAR, "902", null);
+
+    // When / Then
+    assertThatThrownBy(
+            () -> new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null))
+        .isInstanceOf(LnvAcquisitionException.class)
+        .hasMessage("LNV phase match dates contradict the season");
+  }
+
+  private static byte[] phasePage(String header, String... dates) {
+    StringBuilder page =
+        new StringBuilder(header)
+            .append(
+                "<div class='rmpView' id='Content_Main_903'><span id='group_lbl_title'>Group</span>");
+    for (int index = 0; index < dates.length; index++) {
+      page.append(
+          "<div id='match_%d_MatchRow'><span id='match_%d_LB_DataOra'>%s</span></div>"
+              .formatted(index, index, dates[index]));
+    }
+    return page.append("</div>").toString().getBytes(StandardCharsets.UTF_8);
   }
 }

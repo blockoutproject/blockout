@@ -47,7 +47,11 @@ Qualify the mobile consumer separately through [Sources and season activation](#
 
 ### Professional sources
 
-Select current championship roots from the [official LNV entries](research.md#lnv-coverage-time-and-images) and historical roots from their published archive links. Follow each root's published regular/playoff phases without guessing identifiers. For controlled historical references, exact-season confirmation may supply missing attribution after structure and scope checks. Ordinary discovery requires provider attribution and a supported published structure before exposing a phase.
+Select current championship roots from the [official LNV entries](research.md#lnv-coverage-time-and-images) and historical roots from their published archive links. Follow each root's published regular and playoff phases. For controlled historical references, exact-season confirmation may supply missing attribution after structure and scope checks.
+
+For a standings root without a season label, use a linked calendar with supported groups and scoped match dates spanning both calendar years of a single July–June period. Verify that discovery creates the correct season binding and that an ordinary catalogue read re-establishes its attribution. Exercise missing dates, dates in only one calendar year, invalid dates, a range crossing two sporting periods and a response for the wrong championship or phase. Verify that failed reads preserve any previously accepted catalogue.
+
+Add a linked playoff phase with dates in one calendar year and make it the default navigation target. Verify that the separate phase and its scoped published name appear once the regular calendar establishes the season. Roll an official entry over to a new championship reference and verify that the prior binding and phase catalogue survive. Use controlled HTML for rejection cases and the linked official pages for bounded live format evidence.
 
 Run the ordinary collector and F02 acceptance with periodic controls disabled for the isolated reconstruction. Read every F03 calendar page and compare exact match/team/pool/season identities, participant links and official standings. Expect no duplicate traversal identity or cross-season association. A bracket without a published standings table remains `not-published`; its calendar and participants remain usable.
 
