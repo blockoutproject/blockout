@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { Keyboard } from "react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { SupportFlagAction } from "@/features/support";
@@ -15,6 +16,7 @@ import {
   type ClubCollectionFamily,
 } from "../model/collection-club-family";
 import { collectionSourceHref } from "../model/collection-hrefs";
+import type { BilanSearchCriteria } from "../model/collection-route-params";
 import { CollectionBilanScreen } from "./collection-bilan-screen";
 
 export function CollectionBilanVisit({
@@ -48,7 +50,6 @@ export function CollectionBilanVisit({
           header={header}
           controlId={control.id}
           criteria={criteria}
-          onSearch={(query) => router.setParams({ query: query ?? "" })}
           onOpenFilters={() =>
             router.push({
               pathname:
@@ -56,10 +57,11 @@ export function CollectionBilanVisit({
               params: { seasonId, provider, ...criteria },
             })
           }
-          onViewSource={(source) =>
+          onViewSource={(source) => {
+            Keyboard.dismiss();
             // A stack push leaves the current Bilan criteria and native list mounted for Back.
-            router.push(collectionSourceHref(seasonId, source))
-          }
+            router.push(collectionSourceHref(seasonId, source));
+          }}
         />
       )}
     </CollectionProviderRead>
@@ -71,7 +73,7 @@ export function CollectionClubBilanVisit({
   criteria,
 }: Readonly<{
   family: ClubCollectionFamily;
-  criteria: Pick<CollectionResultCriteria, "query" | "status">;
+  criteria: BilanSearchCriteria;
 }>) {
   const router = useRouter();
   const header = (
@@ -90,7 +92,6 @@ export function CollectionClubBilanVisit({
           controlId={control.id}
           criteria={criteria}
           searchPlaceholder="Rechercher un club…"
-          onSearch={(query) => router.setParams({ query: query ?? "" })}
           onOpenFilters={() =>
             router.push({
               pathname: "/collection/clubs/[family]/bilan-filters",

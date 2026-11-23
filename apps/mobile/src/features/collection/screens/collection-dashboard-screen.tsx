@@ -31,6 +31,11 @@ import {
   CollectionFollowUpLoading,
 } from "./collection-follow-up-screen";
 
+const clubDestinations = [
+  { family: "club-sheets", icon: Users },
+  { family: "geocoding", icon: MapPin },
+] as const;
+
 /** The landing menu requires its bounded seasons read; control commands own separate destinations. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
@@ -102,26 +107,19 @@ export function CollectionDashboardScreen() {
             >
               Clubs · indépendants des saisons
             </Text>
-            <CollectionDestinationLink
-              label={collectionClubFamilyLabels["club-sheets"]}
-              icon={Users}
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/clubs/[family]",
-                  params: { family: "club-sheets" },
-                })
-              }
-            />
-            <CollectionDestinationLink
-              label={collectionClubFamilyLabels.geocoding}
-              icon={MapPin}
-              onPress={() =>
-                router.push({
-                  pathname: "/collection/clubs/[family]",
-                  params: { family: "geocoding" },
-                })
-              }
-            />
+            {clubDestinations.map(({ family, icon }) => (
+              <CollectionDestinationLink
+                key={family}
+                label={collectionClubFamilyLabels[family]}
+                icon={icon}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/clubs/[family]",
+                    params: { family },
+                  })
+                }
+              />
+            ))}
           </PageContent>
         )}
       </PageScrollView>
@@ -134,29 +132,29 @@ export function CollectionControlScreen({
   family,
 }: Readonly<{ family: ClubCollectionFamily }>) {
   const router = useRouter();
-  const header = (
-    <PageHeader
-      title="Collecte"
-      subtitle={collectionClubFamilyLabels[family]}
-    />
-  );
   return (
-    <CollectionControlRead
-      family={family}
-      view="suivi"
-      header={header}
-      loadingContent={<CollectionFollowUpLoading />}
+    <Page
+      header={
+        <PageHeader
+          title="Collecte"
+          subtitle={collectionClubFamilyLabels[family]}
+        />
+      }
     >
-      {(control, controls) => (
-        <Page header={header}>
+      <CollectionControlRead
+        family={family}
+        view="suivi"
+        loadingContent={<CollectionFollowUpLoading />}
+      >
+        {(control, controls) => (
           <CollectionFollowUp
-            key={`${controls.authority.session.subject}/${control.id}`}
+            key={control.id}
             control={control}
             controls={controls}
             onOpenBilan={() => router.push(collectionClubBilanHref(family))}
           />
-        </Page>
-      )}
-    </CollectionControlRead>
+        )}
+      </CollectionControlRead>
+    </Page>
   );
 }

@@ -796,12 +796,13 @@ it("opens a club control's dedicated Bilan and applies only the available Status
   ).toBeOnTheScreen();
   expect(screen.getByPlaceholderText("Rechercher un club…")).toBeOnTheScreen();
   await user.press(await screen.findByRole("button", { name: "Filtres" }));
-  await user.press(await screen.findByRole("button", { name: "Statut" }));
-  await user.press(screen.getByRole("radio", { name: "Échouée" }));
+  const statusFilter = await screen.findByRole("button", { name: "Statut" });
   expect(
     screen.queryByRole("button", { name: "Source" }),
   ).not.toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Étape" })).not.toBeOnTheScreen();
+  await user.press(statusFilter);
+  await user.press(screen.getByRole("radio", { name: "Échouée" }));
   await user.press(
     screen.getByRole("button", { name: "Appliquer les filtres" }),
   );

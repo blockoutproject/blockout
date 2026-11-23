@@ -1,8 +1,9 @@
 import { useQueries } from "@tanstack/react-query";
 import { useState } from "react";
-import type {
-  CollectionProviderEnum,
-  CollectionStageEnum,
+import {
+  CollectionOutcomeEnum,
+  type CollectionProviderEnum,
+  type CollectionStageEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
 import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
@@ -34,9 +35,9 @@ const stageOptions = seasonStages.map((value) => ({
   value,
   label: stageLabels[value],
 }));
-const statusOptions = Object.entries(outcomeLabels).map(([value, label]) => ({
+const statusOptions = CollectionOutcomeEnum.options.map((value) => ({
   value,
-  label,
+  label: outcomeLabels[value],
 }));
 
 export interface CollectionBilanFiltersProps {
@@ -57,11 +58,9 @@ export function CollectionBilanFilters({
   onClose,
 }: Readonly<CollectionBilanFiltersProps>) {
   const authority = useCollectionAuthority();
+  const { query, ...initialDraft } = initial;
   const [choice, setChoice] = useState<keyof FilterDraft>();
-  const [draft, setDraft] = useState<FilterDraft>({
-    status: initial.status,
-    ...(competition && { sourceId: initial.sourceId, stage: initial.stage }),
-  });
+  const [draft, setDraft] = useState(initialDraft);
   const queries = competition
     ? [
         {
@@ -106,7 +105,7 @@ export function CollectionBilanFilters({
     if (!choice) {
       return (
         <FilterSheetForm
-          onApply={() => onApply({ ...draft, query: initial.query })}
+          onApply={() => onApply({ ...draft, query })}
           onReset={() => setDraft({})}
         >
           <SelectField

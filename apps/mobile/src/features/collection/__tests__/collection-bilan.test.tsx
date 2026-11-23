@@ -39,6 +39,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useNavigation: () => ({ isFocused: () => mockIsFocused() }),
+  useRouter: () => ({ setParams: mockSetParams }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -49,13 +50,13 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockIsFocused = jest.fn(() => true);
+const mockSetParams = jest.fn();
 const environment = { ...process.env };
 const sourceId = "00000000-0000-4000-8000-000000000191";
 const controlId = control().id;
 const navigation = {
   onOpenFilters: jest.fn(),
   onViewSource: jest.fn(),
-  onSearch: jest.fn(),
 };
 let peer: ReturnType<typeof collectionPeer>;
 let client: ReturnType<typeof createQueryClient>;
@@ -287,7 +288,6 @@ it.each([403, 404])(
         header={<Text>Bilan</Text>}
         controlId={controlId}
         criteria={{}}
-        onSearch={navigation.onSearch}
         onOpenFilters={navigation.onOpenFilters}
       />,
       client,
@@ -613,14 +613,14 @@ it("commits the literal search on native submit without publishing each edited c
   await user.type(field, "  Poule A  ");
 
   // Then
-  expect(navigation.onSearch).not.toHaveBeenCalled();
+  expect(mockSetParams).not.toHaveBeenCalled();
 
   // When
   await fireEvent(field, "submitEditing");
 
   // Then
   await waitFor(() =>
-    expect(navigation.onSearch).toHaveBeenCalledWith("Poule A"),
+    expect(mockSetParams).toHaveBeenCalledWith({ query: "Poule A" }),
   );
-  expect(navigation.onSearch).toHaveBeenCalledTimes(1);
+  expect(mockSetParams).toHaveBeenCalledTimes(1);
 });

@@ -9,6 +9,7 @@ import type {
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { Skeleton } from "@/shared/components/skeleton";
+import { StatusBadge } from "@/shared/components/status-badge";
 import { Surface } from "@/shared/components/surface";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
@@ -193,14 +194,7 @@ export function CollectionControl({
       Le cycle en cours se termine. Aucun nouveau cycle ne démarrera.
     </Text>
   );
-  const badgePaint = {
-    color:
-      control.enabled && !closed
-        ? colors.onSuccessSubtle
-        : colors.secondaryText,
-    backgroundColor:
-      control.enabled && !closed ? colors.successSubtle : colors.raised,
-  };
+  const enabled = control.enabled && !closed;
 
   const execution = control.pendingRequestId
     ? "En attente de démarrage"
@@ -218,15 +212,14 @@ export function CollectionControl({
         >
           Exécution
         </Text>
-        <Text
+        <StatusBadge
+          label={controlStatus()}
+          tone={enabled ? "success" : "neutral"}
           style={[
             styles.compactBadge,
-            badgePaint,
-            { borderColor: colors.border },
+            !enabled && { backgroundColor: colors.raised },
           ]}
-        >
-          {controlStatus()}
-        </Text>
+        />
       </View>
       {season?.state === "preparing" && (
         <Text style={metadata}>Saison à activer</Text>
@@ -314,10 +307,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   compactBadge: {
-    ...tokens.typography.metadata,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.sm,
-    paddingHorizontal: tokens.spacing.sm,
+    flexShrink: 0,
     paddingVertical: tokens.spacing.xs - tokens.border.thin,
   },
   dates: {

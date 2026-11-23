@@ -5,6 +5,11 @@ export const collectionClubFamilyLabels = {
 
 export type ClubCollectionFamily = keyof typeof collectionClubFamilyLabels;
 
-export function collectionClubFamilyFromRoute(value: unknown) {
-  return value === "club-sheets" || value === "geocoding" ? value : undefined;
+export function isClubCollectionFamily(
+  value: unknown,
+): value is ClubCollectionFamily {
+  return (
+    typeof value === "string" &&
+    Object.hasOwn(collectionClubFamilyLabels, value)
+  );
 }

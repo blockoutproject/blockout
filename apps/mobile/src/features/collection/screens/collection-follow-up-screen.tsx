@@ -1,6 +1,7 @@
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { PageContent, PageScrollView } from "@/shared/components/page";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { Surface } from "@/shared/components/surface";
@@ -68,11 +69,9 @@ export function CollectionFollowUp({
     query.isFetching || results.isFetching || !!seasonQuery?.isFetching;
   if (hasReadError(query)) {
     return (
-      <PageScrollView>
-        <ScreenState>
-          <ReadFeedback query={query} loadingContent={null} />
-        </ScreenState>
-      </PageScrollView>
+      <PageReadState>
+        <ReadFeedback query={query} loadingContent={null} />
+      </PageReadState>
     );
   }
 
