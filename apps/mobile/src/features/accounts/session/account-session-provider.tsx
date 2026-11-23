@@ -84,13 +84,11 @@ export interface AccountConnectionInput {
   signIn: AccountSession["signIn"];
 }
 
-/** F07 captures the exact original association and owns the bounded attempt before native logout. */
-export type AccountCredentialCleanup = () => Promise<void>;
-
 /** Root composition supplies the process-wide push owner without transferring its authority. */
 export interface AccountSessionProviderProps extends PropsWithChildren {
   fallback?: ReactNode;
-  preparePushRemoval?: () => AccountCredentialCleanup | undefined;
+  /** F07 captures the original association immediately and owns the bounded attempt. */
+  removePushRegistration?: () => Promise<void>;
   abandonPushRegistration?: (erasedAccountId: string) => void;
 }
 
@@ -111,7 +109,7 @@ const AccountSessionContext = createContext<AccountSession | null>(null);
 export function AccountSessionProvider({
   children,
   fallback = null,
-  preparePushRemoval,
+  removePushRegistration,
   abandonPushRegistration,
 }: Readonly<AccountSessionProviderProps>) {
   const [initialization, setInitialization] = useState<Initialization>({
@@ -160,7 +158,7 @@ export function AccountSessionProvider({
       initialization={initialization}
       retryInitialization={() => setInitializationAttempt((value) => value + 1)}
       retryAuthentication={() => setRestorationAttempt((value) => value + 1)}
-      preparePushRemoval={preparePushRemoval}
+      removePushRegistration={removePushRegistration}
       abandonPushRegistration={abandonPushRegistration}
     >
       {children}
@@ -186,14 +184,14 @@ function SessionScope({
   initialization,
   retryInitialization,
   retryAuthentication,
-  preparePushRemoval,
+  removePushRegistration,
   abandonPushRegistration,
 }: Readonly<
   PropsWithChildren<{
     initialization: Exclude<Initialization, { status: "initializing" }>;
     retryInitialization(): void;
     retryAuthentication(): void;
-    preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
+    removePushRegistration?: AccountSessionProviderProps["removePushRegistration"];
     abandonPushRegistration?: AccountSessionProviderProps["abandonPushRegistration"];
   }>
 >) {
@@ -299,8 +297,7 @@ function SessionScope({
 
   /** Retains the departure's original subject throughout the bounded push attempt. */
   async function removeOldPushRegistration() {
-    const remove = preparePushRemoval?.();
-    await remove?.().catch(() => undefined);
+    await removePushRegistration?.().catch(() => undefined);
     if (currentSubject.current !== subject) {
       throw new ApiError("cancelled");
     }

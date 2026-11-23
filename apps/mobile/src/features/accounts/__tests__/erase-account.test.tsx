@@ -196,7 +196,7 @@ async function openProfile(registration?: PushRegistration) {
     {
       _layout: () => (
         <AccountSessionProvider
-          preparePushRemoval={registration?.prepareRemoval}
+          removePushRegistration={registration?.remove}
           abandonPushRegistration={registration?.abandon}
         >
           <PrivateQueries>
@@ -568,6 +568,75 @@ it("retries only native departure when storage refuses local clearing after 204"
     expect(screen).toHavePathname("/");
   } finally {
     await act(() => localRetry.resolve());
+  }
+});
+
+it("withdraws the erased account even if an older account read returns after native clear fails", async () => {
+  // Given
+  const user = await openErasure();
+  const key = getGetMyAccountQueryKey();
+  const deletion = Promise.withResolvers<Response>();
+  const oldAccountRead = Promise.withResolvers<Response>();
+  let reading: Promise<void> | undefined;
+  mockAuth0.clearCredentials.mockRejectedValueOnce({
+    code: CredentialsManagerErrorCodes.STORE_FAILED,
+    message: "Storage unavailable",
+  });
+  mockAuth0.getCredentials.mockClear();
+  mockFetch
+    .mockClear()
+    .mockImplementation(async (_url, request) =>
+      request?.method === "DELETE" ? deletion.promise : oldAccountRead.promise,
+    );
+  await user.press(screen.getByRole("checkbox"));
+
+  try {
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Supprimer mon compte" }),
+    );
+    await act(async () => {
+      reading = privateClient.refetchQueries({ queryKey: key, exact: true });
+    });
+
+    // Then: the one ordinary GET is already in flight when the DELETE completes.
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        currentAccountUrl,
+        expect.objectContaining({ method: "GET" }),
+      ),
+    );
+    const oldRead = mockFetch.mock.calls.find(
+      ([url, request]) =>
+        url === currentAccountUrl && request?.method === "GET",
+    )?.[1];
+    expect(oldRead?.signal?.aborted).toBe(false);
+
+    // When
+    await act(() => deletion.resolve(new Response(null, { status: 204 })));
+    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+    await act(async () => {
+      oldAccountRead.resolve(Response.json(account));
+      await reading;
+    });
+
+    // Then
+    expect(oldRead?.signal?.aborted).toBe(true);
+    expect(privateClient.getQueryData(key)).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(departureOperations()).toEqual({
+      writes: [["DELETE", "account"]],
+      credentialReads: 2,
+      nativeClears: 1,
+      browserLogouts: 0,
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  } finally {
+    await act(async () => {
+      deletion.resolve(new Response(null, { status: 204 }));
+      oldAccountRead.resolve(Response.json(account));
+      await reading;
+    });
   }
 });
 

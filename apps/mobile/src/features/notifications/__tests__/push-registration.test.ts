@@ -72,16 +72,17 @@ it("clears memory even when the exact HTTP removal fails", async () => {
     context.credentials,
   );
   mockFetch.mockRejectedValueOnce(new Error("Removal unavailable"));
-  const remove = push.prepareRemoval();
 
   // When
-  await remove?.();
+  const removal = push.remove();
+  await push.remove();
+  await removal;
 
   // Then
   expect(
     mockFetch.mock.calls.filter(([, init]) => init.method === "DELETE"),
   ).toHaveLength(1);
-  expect(push.prepareRemoval()).toBeUndefined();
+  expect(context.credentials).toHaveBeenCalledTimes(1);
 });
 afterEach(() => {
   process.env = { ...env };
@@ -111,8 +112,7 @@ it("keeps installation and connection through rotation, with a fresh connection 
     context.request,
     context.credentials,
   );
-  const remove = push.prepareRemoval();
-  await remove?.();
+  await push.remove();
   await push.register(
     context.owner,
     "synthetic-project",
@@ -157,7 +157,7 @@ it("discards token acquisition after its connection is removed", async () => {
   );
 
   // When
-  await push.prepareRemoval()?.();
+  await push.remove();
   token.resolve({ type: "expo", data: "ExponentPushToken[obsolete]" });
   await pending;
 
@@ -192,7 +192,7 @@ it("leaves without push credentials or requests after first permission denial", 
     context.request,
     context.credentials,
   );
-  await push.prepareRemoval()?.();
+  await push.remove();
 
   // Then
   expect(Notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
@@ -217,7 +217,7 @@ it("leaves without push credentials or requests when admission cancels before di
     async () => ({ signal: admission.signal }),
     context.credentials,
   );
-  await push.prepareRemoval()?.();
+  await push.remove();
 
   // Then
   expect({
@@ -264,20 +264,20 @@ it("bounds the whole removal even when credential retrieval never completes", as
     context.request,
     context.credentials,
   );
-  const removal = push.prepareRemoval();
 
   // When
   const completed = jest.fn();
-  const pending = removal?.().then(completed);
+  const pending = push.remove().then(completed);
   await jest.advanceTimersByTimeAsync(3_000);
   await pending;
+  await push.remove();
 
   // Then
   expect(completed).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, init]) => init.method === "DELETE"),
   ).toHaveLength(0);
-  expect(push.prepareRemoval()).toBeUndefined();
+  expect(context.credentials).toHaveBeenCalledTimes(1);
 });
 
 it("cancels controllable PUT but preserves the explicit already-transmitted limit", async () => {
@@ -296,8 +296,9 @@ it("cancels controllable PUT but preserves the explicit already-transmitted limi
   const [url, init] = mockFetch.mock.calls[0];
 
   // When
-  const remove = push.prepareRemoval();
-  await remove?.();
+  const removal = push.remove();
+  const abortedBeforeWaiting = init.signal.aborted;
+  await removal;
   response.resolve(
     Response.json({
       id: url.split("/").at(-1),
@@ -307,7 +308,7 @@ it("cancels controllable PUT but preserves the explicit already-transmitted limi
   await pending;
 
   // Then
-  expect(init.signal.aborted).toBe(true);
+  expect(abortedBeforeWaiting).toBe(true);
   expect(
     mockFetch.mock.calls.filter(([, value]) => value.method === "DELETE"),
   ).toHaveLength(1);
@@ -327,8 +328,8 @@ it("attempts one exact removal after a registration response is lost", async () 
   );
 
   // When
-  await push.prepareRemoval()?.();
-  await push.prepareRemoval()?.();
+  await push.remove();
+  await push.remove();
 
   // Then
   const [url] = mockFetch.mock.calls[0];
@@ -365,7 +366,7 @@ it("abandons in-flight push work for the erased account locally", async () => {
   push.abandon(context.owner.accountId);
   response.reject(new Error("Registration response lost"));
   await pending;
-  await push.prepareRemoval()?.();
+  await push.remove();
 
   // Then
   expect(abortedAfterOtherAccount).toBe(false);

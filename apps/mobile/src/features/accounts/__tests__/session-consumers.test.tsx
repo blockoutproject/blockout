@@ -105,10 +105,9 @@ it.each(["signOut", "clearCredentials"] as const)(
     mockAuth0.webAuthLogout.mockResolvedValue();
     const removal = Promise.withResolvers<void>();
     const detach = jest.fn(() => removal.promise);
-    const prepare = jest.fn(() => detach);
     const hook = await renderHook(useAccountSession, {
       wrapper: ({ children }) => (
-        <SessionProviders preparePushRemoval={prepare}>
+        <SessionProviders removePushRegistration={detach}>
           {children}
         </SessionProviders>
       ),
@@ -120,7 +119,6 @@ it.each(["signOut", "clearCredentials"] as const)(
     });
     // Then
     expect(hook.result.current.status).toBe("signing-out");
-    expect(prepare).toHaveBeenCalledTimes(1);
     expect(detach).toHaveBeenCalledTimes(1);
     expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
     expect(mockAuth0.webAuthLogout).not.toHaveBeenCalled();
@@ -171,7 +169,7 @@ it("clears actual RevenueCat presentation before push cleanup finishes and rejec
     }),
     {
       wrapper: ({ children }) => (
-        <SessionProviders preparePushRemoval={() => () => removal.promise}>
+        <SessionProviders removePushRegistration={() => removal.promise}>
           <ProProvider>{children}</ProProvider>
         </SessionProviders>
       ),
@@ -217,7 +215,7 @@ it("continues local credential clearing when exact removal fails", async () => {
   const detach = jest.fn().mockRejectedValue(new Error("Removal unavailable"));
   const hook = await renderHook(useAccountSession, {
     wrapper: ({ children }) => (
-      <SessionProviders preparePushRemoval={() => detach}>
+      <SessionProviders removePushRegistration={detach}>
         {children}
       </SessionProviders>
     ),

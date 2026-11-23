@@ -20,6 +20,7 @@ import { ApiError } from "@/shared/api/api-fetch";
 import { binaryImagePreview } from "@/shared/api/binary-image-preview";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountSession } from "../session/account-session-provider";
+import { updateCurrentAccount } from "./current-account-query";
 
 /** Publishes confirmed profile fields to the original private account before ordinary read invalidation. */
 export function useProfileEditing(accountId: string) {
@@ -54,16 +55,11 @@ export function useProfileEditing(accountId: string) {
       ) {
         return;
       }
-      await client.cancelQueries({ queryKey: currentKey, exact: true });
-      client.setQueryData<AccountResponse | null>(currentKey, (current) =>
-        current?.accountId === accountId
-          ? {
-              ...current,
-              username: accepted.username,
-              hasPhoto: accepted.hasPhoto,
-            }
-          : current,
-      );
+      await updateCurrentAccount(client, accountId, (current) => ({
+        ...current,
+        username: accepted.username,
+        hasPhoto: accepted.hasPhoto,
+      }));
     },
     onSettled: () => {
       void client.invalidateQueries({ queryKey: currentKey, exact: true });

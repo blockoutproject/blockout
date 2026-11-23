@@ -7,7 +7,6 @@ import {
   replacePushSubscription,
 } from "../../../../.generated/mobile";
 import { PushSubscriptionResponse } from "../../../../.generated/schemas/index.zod";
-import type { AccountCredentialCleanup } from "@/features/accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
 
@@ -159,39 +158,37 @@ export function createPushRegistration() {
         takeConnection();
       }
     },
-    /** Captures an association that may exist and bounds all cleanup I/O to three seconds. */
-    prepareRemoval(): AccountCredentialCleanup | undefined {
+    /** Captures the old association before waiting and bounds all cleanup I/O to three seconds. */
+    async remove(): Promise<void> {
       const original = takeConnection();
       if (!original?.putDispatched) {
         return;
       }
-      return async () => {
-        const controller = new AbortController();
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const deadline = new Promise<void>((resolve) => {
-          timer = setTimeout(() => {
-            controller.abort();
-            resolve();
-          }, 3000);
-        });
-        /** Credentials remain SDK-owned and are never retained solely to retry cleanup. */
-        const remove = async () => {
-          const credentials = await original.credentials();
-          if (!credentials || controller.signal.aborted) {
-            return;
-          }
-          await deletePushSubscription(original.owner.accountId, original.id, {
-            signal: controller.signal,
-            headers: { Authorization: `Bearer ${credentials.accessToken}` },
-          });
-        };
-        try {
-          await Promise.race([remove().catch(() => undefined), deadline]);
-        } finally {
-          clearTimeout(timer);
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const deadline = new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
           controller.abort();
+          resolve();
+        }, 3000);
+      });
+      /** Credentials remain SDK-owned and are never retained solely to retry cleanup. */
+      const deleteOriginal = async () => {
+        const credentials = await original.credentials();
+        if (!credentials || controller.signal.aborted) {
+          return;
         }
+        await deletePushSubscription(original.owner.accountId, original.id, {
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        });
       };
+      try {
+        await Promise.race([deleteOriginal().catch(() => undefined), deadline]);
+      } finally {
+        clearTimeout(timer);
+        controller.abort();
+      }
     },
   };
 }

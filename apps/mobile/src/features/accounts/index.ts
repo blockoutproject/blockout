@@ -2,6 +2,5 @@
 export type {
   AccountSession,
   AccountCommandSession,
-  AccountCredentialCleanup,
   SessionSnapshot,
 } from "./session/account-session-provider";
