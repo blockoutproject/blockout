@@ -102,7 +102,7 @@ Run the committed backend target (`npx nx run backend:test`). For focused iterat
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
   -Dtest='AccountErasureWebMvcTest,OriginalTargetCleanupTest,ErasureDiagnosticsTest,AccountCleanupConfigurationTest' \
-  -Dit.test='EraseAccountIntegrationTest,NotificationErasureIntegrationTest,ContributionErasureIntegrationTest,AccountCleanupIntegrationTest'
+  -Dit.test='EraseAccountIntegrationTest,NotificationErasureIntegrationTest,RetentionErasureIntegrationTest,ContributionErasureIntegrationTest,AccountCleanupIntegrationTest'
 ```
 
 Exercise the normal erasure command on disposable migrated PostgreSQL with the restricted application role and actual account/photo/F06/F07/F08/F12 persistence. Reject report redaction and, in a separate case, defer rejection of account deletion until commit. Each failure rolls back the entire transaction with zero provider calls. After commit, verify provider work has no SQL transaction, targets only captured originals and attempts each known target independently.

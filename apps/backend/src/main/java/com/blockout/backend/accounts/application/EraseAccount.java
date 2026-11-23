@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class EraseAccount {
   private final AccountStore accounts;
+  private final AccountAccess access;
   private final EraseAccountFollows follows;
   private final RedactContributionReports reports;
   private final PlatformTransactionManager transactions;
@@ -38,11 +39,7 @@ public class EraseAccount {
         new TransactionTemplate(transactions)
             .execute(
                 status -> {
-                  Account original =
-                      accounts
-                          .lockById(accountId)
-                          .filter(account -> account.belongsTo(issuer, subject))
-                          .orElseThrow(AccountNotFoundException::new);
+                  Account original = access.lockOwnedOriginal(issuer, subject, accountId);
                   // The only established RevenueCat reference in this schema is the V2 business
                   // UUID.
                   OriginalAccountTargets captured =

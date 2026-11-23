@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.api;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.application.MaintenanceAdmission;
+import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.ProfilePhoto;
@@ -57,6 +59,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   ReadAccount.class,
   AccountApiMapperImpl.class,
   AccountRequest.class,
+  AccountAccess.class,
   com.blockout.backend.accounts.application.ChangeAccountProfile.class,
   com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor.class
 })
@@ -293,6 +296,7 @@ class AccountProfileWebMvcTest {
     // Then
     profileResponse.andExpect(status().isNotFound());
     photoResponse.andExpect(status().isNotFound());
+    verify(store, never()).changeProfile(any(), any(), any(), any());
     verify(store, never()).photo(ID);
   }
 

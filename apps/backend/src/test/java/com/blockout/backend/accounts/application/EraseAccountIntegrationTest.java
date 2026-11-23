@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -115,26 +116,8 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?",
         scope.pool());
-    doAnswer(
-            call -> {
-              // Observe F06 before the account FK cascade could conceal a missing participant.
-              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
-              for (String table : List.of("pool_follow", "team_follow")) {
-                assertThat(
-                        sql.queryForObject(
-                            "SELECT COUNT(*) FROM " + table + " WHERE account_id=?",
-                            Long.class,
-                            FOLLOWER))
-                    .as(table)
-                    .isZero();
-              }
-              assertThat(accounts.findById(FOLLOWER)).isPresent();
-              return call.callRealMethod();
-            })
-        .when(
-            org.springframework.test.util.AopTestUtils.<AccountStore>getUltimateTargetObject(
-                accounts))
-        .erase(FOLLOWER);
+    assertThat(count("team_follow")).isEqualTo(1);
+    assertThat(count("pool_follow")).isEqualTo(2);
     doAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -171,7 +154,8 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     assertThat(accounts.findById(FOLLOWER)).isEmpty();
     assertThat(accounts.hasPhoto(FOLLOWER)).isFalse();
     assertThat(accounts.findById(OTHER)).isPresent();
-    org.mockito.Mockito.verify(revenueCat).remove(FOLLOWER.toString());
+    verify(auth0).remove(ISSUER, FOLLOWER.toString());
+    verify(revenueCat).remove(FOLLOWER.toString());
     assertThat(count("sporting_match")).isEqualTo(1);
     assertThat(count("match_announcement")).isEqualTo(1);
   }

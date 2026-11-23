@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ChangeAccountProfile {
   private final AccountStore accounts;
+  private final AccountAccess access;
   private final ReadAccount reads;
 
   /**
@@ -47,10 +48,7 @@ public class ChangeAccountProfile {
       throw new InvalidProfileChangeException();
     }
     ProfilePhoto.requireConsistentIntent(photoAction, photo != null);
-    accounts
-        .lockById(id)
-        .filter(account -> account.belongsTo(issuer, subject))
-        .orElseThrow(AccountNotFoundException::new);
+    access.lockOwnedOriginal(issuer, subject, id);
     accounts.changeProfile(id, normalized, photoAction, photo);
     return reads.original(issuer, subject, id);
   }
