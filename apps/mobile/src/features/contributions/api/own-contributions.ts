@@ -21,10 +21,7 @@ import {
 import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { ApiError } from "@/shared/api/api-fetch";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "@/features/accounts/current-account";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
@@ -56,11 +53,10 @@ async function refuseOwnAccess(
 
 /** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */
 export function useOwnContributionsRead(matchId: string, enabled = true) {
-  const session = useAccountSession();
-  const account = useCurrentAccount();
+  const { session, account, usable } = useAccountAvailability();
   const admission = useOrdinaryRequest();
   const client = useQueryClient();
-  const actor = { ...session, accountId: session.accountId ?? "" };
+  const actor = { accountId: session.accountId ?? "" };
   const queryKey = [
     ...contributionKeys.own(actor, matchId),
     admission.bypass?.accountId ?? "ordinary",
@@ -94,11 +90,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     refuseMatch(cache.get(matchHash)?.state.error);
     return unsubscribe;
   }, [client, ownHash, matchHash]);
-  const canRetain =
-    admission.admitted &&
-    session.status === "authenticated" &&
-    account.data?.accountId === actor.accountId &&
-    !isResourceReadRefused(account.error);
+  const canRetain = admission.admitted && usable;
 
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal) {

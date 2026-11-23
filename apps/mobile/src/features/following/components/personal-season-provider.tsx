@@ -1,11 +1,8 @@
 import { createContext, useContext, type PropsWithChildren } from "react";
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "@/features/accounts/current-account";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import {
   captureFollowingOwner,
   type FollowingOwner,
@@ -15,12 +12,12 @@ import { usePersonalSeason } from "../hooks/use-personal-season";
 /** One season owner shared by Home and its contextual route for the native principal and business UUID. */
 export interface PersonalSeasonScope {
   owner: FollowingOwner;
-  profile: ReturnType<typeof useCurrentAccount>;
   season: ReturnType<typeof usePersonalSeason>;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;
   admitted: boolean;
-  /** Retained same-account reads stay usable after technical failures; follow commands own stricter prerequisites. */
+  /** Season reads require current F05 availability and F12 admission. */
   usable: boolean;
+  /** A current season-options refusal suspends the selector. */
   blocked: boolean;
   bypass: boolean;
 }
@@ -32,22 +29,17 @@ export function PersonalSeasonProvider({
   children,
   enabled = true,
 }: Readonly<PropsWithChildren<{ enabled?: boolean }>>) {
-  const session = useAccountSession();
-  const profile = useCurrentAccount();
+  const { session, usable: accountUsable } = useAccountAvailability();
+  // The owner retains its choice if the native departure is cancelled.
   const owner = captureFollowingOwner(session);
   const { getCredentials } = session;
   const admission = useOrdinaryRequest();
-  const usable = Boolean(
-    owner &&
-    admission.admitted &&
-    profile.data?.accountId === owner.accountId &&
-    !isAccessDenied(profile.error),
-  );
+  const usable = accountUsable && admission.admitted;
   const bypass = Boolean(admission.bypass);
 
-  /** Prepares only a current original-owner request after native credentials and current F12 admission. */
+  /** Prepares an admitted read with credentials for the captured native owner. */
   async function request(signal?: AbortSignal) {
-    if (!admission.admitted) {
+    if (!usable) {
       throw new ApiError("cancelled");
     }
     const credentials = await getCredentials();
@@ -61,18 +53,13 @@ export function PersonalSeasonProvider({
   }
 
   const season = usePersonalSeason(owner, request, enabled && usable, bypass);
-  const refused =
-    isAccessDenied(season.options.error) ||
-    (season.options.error instanceof ApiError &&
-      season.options.error.status === 404);
-  const blocked = isAccessDenied(profile.error) || refused;
+  const blocked = isResourceReadRefused(season.options.error);
   return (
     <PersonalSeasonContext
       value={
         owner
           ? {
               owner,
-              profile,
               season,
               request,
               admitted: admission.admitted,

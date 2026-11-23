@@ -3,7 +3,7 @@ import {
   getEstablishAccountMutationKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "@/shared/api/api-fetch";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
@@ -21,17 +21,15 @@ export function useCurrentAccount() {
  * Derives account availability from the existing native session and shared Query outcome.
  * Known matching data remains usable through technical failures; current 401/403/404 withdraw it.
  * `refusal` is only the latest read's HTTP refusal or absence, without retained error history.
- * These client facts never grant server authorization or replay a suspended command.
+ * A private reader combines `usable` with its own admission and resource rules.
+ * Mounting this observer reuses the account Query's data, error or in-flight read.
  */
 export function useAccountAvailability() {
   const session = useAccountSession();
   const account = useCurrentAccount();
-  const refusal =
-    account.error instanceof ApiError &&
-    account.error.kind === "http" &&
-    [401, 403, 404].includes(account.error.status ?? 0)
-      ? account.error
-      : undefined;
+  const refusal = isResourceReadRefused(account.error)
+    ? account.error
+    : undefined;
   return {
     session,
     account,

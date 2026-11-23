@@ -637,6 +637,13 @@ it("recovers the required account before presenting privately retained reports",
     client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
   await screen.findByRole("button", { name: "Réessayer" });
+  const accountReads = () =>
+    mockFetch.mock.calls.filter(
+      ([url, init]) =>
+        new URL(String(url)).pathname === "/accounts/me" &&
+        init?.method === "GET",
+    );
+  expect(accountReads()).toHaveLength(2);
 
   const boundary = mockFetch.getMockImplementation();
   if (!boundary) {
@@ -674,6 +681,7 @@ it("recovers the required account before presenting privately retained reports",
   // Then: the existing error action remains mounted and private rows stay hidden.
   expect(retry).toBeOnTheScreen();
   expect(screen.queryByText("Controlled report reason")).not.toBeOnTheScreen();
+  expect(accountReads()).toHaveLength(2);
 
   // When
   profileFails = false;
@@ -681,6 +689,7 @@ it("recovers the required account before presenting privately retained reports",
 
   // Then
   expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
+  expect(accountReads()).toHaveLength(3);
 });
 
 it.each(["pending", "filters"] as const)(
