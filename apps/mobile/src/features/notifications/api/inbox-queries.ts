@@ -87,13 +87,16 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
   };
 }
 
-/** Filters retained ages before an ordinary native page refresh; Query owns its result and failure. */
-export function refreshInbox(client: QueryClient, queries: InboxQueries) {
+/** Passive events only refresh an admitted inbox with retained pages, after applying the age cutoff. */
+export function refreshRetainedInbox(
+  client: QueryClient,
+  queries: InboxQueries | undefined,
+) {
+  if (!queries || !client.getQueryData(queries.inbox.queryKey)) {
+    return;
+  }
   expireInbox(client, queries);
-  return client.refetchQueries(
-    { queryKey: queries.inbox.queryKey, exact: true },
-    { throwOnError: true },
-  );
+  void client.refetchQueries({ queryKey: queries.inbox.queryKey, exact: true });
 }
 
 /**

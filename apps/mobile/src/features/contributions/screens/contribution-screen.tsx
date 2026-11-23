@@ -39,15 +39,10 @@ export function ContributionScreen({
     : ([editing.account, match, editing.query].find(hasReadError) ??
       (!match.data ? match : editing.query));
   const readFailed = hasReadError(requiredRead);
-  const blocked =
-    !authenticated ||
-    !editing.canRetain ||
-    !current ||
-    !match.data ||
-    readFailed;
+  const blocked = !editing.canRetain || !current || !match.data || readFailed;
   const initialLoading = !authenticated
     ? editing.session.status === "restoring" || !!editing.session.operation
-    : !hasReadError(requiredRead) && requiredRead.isLoading;
+    : !readFailed && requiredRead.isLoading;
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   function refresh() {

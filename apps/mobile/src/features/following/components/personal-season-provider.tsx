@@ -43,9 +43,6 @@ export function PersonalSeasonProvider({
       throw new ApiError("cancelled");
     }
     const credentials = await getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },

@@ -1,4 +1,3 @@
-import { ApiError } from "@/shared/api/api-fetch";
 import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { createInboxQueries } from "./inbox-queries";
@@ -12,9 +11,6 @@ export function useInboxQueries() {
   const queries = available
     ? createInboxQueries(owner, async (signal) => {
         const credentials = await session.getCredentials();
-        if (!credentials) {
-          throw new ApiError("http", 401);
-        }
         return admission.request({
           signal,
           headers: { Authorization: `Bearer ${credentials.accessToken}` },

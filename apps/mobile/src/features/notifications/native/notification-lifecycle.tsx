@@ -6,7 +6,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { z } from "zod";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
-import { refreshInbox } from "../api/inbox-queries";
+import { refreshRetainedInbox } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
 import { useActionFeedback } from "@/shared/components/action-feedback";
@@ -66,12 +66,7 @@ export function NotificationLifecycle({
   /** Current registration credentials stay with the original inbox owner and existing push boundary. */
   const register = useEffectEvent(
     (devicePushToken?: Notifications.DevicePushToken) => {
-      if (
-        !available ||
-        !queries ||
-        typeof projectId !== "string" ||
-        !projectId
-      ) {
+      if (!enabled || !queries || typeof projectId !== "string" || !projectId) {
         return;
       }
       void registration.register(
@@ -83,14 +78,8 @@ export function NotificationLifecycle({
       );
     },
   );
-  /** Receipt rereads are silent and refresh only an already-observed inbox. */
   const refresh = useEffectEvent(() => {
-    if (!queries) {
-      return;
-    }
-    if (client.getQueryData(queries.inbox.queryKey)) {
-      void refreshInbox(client, queries).catch(() => undefined);
-    }
+    refreshRetainedInbox(client, queries);
   });
   /** Consumes each remembered response once; reading and navigation stay independent under one tap's feedback. */
   const open = useEffectEvent(

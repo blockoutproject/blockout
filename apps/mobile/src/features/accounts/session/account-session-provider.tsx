@@ -64,7 +64,7 @@ export interface AccountSession extends SessionSnapshot {
   error: unknown;
   /** The explicit connection command survives the SDK's subject change; Query owns its outcome. */
   connection: UseMutationResult<void, Error, AccountConnectionInput>;
-  /** Captures the original principal before asynchronous credential preparation. */
+  /** Resolves credentials for the captured principal or rejects before dispatch. */
   getCredentials(): Promise<Credentials>;
   /** Starts hosted login only from an explicit action and returns its native principal. */
   signIn(audience: string): Promise<AccountCommandSession | undefined>;
