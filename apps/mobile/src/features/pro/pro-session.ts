@@ -64,10 +64,8 @@ export function createProSession() {
     return null;
   }
 
-  /** Returns the accepted read outcome; obsolete or unstarted attempts return undefined. */
-  async function refresh(
-    session: SessionSnapshot,
-  ): Promise<boolean | undefined> {
+  /** Publishes current rights after an attributed read and retains them on SDK failure. */
+  async function refresh(session: SessionSnapshot) {
     if (!associatedEvidence(session)) {
       return;
     }
@@ -78,9 +76,6 @@ export function createProSession() {
       customerInfo = await Purchases.getCustomerInfo();
     } catch {
       diagnose("read", "failed");
-      if (latestRead === request) {
-        return false;
-      }
       return;
     }
     const current = associatedEvidence(session);
@@ -92,7 +87,6 @@ export function createProSession() {
       customerInfo,
       operation: verifiedProOperation(current.operation, customerInfo),
     });
-    return true;
   }
 
   /** Configures or logs in exactly one captured account, publishing rights only while that target remains current. */

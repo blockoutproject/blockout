@@ -17,7 +17,7 @@ export type ProOperation =
 
 /**
  * Evidence captured for one F05 session by the native association/read owner.
- * A failed read with no usable SDK state supplies null, never an empty CustomerInfo.
+ * Null CustomerInfo represents unavailable SDK evidence.
  * Listener payloads have no session attribution and must not be tagged as current reads.
  */
 export interface ProSessionState {
@@ -55,6 +55,10 @@ export type ProState =
       operation: ProOperation;
     };
 
+export function activeProEntitlement(customerInfo: CustomerInfo | null) {
+  return customerInfo?.entitlements.active["Blockout Pro"];
+}
+
 /**
  * Reads current F05 evidence without storing rights or calculating expiry.
  * Uses the current React principal and business account; SDK identity sequencing remains independent.
@@ -68,14 +72,13 @@ export function getProState(
   if (account.status === "guest") {
     return { status: "guest" };
   }
-  const current = account;
-  if (account.status !== "authenticated" || !current.accountId) {
+  if (account.status !== "authenticated" || !account.accountId) {
     return { status: "unavailable", reason: "account", operation: "idle" };
   }
   if (
     !native ||
-    native.session.subject !== current.subject ||
-    native.session.accountId !== current.accountId
+    native.session.subject !== account.subject ||
+    native.session.accountId !== account.accountId
   ) {
     return {
       status: "unavailable",
@@ -97,7 +100,7 @@ export function getProState(
   if (!customerInfo) {
     return { status: "unavailable", reason: "customer-info", operation };
   }
-  const entitlement = customerInfo.entitlements.active["Blockout Pro"];
+  const entitlement = activeProEntitlement(customerInfo);
   return entitlement
     ? { status: "active", entitlement, operation }
     : { status: "inactive", operation };

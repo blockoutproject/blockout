@@ -179,7 +179,6 @@ it.each(["purchased", "already-owned", "pending"] as const)(
       all: active,
       verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
     });
-    mockPurchases.getCustomerInfo.mockResolvedValue(paid);
 
     // When
     await owner.completeOperation(session, operation, paid);
@@ -215,7 +214,6 @@ it.each(["purchased", "pending", "already-owned"] as const)(
       all: active,
       verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
     });
-    mockPurchases.getCustomerInfo.mockResolvedValue(gift);
 
     // When
     await owner.completeOperation(session, operation, gift);

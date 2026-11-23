@@ -2,7 +2,11 @@ import Purchases, {
   type CustomerInfo,
   type PURCHASES_ERROR_CODE,
 } from "react-native-purchases";
-import type { ProOperation } from "./pro-state";
+import { activeProEntitlement, type ProOperation } from "./pro-state";
+
+function hasUnresolvedPurchase(operation: ProOperation) {
+  return ["purchased", "pending", "already-owned"].includes(operation);
+}
 
 /**
  * Uses documented SDK purchase outcomes; no error itself grants or withdraws rights.
@@ -37,8 +41,8 @@ export function verifiedProOperation(
   operation: ProOperation,
   customerInfo: CustomerInfo | null,
 ): ProOperation {
-  const entitlement = customerInfo?.entitlements.active["Blockout Pro"];
-  return ["purchased", "already-owned", "pending"].includes(operation) &&
+  const entitlement = activeProEntitlement(customerInfo);
+  return hasUnresolvedPurchase(operation) &&
     entitlement?.ownershipType === "PURCHASED" &&
     ["APP_STORE", "PLAY_STORE", "TEST_STORE"].includes(entitlement.store)
     ? "completed"
@@ -60,7 +64,5 @@ export function restoredProOperation(
   current: ProOperation,
   outcome: ProOperation,
 ): ProOperation {
-  return ["purchased", "pending", "already-owned"].includes(current)
-    ? current
-    : outcome;
+  return hasUnresolvedPurchase(current) ? current : outcome;
 }

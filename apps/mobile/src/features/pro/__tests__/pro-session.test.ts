@@ -107,11 +107,10 @@ it("keeps known rights without notifying subscribers when an attributed read fai
     .mockRejectedValueOnce(new Error("Synthetic private SDK payload"));
 
   // When
-  const result = await owner.refresh(session);
+  await owner.refresh(session);
   unsubscribe();
 
   // Then
-  expect(result).toBe(false);
   expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1);
   expect(owner.getSnapshot()).toBe(knownEvidence);
   expect(Sentry.captureException).toHaveBeenCalledTimes(1);
@@ -119,6 +118,29 @@ it("keeps known rights without notifying subscribers when an attributed read fai
     new Error("Pro verification"),
     { tags: { feature: "pro", operation: "read", outcome: "failed" } },
   );
+  expect(onEvidenceChange).toHaveBeenCalledTimes(0);
+});
+
+it("retains the snapshot without notifying subscribers when a successful read supplies the same evidence", async () => {
+  // Given
+  session = { subject: `auth0|${a}`, accountId: a };
+  owner.setTarget(session);
+  await waitFor(() => expect(owner.getSnapshot()?.customerInfo).toBe(info));
+  const knownEvidence = owner.getSnapshot();
+  const onEvidenceChange = jest.fn();
+  const unsubscribe = owner.subscribe(onEvidenceChange);
+  jest
+    .mocked(Purchases.getCustomerInfo)
+    .mockClear()
+    .mockResolvedValueOnce(info);
+
+  // When
+  await owner.refresh(session);
+  unsubscribe();
+
+  // Then
+  expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1);
+  expect(owner.getSnapshot()).toBe(knownEvidence);
   expect(onEvidenceChange).toHaveBeenCalledTimes(0);
 });
 
