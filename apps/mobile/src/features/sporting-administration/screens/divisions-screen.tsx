@@ -284,9 +284,10 @@ function DivisionCard({
 }>) {
   const { colors } = useTheme();
   const artwork = usePresentationLogo(
-    { kind: "division", id: division.id },
+    division.logo.effectiveUrl
+      ? { kind: "division", id: division.id }
+      : undefined,
     "effective",
-    division.logo.effectiveUrl != null,
   );
   return (
     <Pressable
@@ -311,8 +312,8 @@ function DivisionCard({
           kind="division"
           size={52}
           uri={artwork?.data ?? undefined}
-          loading={!!division.logo.effectiveUrl && artwork?.isLoading}
-          error={!!division.logo.effectiveUrl && artwork?.isError}
+          loading={artwork?.isLoading}
+          error={artwork?.isError}
         />
       </View>
       <View style={styles.identity}>

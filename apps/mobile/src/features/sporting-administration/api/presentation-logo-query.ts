@@ -61,9 +61,6 @@ function createPresentationLogoQueryOptions(
         } else {
           blob = await getDivisionLogo(id, options);
         }
-        if (!blob) {
-          throw new ApiError("configuration");
-        }
         const uri = await binaryImagePreview(blob, context.signal);
         if (context.signal.aborted) {
           throw new ApiError("cancelled");
@@ -77,7 +74,7 @@ function createPresentationLogoQueryOptions(
 export function usePresentationLogo(
   target: PresentationTarget | undefined,
   selection: LogoSelection,
-  enabled: boolean,
+  enabled = true,
 ) {
   const authority = useSportingAuthority(
     target?.kind === "division" ? "divisions" : "presentation",

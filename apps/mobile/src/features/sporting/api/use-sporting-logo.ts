@@ -45,7 +45,7 @@ export function useSportingLogo(
   });
   const withdrawn = resource.isError && resource.data === undefined;
   let uri;
-  if (withdrawn) {
+  if (withdrawn || !identity.logoUrl) {
     uri = undefined;
   } else if (bypass) {
     uri = binary.data;

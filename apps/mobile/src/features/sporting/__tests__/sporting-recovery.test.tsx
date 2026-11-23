@@ -35,6 +35,7 @@ import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
 import {
+  getGetClubLogoQueryKey,
   getGetMatchQueryKey,
   getGetPoolStandingsQueryKey,
 } from "../../../../.generated/mobile";
@@ -684,6 +685,64 @@ it.each(["current", "former"] as const)(
     );
   },
 );
+
+it("shows a missing logo under bypass when the current sporting read has no artwork", async () => {
+  // Given a previous credentialed preview and current club metadata without a logo.
+  const maintainer = accountResponse();
+  maintainer.permissions.bypassMaintenance = true;
+  const subject = "auth0|maintainer";
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor(subject));
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(Response.json(maintainer));
+    }
+    if (url.endsWith("/application-access")) {
+      const access = applicationAccessResponse();
+      access.maintenance.active = true;
+      return Promise.resolve(Response.json(access));
+    }
+    if (
+      url.endsWith(`/clubs/${sportingId}`) &&
+      new Headers(options.headers).has("Blockout-Maintenance-Bypass")
+    ) {
+      return Promise.resolve(Response.json(clubDetail("Current club")));
+    }
+    return reads(url);
+  });
+  await renderPage(
+    <>
+      <ContextActions />
+      <ClubScreen clubId={sportingId} />
+    </>,
+  );
+  await screen.findByText("Account ready");
+  const oldLogo = "data:image/png;base64,b2xk";
+  const logoKey = [
+    "consultation-bypass",
+    subject,
+    maintainer.accountId,
+    ...getGetClubLogoQueryKey(sportingId),
+  ];
+  client.setQueryData(logoKey, oldLogo);
+
+  // When
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Use maintenance bypass" }));
+
+  // Then
+  expect(
+    await screen.findAllByRole("image", { name: "Logo absent : Current club" }),
+  ).not.toHaveLength(0);
+  expect(
+    screen.queryAllByRole("image", { name: "Logo : Current club" }),
+  ).toHaveLength(0);
+  expect(client.getQueryData(logoKey)).toBe(oldLogo);
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).endsWith("/logo")),
+  ).toBe(false);
+});
 
 it("replaces failed Match content with one destination card and recovers through Retry", async () => {
   // Given

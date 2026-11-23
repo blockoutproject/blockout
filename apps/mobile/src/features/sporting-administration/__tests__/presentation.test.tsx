@@ -16,6 +16,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import {
   QueryClientProvider,
+  useQuery,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
@@ -33,7 +34,8 @@ import { ActionSheetIOS, Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren, ReactNode } from "react";
-import { useDivisions } from "../api/classification";
+import { useDivisions, useSportingAuthority } from "../api/classification";
+import { createSportingAdministrationQueries } from "../api/sporting-administration-queries";
 import {
   getGetTeamPresentationQueryKey,
   getGetTeamLogoQueryKey,
@@ -2052,11 +2054,18 @@ it("opens without a catalogue read and directly creates an active division with 
   );
   expect(screen.getByLabelText("Couleur HEX")).toHaveDisplayValue("#123456");
   expect(Alert.alert).not.toHaveBeenCalled();
-  const request = mockFetch.mock.calls.find(
-    ([, options]) => options?.method === "POST",
-  )?.[1];
-  expect(request?.body).toBeInstanceOf(FormData);
-  const metadata = (request?.body as FormData).get("metadata") as Blob;
+  const divisionRequests = mockFetch.mock.calls.filter(([url]) =>
+    new URL(String(url)).pathname.startsWith("/administration/divisions"),
+  );
+  expect(divisionRequests).toEqual([
+    [
+      "https://api.example.invalid/administration/divisions",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    ],
+  ]);
+  const metadata = (divisionRequests[0][1]?.body as FormData).get(
+    "metadata",
+  ) as Blob;
   expect(metadata.type).toBe("application/json");
   expect(JSON.parse(await metadata.text())).toEqual({
     name: "National 2",
@@ -2065,21 +2074,24 @@ it("opens without a catalogue read and directly creates an active division with 
     logoAction: "keep",
   });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    mockFetch.mock.calls.some(([url]) => String(url).includes("/activity")),
-  ).toBe(false);
 });
 
 it.each([
   {
     status: 409,
     type: "conflict",
+    title: "Conflict",
     feedback: "Ce nom de division est déjà utilisé.",
   },
-  { status: 503, type: "service-unavailable", feedback: TECHNICAL_ERROR },
+  {
+    status: 503,
+    type: "unavailable",
+    title: "Service Unavailable",
+    feedback: TECHNICAL_ERROR,
+  },
 ])(
   "retains creation input after HTTP $status without proposing an unavailable reread",
-  async ({ status, type, feedback }) => {
+  async ({ status, type, title, feedback }) => {
     // Given
     permissions = { manageDivisionLifecycle: true };
     stored = { items: [] };
@@ -2089,7 +2101,7 @@ it.each([
             json(
               {
                 type: `urn:blockout:problem:${type}`,
-                title: "Creation refused",
+                title,
                 status,
               },
               status,
@@ -2110,7 +2122,7 @@ it.each([
     // Then
     await screen.findByText(feedback);
     expect(
-      screen.queryByRole("button", { name: "Relire la présentation" }),
+      screen.queryByRole("button", { name: "Réessayer" }),
     ).not.toBeOnTheScreen();
     expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
       "National 2",
@@ -2571,6 +2583,54 @@ it("ignores the retained lifecycle confirmation after protected-route removal an
   ).toHaveLength(0);
 });
 
+it("drops a lifecycle confirmation when its grant is revoked while editing stays available", async () => {
+  // Given
+  permissions = {
+    manageDivisionLifecycle: true,
+    manageSportingPresentation: true,
+  };
+  stored = {
+    id: resourceId,
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByRole("button", { name: "Relire les permissions" });
+  await act(async () => router.push(`/administration/divisions/${resourceId}`));
+  await user.press(
+    await screen.findByRole("button", { name: "Désactiver la division" }),
+  );
+  const confirm = nativeAlertAction("Désactiver");
+
+  // When
+  permissions = { manageSportingPresentation: true };
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Désactiver la division" }),
+    ).not.toBeOnTheScreen(),
+  );
+  await act(async () => confirm());
+
+  // Then
+  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+    "National 2",
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
 it("releases only the replaced logo copy while the new draft remains usable", async () => {
   // Given
   const user = userEvent.setup();
@@ -2635,13 +2695,6 @@ function DivisionListObserver() {
       <Text>{`Known divisions: ${query.data?.items.map((item) => item.name).join(", ") ?? "loading"}`}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Refresh divisions"
-        onPress={() => void query.refetch()}
-      >
-        <Text>Refresh divisions</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
         accessibilityLabel="Refresh permissions"
         onPress={() => void authority.account.refetch()}
       >
@@ -2651,12 +2704,20 @@ function DivisionListObserver() {
   );
 }
 
+/** Holds the exact detail of an existing division alongside the observed catalogue. */
+function ExistingDivisionObserver({ id }: Readonly<{ id: string }>) {
+  const authority = useSportingAuthority("divisions");
+  const { data } = useQuery(
+    createSportingAdministrationQueries(authority).division(id),
+  );
+  return <Text>{data?.name}</Text>;
+}
+
 it.each([200, 503])(
   "keeps accepted creation values when the independently observed catalogue refresh returns HTTP %i",
   async (refreshStatus) => {
     // Given
     permissions = { manageDivisionLifecycle: true };
-    stored = { items: [] };
     const created = {
       id: resourceId,
 
@@ -2666,31 +2727,41 @@ it.each([200, 503])(
       logo,
       active: true,
     };
+    const existing = {
+      ...created,
+      id: "00000000-0000-4000-8000-000000000197",
+      name: "Existing division",
+    };
+    stored = { items: [existing] };
+    const cataloguePath = "/administration/divisions";
+    const existingPath = `${cataloguePath}/${existing.id}`;
     let accepted = false;
     mockFetch.mockImplementation((url, options) => {
+      const { pathname } = new URL(String(url));
+      if (pathname === existingPath) {
+        return Promise.resolve(json(existing));
+      }
       if (options?.method === "POST") {
         accepted = true;
-        stored = { items: [created] };
+        stored = { items: [existing, created] };
         return Promise.resolve(json(created, 201));
       }
-      return accepted &&
-        refreshStatus === 503 &&
-        String(url).includes("/administration/divisions")
+      return accepted && refreshStatus === 503 && pathname === cataloguePath
         ? Promise.resolve(json({ status: 503 }, 503))
         : respond(url, options);
     });
     const user = userEvent.setup();
-    await renderEditor("division-creation", <DivisionListObserver />);
-    await screen.findByLabelText("Nom de la division");
-    await waitFor(() =>
-      expect(
-        mockFetch.mock.calls.filter(([url]) =>
-          String(url).includes("/administration/divisions"),
-        ),
-      ).toHaveLength(1),
+    await renderEditor(
+      "division-creation",
+      <>
+        <DivisionListObserver />
+        <ExistingDivisionObserver id={existing.id} />
+      </>,
     );
+    await screen.findByLabelText("Nom de la division");
+    await screen.findByText(existing.name);
+    await screen.findByText("Known divisions: Existing division");
     const catalogueKey = getListDivisionsQueryKey({ includeInactive: true });
-    expect(client.getQueryData(catalogueKey)).toEqual({ items: [] });
     await user.clear(screen.getByLabelText("Nom de la division"));
     await user.type(screen.getByLabelText("Nom de la division"), "National 2");
     await user.clear(screen.getByLabelText("Couleur HEX"));
@@ -2703,7 +2774,7 @@ it.each([200, 503])(
     await screen.findByRole("button", { name: "Voir les divisions" });
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(client.getQueryData(catalogueKey)).toEqual({
-      items: refreshStatus === 200 ? [created] : [],
+      items: refreshStatus === 200 ? [existing, created] : [existing],
     });
     expect(client.getQueryState(catalogueKey)?.error).toEqual(
       refreshStatus === 200 ? null : expect.objectContaining({ status: 503 }),
@@ -2718,12 +2789,78 @@ it.each([200, 503])(
     expect(
       mockFetch.mock.calls.filter(
         ([url, options]) =>
-          String(url).includes("/administration/divisions") &&
+          new URL(String(url)).pathname === cataloguePath &&
           options?.method === "GET",
       ),
     ).toHaveLength(2);
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, options]) =>
+          new URL(String(url)).pathname === existingPath &&
+          options?.method === "GET",
+      ),
+    ).toHaveLength(1);
   },
 );
+
+it("keeps the newer exact division read when an earlier 201 arrives late", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  const created: DivisionResponse = {
+    id: resourceId,
+    name: "Initial name",
+    color: "#245FD8",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  const creation = Promise.withResolvers<Response>();
+  const detail = Promise.withResolvers<Response>();
+  const detailPath = `/administration/divisions/${resourceId}`;
+  let creationAcknowledged = false;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      return creation.promise;
+    }
+    if (String(url).endsWith(detailPath)) {
+      return creationAcknowledged
+        ? Promise.resolve(json({ status: 503 }, 503))
+        : detail.promise;
+    }
+    return respond(url, options);
+  });
+  const user = userEvent.setup();
+  await renderEditor(
+    "division-creation",
+    <ExistingDivisionObserver id={resourceId} />,
+  );
+  await user.type(
+    await screen.findByLabelText("Nom de la division"),
+    created.name,
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+
+  // When the other visit receives the newer division before the original POST response.
+  const current = { ...created, name: "Current name" };
+  await act(async () => detail.resolve(json(current)));
+  await screen.findByText(current.name);
+  creationAcknowledged = true;
+  await act(async () => creation.resolve(json(created, 201)));
+
+  // Then each visit retains the response for its own operation.
+  await screen.findByRole("button", { name: "Voir les divisions" });
+  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+    created.name,
+  );
+  expect(screen.getByText(current.name)).toBeOnTheScreen();
+  expect(client.getQueryData(getGetDivisionQueryKey(resourceId))).toEqual(
+    current,
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).endsWith(detailPath)),
+  ).toHaveLength(1);
+});
 
 it("keeps catalogue access and the dirty creation draft when a delayed 201 follows grant revocation", async () => {
   // Given

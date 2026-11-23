@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getGetDivisionQueryKey,
+  getGetMyAccountQueryKey,
   getSetDivisionActivityMutationKey,
   getSetPackClassificationMutationKey,
   getSetPoolClassificationMutationKey,
@@ -10,6 +16,7 @@ import {
 } from "../../../../.generated/mobile";
 import type {
   AccountPermissionsResponse,
+  AccountResponse,
   ClassificationDetailResponse,
   SetClassificationRequest,
   SetDivisionActivityRequest,
@@ -21,7 +28,7 @@ import { useOperationalVersionAdmission } from "@/features/access/operational-ve
 import { useAccountSession } from "@/features/accounts/current-account";
 import {
   invalidateClassificationReads,
-  invalidateDivisionReads,
+  invalidateDivisionCatalogue,
   invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
@@ -52,6 +59,20 @@ function hasSportingPermission(
     return grants?.manageDivisionLifecycle === true;
   }
   return canReadDivisions(grants);
+}
+
+/** A delayed lifecycle command must still belong to the original account and its current grant. */
+export function hasCurrentDivisionLifecycleGrant(
+  client: QueryClient,
+  accountId: string | null,
+) {
+  const account = client.getQueryData<AccountResponse | null>(
+    getGetMyAccountQueryKey(),
+  );
+  return (
+    account?.accountId === accountId &&
+    hasSportingPermission(account.permissions, "lifecycle")
+  );
 }
 
 /** Presents the current action grant and prepares original-principal credentials. */
@@ -95,8 +116,8 @@ export function useClassification(
   /** Refreshes the edited resource and dependent views after an explicit mutation attempt. */
   function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
-    invalidateDivisionReads(client, queryKey);
-    invalidateClassificationReads(client);
+    invalidateDivisionCatalogue(client);
+    invalidateClassificationReads(client, queryKey);
     invalidateMappingReads(client);
     invalidateSportingReads(client);
   }
@@ -138,21 +159,37 @@ export function useDivisions(enabled = true) {
 export function useDivisionActivity(id: string) {
   const authority = useSportingAuthority("lifecycle");
   const client = useQueryClient();
-  const queryKey = [...getGetDivisionQueryKey(id)];
+  const queryKey = getGetDivisionQueryKey(id);
 
   /** Invalidates the original division and affected administration/public projections after settlement. */
   function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
-    invalidateDivisionReads(client, queryKey);
+    invalidateDivisionCatalogue(client);
     invalidateClassificationReads(client);
     invalidateSportingReads(client);
   }
 
   const save = useMutation({
     mutationKey: [...queryKey, ...getSetDivisionActivityMutationKey()],
-    mutationFn: async (body: SetDivisionActivityRequest) =>
-      setDivisionActivity(id, body, await authority.request()),
-    onSettled: invalidateReads,
+    mutationFn: async (body: SetDivisionActivityRequest) => {
+      const options = await authority.request();
+      if (
+        !hasCurrentDivisionLifecycleGrant(
+          client,
+          authority.session.accountId,
+        ) ||
+        client.getQueryData(queryKey) == null
+      ) {
+        return undefined;
+      }
+      return setDivisionActivity(id, body, options);
+    },
+    onSettled: (accepted, error) => {
+      // A withdrawn confirmation has no server result to reconcile.
+      if (accepted || error) {
+        invalidateReads();
+      }
+    },
   });
   return { authority, save, queryKey };
 }

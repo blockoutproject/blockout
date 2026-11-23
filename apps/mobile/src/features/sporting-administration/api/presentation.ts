@@ -22,7 +22,7 @@ import type {
 import type { PresentationValues } from "../schemas/presentation-schema";
 import { useSportingAuthority } from "./classification";
 import {
-  invalidateDivisionReads,
+  invalidateDivisionCatalogue,
   invalidateMappingReads,
   invalidateSportingReads,
 } from "./invalidate-sporting-reads";
@@ -108,7 +108,9 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSportingReads(client);
-    invalidateDivisionReads(client);
+    if (target.kind === "division") {
+      invalidateDivisionCatalogue(client);
+    }
   }
 
   let operationKey;
@@ -125,10 +127,9 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     mutationKey: [...queryKey, ...operationKey],
     mutationFn: async (values: PresentationValues): Promise<Presentation> => {
       const options = await authority.request();
-      let accepted: Presentation;
       switch (target.kind) {
         case "club":
-          accepted = {
+          return {
             kind: "club",
             data: await setClubPresentation(
               target.id,
@@ -136,9 +137,8 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
               options,
             ),
           };
-          break;
         case "team":
-          accepted = {
+          return {
             kind: "team",
             data: await setTeamPresentation(
               target.id,
@@ -146,9 +146,8 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
               options,
             ),
           };
-          break;
         case "pool":
-          accepted = {
+          return {
             kind: "pool",
             data: await setPoolPresentation(
               target.id,
@@ -156,9 +155,8 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
               options,
             ),
           };
-          break;
         case "division":
-          accepted = {
+          return {
             kind: "division",
             data: await setDivisionPresentation(
               target.id,
@@ -166,9 +164,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
               options,
             ),
           };
-          break;
       }
-      return accepted;
     },
     onSuccess: (accepted) => {
       // An acknowledged save cannot restore data withdrawn by a current refusal.

@@ -1,3 +1,4 @@
+import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import {
   hashKey,
   type QueryClient,
@@ -39,18 +40,7 @@ export function invalidateMappingReads(client: QueryClient) {
   });
 }
 
-/** Division creation, presentation and activity share the complete administration projections. */
-export function invalidateDivisionReads(
-  client: QueryClient,
-  retainedKey?: QueryKey,
-) {
-  void client.invalidateQueries({
-    predicate: ({ queryKey }) =>
-      (!retainedKey || hashKey(queryKey) !== hashKey(retainedKey)) &&
-      queryKey.some(
-        (part) =>
-          typeof part === "string" &&
-          part.startsWith("/administration/divisions"),
-      ),
-  });
+/** Refreshes catalogue variants without also fetching unrelated division details. */
+export function invalidateDivisionCatalogue(client: QueryClient) {
+  void client.invalidateQueries({ queryKey: getListDivisionsQueryKey() });
 }

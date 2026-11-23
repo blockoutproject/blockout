@@ -186,6 +186,9 @@ function PresentationScreenContent({
         editor.update({ ...editor.state, feedback: undefined });
         feedback.clear();
         const response = await attempt;
+        if (!response) {
+          return;
+        }
         const accepted: Presentation = { kind: "division", data: response };
         editor.update({
           baseline: accepted,

@@ -3,16 +3,15 @@ import {
   createDivision,
   getCreateDivisionMutationKey,
   getGetDivisionQueryKey,
-  getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import type {
-  AccountResponse,
-  DivisionResponse,
-} from "../../../../.generated/schemas/index.zod";
+import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import type { PresentationValues } from "../schemas/presentation-schema";
-import { useSportingAuthority } from "./classification";
-import { invalidateDivisionReads } from "./invalidate-sporting-reads";
+import {
+  hasCurrentDivisionLifecycleGrant,
+  useSportingAuthority,
+} from "./classification";
+import { invalidateDivisionCatalogue } from "./invalidate-sporting-reads";
 import { toDivisionBody } from "./presentation-request";
 
 /** Sends the editorial command without a catalogue prerequisite. */
@@ -23,13 +22,7 @@ export function useCreateDivision() {
 
   /** Read the original cache at dispatch and settlement, including after this visit unmounts. */
   function hasCurrentGrant() {
-    const account = client.getQueryData<AccountResponse | null>(
-      getGetMyAccountQueryKey(),
-    );
-    return (
-      account?.accountId === accountId &&
-      account.permissions.manageDivisionLifecycle === true
-    );
+    return hasCurrentDivisionLifecycleGrant(client, accountId);
   }
 
   const save = useMutation({
@@ -43,15 +36,15 @@ export function useCreateDivision() {
     },
     onSuccess: (accepted) => {
       if (hasCurrentGrant()) {
-        // A late acknowledgement cannot restore a division withdrawn by a current refusal.
+        // Keep an exact read that another visit has already resolved, including a refusal.
         client.setQueryData<DivisionResponse | null>(
           getGetDivisionQueryKey(accepted.id),
-          (current) => (current === null ? undefined : accepted),
+          (current) => (current === undefined ? accepted : undefined),
         );
       }
     },
     // An independently mounted catalogue can refresh even after this visit has closed.
-    onSettled: () => invalidateDivisionReads(client),
+    onSettled: () => invalidateDivisionCatalogue(client),
   });
 
   return { authority, save, hasCurrentGrant };
