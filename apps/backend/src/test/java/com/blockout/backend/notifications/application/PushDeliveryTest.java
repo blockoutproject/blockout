@@ -1,6 +1,7 @@
 package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
@@ -8,8 +9,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
@@ -21,9 +26,15 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -125,22 +136,6 @@ class PushDeliveryTest {
   }
 
   @Test
-  @DisplayName("An uncertain send is attempted once without scheduling a resend")
-  void dropsUncertainSend() {
-    // Given
-    when(eligibility.current(created, target)).thenReturn(java.util.Optional.of(message));
-    when(admission.allowsHandoff()).thenReturn(true);
-    when(provider.send(any())).thenThrow(new IllegalStateException("controlled unknown outcome"));
-
-    // When
-    delivery.deliver(List.of(new DeliverPush.Attempt(created, target)));
-
-    // Then
-    verify(provider, times(1)).send(any());
-    verifyNoInteractions(scheduler, subscriptions);
-  }
-
-  @Test
   @DisplayName("Bounds batches and stays below six hundred messages per project second")
   void boundsBatchesAndRate() {
     // Given
@@ -210,5 +205,119 @@ class PushDeliveryTest {
 
     // Then
     verify(scheduler).schedule(any(Runnable.class), eq(NOW.plusSeconds(900)));
+  }
+
+  @Nested
+  @DisplayName("Worker failure diagnostics")
+  class FailureDiagnostics {
+    private final Logger logger = (Logger) LoggerFactory.getLogger(DeliverPush.class);
+    private final ListAppender<ILoggingEvent> events = new ListAppender<>();
+    private final Target secondTarget =
+        new Target(
+            UUID.fromString("00000000-0000-4000-8000-000000002824"), 5, "Expo[synthetic-second]");
+
+    @BeforeEach
+    void captureDiagnostics() {
+      events.start();
+      logger.addAppender(events);
+    }
+
+    @AfterEach
+    void releaseDiagnostics() {
+      logger.detachAppender(events);
+      events.stop();
+    }
+
+    @Test
+    @DisplayName("Preparation failure accounts for the batch before calling the provider")
+    void reportsFailedPreparation() {
+      // Given
+      when(eligibility.current(created, target)).thenReturn(Optional.of(message));
+      when(eligibility.current(created, secondTarget))
+          .thenThrow(new IllegalStateException("synthetic private database detail"));
+
+      // When
+      delivery.deliver(
+          List.of(
+              new DeliverPush.Attempt(created, target),
+              new DeliverPush.Attempt(created, secondTarget)));
+
+      // Then
+      verifyNoInteractions(admission, provider, scheduler, subscriptions);
+      assertDiagnostic("preparation", "failed", "handoff_unavailable", 2);
+    }
+
+    @Test
+    @DisplayName("Uncertain transport accounts only for submitted messages without replay")
+    void reportsUncertainTransport() {
+      // Given
+      when(eligibility.current(created, target)).thenReturn(Optional.of(message));
+      when(eligibility.current(created, secondTarget)).thenReturn(Optional.empty());
+      when(admission.allowsHandoff()).thenReturn(true);
+      when(provider.send(List.of(message)))
+          .thenThrow(new IllegalStateException("synthetic private provider detail"));
+
+      // When
+      delivery.deliver(
+          List.of(
+              new DeliverPush.Attempt(created, target),
+              new DeliverPush.Attempt(created, secondTarget)));
+
+      // Then
+      verify(provider).send(List.of(message));
+      verifyNoMoreInteractions(provider);
+      verifyNoInteractions(scheduler, subscriptions);
+      assertDiagnostic("transport", "unknown", "handoff_uncertain", 1);
+    }
+
+    @Test
+    @DisplayName("A failed receipt lookup leaves its evidence unknown without a second attempt")
+    void reportsUncertainReceiptLookup() {
+      // Given
+      String ticket = "synthetic-ticket";
+      when(eligibility.current(created, target)).thenReturn(Optional.of(message));
+      when(admission.allowsHandoff()).thenReturn(true);
+      when(provider.send(List.of(message)))
+          .thenReturn(List.of(new Outcome(Status.ACCEPTED, ticket)));
+      when(provider.receipts(List.of(ticket)))
+          .thenThrow(new IllegalStateException("synthetic private receipt detail"));
+      delivery.deliver(List.of(new DeliverPush.Attempt(created, target)));
+      ArgumentCaptor<Runnable> callback = ArgumentCaptor.forClass(Runnable.class);
+      verify(scheduler).schedule(callback.capture(), eq(NOW.plusSeconds(900)));
+
+      // When
+      callback.getValue().run();
+
+      // Then
+      verify(provider).send(List.of(message));
+      verify(provider).receipts(List.of(ticket));
+      verifyNoMoreInteractions(provider, scheduler);
+      verifyNoInteractions(subscriptions);
+      assertDiagnostic("receipt", "unknown", "receipt_unavailable", 1);
+    }
+
+    private void assertDiagnostic(String stage, String outcome, String reason, int affectedCount) {
+      assertThat(events.list)
+          .singleElement()
+          .satisfies(
+              event -> {
+                assertThat(event.getThrowableProxy()).isNull();
+                assertThat(event.getFormattedMessage())
+                    .doesNotContain(
+                        "synthetic private",
+                        target.address(),
+                        message.text().body(),
+                        OWNER.toString());
+                assertThat(event.getKeyValuePairs())
+                    .extracting(value -> value.key, value -> value.value)
+                    .containsExactlyInAnyOrder(
+                        tuple("operation", "sporting_push"),
+                        tuple("provider", "expo"),
+                        tuple("stage", stage),
+                        tuple("outcome", outcome),
+                        tuple("reason", reason),
+                        tuple("affected_count", affectedCount));
+              });
+    }
   }
 }

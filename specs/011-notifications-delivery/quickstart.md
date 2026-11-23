@@ -103,7 +103,11 @@ Verify committed inbox entries and match facts in both configurations and rollba
 
 To compare SQL counts, use the same recipients and installations with push enabled and disabled on disposable PostgreSQL. Count the producer's installation reads before releasing the worker. Expect one capture read for the selected accounts when enabled and zero when disabled.
 
+For the worker, count its statements and transactions separately from capture and receipt processing. Use two accounts with two devices each, one following both teams and the pool and the other following only the pool. Expect one F06 read per device that reaches current-follow eligibility and one send of four messages. With two devices on one account, commit removal of its last follow on another connection before checking the second device. Expect one message and one retained inbox entry.
+
 Exercise the push and destination rows above. Expect no handoff before commit, current F12 admission before each batch, current account/destination association, unexpired visible entry, a current qualifying follow and current live-link conditions before handoff. A selected recipient with no current qualifying follow is excluded; a selected recipient who unfollows/re-follows remains eligible for the prepared push. No later follower is added and no captured follow UUID is required. Exact destination-row/revision/address invalidation remains only for `DeviceNotRegistered`, with one ordinary send and one delayed receipt observation. Refusal, timeout, restart or maintenance must create no resend/catch-up work. The [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits) owns activation inputs, bounds and safe diagnostics.
+
+Use the real F02/F08 commands to compare the HTTP inbox `title` and the eligible push body after link withdrawal. Exercise a numeric correction, an accepted special result and a partial score observation that leaves the prior confirmed score in place. Take both reads at the same sporting state and check the distinct short push title. Exercise preparation failure, exceptions from sending and from observing receipts, and partial adapter evidence. Check stage, outcome and affected count against the [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits).
 
 ## Physical push preparation
 

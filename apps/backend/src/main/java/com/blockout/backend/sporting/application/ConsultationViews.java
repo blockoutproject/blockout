@@ -183,7 +183,11 @@ public final class ConsultationViews {
       Integer homeSets,
       Integer awaySets,
       String specialLabel,
-      OffsetDateTime observedAt) {}
+      OffsetDateTime observedAt) {
+    public static boolean isFinal(Result result) {
+      return result != null && result.state() == ResultStateEnum.FINAL;
+    }
+  }
 
   /** Compatible played-set detail with independent accepted freshness. */
   public record Sets(OffsetDateTime observedAt, List<SetScore> items) {

@@ -24,12 +24,15 @@ public class ReadFollowEligibility {
   }
 
   /**
-   * Checks the original account's current follow, independently of relation recreation.
+   * Checks the selected account's qualifying follow within the caller's current match snapshot.
    *
-   * @param context original account and current qualifying sporting target
-   * @return whether the account currently follows that target
+   * @param accountId original selected account
+   * @param homeTeamId current home team
+   * @param awayTeamId current away team
+   * @param poolId current match pool
+   * @return whether the account follows at least one of these origins
    */
-  public boolean following(FollowContext context) {
-    return store.exists(context);
+  public boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId) {
+    return store.followsMatch(accountId, homeTeamId, awayTeamId, poolId);
   }
 }

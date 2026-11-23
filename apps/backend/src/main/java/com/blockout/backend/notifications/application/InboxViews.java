@@ -1,8 +1,10 @@
 package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.notifications.domain.NotificationFamily;
+import com.blockout.backend.notifications.domain.NotificationMessage;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.sporting.application.ConsultationViews.MatchSummary;
+import com.blockout.backend.sporting.application.ConsultationViews.Result;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +43,24 @@ public final class InboxViews {
       NotificationVariant variant,
       boolean read,
       MatchSummary match,
-      boolean publicLink) {}
+      boolean publicLink) {
+    /**
+     * Supplies the same editorial inputs to inbox and push from this entry's authorized snapshot.
+     *
+     * @return current sporting facts for the retained editorial choice
+     */
+    public NotificationMessage.Facts editorialFacts() {
+      Result result = match.result();
+      return new NotificationMessage.Facts(
+          match.home().name(),
+          match.away().name(),
+          Result.isFinal(result),
+          result == null ? null : result.homeSets(),
+          result == null ? null : result.awaySets(),
+          result == null ? null : result.specialLabel(),
+          publicLink);
+    }
+  }
 
   /**
    * Bounded selection with no count or cross-request snapshot.
