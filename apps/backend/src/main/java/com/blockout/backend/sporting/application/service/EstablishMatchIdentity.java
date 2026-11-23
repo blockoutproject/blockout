@@ -9,7 +9,6 @@ import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.domain.TeamName;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,8 +35,8 @@ public class EstablishMatchIdentity {
    * @param home identified home participant; null represents no identifiable encounter
    * @param away identified away participant; null represents no identifiable encounter
    * @return stable match identity
-   * @throws UnresolvedSportingIdentityException if the pool or participants cannot be identified,
-   *     participants coincide, or their classification is incompatible
+   * @throws UnresolvedSportingIdentityException if the pool lacks a classification or the
+   *     observation cannot establish two distinct compatible participants
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public MatchView identifyMatch(
@@ -65,56 +64,68 @@ public class EstablishMatchIdentity {
         : existing;
   }
 
-  /**
-   * Resolves the source-specific key or its explicit scoped alias before permitting creation.
-   *
-   * @param pool current locked context
-   * @param candidate attributable calendar participant
-   * @param expectedTeam existing participant that cannot be silently replaced, or null
-   * @return established participant
-   */
   private TeamView resolveTeam(PoolView pool, TeamCandidate candidate, UUID expectedTeam) {
-    String name = new TeamName(candidate.sourceName()).comparisonKey();
-    UUID clubId = null;
-    Optional<TeamView> known;
-    if (pool.key().provider() == CollectionProviderEnum.FFVB) {
-      if (candidate.clubReference() == null || candidate.clubReference().isBlank()) {
-        throw new UnresolvedSportingIdentityException("FFVB participant has no attributable club");
-      }
-      ClubView club =
-          store.club(CollectionProviderEnum.FFVB, candidate.clubReference()).orElse(null);
-      if (club == null && expectedTeam != null) {
+    String comparisonName = new TeamName(candidate.sourceName()).comparisonKey();
+    return switch (pool.key().provider()) {
+      case FFVB -> resolveFfvbTeam(pool, candidate, comparisonName, expectedTeam);
+      case LNV -> resolveLnvTeam(pool, candidate, comparisonName, expectedTeam);
+    };
+  }
+
+  /** Uses the club, season, classification and comparison name secured by {@code uk_team_ffvb}. */
+  private TeamView resolveFfvbTeam(
+      PoolView pool, TeamCandidate candidate, String comparisonName, UUID expectedTeam) {
+    String clubReference = candidate.clubReference();
+    if (clubReference == null || clubReference.isBlank()) {
+      throw new UnresolvedSportingIdentityException("FFVB participant has no attributable club");
+    }
+    ClubView club = store.club(CollectionProviderEnum.FFVB, clubReference).orElse(null);
+    if (club == null) {
+      if (expectedTeam != null) {
         throw new UnresolvedSportingIdentityException(
             "Known participant has an unrecognized club reference");
       }
-      if (club == null) {
-        club =
-            store.createClub(
-                CollectionProviderEnum.FFVB, candidate.clubReference(), candidate.clubSourceName());
-      }
-      clubId = club.id();
-      known = store.ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), name);
-      if (known.isEmpty()) {
-        known = store.teamAlias(pool, clubId, name);
-      }
-    } else {
-      if (candidate.nativeReference() == null || candidate.nativeReference().isBlank()) {
-        throw new UnresolvedSportingIdentityException(
-            "LNV participant has no native team reference");
-      }
-      known = store.lnvTeam(pool, candidate.nativeReference());
+      club =
+          store.createClub(CollectionProviderEnum.FFVB, clubReference, candidate.clubSourceName());
     }
-    if (expectedTeam != null
-        && (known.isEmpty() || !known.orElseThrow().id().equals(expectedTeam))) {
+    UUID clubId = club.id();
+    TeamView knownTeam =
+        store
+            .ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), comparisonName)
+            .or(() -> store.teamAlias(pool, clubId, comparisonName))
+            .orElse(null);
+    return retainOrCreateTeam(pool, candidate, comparisonName, expectedTeam, clubId, knownTeam);
+  }
+
+  /** Uses the season, organizer, competition and native TeamID secured by {@code uk_team_lnv}. */
+  private TeamView resolveLnvTeam(
+      PoolView pool, TeamCandidate candidate, String comparisonName, UUID expectedTeam) {
+    String nativeReference = candidate.nativeReference();
+    if (nativeReference == null || nativeReference.isBlank()) {
+      throw new UnresolvedSportingIdentityException("LNV participant has no native team reference");
+    }
+    TeamView knownTeam = store.lnvTeam(pool, nativeReference).orElse(null);
+    return retainOrCreateTeam(pool, candidate, comparisonName, expectedTeam, null, knownTeam);
+  }
+
+  /** A retained encounter fixes the participant, and a reused team must match the pool. */
+  private TeamView retainOrCreateTeam(
+      PoolView pool,
+      TeamCandidate candidate,
+      String comparisonName,
+      UUID expectedTeam,
+      UUID clubId,
+      TeamView knownTeam) {
+    if (expectedTeam != null && (knownTeam == null || !expectedTeam.equals(knownTeam.id()))) {
       throw new UnresolvedSportingIdentityException(
           "Known encounter has an unrecognized participant");
     }
-    if (known.isPresent() && !known.orElseThrow().classification().equals(pool.classification())) {
+    if (knownTeam != null && !knownTeam.classification().equals(pool.classification())) {
       throw new UnresolvedSportingIdentityException(
           "Team participation has an incompatible classification");
     }
-    return known.isPresent()
-        ? known.orElseThrow()
-        : store.createTeam(pool, clubId, candidate, name);
+    return knownTeam == null
+        ? store.createTeam(pool, clubId, candidate, comparisonName)
+        : knownTeam;
   }
 }

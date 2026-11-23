@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
@@ -67,7 +68,6 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -153,19 +153,18 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public SourceCatalogueEntries sourceCatalogueEntries(
-      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference) {
-    if (provider == CollectionProviderEnum.LNV) {
-      Map<String, String> labels =
-          catalogs.findById(sourceId).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
-      List<CataloguePhase> phases =
-          pools.cataloguePhaseReferences(seasonId, provider, organizerReference).stream()
-              .map(reference -> new CataloguePhase(reference, labels.get(reference)))
-              .toList();
-      return new SourceCatalogueEntries(List.of(), phases);
-    }
+  public SourceCatalogueEntries sourceCatalogueEntries(Source source) {
+    return switch (source.provider()) {
+      case FFVB -> new SourceCatalogueEntries(ffvbCataloguePacks(source), List.of());
+      case LNV -> new SourceCatalogueEntries(List.of(), lnvCataloguePhases(source));
+    };
+  }
+
+  private List<CataloguePack> ffvbCataloguePacks(Source source) {
     Map<PackEntity, List<CataloguePool>> byPack =
-        pools.cataloguePools(seasonId, provider, organizerReference).stream()
+        pools
+            .cataloguePools(source.seasonId(), source.provider(), source.organizerReference())
+            .stream()
             .collect(
                 Collectors.groupingBy(
                     PoolEntity::getPack,
@@ -173,16 +172,24 @@ public class JpaSportingStore implements SportingStore {
                     Collectors.mapping(
                         pool -> new CataloguePool(pool.getId(), pool.getSourceName()),
                         Collectors.toList())));
-    List<CataloguePack> entries =
-        byPack.entrySet().stream()
-            .map(
-                entry ->
-                    new CataloguePack(
-                        entry.getKey().getId(),
-                        entry.getKey().getReference(),
-                        List.copyOf(entry.getValue())))
-            .toList();
-    return new SourceCatalogueEntries(entries, List.of());
+    return byPack.entrySet().stream()
+        .map(
+            entry ->
+                new CataloguePack(
+                    entry.getKey().getId(),
+                    entry.getKey().getReference(),
+                    List.copyOf(entry.getValue())))
+        .toList();
+  }
+
+  private List<CataloguePhase> lnvCataloguePhases(Source source) {
+    Map<String, String> labels =
+        catalogs.findById(source.id()).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
+    return pools
+        .cataloguePhaseReferences(source.seasonId(), source.provider(), source.organizerReference())
+        .stream()
+        .map(reference -> new CataloguePhase(reference, labels.get(reference)))
+        .toList();
   }
 
   /** {@inheritDoc} */
@@ -869,36 +876,33 @@ public class JpaSportingStore implements SportingStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public void finishCatalog(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizer,
+      Source source,
       Set<UUID> presentIds,
-      boolean complete,
+      boolean authoritative,
       ObservationOrder order,
       CatalogObservation observation) {
-    if (complete) {
+    if (authoritative) {
       for (PoolEntity pool :
           pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-              seasonId, provider, organizer, Pageable.unpaged())) {
+              source.seasonId(), source.provider(), source.organizerReference())) {
         if (!presentIds.contains(pool.getId())) {
           pool.setCatalogEligible(false);
           changes.submit(Kind.POOL, pool.getId());
         }
       }
     }
-    CatalogEntity catalog = catalogs.findById(sourceId).orElse(null);
+    CatalogEntity catalog = catalogs.findById(source.id()).orElse(null);
     boolean created = catalog == null;
     if (created) {
-      catalog = new CatalogEntity(sourceId);
+      catalog = new CatalogEntity(source.id());
     }
     MatchObservation.Context context = observation.context();
     catalog.setCycleOrder(order.cycleOrder());
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
     catalog.setProviderPublishedAt(context.providerPublishedAt());
-    catalog.setComplete(complete);
-    if (complete) {
+    catalog.setComplete(authoritative);
+    if (authoritative) {
       catalog.setLastCompleteReadAt(context.observedAt());
       if (observation.phaseLabels() != null) {
         catalog.replacePhaseLabels(observation.phaseLabels());

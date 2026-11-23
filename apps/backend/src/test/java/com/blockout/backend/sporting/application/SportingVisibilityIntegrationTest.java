@@ -454,17 +454,62 @@ class SportingVisibilityIntegrationTest {
   }
 
   @Test
-  @DisplayName("Partial catalog discovery cannot withdraw accepted pools")
-  void preservesPartialCatalog() {
+  @DisplayName(
+      "Complete source coverage withdraws omitted pools until they return under the same identity")
+  void reconcilesCatalogueMembership() {
     // Given
-    CatalogObservation observation = new CatalogObservation(context(1), false, List.of());
+    SportingClassification classification =
+        new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE);
+    CatalogObservation.Pool listed = catalogPool("POOL", "Synthetic pool");
+    CatalogObservation.Pool sibling =
+        new CatalogObservation.Pool(
+            "YOUTH_PACK", "YOUTH", "POOL", null, null, null, null, "Youth pool");
+    UUID siblingId =
+        identities
+            .createPool(
+                new PoolKey(
+                    CollectionProviderEnum.FFVB, season, "SYNTHETIC", "YOUTH", null, null, "POOL"),
+                "YOUTH_PACK",
+                "Youth pool",
+                classification)
+            .id();
+    UUID otherOrganizer =
+        identities
+            .createPool(
+                new PoolKey(
+                    CollectionProviderEnum.FFVB, season, "OTHER", "YOUTH", null, null, "POOL"),
+                "YOUTH_PACK",
+                "Other organizer's youth pool",
+                classification)
+            .id();
+    ObservationOutcome.Catalog initial =
+        catalogs.accept(SOURCE, new CatalogObservation(context(1), true, List.of(listed, sibling)));
+    assertThat(initial.outcomes())
+        .extracting(ObservationOutcome::resourceId)
+        .containsExactly(pool, siblingId);
 
-    // When
-    ObservationOutcome.Catalog result = catalogs.accept(SOURCE, observation);
+    // When / Then
+    ObservationOutcome.Catalog partial =
+        catalogs.accept(SOURCE, new CatalogObservation(context(2), false, List.of(listed)));
+    assertThat(partial.absenceReconciled()).isFalse();
+    assertThat(reads.visibility(Kind.POOL, siblingId).orElseThrow().viewable()).isTrue();
 
-    // Then
-    assertThat(result.absenceReconciled()).isFalse();
+    ObservationOutcome.Catalog complete =
+        catalogs.accept(SOURCE, new CatalogObservation(context(3), true, List.of(listed)));
+    assertThat(complete.absenceReconciled()).isTrue();
+    assertThat(reads.visibility(Kind.POOL, siblingId).orElseThrow().reasons())
+        .containsExactly(Reason.CATALOG_ABSENT);
     assertThat(reads.visibility(Kind.POOL, pool).orElseThrow().viewable()).isTrue();
+    assertThat(reads.visibility(Kind.POOL, otherOrganizer).orElseThrow().viewable()).isTrue();
+
+    ObservationOutcome.Catalog returned =
+        catalogs.accept(SOURCE, new CatalogObservation(context(4), true, List.of(listed, sibling)));
+    assertThat(returned.outcomes())
+        .extracting(ObservationOutcome::resourceId)
+        .containsExactly(pool, siblingId);
+    assertThat(reads.visibility(Kind.POOL, siblingId).orElseThrow().viewable()).isTrue();
+    assertThat(acquisitionReads.pool(siblingId).orElseThrow().classification())
+        .isEqualTo(classification);
   }
 
   @Test

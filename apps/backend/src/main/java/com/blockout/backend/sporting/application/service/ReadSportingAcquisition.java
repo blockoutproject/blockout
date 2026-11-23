@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.application.service;
 
+import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
@@ -143,14 +144,10 @@ public class ReadSportingAcquisition {
   /**
    * Reads the published source structure independently of acquisition classification.
    *
-   * @param sourceId canonical source binding that owns phase labels
-   * @param seasonId canonical source season
-   * @param provider designated provider
-   * @param organizerReference source organizer or championship
-   * @return complete accepted entries, including unmapped pools
+   * @param source source binding selected by the caller
+   * @return retained accepted entries, including unmapped pools
    */
-  public SourceCatalogueEntries sourceCatalogueEntries(
-      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference) {
-    return store.sourceCatalogueEntries(sourceId, seasonId, provider, organizerReference);
+  public SourceCatalogueEntries sourceCatalogueEntries(Source source) {
+    return store.sourceCatalogueEntries(source);
   }
 }

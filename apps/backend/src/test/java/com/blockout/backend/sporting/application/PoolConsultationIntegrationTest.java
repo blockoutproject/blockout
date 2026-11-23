@@ -83,7 +83,12 @@ class PoolConsultationIntegrationTest {
     assertThat(participants.items())
         .extracting(item -> item.team().team().id())
         .containsExactly(match.awayTeamId(), match.homeTeamId());
-    assertThat(participants.items()).allSatisfy(item -> assertThat(item.location()).isNull());
+    assertThat(participants.items())
+        .allSatisfy(
+            item -> {
+              assertThat(item.team().professional()).isFalse();
+              assertThat(item.location()).isNull();
+            });
   }
 
   @ParameterizedTest(name = "Retains official table after failed acquisition: {0}")
@@ -296,8 +301,8 @@ class PoolConsultationIntegrationTest {
         identities
             .createPool(
                 new PoolKey(
-                    CollectionProviderEnum.LNV, scope.season(), "LNV", "PRO", null, null, "PRO"),
-                "PACK",
+                    CollectionProviderEnum.LNV, scope.season(), "901", "901", null, null, "902"),
+                "901",
                 "Professional",
                 new SportingClassification(
                     SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))

@@ -193,10 +193,7 @@ public class ReadCollectionConfiguration {
   public SourceCatalogue sourceCatalog(UUID accountId, UUID sourceId) {
     Source source = source(accountId, sourceId);
     SourceCatalog binding = catalogs(source.seasonId(), List.of(source)).getFirst();
-    return new SourceCatalogue(
-        binding,
-        acquisitionReads.sourceCatalogueEntries(
-            source.id(), source.seasonId(), source.provider(), source.organizerReference()));
+    return new SourceCatalogue(binding, acquisitionReads.sourceCatalogueEntries(source));
   }
 
   /** Reads the selected season's sources and catalogue evidence in bounded owner queries. */

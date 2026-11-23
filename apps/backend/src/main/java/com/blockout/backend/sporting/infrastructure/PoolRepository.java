@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -73,9 +72,9 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   List<String> cataloguePhaseReferences(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
-  /** Reads current source-season membership for absence reconciliation. */
-  Slice<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-      UUID seasonId, CollectionProviderEnum provider, String organizerReference, Pageable pageable);
+  /** Reads all current source-season members for complete catalogue reconciliation. */
+  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /**
    * Selects qualified pools after the visited identity boundary despite concurrent division

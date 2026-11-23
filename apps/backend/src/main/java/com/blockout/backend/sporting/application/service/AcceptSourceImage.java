@@ -30,7 +30,7 @@ public class AcceptSourceImage {
   /**
    * Checks current image acquisition authority before decoding; the later write checks it again.
    *
-   * @param teamId existing professional participant
+   * @param teamId existing LNV participant
    * @param context admitted current parent-calendar cycle
    * @throws CollectionConflictException when no current parent calendar authorizes the image
    * @throws SportingResourceNotFoundException when the authorized team no longer exists
@@ -39,13 +39,13 @@ public class AcceptSourceImage {
   @Transactional
   public void requireSource(UUID teamId, MatchObservation.Context context) {
     admit(teamId, context);
-    requireProfessionalTeam(teamId);
+    requireLnvTeam(teamId);
   }
 
   /**
    * Commits valid source bytes and metadata together while holding the F01 fence through commit.
    *
-   * @param teamId already established professional team
+   * @param teamId already established LNV team
    * @param context exact admitted observation context
    * @param image bounded content decoded outside this transaction
    * @return accepted, unchanged, stale or currently ineligible outcome; matches are independent
@@ -57,7 +57,7 @@ public class AcceptSourceImage {
   public ObservationOutcome acceptSource(
       UUID teamId, MatchObservation.Context context, Image image) {
     AdmittedScope<Target> admission = admit(teamId, context);
-    TeamView team = requireProfessionalTeam(teamId);
+    TeamView team = requireLnvTeam(teamId);
     ObservationOrder order = context.order(admission.cycle().cycleOrder());
     ObservationOrder previous = store.sourceLogoOrder(teamId);
     ObservationOutcomeEnum status;
@@ -91,7 +91,7 @@ public class AcceptSourceImage {
     return cycleAccess.requireTeamLogo(context.cycleId(), store.teamPoolIds(teamId));
   }
 
-  private TeamView requireProfessionalTeam(UUID teamId) {
+  private TeamView requireLnvTeam(UUID teamId) {
     TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
     if (team.provider() != CollectionProviderEnum.LNV) {
       throw new AccessDeniedException("Professional artwork is not permitted");

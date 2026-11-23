@@ -109,7 +109,17 @@ public final class SportingViews {
       String sourceName,
       String comparisonName,
       UUID clubId,
-      SportingClassification classification) {}
+      SportingClassification classification) {
+    /**
+     * Current F02 professional context comes from the established LNV identity. Club attachment and
+     * editorial classification leave this fact unchanged.
+     *
+     * @return whether this team has the designated professional sporting identity
+     */
+    public boolean professional() {
+      return provider == CollectionProviderEnum.LNV;
+    }
+  }
 
   /**
    * Stable encounter; schedule and result acceptance are separate from identity.

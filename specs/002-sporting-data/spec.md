@@ -147,7 +147,7 @@ As a user, I want withdrawn resources to disappear from ordinary consultation wi
 
 7. **A32** — **Given** a hidden resource with an existing follow or direct link, **when** a user views ordinary lists, search or calendars, **then** it is absent and its old link indicates unavailability; its identity and relationships remain retained for reappearance without automatic transfer to another resource. (FR-044)
 
-**Authority examples for A26–A30**: A catalog covers its source and season, and a calendar covers its own pool or phase. Absence remains subject to FR-019 and FR-037. Evidence for another phase or season establishes no change to the affected scope.
+**Authority examples for A26–A30.** A complete FFVB catalog covers its organizer's pools for the admitted season, including pools in separate packs. A complete LNV catalog covers the groups and phases of its admitted championship and season. Each calendar has authority over its own pool or phase. Absence follows FR-019 and FR-037.
 
 | Source observation                                                | Expected presence outcome                                                      |
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |

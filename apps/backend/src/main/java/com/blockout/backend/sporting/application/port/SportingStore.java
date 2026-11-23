@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.application.port;
 
+import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
@@ -57,16 +58,13 @@ public interface SportingStore {
       MappingFilterDimensionEnum dimension, long page, int size);
 
   /**
-   * Reads the discovered catalogue within an exact source-season context.
+   * Reads the accepted entries in the binding's season, provider and organizer. The same binding
+   * owns the accepted LNV phase labels.
    *
-   * @param sourceId binding that owns LNV phase labels
-   * @param seasonId canonical season
-   * @param provider designated source
-   * @param organizerReference native source identity
+   * @param source selected source binding
    * @return current FFVB packs and pools or LNV phases, independently of classification
    */
-  SourceCatalogueEntries sourceCatalogueEntries(
-      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+  SourceCatalogueEntries sourceCatalogueEntries(Source source);
 
   /**
    * Reads eligible pool references in bounded owner pages.
@@ -586,24 +584,20 @@ public interface SportingStore {
   UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate);
 
   /**
-   * Atomically finalizes catalog provenance and eligible source-scoped absence.
+   * Records read evidence against the admitted binding. An authoritative read also withdraws
+   * omitted pools for its season, provider and organizer, across all packs and competitions.
+   * Withdrawal retains pool identity, classification and independent calendar state.
    *
-   * @param sourceId authorized source-season binding
-   * @param seasonId canonical season
-   * @param provider designated source
-   * @param organizer source organizer
-   * @param presentIds unique accepted pool identities
-   * @param complete whether discovery positively establishes absence
+   * @param source admitted source binding that owns evidence and defines reconciliation scope
+   * @param presentIds unique accepted pool identities when authoritative
+   * @param authoritative whether this newer read establishes the binding's complete membership
    * @param order backend-resolved token
    * @param observation source timestamps and any submitted phase labels
    */
   void finishCatalog(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizer,
+      Source source,
       Set<UUID> presentIds,
-      boolean complete,
+      boolean authoritative,
       ObservationOrder order,
       CatalogObservation observation);
 
