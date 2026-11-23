@@ -16,7 +16,7 @@ The modular backend supplies these operations to the native mobile account featu
 
 All account responses are private and `no-store`, including errors. F13's allowed client/environment/scope validation precedes use-case ownership. Other accounts are not exposed through UUID guessing. Photo bytes receive the same authorization as the profile. API absence never alone proves every supplier's physical erasure.
 
-DELETE targets the original business UUID and never substitutes an account recreated by later authentication. A failed or lost response uses ordinary mutation failure feedback with confirmation input retained for an explicit manual new send, without a verification read. An acknowledged deletion uses standard local sign-out and guest return. A 404 establishes resource absence, not physical provider purge. No deletion receipt, monitor URL, pending-account error or separate local-cleanup recovery state is exposed.
+DELETE targets the original business UUID and never substitutes an account recreated by later authentication. A failed or lost response uses ordinary mutation failure feedback with confirmation input retained for an explicit manual new send, without a verification read. An acknowledgement ends the HTTP command. The app follows [F05 local departure](../plan.md#erasure-and-manual-resolution), including its local-only retry. A 404 establishes resource absence, not physical provider purge. No deletion receipt, monitor URL or pending-account error is exposed.
 
 ## Validation and failure semantics
 
