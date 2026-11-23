@@ -15,5 +15,13 @@
     <module name="StringLiteralEquality"/>
     <module name="InnerAssignment"/>
     <module name="FallThrough"/>
+    <module name="PackageName"/>
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="ConstantName"/>
+    <module name="OuterTypeFilename"/>
+    <module name="OneTopLevelClass"/>
+    <module name="UnusedLocalVariable"/>
+    <module name="ModifierOrder"/>
   </module>
 </module>

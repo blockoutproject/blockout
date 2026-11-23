@@ -57,7 +57,7 @@ export function SearchFilterChoice() {
       })),
       format: options.formats.map((format) => ({
         value: format,
-        label: formatLabel(format)!,
+        label: formatLabel(format),
       })),
       gender: options.genders.map((gender) => ({
         value: gender,
