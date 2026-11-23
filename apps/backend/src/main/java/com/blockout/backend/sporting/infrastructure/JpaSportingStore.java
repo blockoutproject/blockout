@@ -32,8 +32,10 @@ import com.blockout.backend.sporting.application.model.SportingMapping.MappingPo
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePack;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePhase;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePool;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -42,6 +44,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.Participati
 import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
@@ -51,6 +54,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +69,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -150,49 +153,36 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public OffsetPage<CollectionResource> collectionChildren(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizerReference,
-      UUID parentId,
-      int page,
-      int size) {
-    PageRequest request = PageRequest.of(page, size);
-    Slice<CollectionResource> resources;
-    if (parentId == null && provider != CollectionProviderEnum.LNV) {
-      resources =
-          packs
-              .catalogPacks(seasonId, provider, organizerReference, request)
-              .map(PackRepository.CatalogPack::toResource);
-    } else {
-      if (parentId != null
-          && !packs.existsByIdAndSeasonIdAndProviderAndOrganizerReference(
-              parentId, seasonId, provider, organizerReference)) {
-        throw new SportingResourceNotFoundException();
-      }
-      Slice<PoolEntity> children =
-          parentId == null
-              ? pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-                  seasonId,
-                  provider,
-                  organizerReference,
-                  request.withSort(Sort.by("sourceName", "reference", "id")))
-              : pools.findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
-                  parentId, request);
-      if (provider == CollectionProviderEnum.LNV) {
-        Map<String, String> labels =
-            catalogs.findById(sourceId).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
-        resources =
-            children.map(
-                pool ->
-                    mapper.toCollectionResource(
-                        pool, parentId, pool.getReference(), labels.get(pool.getReference())));
-      } else {
-        resources = children.map(pool -> mapper.toCollectionResource(pool, parentId, null, null));
-      }
+  public SourceCatalogueEntries sourceCatalogueEntries(
+      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference) {
+    if (provider == CollectionProviderEnum.LNV) {
+      Map<String, String> labels =
+          catalogs.findById(sourceId).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
+      List<CataloguePhase> phases =
+          pools.cataloguePhaseReferences(seasonId, provider, organizerReference).stream()
+              .map(reference -> new CataloguePhase(reference, labels.get(reference)))
+              .toList();
+      return new SourceCatalogueEntries(List.of(), phases);
     }
-    return new OffsetPage<>(resources.getContent(), resources.getNumber(), resources.hasNext());
+    Map<PackEntity, List<CataloguePool>> byPack =
+        pools.cataloguePools(seasonId, provider, organizerReference).stream()
+            .collect(
+                Collectors.groupingBy(
+                    PoolEntity::getPack,
+                    LinkedHashMap::new,
+                    Collectors.mapping(
+                        pool -> new CataloguePool(pool.getId(), pool.getSourceName()),
+                        Collectors.toList())));
+    List<CataloguePack> entries =
+        byPack.entrySet().stream()
+            .map(
+                entry ->
+                    new CataloguePack(
+                        entry.getKey().getId(),
+                        entry.getKey().getReference(),
+                        List.copyOf(entry.getValue())))
+            .toList();
+    return new SourceCatalogueEntries(entries, List.of());
   }
 
   /** {@inheritDoc} */

@@ -2,7 +2,6 @@ package com.blockout.backend.collection.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,6 +18,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Catalog
 import com.blockout.backend.collection.application.model.CollectionState.CatalogStatus;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.SourceCatalog;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalogue;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.application.service.ReadCollectionConfiguration;
 import com.blockout.backend.config.HttpConfiguration;
@@ -29,11 +29,12 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
-import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
-import com.blockout.backend.shared.pagination.OffsetPage;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePack;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePhase;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePool;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +42,6 @@ import java.util.UUID;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -50,7 +49,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
@@ -81,15 +79,17 @@ class SourcePreparationWebMvcTest {
   @MockitoBean private CurrentPermissions permissions;
 
   @Test
-  @DisplayName("Source reads retain required nulls and expose no classification readiness")
+  @DisplayName("A source awaiting discovery returns required nulls and empty catalogue arrays")
   void readsSourceEvidence() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
-            new SourceCatalog(
-                source(SourceValidationStateEnum.UNVALIDATED),
-                new CatalogRead(CatalogStatus.NOT_READ, null, null, null)));
+            new SourceCatalogue(
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.UNVALIDATED),
+                    new CatalogRead(CatalogStatus.NOT_READ, null, null, null)),
+                new SourceCatalogueEntries(List.of(), List.of())));
 
     // When
     ResultActions response =
@@ -108,7 +108,10 @@ class SourcePreparationWebMvcTest {
         .andExpect(jsonPath("$.catalog.status").value("not-read"))
         .andExpect(jsonPath("$.catalog.observedAt").doesNotExist())
         .andExpect(jsonPath("$.catalog.lastCompleteAt").doesNotExist())
-        .andExpect(jsonPath("$.classification").doesNotExist());
+        .andExpect(jsonPath("$.packs").value(Matchers.empty()))
+        .andExpect(jsonPath("$.phases").value(Matchers.empty()))
+        .andExpect(jsonPath("$.binding").doesNotExist())
+        .andExpect(jsonPath("$.entries").doesNotExist());
   }
 
   @Test
@@ -133,7 +136,7 @@ class SourcePreparationWebMvcTest {
   }
 
   @Test
-  @DisplayName("The latest unavailable read keeps the official URL and last complete read visible")
+  @DisplayName("An unavailable provider read keeps the accepted FFVB catalogue visible")
   void exposesUnavailableCatalogueWithRetainedEvidence() throws Exception {
     // Given
     Instant lastAttempt = Instant.parse("2026-10-17T12:00:00Z");
@@ -154,16 +157,22 @@ class SourcePreparationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
-            new SourceCatalog(
-                source(SourceValidationStateEnum.QUALIFIED).toBuilder()
-                    .acceptedUrl(URL)
-                    .locked(true)
-                    .build(),
-                new CatalogRead(
-                    CatalogStatus.UNAVAILABLE,
-                    lastAttempt,
-                    Instant.parse("2026-10-16T11:48:00Z"),
-                    failedRead)));
+            new SourceCatalogue(
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.QUALIFIED).toBuilder()
+                        .acceptedUrl(URL)
+                        .locked(true)
+                        .build(),
+                    new CatalogRead(
+                        CatalogStatus.UNAVAILABLE,
+                        lastAttempt,
+                        Instant.parse("2026-10-16T11:48:00Z"),
+                        failedRead)),
+                new SourceCatalogueEntries(
+                    List.of(
+                        new CataloguePack(
+                            SEASON, "National", List.of(new CataloguePool(SOURCE, "Poule A")))),
+                    List.of())));
 
     // When
     ResultActions response =
@@ -176,37 +185,48 @@ class SourcePreparationWebMvcTest {
         .andExpect(jsonPath("$.catalog.status").value("unavailable"))
         .andExpect(jsonPath("$.catalog.observedAt").value("2026-10-17T12:00:00Z"))
         .andExpect(jsonPath("$.catalog.lastCompleteAt").value("2026-10-16T11:48:00Z"))
-        .andExpect(jsonPath("$.catalog.reason").value("The source responded with HTTP 503."));
+        .andExpect(jsonPath("$.catalog.reason").value("The source responded with HTTP 503."))
+        .andExpect(jsonPath("$.packs[0].id").value(SEASON.toString()))
+        .andExpect(jsonPath("$.packs[0].label").value("National"))
+        .andExpect(jsonPath("$.packs[0].pools[0].id").value(SOURCE.toString()))
+        .andExpect(jsonPath("$.packs[0].pools[0].label").value("Poule A"))
+        .andExpect(jsonPath("$.packs[0].pools[0].classification").doesNotExist())
+        .andExpect(jsonPath("$.phases").isEmpty());
   }
 
   @Test
-  @DisplayName("Discovered children use default pagination without totals or mapping metadata")
-  void readsDirectChildren() throws Exception {
+  @DisplayName("An LNV catalogue returns phase references with published labels when known")
+  void readsLnvPhases() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50))
+    when(configurationReads.sourceCatalog(ACCOUNT, SOURCE))
         .thenReturn(
-            new OffsetPage<>(
-                List.of(
-                    new CollectionResource(
-                        SEASON, "National", CollectionResourceKindEnum.PACK, null, null, null, 2)),
-                0,
-                false));
+            new SourceCatalogue(
+                new SourceCatalog(
+                    source(SourceValidationStateEnum.QUALIFIED).toBuilder()
+                        .provider(CollectionProviderEnum.LNV)
+                        .organizerReference("135")
+                        .build(),
+                    new CatalogRead(CatalogStatus.COMPLETE, null, null, null)),
+                new SourceCatalogueEntries(
+                    List.of(),
+                    List.of(
+                        new CataloguePhase("193", "Saison régulière"),
+                        new CataloguePhase("194", null)))));
 
     // When
     ResultActions response =
-        mvc.perform(get("/administration/source-bindings/{id}/children", SOURCE).with(mobile()));
+        mvc.perform(get("/administration/source-bindings/{id}", SOURCE).with(mobile()));
 
     // Then
     response
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.items[0].kind").value("pack"))
-        .andExpect(jsonPath("$.items[0].parentId").doesNotExist())
-        .andExpect(jsonPath("$.items[0].phaseLabel").doesNotExist())
-        .andExpect(jsonPath("$.items[0].poolCount").value(2))
-        .andExpect(jsonPath("$.items[0].classification").doesNotExist())
-        .andExpect(jsonPath("$.total").doesNotExist())
-        .andExpect(jsonPath("$.hasNext").value(false));
+        .andExpect(jsonPath("$.provider").value("lnv"))
+        .andExpect(jsonPath("$.packs").isEmpty())
+        .andExpect(jsonPath("$.phases[0].reference").value("193"))
+        .andExpect(jsonPath("$.phases[0].label").value("Saison régulière"))
+        .andExpect(jsonPath("$.phases[1].reference").value("194"))
+        .andExpect(jsonPath("$.phases[1].label").doesNotExist());
   }
 
   @Test
@@ -230,22 +250,6 @@ class SourcePreparationWebMvcTest {
         .andExpect(jsonPath("$.id").value(SEASON.toString()))
         .andExpect(jsonPath("$.state").value("active"));
     verify(preparation).activate(ACCOUNT, SEASON);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"size=201", "size=0", "page=-1"})
-  @DisplayName("Direct child reads enforce generated pagination bounds")
-  void boundsChildren(String query) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        get("/administration/source-bindings/" + SOURCE + "/children?" + query).with(mobile());
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isBadRequest());
-    verifyNoInteractions(configurationReads);
   }
 
   @Test

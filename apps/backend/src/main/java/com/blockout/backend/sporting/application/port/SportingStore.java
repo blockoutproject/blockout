@@ -25,7 +25,6 @@ import com.blockout.backend.sporting.application.model.SportingMapping.PackMappi
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -34,6 +33,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.Participati
 import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
@@ -57,25 +57,16 @@ public interface SportingStore {
       MappingFilterDimensionEnum dimension, long page, int size);
 
   /**
-   * Reads one page of direct children within an exact source-season context.
+   * Reads the discovered catalogue within an exact source-season context.
    *
    * @param sourceId binding that owns LNV phase labels
    * @param seasonId canonical season
    * @param provider designated source
    * @param organizerReference native source identity
-   * @param parentId pack in that exact context, or null for source roots
-   * @param page zero-based bounded page
-   * @param size positive size no greater than 200
-   * @return child identities without mapping readiness or a total count
+   * @return current FFVB packs and pools or LNV phases, independently of classification
    */
-  OffsetPage<CollectionResource> collectionChildren(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizerReference,
-      UUID parentId,
-      int page,
-      int size);
+  SourceCatalogueEntries sourceCatalogueEntries(
+      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
   /**
    * Reads eligible pool references in bounded owner pages.
