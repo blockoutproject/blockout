@@ -6,11 +6,15 @@ import com.blockout.backend.collection.application.service.CollectionCycleAccess
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
+import com.blockout.backend.notifications.application.ProcessResultAnnouncement;
+import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CalendarState;
 import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
@@ -20,6 +24,7 @@ import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.domain.MatchFacts;
 import com.blockout.backend.sporting.domain.SportingReferences;
 import java.net.URI;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -41,11 +46,9 @@ public class AcceptMatchObservation {
   private final EstablishMatchIdentity identities;
   private final CheckAcquisitionClassification acquisitionClassification;
   private final MatchContributionAccess contributionContext;
-  private final com.blockout.backend.contributions.application.ReadPublicContribution publicLinks;
-  private final com.blockout.backend.notifications.application.ProcessResultAnnouncement
-      announcements;
-  private final com.blockout.backend.notifications.application.AfterCommitAnnouncements handoff;
-  private final java.time.Clock clock;
+  private final ProcessResultAnnouncement announcements;
+  private final AfterCommitAnnouncements handoff;
+  private final Clock clock;
 
   /**
    * Qualifies the global envelope and advances its pool order before any item commit.
@@ -130,6 +133,7 @@ public class AcceptMatchObservation {
     boolean restored = store.restoreCalendarPresence(match.id());
     boolean changed =
         acceptSchedule(
+            match,
             schedule,
             expected,
             context,
@@ -203,6 +207,7 @@ public class AcceptMatchObservation {
   /**
    * Applies only supplied schedule/reference groups; retained groups retain their old attribution.
    *
+   * @param match established encounter identity for any final-result effects
    * @param previous current schedule obtained under the retained match lock
    * @param order authoritative token
    * @param context actual source timestamps
@@ -213,6 +218,7 @@ public class AcceptMatchObservation {
    * @return whether sporting schedule/reference values changed
    */
   private boolean acceptSchedule(
+      SportingViews.MatchView match,
       MatchSchedule previous,
       ObservationOrder order,
       MatchObservation.Context context,
@@ -251,7 +257,7 @@ public class AcceptMatchObservation {
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
-    return acceptDetails(previous.id(), context, facts, firstObservation, mode) || changed;
+    return acceptDetails(match, context, facts, firstObservation, mode) || changed;
   }
 
   /**
@@ -288,6 +294,7 @@ public class AcceptMatchObservation {
     return success(
         match,
         acceptSchedule(
+            match,
             store.lockMatchSchedule(match.id()),
             expected,
             observation.context(),
@@ -301,7 +308,7 @@ public class AcceptMatchObservation {
    * Accepts independent enrichment groups; invalid detail never discards an official overall
    * result.
    *
-   * @param matchId match already locked by the enclosing transaction
+   * @param match encounter already locked by the enclosing transaction
    * @param context source attribution, never precedence
    * @param firstObservation trusted encounter-discovery context
    * @param facts supplied proposals with native presence semantics
@@ -309,19 +316,20 @@ public class AcceptMatchObservation {
    * @return whether accepted values changed, independently of refreshed provenance
    */
   private boolean acceptDetails(
-      UUID matchId,
+      SportingViews.MatchView match,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
       boolean firstObservation,
       CollectionModeEnum mode) {
+    UUID matchId = match.id();
     MatchDetails previous = store.matchDetails(matchId);
     MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
     Instant observed = context.observedAt();
     Instant published = context.providerPublishedAt();
-    MatchObservation.Result result = previous.result();
+    Result result = previous.result();
     boolean changed = false;
     if (facts.result().isPresent()) {
-      MatchObservation.Result proposal = facts.result().get();
+      Result proposal = facts.result().get();
       if (proposal == null
           || MatchFacts.usableResult(
               proposal.homeSets(), proposal.awaySets(), proposal.specialLabel())) {
@@ -427,18 +435,18 @@ public class AcceptMatchObservation {
       next.documentsObservedAt(observed).documentsPublishedAt(published);
     }
     store.saveMatchDetails(next.build());
-    MatchContributionAccess.Facts current = contributionContext.read(matchId);
-    handoff.submit(
-        announcements.process(
-            new com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition(
-                current.match(),
-                previous.result(),
-                result,
-                firstObservation,
-                mode == CollectionModeEnum.INITIAL_IMPORT,
-                current.viewable(),
-                publicLinks.read(matchId).isPresent(),
-                clock.instant())));
+    // An earlier final still needs F07 processing when it is withdrawn or replaced.
+    if (Result.isFinal(previous.result()) || Result.isFinal(result)) {
+      handoff.submit(
+          announcements.process(
+              new Transition(
+                  match,
+                  previous.result(),
+                  result,
+                  firstObservation,
+                  mode == CollectionModeEnum.INITIAL_IMPORT,
+                  clock.instant())));
+    }
     return changed;
   }
 
@@ -449,7 +457,7 @@ public class AcceptMatchObservation {
    * @param sets supplied or retained detail
    * @return whether the two groups describe the same score
    */
-  private boolean compatible(MatchObservation.Result result, List<MatchFacts.SetScore> sets) {
+  private boolean compatible(Result result, List<MatchFacts.SetScore> sets) {
     return result != null
         && result.specialLabel() == null
         && MatchFacts.compatibleSets(result.homeSets(), result.awaySets(), sets);

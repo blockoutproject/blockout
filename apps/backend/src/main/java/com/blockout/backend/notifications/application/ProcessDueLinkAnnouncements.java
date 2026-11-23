@@ -5,6 +5,7 @@ import com.blockout.backend.sporting.application.service.MatchContributionAccess
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Clock;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +74,7 @@ public class ProcessDueLinkAnnouncements {
           || facts.definitiveResult()
           || facts.schedule().reliableStart() == null
           || clock.instant().isBefore(facts.schedule().reliableStart())
-          || links.read(matchId).isEmpty()) {
+          || !links.availableForConsultableMatches(Set.of(matchId)).contains(matchId)) {
         return;
       }
       handoff.submit(

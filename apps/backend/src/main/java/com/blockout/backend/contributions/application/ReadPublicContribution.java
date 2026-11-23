@@ -19,8 +19,8 @@ public class ReadPublicContribution {
   private final ReadSportingData sporting;
 
   /**
-   * Supplies only current link presence after a consumer's F03 database selection, in the same
-   * consistent transaction. Does not authorize access or return old/private addresses.
+   * Supplies current link presence after the caller has established sporting visibility in the same
+   * transaction. Announcement callers hold the match lock through this read and allocation.
    *
    * @param matchIds bounded currently consultable match identities
    * @return identities with an active public contribution

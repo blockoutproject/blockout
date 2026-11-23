@@ -1,6 +1,5 @@
 package com.blockout.backend.sporting.application.service;
 
-import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
@@ -103,7 +102,7 @@ public class MatchContributionAccess {
      * @return explicit source finality, independent of presentation categories
      */
     public boolean definitiveResult() {
-      return result != null && result.state() == ResultStateEnum.FINAL;
+      return Result.isFinal(result);
     }
   }
 }
