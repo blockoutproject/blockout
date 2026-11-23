@@ -50,40 +50,36 @@ export function AdministrationScreen({
       );
     } else if (!hasCommands && !onBypass) {
       return <ErrorState />;
-    } else {
-      return (
-        <>
-          {onBypass && (
-            <Button
-              label="Accéder à l’application pendant la maintenance"
-              onPress={onBypass}
-              fullWidth
-            />
-          )}
-          {permissions?.manageMaintenance === true && (
-            <NavigationLink
-              href="/administration/maintenance"
-              label="Maintenance"
-            />
-          )}
-          {permissions?.manageApplicationVersions === true && (
-            <NavigationLink
-              href="/administration/application-versions"
-              label="Versions minimales"
-            />
-          )}
-          {canReadDivisions(permissions) && (
-            <NavigationLink
-              href="/administration/divisions"
-              label="Divisions"
-            />
-          )}
-          {permissions?.manageCollection === true && (
-            <NavigationLink href="/collection" label="Collectes" />
-          )}
-        </>
-      );
     }
+    return (
+      <>
+        {onBypass && (
+          <Button
+            label="Accéder à l’application pendant la maintenance"
+            onPress={onBypass}
+            fullWidth
+          />
+        )}
+        {permissions?.manageMaintenance === true && (
+          <NavigationLink
+            href="/administration/maintenance"
+            label="Maintenance"
+          />
+        )}
+        {permissions?.manageApplicationVersions === true && (
+          <NavigationLink
+            href="/administration/application-versions"
+            label="Versions minimales"
+          />
+        )}
+        {canReadDivisions(permissions) && (
+          <NavigationLink href="/administration/divisions" label="Divisions" />
+        )}
+        {permissions?.manageCollection === true && (
+          <NavigationLink href="/collection" label="Collectes" />
+        )}
+      </>
+    );
   }
 
   const content = renderContent();

@@ -41,7 +41,8 @@ import {
 import { cleanupMatchDocuments } from "@/features/sporting/api/match-document";
 
 initializeSentry();
-SplashScreen.preventAutoHideAsync();
+// Expo recommends making this request at module load before auto-hide can run.
+void SplashScreen.preventAutoHideAsync();
 
 /** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
 function Navigation({

@@ -287,7 +287,7 @@ it("leaves a failed current association unavailable until explicit retry", async
   owner.setTarget({ ...session });
   await owner.refresh({ ...session });
   expect(Purchases.logIn).toHaveBeenCalledTimes(1);
-  owner.prepare({ ...session });
+  await owner.prepare({ ...session });
 
   // Then
   await waitFor(() =>
@@ -323,7 +323,7 @@ it.each([
     read.resolve({ ...info, originalAppUserId: "obsolete-synthetic-customer" });
     await read.promise;
     await owner.refresh(old);
-    owner.prepare(old);
+    await owner.prepare(old);
 
     // Then
     expect(owner.getSnapshot().evidence?.session).toEqual({ ...session });

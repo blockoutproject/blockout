@@ -63,9 +63,8 @@ function PresentationScreenContent({
       return getGetClubLogoQueryKey(target.id);
     } else if (target.kind === "division") {
       return getGetDivisionLogoQueryKey(target.id);
-    } else {
-      return ["presentation-logo-unavailable", target.kind];
     }
+    return ["presentation-logo-unavailable", target.kind];
   }
 
   const logoKey = getLogoKey();
@@ -118,9 +117,8 @@ function PresentationScreenContent({
       return teamContext.data?.team.season.label;
     } else if (target.kind === "pool" && !poolContext.isError) {
       return poolContext.data?.pool.season.label;
-    } else {
-      return undefined;
     }
+    return undefined;
   }
 
   const seasonLabel = getSeasonLabel();
@@ -139,9 +137,8 @@ function PresentationScreenContent({
       return "Modifier le club";
     } else if (target.kind === "pool") {
       return "Modifier la poule";
-    } else {
-      return "Personnaliser la division";
     }
+    return "Personnaliser la division";
   }
 
   const title = getTitle();

@@ -42,7 +42,7 @@ it.each(["2026-03-08T07:00:00Z", "2026-10-25T01:00:00Z"])(
 
     // When
     jest.setSystemTime(notificationExpiry(row));
-    await expireInbox(client, queries);
+    expireInbox(client, queries);
     mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
     await client.fetchInfiniteQuery(queries.inbox);
 

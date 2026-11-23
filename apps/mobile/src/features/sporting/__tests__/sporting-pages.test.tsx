@@ -2,7 +2,7 @@ import {
   useLayoutEffect,
   useState as useQueryFixtureState,
   type PropsWithChildren as QueryFixtureProps,
-  ReactElement,
+  type ReactElement,
 } from "react";
 import {
   onlineManager,

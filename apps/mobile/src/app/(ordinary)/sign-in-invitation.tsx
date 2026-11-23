@@ -22,6 +22,7 @@ function invitationMessage(reason: string | undefined): string {
       return "Connectez-vous pour proposer un Stream link";
     case "follow":
       return "Connectez-vous pour suivre vos équipes et vos poules";
+    case undefined:
     default:
       return "Connectez-vous pour utiliser Blockout Pro";
   }

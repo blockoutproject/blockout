@@ -3,7 +3,9 @@ export class DocumentFile {
   uri: string;
   name: string;
   exists = false;
-  create = jest.fn();
+  create = jest.fn(() => {
+    this.exists = true;
+  });
   write = jest.fn(async (bytes: Uint8Array) => {
     this.exists = true;
     await documentWrite(bytes);

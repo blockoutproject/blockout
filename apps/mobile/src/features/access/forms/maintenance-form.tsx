@@ -23,7 +23,7 @@ import { TextField } from "@/shared/components/text-field";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { useMaintenanceSettings } from "../api/use-maintenance-settings";
+import { type useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input. */
 export interface MaintenanceFormProps {
