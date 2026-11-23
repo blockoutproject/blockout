@@ -81,14 +81,10 @@ public class DeliverPush {
       }
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
-      warn("failed", "interrupted", attempts.size())
-          .addKeyValue("stage", "preparation")
-          .log("Push batch preparation failed");
+      preparationFailed("interrupted", attempts.size());
       return;
     } catch (RuntimeException failure) {
-      warn("failed", "handoff_unavailable", attempts.size())
-          .addKeyValue("stage", "preparation")
-          .log("Push batch preparation failed");
+      preparationFailed("handoff_unavailable", attempts.size());
       return;
     }
 
@@ -96,9 +92,7 @@ public class DeliverPush {
     try {
       outcomes = provider.send(messages);
     } catch (RuntimeException failure) {
-      warn("unknown", "handoff_uncertain", messages.size())
-          .addKeyValue("stage", "transport")
-          .log("Push transport outcome is unknown");
+      providerOutcomeUnknown("transport", "handoff_uncertain", messages.size());
       return;
     }
 
@@ -145,15 +139,7 @@ public class DeliverPush {
       scheduler.schedule(
           () -> {
             try {
-              Map<String, Outcome> outcomes = provider.receipts(List.copyOf(tickets.keySet()));
-              for (Map.Entry<String, Target> ticket : tickets.entrySet()) {
-                Outcome outcome = outcomes.get(ticket.getKey());
-                if (outcome != null && outcome.status() == Status.DEVICE_NOT_REGISTERED) {
-                  invalidate(ticket.getValue());
-                }
-              }
-            } catch (RuntimeException failure) {
-              lost("receipt_unavailable", tickets.size());
+              observeReceipts(tickets);
             } finally {
               receiptSlots.release();
             }
@@ -162,6 +148,23 @@ public class DeliverPush {
     } catch (RuntimeException rejected) {
       receiptSlots.release();
       lost("receipt_shutdown", tickets.size());
+    }
+  }
+
+  private void observeReceipts(Map<String, Target> tickets) {
+    List<String> ids = List.copyOf(tickets.keySet());
+    Map<String, Outcome> outcomes;
+    try {
+      outcomes = provider.receipts(ids);
+    } catch (RuntimeException failure) {
+      providerOutcomeUnknown("receipt", "receipt_unavailable", ids.size());
+      return;
+    }
+    for (Map.Entry<String, Target> ticket : tickets.entrySet()) {
+      Outcome outcome = outcomes.get(ticket.getKey());
+      if (outcome != null && outcome.status() == Status.DEVICE_NOT_REGISTERED) {
+        invalidate(ticket.getValue());
+      }
     }
   }
 
@@ -186,6 +189,18 @@ public class DeliverPush {
    */
   private void lost(String reason, int count) {
     warn("dropped", reason, count).log("Ephemeral push work dropped");
+  }
+
+  private void preparationFailed(String reason, int count) {
+    warn("failed", reason, count)
+        .addKeyValue("stage", "preparation")
+        .log("Push batch preparation failed");
+  }
+
+  private void providerOutcomeUnknown(String stage, String reason, int count) {
+    warn("unknown", reason, count)
+        .addKeyValue("stage", stage)
+        .log("Push provider outcome is unknown");
   }
 
   private LoggingEventBuilder warn(String outcome, String reason, int count) {

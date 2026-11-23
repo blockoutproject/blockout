@@ -52,7 +52,7 @@ public interface NotificationApiMapper {
    * @return current canonical notification with no video or private fields
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "title", source = "source", qualifiedByName = "notificationText")
+  @Mapping(target = "title", source = "source", qualifiedByName = "editorialBody")
   @Mapping(target = "division", source = "match.pool.classification.division")
   NotificationResponse toDto(Entry source);
 
@@ -83,8 +83,8 @@ public interface NotificationApiMapper {
    * @param entry current authorized sporting facts with fixed family/variant
    * @return factual French card text including corrected/absent result or link
    */
-  @Named("notificationText")
-  default String text(Entry entry) {
+  @Named("editorialBody")
+  default String editorialBody(Entry entry) {
     return NotificationMessage.render(entry.family(), entry.variant(), entry.editorialFacts())
         .body();
   }

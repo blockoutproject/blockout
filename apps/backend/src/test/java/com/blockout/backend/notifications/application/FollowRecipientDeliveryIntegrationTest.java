@@ -6,21 +6,30 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.contributions.application.ModerateContribution;
+import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
+import com.blockout.backend.generated.mobile.model.NotificationResponse;
+import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
+import com.blockout.backend.notifications.api.NotificationApiMapper;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements.Ready;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -31,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -61,6 +71,8 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
 
   @Autowired private ReadPersonalCalendar calendar;
   @Autowired private ReadInbox inbox;
+  @Autowired private NotificationApiMapper inboxTransport;
+  @Autowired private ModerateContribution moderation;
   @Autowired private ChangePushSubscriptions subscriptions;
   @Autowired private ApplicationEvents events;
   @MockitoBean private PushProvider provider;
@@ -348,6 +360,71 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
         .isEqualTo(replacement);
     assertThat(sql.queryForList("SELECT team_id FROM team_follow", UUID.class))
         .containsExactly(origins.get(1).target().id());
+  }
+
+  @ParameterizedTest(name = "Current wording for {3}")
+  @CsvSource({
+    "1, 3, , Score final : 1–3., false",
+    ", , F/P, Résultat particulier : F/P., false",
+    "1, , , Score final : 3–1., true"
+  })
+  @DisplayName("Inbox and push agree after a new result observation and link withdrawal")
+  void sharesCurrentWording(
+      Integer homeSets,
+      Integer awaySets,
+      String specialLabel,
+      String expectedResult,
+      boolean keepsOriginalScore) {
+    // Given
+    moderator(AUTHOR);
+    when(clock.instant()).thenReturn(NOW.minusSeconds(60));
+    SubmitContribution.Outcome active = submit(AUTHOR, "0", "https://youtube.com/advance", true);
+    when(clock.instant()).thenReturn(NOW);
+    result(2, ResultStateEnum.FINAL);
+    Runnable work = pending();
+    NotificationContext owner = new NotificationContext(FOLLOWER);
+    NotificationResponse original =
+        inboxTransport.toDto(inbox.page(owner, null)).getNotifications().getFirst();
+    assertThat(original.getTitle()).contains("Score final : 3–1.", "Un lien a été proposé");
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+
+    // When
+    matches.detail(
+        new MatchObservation(
+            matchId,
+            context(3),
+            mapper.toFacts(
+                new MatchFactsInternalRequest()
+                    .result(
+                        new MatchResultInternalRequest(ResultStateEnum.FINAL)
+                            .homeSets(homeSets)
+                            .awaySets(awaySets)
+                            .specialLabel(specialLabel)))));
+    moderation.change(
+        AUTHOR,
+        matchId,
+        active.version().id(),
+        active.revision(),
+        StreamModerationActionEnum.WITHDRAW);
+    List<NotificationResponse> current =
+        inboxTransport.toDto(inbox.page(owner, null)).getNotifications();
+    work.run();
+
+    // Then
+    assertThat(current).extracting(NotificationResponse::getId).containsExactly(original.getId());
+    String inboxTitle = current.getFirst().getTitle();
+    assertThat(inboxTitle).contains(expectedResult, "Le lien n’est plus proposé.");
+    assertThat(inboxTitle.contains("3–1")).isEqualTo(keepsOriginalScore);
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.text().body()).isEqualTo(inboxTitle);
+              assertThat(message.text().title()).isNotBlank().isNotEqualTo(inboxTitle);
+            });
+    verifyNoMoreInteractions(executor);
   }
 
   /** Real producer entry points qualified by this suite. */

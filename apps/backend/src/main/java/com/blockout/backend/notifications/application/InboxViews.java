@@ -1,6 +1,5 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationMessage;
 import com.blockout.backend.notifications.domain.NotificationVariant;
@@ -55,7 +54,7 @@ public final class InboxViews {
       return new NotificationMessage.Facts(
           match.home().name(),
           match.away().name(),
-          result != null && result.state() == ResultStateEnum.FINAL,
+          Result.isFinal(result),
           result == null ? null : result.homeSets(),
           result == null ? null : result.awaySets(),
           result == null ? null : result.specialLabel(),

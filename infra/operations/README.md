@@ -574,10 +574,12 @@ Inspect existing structured stdout fields `operation=sporting_push` (worker reas
 `operation=expo_push_evidence` (acceptance/rejection/unknown counts) and
 `operation=sporting_push_configuration` (disabled/enabled or credential/project diagnostic).
 For `sporting_push`, `stage=preparation` with `outcome=failed` counts captured device attempts in a
-batch that never called transport. `stage=transport` with `outcome=unknown` counts the eligible
-messages passed to the provider boundary when an unexpected exception leaves their disposition
-unknown. Returned ticket and receipt outcomes are reported by `expo_push_evidence`. These logs
-contain no account/destination/ticket identities, content, raw provider error or secret.
+batch that never called transport. An unexpected exception from the provider boundary uses
+`outcome=unknown`. `stage=transport` counts eligible messages passed to the send call.
+`stage=receipt` counts ticket IDs passed to the receipt lookup. These stages record invocation
+with HTTP transmission still unconfirmed. `expo_push_evidence` reports returned ticket and receipt
+outcomes. These logs contain no account/destination/ticket identities, content, raw provider error
+or secret.
 Acceptance at Expo/APNs/FCM is not phone receipt. Correct credentials/project settings only in an
 authorized environment; do not repair lost transient work by replaying announcements. Follow the
 [physical preparation](../../specs/011-notifications-delivery/quickstart.md#physical-push-preparation)

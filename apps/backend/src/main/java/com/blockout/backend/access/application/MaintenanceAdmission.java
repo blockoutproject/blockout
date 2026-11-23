@@ -75,7 +75,7 @@ public class MaintenanceAdmission implements AccountAdmission {
   }
 
   /**
-   * Reads current validated SQL state for internal admission, including F07's future handoff owner.
+   * Reads current validated SQL state for internal admission, including F07's sporting push worker.
    * It neither admits mobile access nor suspends ingestion, inbox work or collection. A separate
    * short read transaction avoids a caller's already hydrated JPA settings surviving activation.
    *

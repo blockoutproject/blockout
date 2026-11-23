@@ -1,7 +1,7 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.generated.mobile.model.ResultStateEnum;
+import com.blockout.backend.sporting.application.ConsultationViews.Result;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -26,8 +26,8 @@ public final class MatchPresentation {
    * @return Completed for a definitive result or at the applicable time boundary
    */
   public static CalendarCategoryEnum category(
-      ConsultationViews.Schedule schedule, ConsultationViews.Result result, Instant now) {
-    if (result != null && result.state() == ResultStateEnum.FINAL) {
+      ConsultationViews.Schedule schedule, Result result, Instant now) {
+    if (Result.isFinal(result)) {
       return CalendarCategoryEnum.COMPLETED;
     }
     Instant boundary =

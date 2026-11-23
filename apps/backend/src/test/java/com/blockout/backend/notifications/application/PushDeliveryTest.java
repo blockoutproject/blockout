@@ -33,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.TaskScheduler;
@@ -267,6 +268,32 @@ class PushDeliveryTest {
       verifyNoMoreInteractions(provider);
       verifyNoInteractions(scheduler, subscriptions);
       assertDiagnostic("transport", "unknown", "handoff_uncertain", 1);
+    }
+
+    @Test
+    @DisplayName("A failed receipt lookup leaves its evidence unknown without a second attempt")
+    void reportsUncertainReceiptLookup() {
+      // Given
+      String ticket = "synthetic-ticket";
+      when(eligibility.current(created, target)).thenReturn(Optional.of(message));
+      when(admission.allowsHandoff()).thenReturn(true);
+      when(provider.send(List.of(message)))
+          .thenReturn(List.of(new Outcome(Status.ACCEPTED, ticket)));
+      when(provider.receipts(List.of(ticket)))
+          .thenThrow(new IllegalStateException("synthetic private receipt detail"));
+      delivery.deliver(List.of(new DeliverPush.Attempt(created, target)));
+      ArgumentCaptor<Runnable> callback = ArgumentCaptor.forClass(Runnable.class);
+      verify(scheduler).schedule(callback.capture(), eq(NOW.plusSeconds(900)));
+
+      // When
+      callback.getValue().run();
+
+      // Then
+      verify(provider).send(List.of(message));
+      verify(provider).receipts(List.of(ticket));
+      verifyNoMoreInteractions(provider, scheduler);
+      verifyNoInteractions(subscriptions);
+      assertDiagnostic("receipt", "unknown", "receipt_unavailable", 1);
     }
 
     private void assertDiagnostic(String stage, String outcome, String reason, int affectedCount) {

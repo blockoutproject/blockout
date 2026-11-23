@@ -507,7 +507,7 @@ Structured Spring/SLF4J logs and ordinary HTTP/JVM/PostgreSQL-pool metrics expos
 
 The native ECS allowlist excludes personal content, tokens, secrets, attachments, raw provider documents, free-form exception messages and arbitrary MDC. The sole exception is [F05 manual cleanup](../005-accounts-identity/plan.md#erasure-and-manual-resolution): necessary original-target references in private logs, never metric labels or public output. A process interruption after local commit but before logging can remain undetected; no durable deletion registry is introduced. Metrics export remains opt-in through ordinary application properties, with no collector, destination or hosted retention selected.
 
-[F07 push diagnostics](../011-notifications-delivery/research.md#bounded-sender-construction) use these fields to distinguish an unsent preparation failure from an unknown outcome after transport invocation. F07 owns the denominator for each stage and the Expo adapter owns returned ticket and receipt evidence.
+[F07 push diagnostics](../011-notifications-delivery/research.md#bounded-sender-construction) use these fields to distinguish unsent preparation failures from unknown outcomes after a send or receipt lookup is invoked. F07 owns the denominator for each stage and the Expo adapter owns returned ticket and receipt evidence.
 
 Native Spring Boot Actuator exposes aggregate readiness and database health at anonymous `GET /health` on the main API port. Only ready returns 200; non-UP states return 503, with no public components or details. [The health boundary](contracts/README.md#native-health-boundary) owns these limits. F12 maintenance must not turn a database failure into healthy readiness.
 

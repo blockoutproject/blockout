@@ -69,10 +69,11 @@ One native scheduler retains at most 100 receipt callbacks (100 tickets each), b
 semaphore. Each callback runs once around fifteen minutes after acceptance; no SQL transaction
 spans either HTTP operation. Shutdown/rejection discards only transient work. These local bounds
 are implementation limits, not a capacity promise or recovery mechanism. A worker preparation
-failure counts captured device attempts in the unsent batch. An unexpected exception after the worker
-invokes the provider boundary counts only the eligible messages passed to it and leaves the outcome
-unknown. The Expo adapter owns returned ticket and receipt evidence, including partial and unknown
-responses. See the [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits)
+failure counts captured device attempts in the unsent batch. An unexpected exception from the
+provider boundary leaves the outcome unknown and counts the messages submitted for sending or the
+ticket IDs submitted for observation. HTTP transmission remains unconfirmed. The Expo adapter owns
+returned ticket and receipt evidence, including partial and unknown responses. See the
+[operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits)
 for exact input names and safe diagnostics.
 
 ## Transactional inbox and approximate start-time announcements
@@ -86,7 +87,7 @@ Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and
 F06 recipient construction uses one supported [HQL set operation](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/)
 for team/pool origins. PostgreSQL [READ COMMITTED](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED)
 provides a snapshot per statement, so two separate origin reads could invent an empty union during
-committed turnover. A single `UNION ALL` fixes that boundary in the F06 Spring Data repository without a separate
+committed turnover. A single `UNION` deduplicates that audience in the F06 Spring Data repository without a separate
 transaction, later account lock or replay. Qualify this boundary with the selected Hibernate/PostgreSQL versions through the [quickstart](quickstart.md#atomic-producer-and-link-qualification).
 
 **Alternatives considered.** Rereading the audience and rejecting new concurrent followers creates an unrelated producer failure without a required benefit. Captured follow UUID continuity rejects an already selected person who currently follows again; the current qualifying follow is sufficient. Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
