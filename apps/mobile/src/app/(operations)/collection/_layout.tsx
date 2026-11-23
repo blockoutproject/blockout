@@ -16,6 +16,10 @@ export default function CollectionLayout() {
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="[seasonId]/actions" options={sheetOptions} />
       <Stack.Screen
+        name="clubs/[family]/bilan-filters"
+        options={sheetOptions}
+      />
+      <Stack.Screen
         name="[seasonId]/controls/[provider]/bilan-filters"
         options={sheetOptions}
       />

@@ -1,8 +1,7 @@
 import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { Keyboard } from "react-native";
 import type { CollectionResultSourceResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { useContentReveal } from "@/shared/components/content-reveal";
@@ -43,9 +42,9 @@ export interface CollectionBilanScreenProps {
   controlId: string;
   /** The active route owns the committed criteria even while another screen is pushed above it. */
   criteria: CollectionResultCriteria;
-  onSearch: (query?: string) => void;
   onOpenFilters: () => void;
-  onViewSource: (source: CollectionResultSourceResponse) => void;
+  onViewSource?: (source: CollectionResultSourceResponse) => void;
+  searchPlaceholder?: string;
 }
 
 /** Query owns the server-ordered traversal. A failed continuation leaves its accepted list mounted. */
@@ -53,11 +52,12 @@ export function CollectionBilanScreen({
   header,
   controlId,
   criteria,
-  onSearch,
   onOpenFilters,
   onViewSource,
+  searchPlaceholder = "Poule, source, étape…",
 }: Readonly<CollectionBilanScreenProps>) {
   const navigation = useNavigation();
+  const router = useRouter();
   const authority = useCollectionAuthority();
   const options = createCollectionQueries(authority).results(
     controlId,
@@ -69,7 +69,7 @@ export function CollectionBilanScreen({
     enabled: (state) => authority.enabled && state.state.status !== "error",
   });
   const searchField = useSubmittedSearch(criteria.query, (text) =>
-    onSearch(text.trim() || undefined),
+    router.setParams({ query: text.trim() }),
   );
   const reveal = useContentReveal();
   const contextKey = hashKey(options.queryKey);
@@ -107,7 +107,7 @@ export function CollectionBilanScreen({
               <SearchField
                 {...searchField}
                 label="Rechercher dans le bilan"
-                placeholder="Poule, source, étape…"
+                placeholder={searchPlaceholder}
               />
             </SearchToolbar>
           )}
@@ -151,13 +151,7 @@ export function CollectionBilanScreen({
           }
           ItemSeparatorComponent={ListSeparator}
           renderItem={({ item }) => (
-            <CollectionBilanResult
-              result={item}
-              onViewSource={(source) => {
-                Keyboard.dismiss();
-                onViewSource(source);
-              }}
-            />
+            <CollectionBilanResult result={item} onViewSource={onViewSource} />
           )}
           onEndReached={() => {
             if (!query.isError) {

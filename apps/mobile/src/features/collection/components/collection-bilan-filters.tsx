@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { useState } from "react";
-import type {
-  CollectionProviderEnum,
-  CollectionStageEnum,
+import {
+  CollectionOutcomeEnum,
+  type CollectionProviderEnum,
+  type CollectionStageEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
 import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
@@ -34,14 +35,16 @@ const stageOptions = seasonStages.map((value) => ({
   value,
   label: stageLabels[value],
 }));
-const statusOptions = Object.entries(outcomeLabels).map(([value, label]) => ({
+const statusOptions = CollectionOutcomeEnum.options.map((value) => ({
   value,
-  label,
+  label: outcomeLabels[value],
 }));
 
 export interface CollectionBilanFiltersProps {
-  seasonId: string;
-  provider: CollectionProviderEnum;
+  competition?: Readonly<{
+    seasonId: string;
+    provider: CollectionProviderEnum;
+  }>;
   initial: CollectionResultCriteria;
   onApply: (criteria: CollectionResultCriteria) => void;
   onClose: () => void;
@@ -49,25 +52,29 @@ export interface CollectionBilanFiltersProps {
 
 /** The sheet owns its unapplied values. Source choices come from the current provider's retained bindings. */
 export function CollectionBilanFilters({
-  seasonId,
-  provider,
+  competition,
   initial,
   onApply,
   onClose,
 }: Readonly<CollectionBilanFiltersProps>) {
   const authority = useCollectionAuthority();
+  const { query, ...initialDraft } = initial;
   const [choice, setChoice] = useState<keyof FilterDraft>();
-  const [draft, setDraft] = useState<FilterDraft>({
-    status: initial.status,
-    sourceId: initial.sourceId,
-    stage: initial.stage,
-  });
-  const sources = useQuery({
-    ...createCollectionQueries(authority).sources(seasonId),
-    enabled: authority.enabled && (choice === "sourceId" || !!draft.sourceId),
-  });
+  const [draft, setDraft] = useState(initialDraft);
+  const queries = competition
+    ? [
+        {
+          ...createCollectionQueries(authority).sources(competition.seasonId),
+          enabled:
+            authority.enabled && (choice === "sourceId" || !!draft.sourceId),
+        },
+      ]
+    : [];
+  const [sources] = useQueries({ queries });
   const sourceChoices =
-    sources.data?.items.filter((source) => source.provider === provider) ?? [];
+    sources?.data?.items.filter(
+      (source) => source.provider === competition?.provider,
+    ) ?? [];
   const fields = {
     status: {
       label: "Statut",
@@ -85,7 +92,11 @@ export function CollectionBilanFilters({
       options: stageOptions,
     },
   };
-  const loading = <ListLoading label="Chargement des sources" />;
+  const loading = (
+    <ListLoading
+      label={competition ? "Chargement des sources" : "Chargement des filtres"}
+    />
+  );
 
   function renderContent() {
     if (!authority.enabled) {
@@ -94,7 +105,7 @@ export function CollectionBilanFilters({
     if (!choice) {
       return (
         <FilterSheetForm
-          onApply={() => onApply({ ...draft, query: initial.query })}
+          onApply={() => onApply({ ...draft, query })}
           onReset={() => setDraft({})}
         >
           <SelectField
@@ -104,25 +115,36 @@ export function CollectionBilanFilters({
             }
             onPress={() => setChoice("status")}
           />
-          <SelectField
-            label={fields.sourceId.label}
-            value={
-              draft.sourceId
-                ? (sourceChoices.find((source) => source.id === draft.sourceId)
-                    ?.label ?? "Source sélectionnée")
-                : fields.sourceId.all
-            }
-            onPress={() => setChoice("sourceId")}
-          />
-          <SelectField
-            label={fields.stage.label}
-            value={draft.stage ? stageLabels[draft.stage] : fields.stage.all}
-            onPress={() => setChoice("stage")}
-          />
+          {competition && (
+            <>
+              <SelectField
+                label={fields.sourceId.label}
+                value={
+                  draft.sourceId
+                    ? (sourceChoices.find(
+                        (source) => source.id === draft.sourceId,
+                      )?.label ?? "Source sélectionnée")
+                    : fields.sourceId.all
+                }
+                onPress={() => setChoice("sourceId")}
+              />
+              <SelectField
+                label={fields.stage.label}
+                value={
+                  draft.stage ? stageLabels[draft.stage] : fields.stage.all
+                }
+                onPress={() => setChoice("stage")}
+              />
+            </>
+          )}
         </FilterSheetForm>
       );
     }
-    if (choice === "sourceId" && (!sources.data || hasReadError(sources))) {
+    if (
+      choice === "sourceId" &&
+      sources &&
+      (!sources.data || hasReadError(sources))
+    ) {
       return <ReadFeedback query={sources} loadingContent={loading} />;
     }
     const field = fields[choice];

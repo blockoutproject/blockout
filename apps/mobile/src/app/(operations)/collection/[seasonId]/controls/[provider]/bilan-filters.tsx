@@ -24,8 +24,7 @@ export default function CollectionBilanFiltersRoute() {
   }
   return (
     <CollectionBilanFilters
-      seasonId={seasonId}
-      provider={provider}
+      competition={{ seasonId, provider }}
       initial={collectionBilanRouteCriteria(params)}
       onApply={(criteria) =>
         router.dismissTo(collectionBilanHref(seasonId, provider, criteria))

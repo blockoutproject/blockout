@@ -1,6 +1,7 @@
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { PageContent, PageScrollView } from "@/shared/components/page";
+import { PageReadState } from "@/shared/components/page-read-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { Surface } from "@/shared/components/surface";
@@ -29,21 +30,21 @@ import { CollectionLink } from "../components/collection-link";
 interface CollectionFollowUpProps {
   control: CollectionControlResponse;
   controls: ReturnType<typeof useCollectionControls>;
-  season: CollectionSeasonResponse;
-  active: boolean;
+  season?: CollectionSeasonResponse;
+  active?: boolean;
   onOpenBilan: () => void;
-  seasonQuery: Pick<
+  seasonQuery?: Pick<
     ReturnType<typeof useCollectionSeason>["season"],
     "isFetching" | "refetch"
   >;
 }
 
-/** Observes execution and aggregate results independently inside the provider's Suivi tab. */
+/** Observes execution and aggregate results independently for the selected control. */
 export function CollectionFollowUp({
   control,
   controls,
   season,
-  active,
+  active = true,
   onOpenBilan,
   seasonQuery,
 }: Readonly<CollectionFollowUpProps>) {
@@ -65,14 +66,12 @@ export function CollectionFollowUp({
   const commandPending =
     editing.activity.isPending || editing.request.isPending;
   const fetching =
-    query.isFetching || results.isFetching || seasonQuery.isFetching;
+    query.isFetching || results.isFetching || !!seasonQuery?.isFetching;
   if (hasReadError(query)) {
     return (
-      <PageScrollView>
-        <ScreenState>
-          <ReadFeedback query={query} loadingContent={null} />
-        </ScreenState>
-      </PageScrollView>
+      <PageReadState>
+        <ReadFeedback query={query} loadingContent={null} />
+      </PageReadState>
     );
   }
 
@@ -83,11 +82,11 @@ export function CollectionFollowUp({
           fetching={fetching}
           enabled={active && !commandPending}
           onRefresh={async () => {
-            if (!fetching) {
+            if (active && !commandPending && !fetching) {
               await Promise.all([
                 query.refetch({ cancelRefetch: false }),
                 results.refetch({ cancelRefetch: false }),
-                seasonQuery.refetch({ cancelRefetch: false }),
+                seasonQuery?.refetch({ cancelRefetch: false }),
               ]);
             }
           }}

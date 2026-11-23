@@ -39,6 +39,8 @@ import BilanRoute from "@/app/(operations)/collection/[seasonId]/controls/[provi
 import BilanFiltersRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/bilan-filters";
 import SourcesFiltersRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]/sources-filters";
 import ClubRoute from "@/app/(operations)/collection/clubs/[family]";
+import ClubBilanRoute from "@/app/(operations)/collection/clubs/[family]/bilan";
+import ClubBilanFiltersRoute from "@/app/(operations)/collection/clubs/[family]/bilan-filters";
 import SeasonActionsRoute from "@/app/(operations)/collection/[seasonId]/actions";
 import ActivateSeasonRoute from "@/app/(operations)/collection/[seasonId]/activation";
 import CloseSeasonRoute from "@/app/(operations)/collection/[seasonId]/closure";
@@ -247,7 +249,10 @@ async function openRoute(path: string) {
         BilanFiltersRoute,
       "(operations)/collection/[seasonId]/controls/[provider]/sources-filters":
         SourcesFiltersRoute,
-      "(operations)/collection/clubs/[family]": ClubRoute,
+      "(operations)/collection/clubs/[family]/index": ClubRoute,
+      "(operations)/collection/clubs/[family]/bilan": ClubBilanRoute,
+      "(operations)/collection/clubs/[family]/bilan-filters":
+        ClubBilanFiltersRoute,
       "(operations)/collection/[seasonId]/actions": SeasonActionsRoute,
       "(operations)/collection/[seasonId]/activation": ActivateSeasonRoute,
       "(operations)/collection/[seasonId]/closure": CloseSeasonRoute,
@@ -745,6 +750,128 @@ it("keeps an invalid Bilan filter link dismissible without reading collection da
     mockFetch.mock.calls.some(([url]) =>
       new URL(String(url)).pathname.includes("collection-"),
     ),
+  ).toBe(false);
+});
+
+it("opens a club control's dedicated Bilan and applies only the available Status filter", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const selected = control({ family: "geocoding", seasonId: undefined });
+  const evidence = result({
+    scopeLabel: "Club qualification",
+    stage: "geocoding",
+    outcome: "failed",
+    lastSuccessAt: "2026-10-23T12:00:00Z",
+    reason: "Une observation rejetée.",
+    obtainedCount: 99,
+    rejectedCount: 1,
+  });
+  mockFetch.mockImplementation(async (url) => {
+    const { pathname } = new URL(String(url));
+    if (pathname.endsWith("/collection-controls")) {
+      return Response.json({ items: [selected] });
+    }
+    if (pathname.endsWith(`/${selected.id}/results`)) {
+      return Response.json({
+        items: [evidence],
+        page: 0,
+        hasNext: false,
+        summary: { success: 0, partial: 0, failed: 1, unconfirmed: 0 },
+      });
+    }
+    return serve(url);
+  });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
+  await act(async () => router.push("/collection/clubs/geocoding"));
+  expect(
+    await screen.findByRole("header", { name: "Collecte, Géocodage" }),
+  ).toBeOnTheScreen();
+  await user.press(await screen.findByRole("link", { name: "Voir le bilan" }));
+  expect(
+    await screen.findByRole("header", { name: "Bilan, Géocodage" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByPlaceholderText("Rechercher un club…")).toBeOnTheScreen();
+  await user.press(await screen.findByRole("button", { name: "Filtres" }));
+  const statusFilter = await screen.findByRole("button", { name: "Statut" });
+  expect(
+    screen.queryByRole("button", { name: "Source" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Étape" })).not.toBeOnTheScreen();
+  await user.press(statusFilter);
+  await user.press(screen.getByRole("radio", { name: "Échouée" }));
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les filtres" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Filtres actifs" }),
+  ).toBeEnabled();
+  expect(await screen.findByText(evidence.scopeLabel)).toBeOnTheScreen();
+  expect(screen.getByText("Une observation rejetée.")).toBeOnTheScreen();
+  expect(screen.getByText("Obtenus : 99 · Rejetés : 1")).toBeOnTheScreen();
+  expect(screen.getByText(/Dernier succès/)).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Voir la source" }),
+  ).not.toBeOnTheScreen();
+  const reads = mockFetch.mock.calls.map(([url]) => new URL(String(url)));
+  const results = reads.filter(({ pathname }) => pathname.endsWith("/results"));
+  expect(results[0]?.searchParams.get("size")).toBe("1");
+  expect(results.at(-1)?.searchParams.get("status")).toBe("failed");
+  expect(
+    reads.some(
+      ({ pathname, searchParams }) =>
+        pathname.includes("/collection-seasons") ||
+        searchParams.has("seasonId"),
+    ),
+  ).toBe(false);
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+  expect(
+    await screen.findByRole("header", { name: "Collecte, Géocodage" }),
+  ).toBeOnTheScreen();
+});
+
+it("keeps only club search and Status from a direct seasonless Bilan link", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const selected = control({ family: "club-sheets", seasonId: undefined });
+  mockFetch.mockImplementation(async (url) =>
+    new URL(String(url)).pathname.endsWith("/collection-controls")
+      ? Response.json({ items: [selected] })
+      : serve(url),
+  );
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+
+  // When
+  await act(async () =>
+    router.push(
+      `/collection/clubs/club-sheets/bilan?query=Club&status=failed&stage=calendar&sourceId=${sourceId}`,
+    ),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Bilan, Fiches clubs" }),
+  ).toBeOnTheScreen();
+  await screen.findByText("Aucun résultat pour ces critères");
+  const reads = mockFetch.mock.calls.map(([url]) => new URL(String(url)));
+  const [resultRead] = reads.filter(({ pathname }) =>
+    pathname.endsWith("/results"),
+  );
+  expect(resultRead?.pathname).toContain(`/${selected.id}/results`);
+  expect(Object.fromEntries(resultRead?.searchParams ?? [])).toEqual({
+    query: "Club",
+    status: "failed",
+    size: "50",
+    page: "0",
+  });
+  expect(
+    reads.some(({ pathname }) => pathname.includes("/collection-seasons")),
   ).toBe(false);
 });
 

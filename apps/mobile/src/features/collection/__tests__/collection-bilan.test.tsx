@@ -39,6 +39,7 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useNavigation: () => ({ isFocused: () => mockIsFocused() }),
+  useRouter: () => ({ setParams: mockSetParams }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -49,13 +50,13 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockIsFocused = jest.fn(() => true);
+const mockSetParams = jest.fn();
 const environment = { ...process.env };
 const sourceId = "00000000-0000-4000-8000-000000000191";
 const controlId = control().id;
 const navigation = {
   onOpenFilters: jest.fn(),
   onViewSource: jest.fn(),
-  onSearch: jest.fn(),
 };
 let peer: ReturnType<typeof collectionPeer>;
 let client: ReturnType<typeof createQueryClient>;
@@ -265,6 +266,90 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
   }
 });
 
+it.each([403, 404])(
+  "withdraws admitted club results when continuation returns %s",
+  async (status) => {
+    // Given
+    const evidence = result({
+      scopeLabel: "Club qualification",
+      stage: "club-sheet",
+    });
+    mockFetch.mockImplementation(async (url, options) => {
+      const { pathname, searchParams } = new URL(String(url));
+      if (!pathname.endsWith("/results")) {
+        return peer.reads(url, options);
+      }
+      return searchParams.get("page") === "1"
+        ? refused(status)
+        : json({ items: [evidence], page: 0, hasNext: true });
+    });
+    await renderCollection(
+      <CollectionBilanScreen
+        header={<Text>Bilan</Text>}
+        controlId={controlId}
+        criteria={{}}
+        onOpenFilters={navigation.onOpenFilters}
+      />,
+      client,
+    );
+    await screen.findByRole("header", { name: evidence.scopeLabel });
+
+    // When
+    await fireEvent(screen.getByTestId("collection-bilan-list"), "endReached");
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: evidence.scopeLabel }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucun résultat observé")).not.toBeOnTheScreen();
+  },
+);
+
+it("keeps a failed continuation recoverable when the accepted page was empty", async () => {
+  // Given
+  const first = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) => {
+    const { pathname, searchParams } = new URL(String(url));
+    if (!pathname.endsWith("/results")) {
+      return peer.reads(url, options);
+    }
+    return searchParams.get("page") === "1" ? refused(503) : first.promise;
+  });
+  await renderCollection(
+    <CollectionBilanScreen
+      header={<Text>Bilan</Text>}
+      controlId={controlId}
+      criteria={{}}
+      {...navigation}
+    />,
+    client,
+  );
+  try {
+    await screen.findByRole("progressbar", {
+      name: "Chargement des résultats de collecte",
+    });
+  } finally {
+    await act(() => first.resolve(json({ items: [], page: 0, hasNext: true })));
+  }
+
+  // When
+  await waitFor(() =>
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen(),
+  );
+  await fireEvent(screen.getByTestId("collection-bilan-list"), "endReached");
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeEnabled();
+  expect(screen.getByTestId("collection-bilan-list")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun résultat observé")).not.toBeOnTheScreen();
+});
+
 it("shows the committed search when the current Bilan receives new route criteria", async () => {
   // Given
   const screenProps = { ...navigation, header: <Text>Bilan</Text>, controlId };
@@ -468,8 +553,7 @@ it("applies the source, stage and status draft together without removing the com
   );
   await renderCollection(
     <CollectionBilanFilters
-      seasonId={seasonId}
-      provider="ffvb"
+      competition={{ seasonId, provider: "ffvb" }}
       initial={{ query: "Nationale" }}
       onClose={jest.fn()}
       onApply={onApply}
@@ -529,14 +613,14 @@ it("commits the literal search on native submit without publishing each edited c
   await user.type(field, "  Poule A  ");
 
   // Then
-  expect(navigation.onSearch).not.toHaveBeenCalled();
+  expect(mockSetParams).not.toHaveBeenCalled();
 
   // When
   await fireEvent(field, "submitEditing");
 
   // Then
   await waitFor(() =>
-    expect(navigation.onSearch).toHaveBeenCalledWith("Poule A"),
+    expect(mockSetParams).toHaveBeenCalledWith({ query: "Poule A" }),
   );
-  expect(navigation.onSearch).toHaveBeenCalledTimes(1);
+  expect(mockSetParams).toHaveBeenCalledTimes(1);
 });

@@ -12,20 +12,33 @@ export function collectionProviderFromRoute(value: unknown) {
   return CollectionProviderEnum.safeParse(value).data;
 }
 
+type RouteParams = Record<string, string | string[] | undefined>;
+
+export type BilanSearchCriteria = Pick<
+  CollectionResultCriteria,
+  "query" | "status"
+>;
+
+/** Text and status are available in both Bilan scopes. */
+export function collectionBilanSearchCriteria(
+  params: RouteParams,
+): BilanSearchCriteria {
+  const { query, status } = ListCollectionResultsParams.shape;
+  return {
+    query: query.safeParse(params.query).data || undefined,
+    status: status.safeParse(params.status).data,
+  };
+}
+
 /** Admits only the generated list criteria from a committed Bilan navigation entry. */
 export function collectionBilanRouteCriteria(
-  params: Record<string, string | string[] | undefined>,
+  params: RouteParams,
 ): CollectionResultCriteria {
-  const fields = ListCollectionResultsParams.shape;
-  const query = fields.query.safeParse(params.query);
-  const sourceId = fields.sourceId.safeParse(params.sourceId);
-  const status = fields.status.safeParse(params.status);
-  const stage = fields.stage.safeParse(params.stage);
+  const { sourceId, stage } = ListCollectionResultsParams.shape;
   return {
-    query: query.data || undefined,
-    sourceId: sourceId.data,
-    status: status.data,
-    stage: stage.data,
+    ...collectionBilanSearchCriteria(params),
+    sourceId: sourceId.safeParse(params.sourceId).data,
+    stage: stage.safeParse(params.stage).data,
   };
 }
 
