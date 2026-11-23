@@ -301,8 +301,8 @@ class PoolConsultationIntegrationTest {
         identities
             .createPool(
                 new PoolKey(
-                    CollectionProviderEnum.LNV, scope.season(), "LNV", "PRO", null, null, "PRO"),
-                "PACK",
+                    CollectionProviderEnum.LNV, scope.season(), "901", "901", null, null, "902"),
+                "901",
                 "Professional",
                 new SportingClassification(
                     SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))

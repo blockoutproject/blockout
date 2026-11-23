@@ -384,6 +384,32 @@ class SportingIdentityIntegrationTest {
   }
 
   @Test
+  @DisplayName("Refuses to replace a retained LNV participant with a same-named established TeamID")
+  void refusesDifferentProfessionalParticipant() {
+    // Given
+    UUID season = seasons.getOrCreate(2026L).id();
+    PoolView pool =
+        identities.createPool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "901", "901", null, null, "902"),
+            "901",
+            "Regular season",
+            new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED));
+    TeamCandidate away = new TeamCandidate("T2", "Away", null, null);
+    TeamCandidate otherHome = new TeamCandidate("T3", "Home", null, null);
+    MatchView first =
+        identities.identifyMatch(
+            pool.id(), "M1", new TeamCandidate("T1", "Home", null, null), away);
+    MatchView second = identities.identifyMatch(pool.id(), "M2", otherHome, away);
+
+    // When / Then
+    assertThatThrownBy(() -> identities.identifyMatch(pool.id(), "M1", otherHome, away))
+        .isInstanceOf(UnresolvedSportingIdentityException.class);
+    assertThat(acquisitionReads.match(first.id())).contains(first);
+    assertThat(second.homeTeamId()).isNotEqualTo(first.homeTeamId());
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(3L);
+  }
+
+  @Test
   @DisplayName(
       "Reuses LNV TeamIDs across phases of one championship and scopes them across championships")
   void scopesProfessionalIdentityToChampionship() {

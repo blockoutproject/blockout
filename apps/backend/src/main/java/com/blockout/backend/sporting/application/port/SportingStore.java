@@ -58,16 +58,13 @@ public interface SportingStore {
       MappingFilterDimensionEnum dimension, long page, int size);
 
   /**
-   * Reads the discovered catalogue within an exact source-season context.
+   * Reads the accepted entries in the binding's season, provider and organizer. The same binding
+   * owns the accepted LNV phase labels.
    *
-   * @param sourceId binding that owns LNV phase labels
-   * @param seasonId canonical season
-   * @param provider designated source
-   * @param organizerReference native source identity
+   * @param source selected source binding
    * @return current FFVB packs and pools or LNV phases, independently of classification
    */
-  SourceCatalogueEntries sourceCatalogueEntries(
-      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+  SourceCatalogueEntries sourceCatalogueEntries(Source source);
 
   /**
    * Reads eligible pool references in bounded owner pages.
