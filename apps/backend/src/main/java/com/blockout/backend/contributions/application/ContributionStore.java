@@ -68,6 +68,14 @@ public interface ContributionStore {
   Set<UUID> activeMatchIds(Set<UUID> matchIds);
 
   /**
+   * Reads only the active version's public identity and literal address.
+   *
+   * @param matchId sporting identity already admitted in the current transaction
+   * @return the public pair, or empty when no version is active
+   */
+  Optional<ReadPublicContribution.Link> activeLink(UUID matchId);
+
+  /**
    * Reads state without creating activity; absence means initial revision and no hold.
    *
    * @param matchId existing F02 identity

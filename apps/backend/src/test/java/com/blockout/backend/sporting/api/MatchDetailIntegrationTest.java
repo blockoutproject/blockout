@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
@@ -25,7 +26,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -43,6 +43,7 @@ class MatchDetailIntegrationTest {
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
   @Autowired private AcceptCalendar calendars;
+  @Autowired private SportingObservationMapper observations;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private AdmitCollectionCycle cycles;
@@ -51,11 +52,12 @@ class MatchDetailIntegrationTest {
 
   @ParameterizedTest(name = "{0} in {1}")
   @CsvSource({
-    "FFVB, Europe/Berlin, 2026-10-24T16:30:00Z",
-    "LNV, Europe/London, 2026-10-24T17:30:00Z"
+    "FFVB, Europe/Berlin, 2026-10-24T16:30:00Z, https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php",
+    "LNV, Europe/London, 2026-10-24T17:30:00Z, https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=1"
   })
   @DisplayName("Reads the resolved source time and calendar for a match without documents")
-  void readsDatedMatchWithoutDocuments(CollectionProviderEnum provider, String zone, String start)
+  void readsDatedMatchWithoutDocuments(
+      CollectionProviderEnum provider, String zone, String start, String calendar)
       throws Exception {
     // Given
     SportingIngestionFixture.reset(database);
@@ -71,19 +73,11 @@ class MatchDetailIntegrationTest {
             : new TeamCandidate("PRO-AWAY", "Away", null, null);
     Instant observed = Instant.parse("2026-10-20T12:00:00Z");
     MatchObservation.Facts schedule =
-        new MatchObservation.Facts(
-            JsonNullable.of(LocalDate.of(2026, 10, 24)),
-            JsonNullable.of("18:30"),
-            zone,
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined());
+        observations.toFacts(
+            new MatchFactsInternalRequest()
+                ._localDate(LocalDate.of(2026, 10, 24))
+                ._localTime("18:30")
+                .timeZone(zone));
     ObservationOutcome match =
         calendars
             .accept(
@@ -97,10 +91,6 @@ class MatchDetailIntegrationTest {
             .outcomes()
             .getFirst();
     assertThat(match.resourceId()).isNotNull();
-    String calendar =
-        provider == CollectionProviderEnum.FFVB
-            ? "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php"
-            : "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=1";
 
     // When / Then
     mvc.perform(get("/matches/{id}", match.resourceId()))

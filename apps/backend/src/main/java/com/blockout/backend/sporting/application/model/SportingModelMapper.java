@@ -31,16 +31,6 @@ public interface SportingModelMapper {
   StandingsView.Row toRow(StandingsView.Row source, UUID teamId);
 
   /**
-   * Maps kinds with a presentation projection without relying on matching enum strings.
-   *
-   * @param source public sporting kind
-   * @return corresponding projection kind
-   * @throws IllegalArgumentException when a match has no resource presentation projection
-   */
-  @ValueMapping(source = "MATCH", target = MappingConstants.THROW_EXCEPTION)
-  SportingProjectionChanges.Kind toProjectionKind(SportingVisibility.Kind source);
-
-  /**
    * Maps public resource kinds; division and season activity have separate owner rules.
    *
    * @param source projection scope

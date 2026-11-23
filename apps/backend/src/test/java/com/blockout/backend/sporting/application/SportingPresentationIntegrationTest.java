@@ -46,6 +46,7 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.Loca
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.AcceptClubDetails;
 import com.blockout.backend.sporting.application.service.AcceptClubLocality;
 import com.blockout.backend.sporting.application.service.AcceptSourceImage;
@@ -111,6 +112,7 @@ class SportingPresentationIntegrationTest {
   @Autowired private MockMvc mvc;
   @Autowired private JsonMapper json;
   @Autowired private ReadSportingData reads;
+  @Autowired private SportingStore sportingStore;
   @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private SportingIdentityFixture identities;
   @Autowired private ChangeCollectionSeasons seasons;
@@ -1046,7 +1048,8 @@ class SportingPresentationIntegrationTest {
       // Then
       assertThatThrownBy(() -> pending.get(15, TimeUnit.SECONDS))
           .hasCauseInstanceOf(AccessDeniedException.class);
-      assertThat(reads.publicPresentation(Kind.CLUB, club).orElseThrow()).isEqualTo(before);
+      assertThat(sportingStore.presentation(SportingProjectionChanges.Kind.CLUB, club))
+          .contains(before);
     }
   }
 

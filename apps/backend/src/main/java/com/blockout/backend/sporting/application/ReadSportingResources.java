@@ -18,7 +18,6 @@ import com.blockout.backend.sporting.application.model.SportingViews.DivisionDet
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
-import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.port.SportingStore;
@@ -53,21 +52,6 @@ public class ReadSportingResources {
   private final ReadMatchDocument documents;
 
   /**
-   * Reads only the current public club identity for summary consumers.
-   *
-   * @param id exact club identity
-   * @return current permitted names and logo link
-   * @throws SportingResourceNotFoundException when the identity is unavailable
-   */
-  public ConsultationViews.Identity clubIdentity(UUID id) {
-    owners
-        .visibility(Kind.CLUB, id)
-        .filter(SportingVisibility::viewable)
-        .orElseThrow(SportingResourceNotFoundException::new);
-    return Objects.requireNonNull(clubIdentities(Set.of(id)).get(id));
-  }
-
-  /**
    * Reads exact current club facts and viewable seasons.
    *
    * @param id addressed club identity
@@ -75,7 +59,8 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when the identity is unavailable
    */
   public ConsultationViews.ClubDetail club(UUID id) {
-    ConsultationViews.Identity club = clubIdentity(id);
+    owners.requireViewable(Kind.CLUB, id);
+    ConsultationViews.Identity club = Objects.requireNonNull(clubIdentities(Set.of(id)).get(id));
     Map<ContactField, String> contacts = owners.publicClubContacts(id);
     return new ConsultationViews.ClubDetail(
         club,
@@ -96,7 +81,7 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when club or season is unknown
    */
   public ConsultationViews.ClubTeams clubTeams(ClubSeasonRequest request) {
-    clubIdentity(request.clubId());
+    owners.requireViewable(Kind.CLUB, request.clubId());
     if (owners.season(request.seasonId()).isEmpty()) {
       throw new SportingResourceNotFoundException();
     }
@@ -111,21 +96,6 @@ public class ReadSportingResources {
   }
 
   /**
-   * Reads the current seasonal team summary without its participation detail collection.
-   *
-   * @param id exact seasonal team identity
-   * @return detached current identity, season, classification and optional club
-   * @throws SportingResourceNotFoundException when the team is currently unavailable
-   */
-  public ConsultationViews.TeamSummary teamSummary(UUID id) {
-    owners
-        .visibility(Kind.TEAM, id)
-        .filter(SportingVisibility::viewable)
-        .orElseThrow(SportingResourceNotFoundException::new);
-    return Objects.requireNonNull(teamSummaries(Set.of(id)).get(id));
-  }
-
-  /**
    * Reads the exact seasonal team and its visible participations.
    *
    * @param id stable team identity
@@ -133,7 +103,9 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when currently unavailable
    */
   public ConsultationViews.TeamDetail team(UUID id) {
-    ConsultationViews.TeamSummary summary = teamSummary(id);
+    owners.requireViewable(Kind.TEAM, id);
+    ConsultationViews.TeamSummary summary =
+        Objects.requireNonNull(teamSummaries(Set.of(id)).get(id));
     return new ConsultationViews.TeamDetail(
         summary,
         poolSummaries(Set.copyOf(owners.publicTeamPoolIds(id))).values().stream()
@@ -157,7 +129,9 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when currently unavailable
    */
   public ConsultationViews.PoolDetail pool(UUID id) {
-    return new ConsultationViews.PoolDetail(poolSummary(id));
+    owners.requireViewable(Kind.POOL, id);
+    return new ConsultationViews.PoolDetail(
+        Objects.requireNonNull(poolSummaries(Set.of(id)).get(id)));
   }
 
   /**
@@ -168,7 +142,6 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when the pool is hidden or unknown
    */
   public ConsultationViews.Standings standings(UUID poolId) {
-    poolSummary(poolId);
     StandingsView source = owners.publicStandings(poolId).orElse(null);
     if (source == null || !source.tableAvailable()) {
       return new ConsultationViews.Standings(
@@ -206,7 +179,7 @@ public class ReadSportingResources {
    * @throws SportingResourceNotFoundException when the pool is hidden or unknown
    */
   public ConsultationViews.Participants participants(UUID poolId) {
-    poolSummary(poolId);
+    owners.requireViewable(Kind.POOL, poolId);
     List<ConsultationViews.TeamSummary> teams =
         teamSummaries(reads.participantTeamIds(poolId)).values().stream()
             .sorted(
@@ -246,10 +219,7 @@ public class ReadSportingResources {
    */
   public ConsultationViews.MatchDetail match(UUID id) {
     Instant evaluatedAt = clock.instant();
-    owners
-        .visibility(Kind.MATCH, id)
-        .filter(SportingVisibility::viewable)
-        .orElseThrow(SportingResourceNotFoundException::new);
+    owners.requireViewable(Kind.MATCH, id);
     MatchDetailInput input =
         reads.matchDetail(id).orElseThrow(SportingResourceNotFoundException::new);
     MatchDetails details = input.details();
@@ -414,21 +384,6 @@ public class ReadSportingResources {
                                 divisions.get(pool.classification().divisionId()))),
                         null,
                         null)));
-  }
-
-  /**
-   * Admits one pool before combining current season and classification without invented labels.
-   *
-   * @param id current contextual pool
-   * @return permitted pool summary
-   * @throws SportingResourceNotFoundException when the pool is hidden or unknown
-   */
-  private ConsultationViews.PoolSummary poolSummary(UUID id) {
-    owners
-        .visibility(Kind.POOL, id)
-        .filter(SportingVisibility::viewable)
-        .orElseThrow(SportingResourceNotFoundException::new);
-    return Objects.requireNonNull(poolSummaries(Set.of(id)).get(id));
   }
 
   /**

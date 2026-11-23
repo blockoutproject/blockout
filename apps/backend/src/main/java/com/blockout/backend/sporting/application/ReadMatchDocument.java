@@ -11,9 +11,8 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.net.URI;
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -63,15 +62,7 @@ public class ReadMatchDocument {
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public byte[] read(UUID id, MatchDocumentKindEnum kind) {
-    Reference reference =
-        reads.execute(
-            status -> {
-              Reference current = references(id).get(kind);
-              if (current == null) {
-                throw new SportingResourceNotFoundException();
-              }
-              return current;
-            });
+    Reference reference = reads.execute(status -> currentReference(id, kind));
     return source.fetch(reference);
   }
 
@@ -83,7 +74,7 @@ public class ReadMatchDocument {
    * @return only backend subresources, with no provider locator
    */
   List<ConsultationViews.Document> actions(MatchDetails details, CollectionProviderEnum provider) {
-    return references(details, provider).keySet().stream()
+    return eligibleKinds(details, provider).stream()
         .map(
             kind ->
                 new ConsultationViews.Document(
@@ -91,32 +82,35 @@ public class ReadMatchDocument {
         .toList();
   }
 
-  private Map<MatchDocumentKindEnum, Reference> references(UUID id) {
+  private Reference currentReference(UUID id, MatchDocumentKindEnum kind) {
     MatchView match = owners.publicMatch(id).orElseThrow(SportingResourceNotFoundException::new);
     PoolView pool = store.pool(match.poolId()).orElseThrow(SportingResourceNotFoundException::new);
-    return references(store.matchDetails(id), pool.key().provider());
+    MatchDetails details = store.matchDetails(id);
+    if (!eligibleKinds(details, pool.key().provider()).contains(kind)) {
+      throw new SportingResourceNotFoundException();
+    }
+    return switch (kind) {
+      case INFORMATION -> new Reference(null, details.informationSheet());
+      case SCORESHEET -> new Reference(URI.create(details.scoresheetUrl()), null);
+      case STATISTICS -> new Reference(URI.create(details.statisticsUrl()), null);
+    };
   }
 
-  /** Time classification never grants access to a final-result document. */
-  private Map<MatchDocumentKindEnum, Reference> references(
+  /** Keeps contract order and uses accepted finality for result documents. */
+  private static EnumSet<MatchDocumentKindEnum> eligibleKinds(
       MatchDetails details, CollectionProviderEnum provider) {
-    Map<MatchDocumentKindEnum, Reference> result = new EnumMap<>(MatchDocumentKindEnum.class);
+    EnumSet<MatchDocumentKindEnum> kinds = EnumSet.noneOf(MatchDocumentKindEnum.class);
     if (details.informationSheet() != null) {
-      result.put(
-          MatchDocumentKindEnum.INFORMATION, new Reference(null, details.informationSheet()));
+      kinds.add(MatchDocumentKindEnum.INFORMATION);
     }
     if (Result.isFinal(details.result())) {
       if (details.scoresheetUrl() != null) {
-        result.put(
-            MatchDocumentKindEnum.SCORESHEET,
-            new Reference(URI.create(details.scoresheetUrl()), null));
+        kinds.add(MatchDocumentKindEnum.SCORESHEET);
       }
       if (provider == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
-        result.put(
-            MatchDocumentKindEnum.STATISTICS,
-            new Reference(URI.create(details.statisticsUrl()), null));
+        kinds.add(MatchDocumentKindEnum.STATISTICS);
       }
     }
-    return result;
+    return kinds;
   }
 }
