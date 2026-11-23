@@ -6,6 +6,9 @@ import com.blockout.collector.acquisition.ffvb.FfvbPage;
 import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.Championship;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery.Phase;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery.PhaseCatalog;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery.Root;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSourceScopeEnum;
 import java.net.URI;
@@ -147,23 +150,24 @@ public class DiscoverSeasonSources {
             continue;
           }
           ProviderResponse source = lnvHttp.page(candidate);
-          LnvDiscovery.Root root = lnv.root(source.body(), source.url(), competition);
+          Root root = lnv.root(source.body(), source.url(), competition);
           if (root.championship() != entry.championship()) {
             complete = false;
             continue;
           }
-          usable = true;
-          if (root.season() != null) {
-            complete &=
-                propose(
-                    CollectionProviderEnum.LNV,
-                    competition,
-                    root.season(),
-                    candidate,
-                    entry.url(),
-                    entry.displayName(),
-                    null);
-          }
+          String season = currentLnvSeason(source, root, competition);
+          boolean accepted =
+              season != null
+                  && propose(
+                      CollectionProviderEnum.LNV,
+                      competition,
+                      season,
+                      candidate,
+                      entry.url(),
+                      entry.displayName(),
+                      null);
+          usable |= accepted;
+          complete &= accepted;
         }
       } catch (RuntimeException failure) {
         complete = false;
@@ -171,6 +175,36 @@ public class DiscoverSeasonSources {
       }
       reportEntry(CollectionProviderEnum.LNV, entry.scope(), usable && complete);
     }
+  }
+
+  /**
+   * The standings iframe can omit the season. In that case, find seasonal evidence in a calendar
+   * published by this exact championship without relying on which phase is currently selected.
+   */
+  private String currentLnvSeason(ProviderResponse source, Root root, String competition) {
+    if (root.season() != null) {
+      return root.season();
+    }
+    String season = null;
+    for (Phase phase : root.phases()) {
+      lifecycle.requireActive();
+      String phaseSeason;
+      try {
+        ProviderResponse page =
+            phase.url().equals(source.url()) ? source : lnvHttp.page(phase.url());
+        phaseSeason = lnv.phaseCatalog(page.body(), page.url(), competition, phase, null).season();
+      } catch (RuntimeException failure) {
+        discoveryFailure(failure);
+        continue;
+      }
+      if (phaseSeason != null) {
+        if (season != null && !season.equals(phaseSeason)) {
+          throw new LnvAcquisitionException("Contradictory LNV championship season evidence");
+        }
+        season = phaseSeason;
+      }
+    }
+    return season;
   }
 
   /**
@@ -285,18 +319,15 @@ public class DiscoverSeasonSources {
     PageRead root = readPage(lnvHttp, target.url(), nextOrdinal);
     ProviderResponse rootResponse = root.response();
     Instant observedAt = root.observedAt();
-    LnvDiscovery.Root qualified =
-        lnv.root(rootResponse.body(), rootResponse.url(), target.organizerReference());
-    if (qualified.season() == null && !verifiedHistorical) {
-      throw new LnvAcquisitionException("LNV championship has no published season");
-    }
+    Root qualified = lnv.root(rootResponse.body(), rootResponse.url(), target.organizerReference());
     if (qualified.season() != null && !qualified.season().equals(target.seasonLabel())) {
       throw new LnvAcquisitionException("LNV championship belongs to a different season");
     }
+    boolean seasonVerified = qualified.season() != null || verifiedHistorical;
     List<SportingObservation.Pool> pools = new ArrayList<>();
     Map<String, String> phaseLabels = new HashMap<>();
     RuntimeException firstFailure = null;
-    for (LnvDiscovery.Phase phase : qualified.phases()) {
+    for (Phase phase : qualified.phases()) {
       lifecycle.requireActive();
       try {
         PageRead read = root;
@@ -305,13 +336,19 @@ public class DiscoverSeasonSources {
           observedAt = read.observedAt();
         }
         ProviderResponse page = read.response();
-        pools.addAll(
-            lnv.phasePools(
-                page.body(), page.url(), target.organizerReference(), phase, target.seasonLabel()));
-        if (phase.label() != null) {
-          phaseLabels.put(phase.reference(), phase.label());
+        PhaseCatalog catalog =
+            lnv.phaseCatalog(
+                page.body(), page.url(), target.organizerReference(), phase, target.seasonLabel());
+        pools.addAll(catalog.pools());
+        if (catalog.label() != null) {
+          phaseLabels.put(phase.reference(), catalog.label());
         }
-        consume.accept(read);
+        seasonVerified |= catalog.season() != null;
+        // The consumer can write sporting facts inline. Defer earlier undated phases to their
+        // ordinary admitted reads rather than retaining provider bodies or writing before proof.
+        if (seasonVerified) {
+          consume.accept(read);
+        }
       } catch (CollectionBackendFailure failure) {
         throw failure;
       } catch (RuntimeException failure) {
@@ -321,8 +358,11 @@ public class DiscoverSeasonSources {
         }
       }
     }
-    if (pools.isEmpty() && firstFailure != null) {
+    if (firstFailure != null && (pools.isEmpty() || !seasonVerified)) {
       throw firstFailure;
+    }
+    if (!seasonVerified) {
+      throw new LnvAcquisitionException("LNV championship has no published season");
     }
     return new Read(
         new SportingObservation.Catalog(firstFailure == null, pools, phaseLabels),
