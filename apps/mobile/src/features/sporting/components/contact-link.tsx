@@ -183,17 +183,13 @@ function ContactHandoff({
   const { colors } = useTheme();
   const handoff = useNativeHandoff(destination);
 
-  function open() {
-    void handoff.open();
-  }
-
   if (presentation === "information") {
     return (
       <InformationRow
         label={label}
         value={value ?? "-"}
         icon={Icon}
-        onPress={destination ? open : undefined}
+        onPress={destination ? () => void handoff.open() : undefined}
         pending={handoff.pending}
       />
     );
@@ -244,7 +240,7 @@ function ContactHandoff({
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`${label} : ${value}`}
-      onPress={open}
+      onPress={() => void handoff.open()}
       disabled={handoff.pending}
       accessibilityState={{
         disabled: handoff.pending,

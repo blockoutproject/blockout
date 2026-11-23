@@ -134,7 +134,7 @@ it("rejects an obsolete transport completion before creating a file", async () =
   expect(mockFiles).toHaveLength(0);
 });
 
-it("cleans only feature-owned leftover PDF files at cold start", async () => {
+it("cleans only feature-owned leftover PDF files at cold start", () => {
   // Given
   const directory = new Directory(Paths.cache, "f03-match-documents");
   const owned = new File(
@@ -142,8 +142,8 @@ it("cleans only feature-owned leftover PDF files at cold start", async () => {
     "f03-00000000-0000-4000-8000-000000000259.pdf",
   );
   const unrelated = new File(directory, "profile.jpg");
-  await owned.write(new Uint8Array([1]));
-  await unrelated.write(new Uint8Array([2]));
+  owned.create();
+  unrelated.create();
 
   // When
   cleanupMatchDocuments();
