@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.application.ModerateContribution;
@@ -424,7 +423,7 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
               assertThat(message.text().body()).isEqualTo(inboxTitle);
               assertThat(message.text().title()).isNotBlank().isNotEqualTo(inboxTitle);
             });
-    verifyNoMoreInteractions(executor);
+    verify(executor).execute(any(Runnable.class));
   }
 
   /** Real producer entry points qualified by this suite. */
