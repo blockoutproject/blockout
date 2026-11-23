@@ -6,6 +6,8 @@ Blockout is a complete V2 rebuild of backend, ingestion and the iOS/Android appl
 
 Start with the [constitution](.specify/memory/constitution.md), [agent guidance](AGENTS.md) and [design inputs](AGENTS.md#design-inputs). [GitHub issues](https://github.com/blockoutproject/blockout/issues) own planning requests, dependencies and acceptance. The official Spec Kit planning step decides the stack, architecture and shared contract/codegen approach within the relevant feature scope; dependent plans reference the agreed decisions.
 
+Search for `requestCollection` to follow a manual collection request from mobile through the contract to its backend command. Continue with `getCollectionWork` and `startCollectionCycle` to trace the collector's asynchronous admission and execution. [Source layout](specs/003-shared-quality/plan.md#source-code-repository-root) · [Application use cases](specs/003-shared-quality/plan.md#application-use-case-families) · [F01 passage execution](specs/001-source-acquisition/plan.md#passage-execution) · [Collector-to-sporting qualification](#collector-to-sporting-qualification)
+
 ## Specifications
 
 Specifications own functional vocabulary, requirements and invariants. Directory numbers are stable references, not F-number mappings or implementation order. The standard requirements checklists assess specification quality, not delivered software. Plans derive from these owners through official Spec Kit procedures; API ownership is independent of feature-plan numbering. User-story priorities distinguish relative product value within the accepted V2 scope; a lower priority does not remove launch obligations or relax security and continuity requirements.
