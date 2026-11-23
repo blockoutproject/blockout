@@ -49,17 +49,31 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       """)
   List<SportingPresentationRow> findPresentations(Set<UUID> ids);
 
-  /**
-   * Pages direct children of an already scope-checked pack without filtering unmapped pools.
-   *
-   * @param packId pack in the selected source
-   * @param pageable bounded direct-child request
-   * @return stable source-name/identity slice
-   */
-  Slice<PoolEntity> findByPackIdAndCatalogEligibleTrueOrderBySourceNameAscIdAsc(
-      UUID packId, Pageable pageable);
+  /** Loads current FFVB pools and their packs within the selected source. */
+  @Query(
+      """
+      SELECT p FROM PoolEntity p JOIN FETCH p.pack pack
+      WHERE pack.season.id = :seasonId AND pack.provider = :provider
+        AND pack.organizerReference = :organizerReference AND p.catalogEligible = TRUE
+      ORDER BY pack.reference, pack.id, p.sourceName, p.id
+      """)
+  List<PoolEntity> cataloguePools(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 
-  /** Shares current source-season membership between catalogue reads and absence reconciliation. */
+  /** Selects each phase once, ordered by the first group in the former source-name order. */
+  @Query(
+      """
+      SELECT p.reference
+      FROM PoolEntity p
+      WHERE p.season.id = :seasonId AND p.provider = :provider
+        AND p.organizerReference = :organizerReference AND p.catalogEligible = TRUE
+      GROUP BY p.reference
+      ORDER BY MIN(p.sourceName), p.reference
+      """)
+  List<String> cataloguePhaseReferences(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /** Reads current source-season membership for absence reconciliation. */
   Slice<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
       UUID seasonId, CollectionProviderEnum provider, String organizerReference, Pageable pageable);
 

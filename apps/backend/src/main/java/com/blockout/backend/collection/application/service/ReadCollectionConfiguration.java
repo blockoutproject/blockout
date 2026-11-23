@@ -13,16 +13,14 @@ import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.ResultFilters;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.SourceCatalog;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalogue;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
-import com.blockout.backend.shared.pagination.OffsetPage;
-import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
@@ -164,34 +162,6 @@ public class ReadCollectionConfiguration {
   }
 
   /**
-   * Reads bounded discovered children without contacting a provider or filtering by mapping.
-   *
-   * @param accountId current local operator
-   * @param sourceId selected source binding
-   * @param parentId optional pack in this binding
-   * @param page validated zero-based page
-   * @param size validated size, at most 200
-   * @return native direct children without classification state
-   */
-  @Transactional(readOnly = true)
-  public OffsetPage<CollectionResource> children(
-      UUID accountId, UUID sourceId, UUID parentId, long page, int size) {
-    permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
-    Source source = store.source(sourceId).orElseThrow(CollectionNotFoundException::new);
-    if (page > PageOffset.maxPage(size)) {
-      return OffsetPage.empty(page);
-    }
-    return acquisitionReads.collectionChildren(
-        source.id(),
-        source.seasonId(),
-        source.provider(),
-        source.organizerReference(),
-        parentId,
-        (int) page,
-        size);
-  }
-
-  /**
    * Reads current source evidence without requeuing an interrupted validation.
    *
    * @param accountId current local operator
@@ -218,11 +188,15 @@ public class ReadCollectionConfiguration {
     return sourceView(store.sources(seasonId));
   }
 
-  /** Reads one source together with its latest independent catalogue observation. */
+  /** Reads the accepted catalogue independently of the latest observation's outcome. */
   @Transactional(readOnly = true)
-  public SourceCatalog sourceCatalog(UUID accountId, UUID sourceId) {
+  public SourceCatalogue sourceCatalog(UUID accountId, UUID sourceId) {
     Source source = source(accountId, sourceId);
-    return catalogs(source.seasonId(), List.of(source)).getFirst();
+    SourceCatalog binding = catalogs(source.seasonId(), List.of(source)).getFirst();
+    return new SourceCatalogue(
+        binding,
+        acquisitionReads.sourceCatalogueEntries(
+            source.id(), source.seasonId(), source.provider(), source.organizerReference()));
   }
 
   /** Reads the selected season's sources and catalogue evidence in bounded owner queries. */

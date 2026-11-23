@@ -1,14 +1,13 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Instant;
@@ -142,26 +141,16 @@ public class ReadSportingAcquisition {
   }
 
   /**
-   * Reads current source children through their sporting owner, without acquisition filtering.
+   * Reads the published source structure independently of acquisition classification.
    *
    * @param sourceId canonical source binding that owns phase labels
    * @param seasonId canonical source season
    * @param provider designated provider
    * @param organizerReference source organizer or championship
-   * @param parentId optional pack owned by this exact source
-   * @param page bounded page index
-   * @param size bounded page size
-   * @return direct children, including unmapped pools
+   * @return complete accepted entries, including unmapped pools
    */
-  public OffsetPage<CollectionResource> collectionChildren(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizerReference,
-      UUID parentId,
-      int page,
-      int size) {
-    return store.collectionChildren(
-        sourceId, seasonId, provider, organizerReference, parentId, page, size);
+  public SourceCatalogueEntries sourceCatalogueEntries(
+      UUID sourceId, UUID seasonId, CollectionProviderEnum provider, String organizerReference) {
+    return store.sourceCatalogueEntries(sourceId, seasonId, provider, organizerReference);
   }
 }

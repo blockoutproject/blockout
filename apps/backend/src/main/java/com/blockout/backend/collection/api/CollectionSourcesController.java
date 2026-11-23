@@ -11,11 +11,11 @@ import com.blockout.backend.generated.mobile.model.CollectionSeasonListResponse;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
 import com.blockout.backend.generated.mobile.model.ConfirmSourceSeasonRequest;
 import com.blockout.backend.generated.mobile.model.CreateSourceBindingRequest;
-import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.LaunchCollectionSourcesRequest;
 import com.blockout.backend.generated.mobile.model.SetSourceCandidateRequest;
 import com.blockout.backend.generated.mobile.model.SourceBindingListResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
+import com.blockout.backend.generated.mobile.model.SourceCatalogueResponse;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
@@ -58,7 +58,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<SourceBindingResponse> getCollectionSource(UUID sourceBindingId) {
+  public ResponseEntity<SourceCatalogueResponse> getCollectionSource(UUID sourceBindingId) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toDto(configurationReads.sourceCatalog(account.id(), sourceBindingId)));
@@ -105,17 +105,6 @@ public class CollectionSourcesController implements CollectionSourcesApi {
   public ResponseEntity<CollectionSeasonResponse> launchCollectionSources(
       UUID seasonId, LaunchCollectionSourcesRequest request) {
     throw retiredSourceWrite();
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public ResponseEntity<DiscoveredCollectionResourcePageResponse> listCollectionSourceChildren(
-      UUID sourceBindingId, UUID parentId, Long page, Integer size) {
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                configurationReads.children(account.id(), sourceBindingId, parentId, page, size)));
   }
 
   /**

@@ -491,62 +491,77 @@ CollectionResultPageResponse:
     - items
     - page
     - hasNext
-DiscoveredCollectionResourceResponse:
-  title: DiscoveredCollectionResourceResponse
+SourceCatalogueResponse:
+  title: SourceCatalogueResponse
+  description: Official source and its complete retained catalogue for the selected season.
+  allOf:
+    - $ref: "#/SourceBindingResponse"
+    - type: object
+      additionalProperties: true
+      properties:
+        packs:
+          type: array
+          description: All discovered FFVB packs in display order. Empty for LNV or when no packs were discovered.
+          items:
+            $ref: "#/SourceCataloguePackResponse"
+        phases:
+          type: array
+          description: Distinct discovered LNV phases in display order. Empty for FFVB or when no phases were discovered.
+          items:
+            $ref: "#/SourceCataloguePhaseResponse"
+      required:
+        - packs
+        - phases
+SourceCataloguePackResponse:
+  title: SourceCataloguePackResponse
   type: object
-  description: Native child reference in the selected source hierarchy, independent of mapping readiness.
+  description: Discovered FFVB pack in the source catalogue.
   additionalProperties: true
   properties:
     id:
       type: string
-      description: Stable pack or pool identity.
+      description: Stable pack identity.
       format: uuid
     label:
       type: string
-      description: Native/display label.
-    kind:
-      $ref: ../../common/collection-enums.yaml#/CollectionResourceKindEnum
-    parentId:
-      type: string
-      description: Pack parent for a child pool; omitted for a root entry.
-      format: uuid
-    phaseReference:
-      type: string
-      description: Published LNV phase reference when available, shared by any groups in the same phase.
-    phaseLabel:
-      type: string
-      description: Published display name for this LNV phase; omitted when no name has been established.
-    poolCount:
-      type: integer
-      minimum: 1
-      description: Current number of discovered pools in a FFVB pack. Omitted for other entries.
+      description: Display label of the pack.
+    pools:
+      type: array
+      minItems: 1
+      description: All discovered pools in the pack in display order.
+      items:
+        $ref: "#/SourceCataloguePoolResponse"
   required:
     - id
     - label
-    - kind
-DiscoveredCollectionResourcePageResponse:
-  title: DiscoveredCollectionResourcePageResponse
+    - pools
+SourceCataloguePoolResponse:
+  title: SourceCataloguePoolResponse
   type: object
-  description:
-    Current discovered children, ordered by kind, label and UUID; concurrent catalog changes
-    may alter later pages.
+  description: Discovered pool within a FFVB pack.
   additionalProperties: true
   properties:
-    items:
-      type: array
-      description: Direct children of the selected source or parent pack.
-      items:
-        $ref: "#/DiscoveredCollectionResourceResponse"
-    page:
-      type: integer
-      format: int64
-      minimum: 0
-      maximum: 9007199254740991
-      description: Zero-based page.
-    hasNext:
-      type: boolean
-      description: More children were present when read.
+    id:
+      type: string
+      description: Stable pool identity.
+      format: uuid
+    label:
+      type: string
+      description: Display label of the pool.
   required:
-    - items
-    - page
-    - hasNext
+    - id
+    - label
+SourceCataloguePhaseResponse:
+  title: SourceCataloguePhaseResponse
+  type: object
+  description: Discovered phase within a LNV championship.
+  additionalProperties: true
+  properties:
+    reference:
+      type: string
+      description: Native reference shared by the groups in this phase.
+    label:
+      type: string
+      description: Published phase name, omitted when no name is known.
+  required:
+    - reference
