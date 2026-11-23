@@ -162,15 +162,23 @@ it("discards token acquisition after its connection is removed", async () => {
   await pending;
 
   // Then
-  expect(
-    mockFetch.mock.calls.filter(([, init]) => init.method === "PUT"),
-  ).toHaveLength(0);
+  expect({
+    credentialReads: context.credentials.mock.calls.length,
+    methods: mockFetch.mock.calls.map(([, init]) => init.method),
+  }).toEqual({ credentialReads: 0, methods: [] });
 });
 
-it("does not register when permission is refused", async () => {
+it("leaves without push credentials or requests after first permission denial", async () => {
   // Given
   const context = registrationContext();
+  const push = createPushRegistration();
   jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({
+    granted: false,
+    canAskAgain: true,
+    expires: "never",
+    status: PermissionStatus.UNDETERMINED,
+  });
+  jest.mocked(Notifications.requestPermissionsAsync).mockResolvedValueOnce({
     granted: false,
     canAskAgain: false,
     expires: "never",
@@ -178,34 +186,44 @@ it("does not register when permission is refused", async () => {
   });
 
   // When
-  await createPushRegistration().register(
+  await push.register(
     context.owner,
     "synthetic-project",
     context.request,
     context.credentials,
   );
+  await push.prepareRemoval()?.();
 
   // Then
+  expect(Notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
   expect(Notifications.getExpoPushTokenAsync).not.toHaveBeenCalled();
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect({
+    credentialReads: context.credentials.mock.calls.length,
+    methods: mockFetch.mock.calls.map(([, init]) => init.method),
+  }).toEqual({ credentialReads: 0, methods: [] });
 });
 
-it("preserves the ordinary admission cancellation signal before sending PUT", async () => {
+it("leaves without push credentials or requests when admission cancels before dispatch", async () => {
   // Given
   const context = registrationContext();
+  const push = createPushRegistration();
   const admission = new AbortController();
   admission.abort();
 
   // When
-  await createPushRegistration().register(
+  await push.register(
     context.owner,
     "synthetic-project",
     async () => ({ signal: admission.signal }),
     context.credentials,
   );
+  await push.prepareRemoval()?.();
 
   // Then
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect({
+    credentialReads: context.credentials.mock.calls.length,
+    methods: mockFetch.mock.calls.map(([, init]) => init.method),
+  }).toEqual({ credentialReads: 0, methods: [] });
 });
 
 it("creates Android's channel before requesting an Expo address", async () => {
@@ -294,4 +312,66 @@ it("cancels controllable PUT but preserves the explicit already-transmitted limi
     mockFetch.mock.calls.filter(([, value]) => value.method === "DELETE"),
   ).toHaveLength(1);
   expect(mockFetch.mock.calls[1][0]).toBe(url);
+});
+
+it("attempts one exact removal after a registration response is lost", async () => {
+  // Given
+  const context = registrationContext();
+  const push = createPushRegistration();
+  mockFetch.mockRejectedValueOnce(new Error("Registration response lost"));
+  await push.register(
+    context.owner,
+    "synthetic-project",
+    context.request,
+    context.credentials,
+  );
+
+  // When
+  await push.prepareRemoval()?.();
+  await push.prepareRemoval()?.();
+
+  // Then
+  const [url] = mockFetch.mock.calls[0];
+  expect(
+    mockFetch.mock.calls.map(([destination, init]) => [
+      destination,
+      init.method,
+    ]),
+  ).toEqual([
+    [url, "PUT"],
+    [url, "DELETE"],
+  ]);
+  expect(context.credentials).toHaveBeenCalledTimes(1);
+});
+
+it("abandons in-flight push work for the erased account locally", async () => {
+  // Given
+  const context = registrationContext();
+  const push = createPushRegistration();
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValueOnce(response.promise);
+  const pending = push.register(
+    context.owner,
+    "synthetic-project",
+    context.request,
+    context.credentials,
+  );
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+  const [, init] = mockFetch.mock.calls[0];
+
+  // When
+  push.abandon("00000000-0000-4000-8000-000000000002");
+  const abortedAfterOtherAccount = init.signal.aborted;
+  push.abandon(context.owner.accountId);
+  response.reject(new Error("Registration response lost"));
+  await pending;
+  await push.prepareRemoval()?.();
+
+  // Then
+  expect(abortedAfterOtherAccount).toBe(false);
+  expect(init.signal.aborted).toBe(true);
+  expect(context.credentials).not.toHaveBeenCalled();
+  expect(mockFetch.mock.calls.map(([, request]) => request.method)).toEqual([
+    "PUT",
+  ]);
 });

@@ -9,6 +9,8 @@ import {
 export interface ApiFetchOptions extends RequestInit {
   schema?: ZodType;
   responseType?: "blob";
+  /** Marks the Fetch handoff after local checks, even if the response is lost. */
+  onDispatch?(): void;
   /** Observes a current, validated HTTP refusal for this caller; transport owns no business policy. */
   onHttpError?(error: ApiError): void;
 }
@@ -51,9 +53,11 @@ export async function apiFetch(
   options: ApiFetchOptions = {},
 ): Promise<unknown> {
   const destination = backendDestination(url);
-  const { schema, responseType, signal, onHttpError, ...request } = options;
+  const { schema, responseType, signal, onDispatch, onHttpError, ...request } =
+    options;
   try {
     signal?.throwIfAborted();
+    onDispatch?.();
     const response = await fetch(destination.href, {
       ...request,
       signal,

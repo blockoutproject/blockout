@@ -1,6 +1,6 @@
 import { homeHref } from "@/shared/native/home-href";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   eraseAccount,
   getEraseAccountMutationKey,
+  getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
@@ -32,6 +34,7 @@ import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 
 const confirmationSchema = z.object({ confirmed: z.boolean().refine(Boolean) });
+const currentAccountKey = getGetMyAccountQueryKey();
 
 /** Ordinary navigation admission; authentication and the current account retain their existing owners. */
 export interface EraseAccountScreenProps {
@@ -155,7 +158,7 @@ function ErasureLoading() {
   );
 }
 
-/** Keeps this route's original UUID and RHF confirmation mounted behind read feedback; failed commands permit an explicit new attempt. */
+/** Keeps the original confirmation mounted and remembers a 204 for the rest of this visit. */
 function ErasureConfirmation({
   accountId,
   disabled,
@@ -170,7 +173,9 @@ function ErasureConfirmation({
   const feedback = useActionFeedback();
   const router = useRouter();
   const navigation = useNavigation();
+  const client = useQueryClient();
   const { colors } = useTheme();
+  const [acknowledged, setAcknowledged] = useState(false);
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
@@ -186,51 +191,79 @@ function ErasureConfirmation({
 
   const command = useMutation({
     mutationKey: [...getEraseAccountMutationKey(), accountId],
-    mutationFn: async () => {
-      if (session.accountId !== accountId) {
-        throw new ApiError("cancelled");
+    mutationFn: async (departureOnly: boolean) => {
+      if (!departureOnly) {
+        if (session.accountId !== accountId) {
+          throw new ApiError("cancelled");
+        }
+        const credentials = await session.getCredentials();
+        await eraseAccount(
+          accountId,
+          request({
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          }),
+        );
+        setAcknowledged(true);
       }
-      const credentials = await session.getCredentials();
-      await eraseAccount(
-        accountId,
-        request({
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        }),
-      );
-      await session.clearCredentials();
+      const currentAccountId = client.getQueryData<AccountResponse | null>(
+        currentAccountKey,
+      )?.accountId;
+      if (currentAccountId && currentAccountId !== accountId) {
+        return;
+      }
+      await Promise.all([
+        departureOnly ? undefined : withdrawErasedAccount(),
+        session.clearCredentials({ erasedAccountId: accountId }),
+      ]);
       if (active.current) {
         disablePrevention();
       }
       router.replace(homeHref);
     },
-    onError: () => {
-      if (active.current) {
-        feedback.error();
-      }
-    },
+    onError: () => feedback.error(),
   });
-  const disablePrevention = usePreventRemove(command.isPending, () => {});
   const busy = command.isPending;
-  const unavailable = disabled || session.accountId !== accountId;
+  const showRetryAction = acknowledged && (!busy || command.variables);
+  const disablePrevention = usePreventRemove(busy);
+  const replaced =
+    session.accountId !== null && session.accountId !== accountId;
+  const unavailable = acknowledged
+    ? replaced || !!session.operation
+    : disabled || session.accountId !== accountId;
+  const confirmationDisabled = busy || unavailable || acknowledged;
+  const requiredReadFeedback = acknowledged ? undefined : readFeedback;
+
+  /** A pending read must not restore the erased profile or start another push registration after failed local departure. */
+  async function withdrawErasedAccount() {
+    await client.cancelQueries({ queryKey: currentAccountKey, exact: true });
+    client.setQueryData<AccountResponse | null>(currentAccountKey, (current) =>
+      current?.accountId === accountId ? null : current,
+    );
+  }
 
   /** One explicit event owns each command; Query never retries or replays a destructive write. */
   function run() {
     feedback.clear();
-    command.mutate();
+    command.mutate(acknowledged);
   }
 
   return (
     <>
-      {readFeedback}
+      {requiredReadFeedback}
       <PageContent
-        style={[styles.content, readFeedback ? styles.hidden : undefined]}
-        accessibilityElementsHidden={!!readFeedback}
+        style={[
+          styles.content,
+          requiredReadFeedback ? styles.hidden : undefined,
+        ]}
+        accessibilityElementsHidden={!!requiredReadFeedback}
         importantForAccessibility={
-          readFeedback ? "no-hide-descendants" : "auto"
+          requiredReadFeedback ? "no-hide-descendants" : "auto"
         }
       >
         <Text style={[styles.body, { color: colors.text }]}>
-          Votre compte et vos données seront supprimés définitivement.
+          {acknowledged
+            ? "Votre compte Blockout a été supprimé."
+            : "Votre compte et vos données seront supprimés définitivement."}
         </Text>
         <Text style={[styles.body, { color: colors.text }]}>
           Supprimer le compte ne résilie pas votre abonnement Pro : gérez-le
@@ -245,9 +278,9 @@ function ErasureConfirmation({
               accessibilityLabel="Je confirme la suppression de mon compte."
               accessibilityState={{
                 checked: field.value,
-                disabled: busy || unavailable,
+                disabled: confirmationDisabled,
               }}
-              disabled={busy || unavailable}
+              disabled={confirmationDisabled}
               onPress={() => field.onChange(!field.value)}
               style={styles.confirmation}
             >
@@ -275,15 +308,15 @@ function ErasureConfirmation({
           )}
         />
         <Button
-          label="Supprimer mon compte"
-          variant="destructive"
+          label={showRetryAction ? "Réessayer" : "Supprimer mon compte"}
+          variant={showRetryAction ? "primary" : "destructive"}
           fullWidth
           loading={busy}
-          disabled={busy || !confirmed || unavailable}
-          onPress={() => void handleSubmit(run)()}
+          disabled={busy || unavailable || (!acknowledged && !confirmed)}
+          onPress={acknowledged ? run : () => void handleSubmit(run)()}
         />
         <Button
-          label="Annuler"
+          label={acknowledged ? "Retour au profil" : "Annuler"}
           variant="secondary"
           fullWidth
           disabled={busy}

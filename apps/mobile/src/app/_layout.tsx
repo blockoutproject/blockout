@@ -154,6 +154,7 @@ function RootLayout() {
             <DiscoveryProvider>
               <AccountSessionProvider
                 preparePushRemoval={registration.prepareRemoval}
+                abandonPushRegistration={registration.abandon}
                 fallback={
                   <ThemeProvider>
                     <ActionFeedbackProvider scopeKey="startup">
