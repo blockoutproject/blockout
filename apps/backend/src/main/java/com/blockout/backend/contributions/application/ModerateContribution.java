@@ -57,9 +57,8 @@ public class ModerateContribution {
       UUID versionId,
       String revision,
       StreamModerationActionEnum action) {
-    Facts facts = sporting.lock(matchId);
-    boolean publishes = action == StreamModerationActionEnum.APPROVE;
-    lock(actor, facts, versionId);
+    sporting.lockMatch(matchId);
+    lockAccountsAndRequireModeration(actor, matchId, versionId);
     ContributionVersion target = target(matchId, versionId, revision);
     State terminal =
         switch (action) {
@@ -74,26 +73,20 @@ public class ModerateContribution {
     if (target.state() != required) {
       throw new ContributionConflictException();
     }
-    ContributionVersion changed;
-    if (publishes) {
-      requirePublication(facts);
-      changed = store.select(versionId, actor, clock.instant(), false);
-    } else {
-      changed =
-          store.decide(
-              versionId,
-              terminal,
-              new Decision(
-                  action == StreamModerationActionEnum.REJECT
-                      ? DecisionKind.REJECTION
-                      : DecisionKind.WITHDRAWAL,
-                  clock.instant(),
-                  actor));
+    if (action == StreamModerationActionEnum.APPROVE) {
+      return publish(actor, matchId, versionId, false);
     }
-    String next = Long.toString(store.advance(matchId, publishes).revision());
-    if (publishes) {
-      transitions.published(facts, clock.instant());
-    }
+    ContributionVersion changed =
+        store.decide(
+            versionId,
+            terminal,
+            new Decision(
+                action == StreamModerationActionEnum.REJECT
+                    ? DecisionKind.REJECTION
+                    : DecisionKind.WITHDRAWAL,
+                clock.instant(),
+                actor));
+    String next = Long.toString(store.advance(matchId, false).revision());
     return new SubmitContribution.Outcome(changed, next, false);
   }
 
@@ -114,30 +107,36 @@ public class ModerateContribution {
   @Transactional
   public SubmitContribution.Outcome reactivate(
       UUID actor, UUID matchId, UUID versionId, String revision) {
-    Facts facts = sporting.lock(matchId);
-    lock(actor, facts, versionId);
+    sporting.lockMatch(matchId);
+    lockAccountsAndRequireModeration(actor, matchId, versionId);
     ContributionVersion source = target(matchId, versionId, revision);
     if (!ContributionDecision.canReactivate(source.state())) {
       throw new ContributionConflictException();
     }
+    return publish(actor, matchId, versionId, true);
+  }
+
+  private SubmitContribution.Outcome publish(
+      UUID actor, UUID matchId, UUID versionId, boolean reactivation) {
+    Facts facts = sporting.read(matchId);
     requirePublication(facts);
-    ContributionVersion created = store.select(versionId, actor, clock.instant(), true);
+    ContributionVersion active = store.select(versionId, actor, clock.instant(), reactivation);
     String next = Long.toString(store.advance(matchId, true).revision());
     transitions.published(facts, clock.instant());
-    return new SubmitContribution.Outcome(created, next, true);
+    return new SubmitContribution.Outcome(active, next, reactivation);
   }
 
   /**
    * Locks sorted actor and scalar attributions before loading a mutable version.
    *
    * @param actor original actor to retain
-   * @param facts sporting facts under already locked roots
+   * @param matchId match under already locked sporting roots
    * @param versionId historical source whose attribution also needs erasure coordination
    * @throws AccountNotFoundException when the original actor was erased before locking
    * @throws AccessDeniedException when the current moderation grant is absent
    */
-  private void lock(UUID actor, Facts facts, UUID versionId) {
-    Set<UUID> affected = new HashSet<>(store.attributionAccounts(facts.match().id()));
+  private void lockAccountsAndRequireModeration(UUID actor, UUID matchId, UUID versionId) {
+    Set<UUID> affected = new HashSet<>(store.attributionAccounts(matchId));
     affected.addAll(store.versionAttributionAccounts(versionId));
     affected.add(actor);
     for (UUID account : affected.stream().sorted().toList()) {

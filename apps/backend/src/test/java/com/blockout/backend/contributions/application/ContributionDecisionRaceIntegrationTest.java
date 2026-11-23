@@ -57,7 +57,7 @@ class ContributionDecisionRaceIntegrationTest extends ContributionScenario {
       Future<Throwable> waiting =
           tx.execute(
               transaction -> {
-                sporting.lock(matchId);
+                sporting.lockMatch(matchId);
                 Future<Throwable> future =
                     worker.submit(
                         () ->

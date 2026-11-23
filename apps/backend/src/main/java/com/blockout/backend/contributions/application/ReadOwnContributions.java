@@ -11,8 +11,10 @@ import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReadOwnContributions {
   private final ContributionStore store;
   private final MatchContributionAccess sporting;
+  private final ReadSportingData visibility;
   private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final Clock clock;
@@ -49,7 +52,11 @@ public class ReadOwnContributions {
     if (page < 0 || page > PageOffset.maxPage(ContributionStore.PAGE_SIZE)) {
       throw new IllegalArgumentException("Invalid page");
     }
-    Facts facts = require(owner, matchId);
+    requireOwner(owner);
+    Facts facts = sporting.read(matchId);
+    if (!facts.viewable()) {
+      throw new SportingResourceNotFoundException();
+    }
     ContributionState state = store.state(matchId);
     Instant now = clock.instant();
     boolean moderator = permissions.forAccount(owner).contains(Permission.MODERATE_STREAM_LINKS);
@@ -86,7 +93,8 @@ public class ReadOwnContributions {
    * @throws SportingResourceNotFoundException for a missing, hidden or foreign member
    */
   public Detail member(UUID owner, UUID matchId, UUID id) {
-    require(owner, matchId);
+    requireOwner(owner);
+    visibility.requireViewable(Kind.MATCH, matchId);
     ContributionVersion version =
         store
             .version(id)
@@ -95,24 +103,10 @@ public class ReadOwnContributions {
     return new Detail(Long.toString(store.state(matchId).revision()), version);
   }
 
-  /**
-   * Rechecks the original account and current sporting viewability without creating either.
-   *
-   * @param owner original admitted identity
-   * @param matchId requested match
-   * @return current sporting context
-   * @throws AccountNotFoundException after original-account erasure
-   * @throws SportingResourceNotFoundException for an unknown or hidden match
-   */
-  private Facts require(UUID owner, UUID matchId) {
+  private void requireOwner(UUID owner) {
     if (!accounts.exists(owner)) {
       throw new AccountNotFoundException();
     }
-    Facts facts = sporting.read(matchId);
-    if (!facts.viewable()) {
-      throw new SportingResourceNotFoundException();
-    }
-    return facts;
   }
 
   /**

@@ -41,7 +41,7 @@ public class MatchContributionAccess {
     Instant reliableStart = store.matchSchedule(matchId).reliableStart();
     MatchView match = requireMatch(matchId);
     boolean viewable = viewable(matchId);
-    boolean definitiveResult = Result.isFinal(store.matchResult(matchId));
+    boolean definitiveResult = reads.hasDefinitiveMatchResult(matchId);
     return new LinkAnnouncementFacts(match, reliableStart, definitiveResult, viewable);
   }
 
