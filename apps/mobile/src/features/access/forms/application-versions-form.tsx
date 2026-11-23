@@ -29,7 +29,7 @@ import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useAccountSession } from "@/features/accounts/current-account";
-import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
+import { type useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import {
   applicationVersionsSchema,
   raisesMinimum,

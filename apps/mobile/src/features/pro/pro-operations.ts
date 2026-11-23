@@ -13,18 +13,20 @@ import type { ProOperation } from "./pro-state";
  */
 export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
   const codes = Purchases.PURCHASES_ERROR_CODE;
-  switch (code) {
-    case codes.PURCHASE_CANCELLED_ERROR:
-      return "cancelled";
-    case codes.PAYMENT_PENDING_ERROR:
-      return "pending";
-    case codes.PRODUCT_ALREADY_PURCHASED_ERROR:
-    case codes.RECEIPT_ALREADY_IN_USE_ERROR:
-    case codes.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR:
-      return "already-owned";
-    default:
-      return "failed";
+  if (code === codes.PURCHASE_CANCELLED_ERROR) {
+    return "cancelled";
   }
+  if (code === codes.PAYMENT_PENDING_ERROR) {
+    return "pending";
+  }
+  if (
+    code === codes.PRODUCT_ALREADY_PURCHASED_ERROR ||
+    code === codes.RECEIPT_ALREADY_IN_USE_ERROR ||
+    code === codes.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR
+  ) {
+    return "already-owned";
+  }
+  return "failed";
 }
 
 /**

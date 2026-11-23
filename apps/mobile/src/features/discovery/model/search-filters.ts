@@ -2,7 +2,7 @@ import {
   ListTeamsParams,
   type SportingSearchOptionsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { z } from "zod";
+import { type z } from "zod";
 
 /** Editable optional sporting criteria; generated enum/UUID rules retain the wire vocabulary. */
 export const searchFiltersSchema = ListTeamsParams.pick({

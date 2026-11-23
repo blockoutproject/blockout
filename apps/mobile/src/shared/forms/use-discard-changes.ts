@@ -13,22 +13,23 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
     currentDirty.current = dirty;
   }, [dirty]);
 
-  return usePreventRemove(dirty, async ({ repeat }) => {
+  return usePreventRemove(dirty, ({ repeat }) => {
     if (!currentDirty.current) {
       repeat();
       return;
     }
-    const accepted = await confirm({
+    void confirm({
       title: "Abandonner les modifications ?",
       message: "Votre brouillon n’a pas été enregistré.",
       confirmLabel: "Abandonner",
       cancelLabel: "Continuer la saisie",
       destructive: true,
+    }).then((accepted) => {
+      // The dialog may outlive a draft saved while the question was open.
+      if (accepted && currentDirty.current) {
+        discard();
+        repeat();
+      }
     });
-    // The dialog may outlive a draft saved while the question was open.
-    if (accepted && currentDirty.current) {
-      discard();
-      repeat();
-    }
   });
 }

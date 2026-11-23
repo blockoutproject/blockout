@@ -92,25 +92,29 @@ the single `@/*` alias maps to `./src/*` in `apps/mobile/tsconfig.json` through
 Expo/Metro and Jest Expo's native TypeScript path support. Keep package imports
 and existing paths to generated output or assets outside `src` unchanged.
 
-Prettier retains its 80-column target and standard JSX wrapping. The existing
-Expo ESLint preset is supplemented only by mandatory braces and two ESLint
-Stylistic spacing rules: separate imports from other statements, separate
-function/class/export declarations, and separate methods while keeping related
-fields together. These use documented statement kinds, without custom selectors.
-Exported overload signatures also receive a separating line; local arrow
-functions follow the readability convention without a syntax-specific check.
+Prettier retains its 80-column target and standard JSX wrapping. ESLint builds on
+the Expo preset with mandatory braces and spacing between imports and other
+statements, around function/class/export declarations, and between methods.
+Exported overload signatures also receive a separating line. Related fields
+stay together. The mobile lint command fails on warnings as well as errors.
 
-Java retains Google Java Format's 100-column style. Native Checkstyle rules
-require braces and separate methods while allowing related fields to stay
-together. Neither language mandates a blank line before every return or bans
-nested ternaries: simplify difficult expressions during review rather than
-rewriting readable conditions mechanically.
+Mark type-only imports with `import type` or inline `type` specifiers.
+TypeScript ESLint also checks explicit `any`, floating or misused promises, and
+exhaustive switches. Mobile sources import React Native through its public API.
+
+Java retains Google Java Format's 100-column style. Checkstyle requires braces
+and separates methods while allowing related fields to stay together. It also
+checks empty catch blocks, `equals`/`hashCode` pairs, reference comparisons with
+string literals, nested assignments, and unintended switch fall-through.
+Review expression readability, including nested ternaries, and use blank lines
+where they clarify the flow.
 
 XML, generated sources, upstream imports, licenses and protected artwork remain
 excluded from Prettier.
 EditorConfig shares basic editor settings with matching protected-file exceptions.
 
 ```sh
+npm run lint            # Mobile ESLint and Java Checkstyle
 npm run style:fix       # Available ESLint fixes, Prettier and Java Spotless
 npm run lint:fix        # ESLint automatic fixes only
 npm run format         # Prettier

@@ -146,7 +146,7 @@ function readSearchPage(
       return listClubs(params, options);
     case "team":
       return listTeams(params, options);
-    default:
+    case "pool":
       return listPools(params, options);
   }
 }

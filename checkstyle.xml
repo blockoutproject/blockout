@@ -10,5 +10,10 @@
       <property name="allowNoEmptyLineBetweenFields" value="true"/>
       <property name="allowMultipleEmptyLines" value="false"/>
     </module>
+    <module name="EmptyCatchBlock"/>
+    <module name="EqualsHashCode"/>
+    <module name="StringLiteralEquality"/>
+    <module name="InnerAssignment"/>
+    <module name="FallThrough"/>
   </module>
 </module>
