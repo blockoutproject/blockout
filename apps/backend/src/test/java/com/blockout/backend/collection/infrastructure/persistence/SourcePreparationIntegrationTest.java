@@ -12,6 +12,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Catalog
 import com.blockout.backend.collection.application.model.CollectionState.ControlWork;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.SourceCatalogue;
 import com.blockout.backend.collection.application.model.CollectionState.SourceValidation;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
@@ -34,15 +35,15 @@ import com.blockout.backend.generated.ingestion.model.CollectionSourceScopeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
-import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
-import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
-import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePack;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePhase;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePool;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import com.blockout.backend.sporting.application.service.AcceptCatalog;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
@@ -142,7 +143,7 @@ class SourcePreparationIntegrationTest {
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     Source source = store.source(SOURCE).orElseThrow();
     assertThat(source.acceptedUrl()).isEqualTo(URL + "&saison=2026/2027");
-    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).source())
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().source())
         .satisfies(
             binding -> {
               assertThat(binding.label()).isEqualTo("Championnats nationaux");
@@ -538,7 +539,7 @@ class SourcePreparationIntegrationTest {
   @DisplayName("Activation has no source or mapping prerequisite and is repeatable")
   void activatesSeasonWithoutCatalogue() {
     // Given
-    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog().status())
+    assertThat(configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog().status())
         .isEqualTo(CatalogStatus.NOT_READ);
 
     // When
@@ -605,13 +606,13 @@ class SourcePreparationIntegrationTest {
         new CatalogObservation.Pool(
             "National", "N2", "A", null, null, URI.create(URL), null, "Pool A");
     submitCatalog(cycle, 1, true, List.of(prior));
-    CatalogRead complete = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    CatalogRead complete = configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog();
     assertThat(complete.status()).isEqualTo(CatalogStatus.COMPLETE);
     assertThat(complete.lastCompleteReadAt()).isEqualTo(NOW.plusSeconds(1));
 
     // When
     submitCatalog(cycle, 2, false, List.of());
-    CatalogRead partial = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    CatalogRead partial = configurationReads.sourceCatalog(ACCOUNT, SOURCE).binding().catalog();
     URI reason = URI.create("urn:blockout:acquisition:technical");
     results.record(
         cycle.id(),
@@ -631,18 +632,23 @@ class SourcePreparationIntegrationTest {
     assertThat(partial.status()).isEqualTo(CatalogStatus.PARTIAL);
     assertThat(partial.lastReadAt()).isEqualTo(NOW.plusSeconds(2));
     assertThat(partial.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
-    CatalogRead unavailable = configurationReads.sourceCatalog(ACCOUNT, SOURCE).catalog();
+    SourceCatalogue source = configurationReads.sourceCatalog(ACCOUNT, SOURCE);
+    CatalogRead unavailable = source.binding().catalog();
     assertThat(unavailable.status()).isEqualTo(CatalogStatus.UNAVAILABLE);
     assertThat(unavailable.lastReadAt()).isEqualTo(NOW.plusSeconds(3));
     assertThat(unavailable.evidence().reasonType()).isEqualTo(reason);
     assertThat(unavailable.lastCompleteReadAt()).isEqualTo(complete.lastCompleteReadAt());
-    assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
-        .extracting(CollectionResource::label)
-        .containsExactly("National");
+    assertThat(source.entries().packs())
+        .singleElement()
+        .satisfies(
+            pack -> {
+              assertThat(pack.label()).isEqualTo("National");
+              assertThat(pack.pools()).extracting(CataloguePool::label).containsExactly("Pool A");
+            });
   }
 
   @Test
-  @DisplayName("An admitted LNV root exposes direct phases and rejects a different championship")
+  @DisplayName("An LNV catalogue returns each attested phase once, preserving accepted labels")
   void scopesLnvCatalogueToChampionship() {
     // Given
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=135");
@@ -655,12 +661,16 @@ class SourcePreparationIntegrationTest {
     Cycle cycle = admitOrdinary(CollectionFamilyEnum.LNV, CYCLE);
     CatalogObservation.Pool regular =
         new CatalogObservation.Pool("135", "135", "193", null, "310", url, null, "Groupe A");
+    CatalogObservation.Pool regularSecondGroup =
+        new CatalogObservation.Pool("135", "135", "193", null, "311", url, null, "Groupe B");
+    CatalogObservation.Pool unnamed =
+        new CatalogObservation.Pool("135", "135", "192", null, "312", url, null, "Groupe C");
     catalogs.accept(
         lnv,
         new CatalogObservation(
             new MatchObservation.Context(cycle.id(), 1, NOW, null),
             true,
-            List.of(regular),
+            List.of(unnamed, regularSecondGroup, regular),
             Map.of("193", "Saison régulière")));
 
     // When / Then
@@ -686,15 +696,11 @@ class SourcePreparationIntegrationTest {
             Map.of("193", "Partial observation name")));
 
     // Then
-    assertThat(configurationReads.children(ACCOUNT, lnv, null, 0, 50).items())
-        .singleElement()
-        .satisfies(
-            resource -> {
-              assertThat(resource.phaseReference()).isEqualTo("193");
-              assertThat(resource.phaseLabel()).isEqualTo("Saison régulière");
-              assertThat(resource.label()).isEqualTo("Groupe A");
-              assertThat(resource.parentId()).isNull();
-            });
+    SourceCatalogueEntries entries = configurationReads.sourceCatalog(ACCOUNT, lnv).entries();
+    assertThat(entries.packs()).isEmpty();
+    assertThat(entries.phases())
+        .containsExactly(
+            new CataloguePhase("193", "Saison régulière"), new CataloguePhase("192", null));
   }
 
   @Test
@@ -899,51 +905,68 @@ class SourcePreparationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Direct child reads page unmapped pools and refuse a pack from another source")
-  void scopesDiscoveredChildren() {
+  @DisplayName("An FFVB catalogue groups every current pool of the selected source by pack")
+  void scopesFfvbCatalogueToSource() {
     // Given
     UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000175");
     UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000176");
     UUID foreignPack = UUID.fromString("00000000-0000-4000-8000-000000000177");
+    UUID secondPack = UUID.fromString("00000000-0000-4000-8000-000000000178");
+    UUID withdrawnPool = UUID.fromString("00000000-0000-4000-8000-000000000179");
+    UUID foreignPool = UUID.fromString("00000000-0000-4000-8000-000000000180");
+    UUID secondPackPool = UUID.fromString("00000000-0000-4000-8000-000000000181");
     sql.update(
-        "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'FFVB', 'ABCCS', 'National'), (?, ?, 'FFVB', 'LIRA', 'Regional')",
+        """
+        INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES
+          (?, ?, 'FFVB', 'ABCCS', 'National'),
+          (?, ?, 'FFVB', 'ABCCS', 'Youth'),
+          (?, ?, 'FFVB', 'LIRA', 'Regional')
+        """,
         pack,
+        season,
+        secondPack,
         season,
         foreignPack,
         season);
     sql.update(
-        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name) VALUES (?, ?, ?, 'FFVB', 'ABCCS', 'National', 'A', 'Alpha'), (?, ?, ?, 'FFVB', 'ABCCS', 'National', 'B', 'Beta')",
+        """
+        INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference,
+          competition_reference, reference, source_name, catalog_eligible) VALUES
+          (?, ?, ?, 'FFVB', 'ABCCS', 'National', 'B', 'Beta', TRUE),
+          (?, ?, ?, 'FFVB', 'ABCCS', 'National', 'A', 'Alpha', TRUE),
+          (?, ?, ?, 'FFVB', 'ABCCS', 'National', 'C', 'Withdrawn', FALSE),
+          (?, ?, ?, 'FFVB', 'LIRA', 'Regional', 'A', 'Foreign', TRUE),
+          (?, ?, ?, 'FFVB', 'ABCCS', 'Youth', 'A', 'Youth A', TRUE)
+        """,
+        OTHER,
+        season,
+        pack,
         pool,
         season,
         pack,
-        OTHER,
+        withdrawnPool,
         season,
-        pack);
+        pack,
+        foreignPool,
+        season,
+        foreignPack,
+        secondPackPool,
+        season,
+        secondPack);
 
     // When
-    OffsetPage<CollectionResource> children =
-        configurationReads.children(ACCOUNT, SOURCE, pack, 0, 1);
+    SourceCatalogueEntries entries = configurationReads.sourceCatalog(ACCOUNT, SOURCE).entries();
 
     // Then
-    assertThat(children.hasNext()).isTrue();
-    assertThat(children.items())
-        .singleElement()
-        .satisfies(
-            child -> {
-              assertThat(child.id()).isEqualTo(pool);
-              assertThat(child.label()).isEqualTo("Alpha");
-              assertThat(child.kind()).isEqualTo(CollectionResourceKindEnum.POOL);
-              assertThat(child.parentId()).isEqualTo(pack);
-            });
-    assertThat(configurationReads.children(ACCOUNT, SOURCE, null, 0, 50).items())
-        .singleElement()
-        .satisfies(
-            child -> {
-              assertThat(child.id()).isEqualTo(pack);
-              assertThat(child.poolCount()).isEqualTo(2);
-            });
-    assertThatThrownBy(() -> configurationReads.children(ACCOUNT, SOURCE, foreignPack, 0, 50))
-        .isInstanceOf(SportingResourceNotFoundException.class);
+    assertThat(entries.phases()).isEmpty();
+    assertThat(entries.packs())
+        .containsExactly(
+            new CataloguePack(
+                pack,
+                "National",
+                List.of(new CataloguePool(pool, "Alpha"), new CataloguePool(OTHER, "Beta"))),
+            new CataloguePack(
+                secondPack, "Youth", List.of(new CataloguePool(secondPackPool, "Youth A"))));
   }
 
   private ObserveCollectionSource.Proposal officialFfvb(long year, String url) {

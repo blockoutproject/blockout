@@ -1,28 +1,13 @@
-import { isResourceReadRefused } from "@/shared/api/access-denied";
 import type { LegendListRef } from "@legendapp/list/react-native";
-import {
-  useInfiniteQuery,
-  useIsFetching,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { getListCollectionSourceChildrenQueryKey } from "../../../../.generated/mobile";
+import { useQuery } from "@tanstack/react-query";
 import { useIsFocused, useNavigation, useRouter } from "expo-router";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react-native";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
-  DiscoveredCollectionResourcePageResponse,
-  DiscoveredCollectionResourceResponse,
-  SourceBindingResponse,
+  SourceCataloguePackResponse,
+  SourceCataloguePhaseResponse,
+  SourceCatalogueResponse,
 } from "../../../../.generated/schemas/index.zod";
 import {
   AccessFeedback,
@@ -31,12 +16,7 @@ import {
 import { controlOpacity } from "@/shared/components/control-styles";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { IconButton } from "@/shared/components/icon-button";
-import {
-  ListContinuation,
-  type ListContinuationProps,
-} from "@/shared/components/list-continuation";
 import { ListLoading } from "@/shared/components/list-loading";
-import { LoadingGroup } from "@/shared/components/loading-group";
 import { Page, pageContentStyle } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { PageList } from "@/shared/components/page-list";
@@ -44,14 +24,10 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ReloadButton } from "@/shared/components/reload-button";
 import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
-import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import {
-  createCollectionQueries,
-  type CollectionQueryAuthority,
-} from "../api/collection-queries";
+import { createCollectionQueries } from "../api/collection-queries";
 import { useCollectionSeason } from "../api/use-collection-season";
 import { CollectionLink } from "../components/collection-link";
 import { PageReadState } from "@/shared/components/page-read-state";
@@ -123,8 +99,7 @@ export function SourceCatalogueScreen({
         key={current.id}
         source={current}
         focus={focus}
-        authority={authority}
-        sourceFetching={source.isFetching}
+        fetching={source.isFetching}
         refreshSource={() => source.refetch({ cancelRefetch: false })}
       />
     );
@@ -152,40 +127,33 @@ export function SourceCatalogueScreen({
 
 function SourceCatalogue({
   source,
-  authority,
-  sourceFetching,
+  fetching,
   focus,
   refreshSource,
 }: Readonly<{
-  source: SourceBindingResponse;
-  authority: CollectionQueryAuthority;
-  sourceFetching: boolean;
+  source: SourceCatalogueResponse;
+  fetching: boolean;
   focus: SourceCatalogueFocus;
   refreshSource: () => Promise<unknown>;
 }>) {
   const router = useRouter();
   const { colors } = useTheme();
-  const client = useQueryClient();
-  const childrenKey = getListCollectionSourceChildrenQueryKey(source.id);
-  const childrenFetching = useIsFetching({ queryKey: childrenKey });
+  const focused = useIsFocused();
   const ffvb = source.provider === "ffvb";
+  const rows = ffvb ? source.packs : source.phases;
   const list = useRef<LegendListRef>(null);
   const positionedRow = useRef<string>(undefined);
-  const focusedPool = useRef<string>(undefined);
+  const positionedPool = useRef<string>(undefined);
   const [expansion, setExpansion] = useState(new Map<string, boolean>());
-  const { query, rows, failed, continuation, target, loadMore, focused } =
-    useCatalogueChildren(authority, source.id, ffvb ? "pack" : "phase", {
-      focusKey: ffvb ? focus.packId : focus.phaseReference,
-    });
+  const target = ffvb
+    ? source.packs.find(({ id }) => id === focus.packId)?.id
+    : source.phases.find(({ reference }) => reference === focus.phaseReference)
+        ?.reference;
 
   useLayoutEffect(() => {
-    const current = list.current;
-    if (!current) {
-      positionedRow.current = undefined;
-      focusedPool.current = undefined;
-    } else if (focused && target && positionedRow.current !== target) {
+    if (list.current && focused && target && positionedRow.current !== target) {
       positionedRow.current = target;
-      void current.scrollToKey({
+      void list.current.scrollToKey({
         key: target,
         animated: false,
         viewPosition: 0.15,
@@ -194,10 +162,11 @@ function SourceCatalogue({
   }, [focused, target]);
 
   function showFocusedPool(packKey: string, poolId: string, offset: number) {
-    if (!focused || focusedPool.current === poolId) {
+    if (!focused || positionedPool.current === poolId) {
       return;
     }
-    focusedPool.current = poolId;
+    positionedPool.current = poolId;
+    // A pool on a wrapped line can need a second scroll after its pack is measured.
     if (offset > 0) {
       void list.current?.scrollToKey({
         key: packKey,
@@ -208,43 +177,17 @@ function SourceCatalogue({
     }
   }
 
-  const refreshing = sourceFetching || childrenFetching > 0;
-
-  function refreshCatalogue() {
-    return Promise.all([
-      refreshSource(),
-      client.refetchQueries(
-        { queryKey: childrenKey, type: "active" },
-        { cancelRefetch: false },
-      ),
-    ]);
-  }
-
-  if (failed || !query.data) {
-    return (
-      <PageReadState pending={!failed}>
-        <ReadFeedback query={query} loadingContent={loading} />
-      </PageReadState>
-    );
-  }
-
   return (
-    <PageList
+    <PageList<SourceCataloguePackResponse | SourceCataloguePhaseResponse>
       ref={list}
       data={rows}
       extraData={expansion}
-      keyExtractor={(row) => row.key}
+      keyExtractor={(row) => ("id" in row ? row.id : row.reference)}
       contentContainerStyle={pageContentStyle}
-      onEndReached={query.isError ? undefined : loadMore}
-      onEndReachedThreshold={0.5}
       alwaysBounceVertical={rows.length > 0}
       refreshControl={
         rows.length > 0 ? (
-          <DataRefreshControl
-            fetching={refreshing}
-            enabled={!continuation.loading && !continuation.failed}
-            onRefresh={refreshCatalogue}
-          />
+          <DataRefreshControl fetching={fetching} onRefresh={refreshSource} />
         ) : undefined
       }
       ListHeaderComponent={
@@ -266,59 +209,51 @@ function SourceCatalogue({
               style={[tokens.typography.navigation, { color: colors.text }]}
             >
               {ffvb
-                ? query.hasNextPage
-                  ? "Packs découverts"
-                  : `Packs découverts (${rows.length})`
+                ? `Packs découverts (${rows.length})`
                 : "Phases découvertes"}
             </Text>
           )}
         </View>
       }
-      renderItem={({ item: { key, resource } }) => {
-        const isTarget = key === target;
-        if (!ffvb) {
+      renderItem={({ item }) => {
+        if ("reference" in item) {
           return (
             <Surface
-              style={[styles.phase, isTarget && { borderColor: colors.focus }]}
+              style={[
+                styles.phase,
+                item.reference === target && { borderColor: colors.focus },
+              ]}
             >
               <Text style={[tokens.typography.strong, { color: colors.text }]}>
-                {resource.phaseLabel ?? `Phase ${key}`}
+                {item.label ?? `Phase ${item.reference}`}
               </Text>
             </Surface>
           );
         }
-        const expanded = expansion.get(key) ?? isTarget;
+        const { id } = item;
+        const isTarget = id === target;
+        const expanded = expansion.get(id) ?? isTarget;
         return (
           <CatalogPack
-            pack={resource}
-            sourceId={source.id}
-            authority={authority}
+            pack={item}
             expanded={expanded}
             highlighted={isTarget && !focus.poolId}
             focusPoolId={isTarget ? focus.poolId : undefined}
             onToggle={() =>
-              setExpansion((current) => new Map(current).set(key, !expanded))
+              setExpansion((current) => new Map(current).set(id, !expanded))
             }
-            onFocusPool={(id, offset) => showFocusedPool(key, id, offset)}
+            onFocusPool={(poolId, offset) =>
+              showFocusedPool(id, poolId, offset)
+            }
           />
         );
       }}
       ListEmptyComponent={
-        !query.hasNextPage ? (
-          <EmptyState
-            title={ffvb ? "Aucun pack découvert" : "Aucune phase découverte"}
-          >
-            <ReloadButton fetching={refreshing} onReload={refreshCatalogue} />
-          </EmptyState>
-        ) : undefined
-      }
-      ListFooterComponent={
-        query.hasNextPage ? (
-          <CatalogContinuation
-            {...continuation}
-            moreLabel={ffvb ? undefined : "Afficher plus de phases"}
-          />
-        ) : undefined
+        <EmptyState
+          title={ffvb ? "Aucun pack découvert" : "Aucune phase découverte"}
+        >
+          <ReloadButton fetching={fetching} onReload={refreshSource} />
+        </EmptyState>
       }
     />
   );
@@ -329,7 +264,7 @@ function CatalogSummary({
   hasEntries,
   onOpenBilan,
 }: Readonly<{
-  catalog: SourceBindingResponse["catalog"];
+  catalog: SourceCatalogueResponse["catalog"];
   hasEntries: boolean;
   onOpenBilan: () => void;
 }>) {
@@ -392,17 +327,13 @@ function CatalogSummary({
 
 function CatalogPack({
   pack,
-  sourceId,
-  authority,
   expanded,
   highlighted,
   focusPoolId,
   onToggle,
   onFocusPool,
 }: Readonly<{
-  pack: DiscoveredCollectionResourceResponse;
-  sourceId: string;
-  authority: CollectionQueryAuthority;
+  pack: SourceCataloguePackResponse;
   expanded: boolean;
   highlighted: boolean;
   focusPoolId?: string;
@@ -411,20 +342,15 @@ function CatalogPack({
 }>) {
   const { colors } = useTheme();
   const Chevron = expanded ? ChevronDown : ChevronRight;
-  const count = pack.poolCount;
-  const countLabel =
-    count === undefined
-      ? undefined
-      : `${count} ${count === 1 ? "poule" : "poules"}`;
+  const count = pack.pools.length;
+  const countLabel = `${count} ${count === 1 ? "poule" : "poules"}`;
   return (
     <Surface
       style={[styles.pack, highlighted && { borderColor: colors.focus }]}
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={
-          countLabel ? `${pack.label}, ${countLabel}` : pack.label
-        }
+        accessibilityLabel={`${pack.label}, ${countLabel}`}
         accessibilityState={{ expanded }}
         onPress={onToggle}
         style={({ pressed }) => [
@@ -436,16 +362,14 @@ function CatalogPack({
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
             {pack.label}
           </Text>
-          {countLabel && (
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              {countLabel}
-            </Text>
-          )}
+          <Text
+            style={[
+              tokens.typography.metadata,
+              { color: colors.secondaryText },
+            ]}
+          >
+            {countLabel}
+          </Text>
         </View>
         <Chevron
           accessible={false}
@@ -454,183 +378,32 @@ function CatalogPack({
         />
       </Pressable>
       {expanded && (
-        <CatalogPools
-          sourceId={sourceId}
-          packId={pack.id}
-          authority={authority}
-          focusPoolId={focusPoolId}
-          onFocusPool={onFocusPool}
-        />
+        <View style={styles.pools}>
+          {pack.pools.map(({ id, label }) => (
+            <Text
+              key={id}
+              onLayout={
+                id === focusPoolId
+                  ? ({ nativeEvent }) => onFocusPool(id, nativeEvent.layout.y)
+                  : undefined
+              }
+              style={[
+                styles.poolChip,
+                {
+                  color: colors.secondaryText,
+                  backgroundColor: colors.subtle,
+                  borderColor:
+                    id === focusPoolId ? colors.focus : colors.border,
+                },
+              ]}
+            >
+              {label}
+            </Text>
+          ))}
+        </View>
       )}
     </Surface>
   );
-}
-
-function CatalogPools({
-  sourceId,
-  packId,
-  authority,
-  focusPoolId,
-  onFocusPool,
-}: Readonly<{
-  sourceId: string;
-  packId: string;
-  authority: CollectionQueryAuthority;
-  focusPoolId?: string;
-  onFocusPool: (id: string, offset: number) => void;
-}>) {
-  const { colors } = useTheme();
-  const { query, rows, target, failed, continuation } = useCatalogueChildren(
-    authority,
-    sourceId,
-    "pool",
-    { parentId: packId, focusKey: focusPoolId },
-  );
-
-  if (failed || !query.data) {
-    return (
-      <View style={styles.pools}>
-        <ReadFeedback
-          query={query}
-          loadingContent={
-            <LoadingGroup label="Chargement des poules">
-              <TextSkeleton role="metadata" width="40%" />
-            </LoadingGroup>
-          }
-        />
-      </View>
-    );
-  }
-  return (
-    <View style={styles.pools}>
-      {!rows.length && !query.hasNextPage && (
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          Aucune poule découverte
-        </Text>
-      )}
-      <View style={styles.poolChips}>
-        {rows.map(({ key, resource }) => (
-          <Text
-            key={key}
-            onLayout={
-              key === target
-                ? ({ nativeEvent }) => onFocusPool(key, nativeEvent.layout.y)
-                : undefined
-            }
-            style={[
-              styles.poolChip,
-              {
-                color: colors.secondaryText,
-                backgroundColor: colors.subtle,
-                borderColor: key === target ? colors.focus : colors.border,
-              },
-            ]}
-          >
-            {resource.label}
-          </Text>
-        ))}
-      </View>
-      {query.hasNextPage && (
-        <CatalogContinuation
-          {...continuation}
-          moreLabel="Afficher plus de poules"
-        />
-      )}
-    </View>
-  );
-}
-
-/** An explicit edge remains available when a page adds no visible row or sits inside an expanded pack. */
-function CatalogContinuation({
-  moreLabel,
-  ...feedback
-}: Readonly<ListContinuationProps & { moreLabel?: string }>) {
-  if (
-    moreLabel &&
-    !feedback.loading &&
-    !feedback.failed &&
-    !feedback.disabled
-  ) {
-    return <CollectionLink label={moreLabel} onPress={feedback.onRetry} />;
-  }
-  return <ListContinuation {...feedback} />;
-}
-
-type CatalogueLevel = "pack" | "phase" | "pool";
-
-/** Offset pages can repeat entries after catalogue changes. LNV groups share the published phase identity. */
-function catalogueRows(
-  pages: DiscoveredCollectionResourcePageResponse[] = [],
-  level: CatalogueLevel,
-) {
-  const phase = level === "phase";
-  const kind = phase ? "pool" : level;
-  const rows = new Map<string, DiscoveredCollectionResourceResponse>();
-  for (const { items } of pages) {
-    for (const item of items) {
-      if (item.kind !== kind) {
-        continue;
-      }
-      const key = phase ? item.phaseReference : item.id;
-      if (key && !rows.has(key)) {
-        rows.set(key, item);
-      }
-    }
-  }
-  return Array.from(rows, ([key, resource]) => ({ key, resource }));
-}
-
-/** Roots and expanded packs advance the same generated read, including when seeking an attributed row. */
-function useCatalogueChildren(
-  authority: CollectionQueryAuthority,
-  sourceId: string,
-  level: CatalogueLevel,
-  { parentId, focusKey }: Readonly<{ parentId?: string; focusKey?: string }>,
-) {
-  const focused = useIsFocused();
-  const query = useInfiniteQuery(
-    createCollectionQueries(authority).children(sourceId, parentId),
-  );
-  const continuationFailed =
-    query.isFetchNextPageError && !isResourceReadRefused(query.error);
-  const failed = hasReadError(query) && !continuationFailed;
-  const pages = query.data?.pages;
-  const rows = useMemo(() => catalogueRows(pages, level), [level, pages]);
-  const target =
-    !failed && focusKey && rows.some(({ key }) => key === focusKey)
-      ? focusKey
-      : undefined;
-  const { fetchNextPage } = query;
-  const canContinue =
-    focused && query.hasNextPage && query.fetchStatus === "idle" && !failed;
-  const loadMore = useCallback(() => {
-    if (canContinue) {
-      void fetchNextPage({ cancelRefetch: false });
-    }
-  }, [canContinue, fetchNextPage]);
-
-  useEffect(() => {
-    if (focusKey && !target && !query.isError) {
-      loadMore();
-    }
-  }, [focusKey, target, query.isError, loadMore]);
-
-  return {
-    query,
-    failed,
-    rows,
-    target,
-    focused,
-    loadMore,
-    continuation: {
-      loading: query.isFetchingNextPage,
-      failed: continuationFailed,
-      disabled: !canContinue,
-      onRetry: loadMore,
-    },
-  };
 }
 
 const styles = StyleSheet.create({
@@ -667,10 +440,12 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   pools: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.sm,
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.md,
   },
-  poolChips: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
   poolChip: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,

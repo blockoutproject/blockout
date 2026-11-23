@@ -12,6 +12,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -57,6 +58,9 @@ public final class CollectionState {
 
   /** Operator view; health does not change source binding or candidate validation. */
   public record SourceCatalog(Source source, CatalogRead catalog) {}
+
+  /** Detail of one source, including every entry in its accepted catalogue. */
+  public record SourceCatalogue(SourceCatalog binding, SourceCatalogueEntries entries) {}
 
   /** Bounded current evidence ordered latest first, with totals for the whole control. */
   public record ResultPage(

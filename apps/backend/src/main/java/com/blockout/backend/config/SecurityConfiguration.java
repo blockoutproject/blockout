@@ -211,7 +211,6 @@ public class SecurityConfiguration {
             "/administration/collection-seasons/{seasonId}",
             "/administration/collection-seasons/{seasonId}/source-bindings",
             "/administration/source-bindings/{sourceBindingId}",
-            "/administration/source-bindings/{sourceBindingId}/children",
             "/administration/collection-controls",
             "/administration/collection-controls/{controlId}",
             "/administration/collection-controls/{controlId}/results",

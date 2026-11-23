@@ -7,10 +7,10 @@ import {
   listCollectionResults,
 } from "../../../../.generated/mobile";
 import type {
-  SourceBindingResponse,
   CollectionControlResponse,
   CollectionResultResponse,
   CollectionSeasonResponse,
+  SourceCatalogueResponse,
 } from "../../../../.generated/schemas/index.zod";
 
 const control: CollectionControlResponse = {
@@ -116,9 +116,9 @@ it("reads legacy result pages and preserves new search criteria and evidence", a
   });
 });
 
-it("reads a source both before and after catalogue evidence is available on the server", async () => {
+it("reads an empty source and a retained catalogue with pools grouped by pack", async () => {
   // Given
-  const legacy: SourceBindingResponse = {
+  const empty: SourceCatalogueResponse = {
     id: "00000000-0000-4000-8000-000000000005",
     seasonId: "00000000-0000-4000-8000-000000000006",
     provider: "ffvb",
@@ -132,26 +132,37 @@ it("reads a source both before and after catalogue evidence is available on the 
     seasonEvidence: "2026/2027",
     reason: null,
     launched: false,
+    packs: [],
+    phases: [],
   };
-  const source: SourceBindingResponse = {
-    ...legacy,
+  const source: SourceCatalogueResponse = {
+    ...empty,
     catalog: {
       status: "unavailable",
       observedAt: "2026-10-17T12:00:00Z",
       lastCompleteAt: "2026-10-16T11:48:00Z",
       reason: "The source responded with HTTP 503.",
     },
+    packs: [
+      {
+        id: "00000000-0000-4000-8000-000000000007",
+        label: "Nationale 2",
+        pools: [
+          { id: "00000000-0000-4000-8000-000000000008", label: "Poule A" },
+        ],
+      },
+    ],
   };
   mockFetch
-    .mockResolvedValueOnce(Response.json(legacy))
+    .mockResolvedValueOnce(Response.json(empty))
     .mockResolvedValueOnce(Response.json(source));
 
   // When
-  const previousResponse = await getCollectionSource(legacy.id);
+  const emptyResponse = await getCollectionSource(empty.id);
   const currentResponse = await getCollectionSource(source.id);
 
   // Then
-  expect(previousResponse).toEqual(legacy);
+  expect(emptyResponse).toEqual(empty);
   expect(currentResponse).toEqual(source);
 });
 

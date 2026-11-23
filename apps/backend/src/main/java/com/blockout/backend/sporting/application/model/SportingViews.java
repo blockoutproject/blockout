@@ -2,7 +2,6 @@ package com.blockout.backend.sporting.application.model;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
-import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -12,15 +11,17 @@ import lombok.NoArgsConstructor;
 /** Immutable owner reads; these values alone do not establish current public visibility. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SportingViews {
-  /** Discovered catalogue entry without classification metadata. */
-  public record CollectionResource(
-      UUID id,
-      String label,
-      CollectionResourceKindEnum kind,
-      UUID parentId,
-      String phaseReference,
-      String phaseLabel,
-      Integer poolCount) {}
+  /** Current entries of one binding: pools grouped by native pack for FFVB, phases for LNV. */
+  public record SourceCatalogueEntries(List<CataloguePack> packs, List<CataloguePhase> phases) {}
+
+  /** Published FFVB grouping and its currently discovered pools. */
+  public record CataloguePack(UUID id, String label, List<CataloguePool> pools) {}
+
+  /** Original FFVB pool identity and label, independent of classification. */
+  public record CataloguePool(UUID id, String label) {}
+
+  /** Established LNV phase; the published label is null when only the reference is known. */
+  public record CataloguePhase(String reference, String label) {}
 
   /**
    * Canonical season identity, independent of F01 lifecycle and source labels.
