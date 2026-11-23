@@ -20,6 +20,7 @@ import {
 } from "../../../../.generated/schemas/index.zod";
 import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { ApiError } from "@/shared/api/api-fetch";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
@@ -41,14 +42,10 @@ async function refuseOwnAccess(
   if (!reading) {
     await client.cancelQueries({ queryKey, exact: true });
   }
-  client.getQueryCache().find({ queryKey, exact: true })?.setState({
-    data: undefined,
-    dataUpdatedAt: 0,
-    error,
-    errorUpdatedAt: Date.now(),
-    status: "error",
-    fetchStatus: "idle",
-  });
+  const query = client.getQueryCache().find({ queryKey, exact: true });
+  if (query) {
+    withdrawCachedRead(query, error);
+  }
 }
 
 /** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */

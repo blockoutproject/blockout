@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   getListModeratedStreamContributionsQueryKey,
   getListStreamModerationQueryKey,
+  getListStreamReportsQueryKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 import {
@@ -1036,72 +1037,87 @@ it("keeps acknowledged success when the dependent history read fails", async () 
   expect(writes).toHaveLength(1);
 });
 
-it("does not restore private content from a late concurrent response after refusal", async () => {
-  // Given: two real moderation observers have independent in-flight HTTP reads.
-  const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) {
-    throw new Error("Missing controlled HTTP boundary");
-  }
-  let finishQueue!: (response: Response) => void;
-  let finishDetail!: (response: Response) => void;
-  const queue = new Promise<Response>((resolve) => {
-    finishQueue = resolve;
-  });
-  const heldDetail = new Promise<Response>((resolve) => {
-    finishDetail = resolve;
-  });
-  mockFetch.mockImplementation((url, init) => {
-    const path = new URL(String(url)).pathname;
-    if (path.endsWith("/stream-moderation")) {
-      return queue;
+it.each([
+  { status: 403, withdrawsSiblings: true },
+  { status: 404, withdrawsSiblings: false },
+])(
+  "keeps moderation withdrawal scoped after $status with a late response",
+  async ({ status, withdrawsSiblings }) => {
+    // Given: the queue and detail GETs are in flight, and reports have loaded.
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Missing controlled HTTP boundary");
     }
-    if (path.includes("/stream-contributions")) {
-      return heldDetail;
+    const queueKey = getListStreamModerationQueryKey({});
+    const detailKey = getListModeratedStreamContributionsQueryKey(sporting.id, {
+      state: "active",
+    });
+    const reportsKey = getListStreamReportsQueryKey(sporting.id, versionId);
+    const queue = Promise.withResolvers<Response>();
+    const heldDetail = Promise.withResolvers<Response>();
+    let queueSignal: RequestInit["signal"];
+    let detailSignal: RequestInit["signal"];
+    mockFetch.mockImplementation((url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path === queueKey[0] && init?.method === "GET") {
+        queueSignal = init.signal;
+        return queue.promise;
+      }
+      if (path === detailKey[0] && init?.method === "GET") {
+        detailSignal = init.signal;
+        return heldDetail.promise;
+      }
+      return ordinary(url, init);
+    });
+
+    /** Mounts real feature readers under the same private account provider. */
+    function ConcurrentReads() {
+      useModerationQueue({});
+      useModerationMatch(sporting.id, "active");
+      useModerationReports(sporting.id, versionId, true);
+      return null;
     }
-    return ordinary(url, init);
-  });
 
-  /** Real feature observers share only the existing private QueryClient; both transports are held. */
-  function ConcurrentReads() {
-    useModerationQueue({});
-    useModerationMatch(sporting.id, "active");
-    return null;
-  }
+    await mount(<ConcurrentReads />);
+    await waitFor(() => {
+      expect(queueSignal?.aborted).toBe(false);
+      expect(detailSignal?.aborted).toBe(false);
+      expect(client.getQueryData(reportsKey)).toBeDefined();
+    });
+    const retainedReports = client.getQueryData(reportsKey);
 
-  await mount(<ConcurrentReads />);
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        String(url).includes("/administration/"),
-      ).length,
-    ).toBe(2),
-  );
-
-  // When: refusal settles before a different read's transport delivers its old success.
-  await act(async () => {
-    finishQueue(
-      Response.json({ title: "Forbidden", status: 403 }, { status: 403 }),
+    // When: the queue refuses before the held detail responds.
+    await act(async () => {
+      queue.resolve(
+        Response.json({ title: "Unavailable", status }, { status }),
+      );
+    });
+    await waitFor(() =>
+      expect(client.getQueryState(queueKey)?.error).toMatchObject({ status }),
     );
-  });
-  await waitFor(() =>
-    expect(
-      client.getQueryState(getListStreamModerationQueryKey({}))?.status,
-    ).toBe("error"),
-  );
-  await act(async () => {
-    finishDetail(Response.json(detail));
-  });
 
-  // Then
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(
-    client.getQueryData(
-      getListModeratedStreamContributionsQueryKey(sporting.id, {
-        state: "active",
+    // Then: the refusing GET finishes and only a grant refusal withdraws the siblings.
+    expect(queueSignal?.aborted).toBe(false);
+    expect(detailSignal?.aborted).toBe(withdrawsSiblings);
+    expect(client.getQueryData(reportsKey)).toEqual(
+      withdrawsSiblings ? undefined : retainedReports,
+    );
+
+    // When: the controlled transport delivers the held detail.
+    await act(async () => {
+      heldDetail.resolve(Response.json(detail));
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(client.getQueryState(detailKey)).toMatchObject({
+        status: withdrawsSiblings ? "error" : "success",
+        data: withdrawsSiblings ? undefined : expect.anything(),
+        fetchStatus: "idle",
       }),
-    ),
-  ).toBeUndefined();
-});
+    );
+  },
+);
 
 it("keeps the mounted dirty publication editor across an uncached tab read", async () => {
   // Given
@@ -2296,8 +2312,8 @@ it("allows a later explicit publication after a lost response without a successf
   ).toBe(true);
 });
 
-it("reports the current 503 after a missing private target without restoring its data", async () => {
-  // Given: a current 404 withdraws private context; the next explicit GET fails technically.
+it("replaces a withdrawn moderation address after a new authorized GET succeeds", async () => {
+  // Given: the active editor has an authorized address.
   detail = { ...detail, canPublish: true };
   const user = userEvent.setup();
   const key = getListModeratedStreamContributionsQueryKey(sporting.id, {
@@ -2318,10 +2334,15 @@ it("reports the current 503 after a missing private target without restoring its
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   await screen.findByDisplayValue("https://youtu.be/retained");
 
-  // When
+  // When: the active target disappears.
   status = 404;
   await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
   await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(client.getQueryData(key)).toBeUndefined();
+
+  // When: the next explicit GET fails technically.
   status = 503;
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
@@ -2336,6 +2357,20 @@ it("reports the current 503 after a missing private target without restoring its
   expect(
     screen.queryByRole("button", { name: "Publier le lien" }),
   ).not.toBeOnTheScreen();
+
+  // When: a new authorized response supplies the current address.
+  status = 200;
+  detail.activeContribution = version({
+    ...detail.activeContribution,
+    url: "https://youtu.be/authorized-again",
+  });
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/authorized-again"),
+  ).toBeOnTheScreen();
+  expect(moderationReadPages("active")).toEqual(["0", "0", "0", "0"]);
   expect(writes).toHaveLength(0);
 });
 

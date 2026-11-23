@@ -9,6 +9,7 @@ import { listNotifications } from "../../../../.generated/mobile";
 import type { NotificationsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import type { SessionSnapshot } from "@/features/accounts";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
@@ -100,9 +101,8 @@ export function refreshRetainedInbox(
 }
 
 /**
- * Applies a known current owner refusal or missing owner to the private list. Older reads are
- * cancelled; the list enters ordinary error state so an initial read can be retried.
- * The failing query finishes its own native error transition when its key is supplied.
+ * An external refusal cancels the pending list read before withdrawing the inbox.
+ * A refusal from the list reader leaves that request to finish through Query's error handling.
  */
 export function refuseInboxAccess(
   client: QueryClient,
@@ -121,12 +121,8 @@ export function refuseInboxAccess(
   if (!failingKey || hashKey(failingKey) !== hashKey(queryKey)) {
     void client.cancelQueries({ queryKey, exact: true });
   }
-  client.getQueryCache().find({ queryKey, exact: true })?.setState({
-    data: undefined,
-    dataUpdatedAt: 0,
-    error,
-    errorUpdatedAt: Date.now(),
-    status: "error",
-    fetchStatus: "idle",
-  });
+  const query = client.getQueryCache().find({ queryKey, exact: true });
+  if (query) {
+    withdrawCachedRead(query, error);
+  }
 }

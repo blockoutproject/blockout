@@ -3,6 +3,7 @@ import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "@/shared/query/query-client";
 import { createInboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
+import { getNotificationKeys } from "../api/notification-keys";
 import { notificationResponse } from "../test-support/notification-data";
 import { expireInbox } from "../state/inbox-expiry";
 
@@ -177,43 +178,86 @@ it("does not restore a known missing row from an older page", async () => {
 });
 
 it.each([401, 403])(
-  "removes retained private content when the read command receives %s",
+  "withdraws only the captured inbox when a read command receives %s during a refresh",
   async (status) => {
     // Given
     const { owner, queries } = context();
-    client.setQueryData(queries.inbox.queryKey, {
-      pages: [{ notifications: [row] }],
-      pageParams: [undefined],
+    const other = getNotificationKeys({
+      subject: "auth0|other",
+      accountId: "00000000-0000-4000-8000-000000000239",
     });
-    mockFetch.mockResolvedValueOnce(new Response(null, { status }));
+    mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
+    const list = new InfiniteQueryObserver(client, {
+      ...queries.inbox,
+      enabled: (query) => query.state.status !== "error",
+    });
+    const stopList = list.subscribe(() => undefined);
+    const delayed = Promise.withResolvers<Response>();
     const command = new MutationObserver(
       client,
       createReadNotificationOptions(client, owner, queries),
     );
+    await waitFor(() => expect(list.getCurrentResult().isSuccess).toBe(true));
+    const retained = list.getCurrentResult().data;
+    client.setQueryData(other.inbox, retained);
+    mockFetch
+      .mockImplementationOnce(() => delayed.promise)
+      .mockResolvedValueOnce(new Response(null, { status }));
+    const refresh = list.refetch();
 
-    // When
-    await command.mutate(row.id).catch(() => undefined);
+    try {
+      await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
-    // Then
+      // When
+      await expect(command.mutate(row.id)).rejects.toMatchObject({ status });
+
+      // Then
+      expect(mockFetch.mock.calls[1]?.[1].signal?.aborted).toBe(true);
+      expect(list.getCurrentResult()).toMatchObject({
+        status: "error",
+        fetchStatus: "idle",
+        error: { status },
+        data: undefined,
+      });
+    } finally {
+      delayed.resolve(Response.json({ notifications: [row] }));
+      await refresh;
+      stopList();
+    }
+
     expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
-    expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
+    expect(client.getQueryData(other.inbox)).toEqual(retained);
+    expect(mockFetch.mock.calls.map(([, init]) => init.method)).toEqual([
+      "GET",
+      "GET",
+      "PATCH",
+    ]);
   },
 );
 
-it("removes the original owner's retained data after an inbox 404", async () => {
+it("withdraws the retained inbox while the refused GET settles its own error", async () => {
   // Given
   const { queries } = context();
-  client.setQueryData(queries.inbox.queryKey, {
-    pages: [{ notifications: [row] }],
-    pageParams: [undefined],
-  });
+  mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
+  await client.fetchInfiniteQuery(queries.inbox);
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
 
   // When
-  await client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
+  await expect(client.fetchInfiniteQuery(queries.inbox)).rejects.toMatchObject({
+    status: 404,
+  });
 
   // Then
-  expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
+  expect(mockFetch.mock.calls[1]?.[1].signal?.aborted).toBe(false);
+  expect(client.getQueryState(queries.inbox.queryKey)).toMatchObject({
+    status: "error",
+    fetchStatus: "idle",
+    data: undefined,
+  });
+  expect(mockFetch.mock.calls.map(([, init]) => init.method)).toEqual([
+    "GET",
+    "GET",
+  ]);
 });
 
 it("does not restore expired content when a pending page is cancelled after ordinary filtering", async () => {

@@ -30,6 +30,7 @@ import {
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
@@ -117,14 +118,7 @@ async function refuse(
         query === refused ||
         (isAccessDenied(error) && isModerationResource(query.queryKey[0])),
     })) {
-      query.setState({
-        data: undefined,
-        dataUpdatedAt: 0,
-        error,
-        errorUpdatedAt: Date.now(),
-        status: "error",
-        fetchStatus: "idle",
-      });
+      withdrawCachedRead(query, error);
     }
   }
   throw error;

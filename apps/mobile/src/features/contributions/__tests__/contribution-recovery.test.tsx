@@ -1110,10 +1110,14 @@ it.each(["success", "failure"] as const)(
 );
 
 it("does not restore refused owner data when submission refusal is followed by an outage", async () => {
-  // Given
+  // Given: both original-account reads have succeeded before a refused submission.
   owner = ownContributions({ items: [version], proposalCount: 1 });
   const { result } = await renderHook(useOwner, { wrapper: Wrapper });
-  await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+  await waitFor(() => {
+    expect(result.current.query.data?.pages[0].items).toEqual([version]);
+    expect(result.current.matchQuery.isSuccess).toBe(true);
+  });
+  const baselineReads = reads.length;
   write = async () => {
     failRead = true;
     return Response.json(
@@ -1136,9 +1140,16 @@ it("does not restore refused owner data when submission refusal is followed by a
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  // Then
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  await waitFor(() => expect(result.current.query.data).toBeUndefined());
+  // Then: settlement exercises both GETs, and the current outage cannot restore withdrawn data.
+  await waitFor(() => {
+    expect(result.current.query.error).toMatchObject({ kind: "network" });
+    expect(result.current.matchQuery.error).toMatchObject({ kind: "network" });
+  });
+  expect(result.current.query.data).toBeUndefined();
+  expect(reads.slice(baselineReads).sort()).toEqual([
+    `/accounts/${account.accountId}/matches/${match.match.id}/stream-contributions`,
+    `/matches/${match.match.id}`,
+  ]);
   expect(writes).toHaveLength(1);
 });
 

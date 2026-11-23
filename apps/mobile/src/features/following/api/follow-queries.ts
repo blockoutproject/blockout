@@ -9,6 +9,7 @@ import {
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import {
   followStateKey,
   type FollowingOwner,
@@ -31,14 +32,10 @@ export async function withdrawRefusedFollowingQuery(
     { queryKey, exact: true },
     { revert: false, silent: true },
   );
-  client.getQueryCache().find({ queryKey, exact: true })?.setState({
-    data: undefined,
-    dataUpdatedAt: 0,
-    error,
-    errorUpdatedAt: Date.now(),
-    status: "error",
-    fetchStatus: "idle",
-  });
+  const query = client.getQueryCache().find({ queryKey, exact: true });
+  if (query) {
+    withdrawCachedRead(query, error);
+  }
   await cancellation;
 }
 
