@@ -33,7 +33,9 @@ class LnvDiscoveryTest {
 
     // When
     String season =
-        new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901").season();
+        new LnvDiscovery()
+            .root(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "901")
+            .season();
 
     // Then
     assertThat(season).isNull();
@@ -51,7 +53,9 @@ class LnvDiscoveryTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
+            () ->
+                new LnvDiscovery()
+                    .root(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -69,7 +73,8 @@ class LnvDiscoveryTest {
         ("<title>Marmara SpikeLigue</title>" + html).getBytes(StandardCharsets.UTF_8);
 
     // When
-    List<LnvDiscovery.Phase> links = new LnvDiscovery().root(championship, page, "901").phases();
+    List<LnvDiscovery.Phase> links =
+        new LnvDiscovery().root(LnvPage.parse(championship, page), page, "901").phases();
 
     // Then
     assertThat(links)
@@ -95,7 +100,8 @@ class LnvDiscoveryTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When
-    List<LnvDiscovery.Phase> phases = new LnvDiscovery().root(championship, page, "901").phases();
+    List<LnvDiscovery.Phase> phases =
+        new LnvDiscovery().root(LnvPage.parse(championship, page), page, "901").phases();
 
     // Then
     assertThat(phases)
@@ -120,7 +126,9 @@ class LnvDiscoveryTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().root(html.getBytes(StandardCharsets.UTF_8), page, "901"))
+            () ->
+                new LnvDiscovery()
+                    .root(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "901"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -138,7 +146,8 @@ class LnvDiscoveryTest {
 
     // When
     LnvDiscovery.PhaseCatalog phase =
-        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null);
+        new LnvDiscovery()
+            .phaseCatalog(LnvPage.parse(calendar, CALENDAR), CALENDAR, "901", published, null);
 
     // Then
     assertThat(phase.season()).isEqualTo("2027/2028");
@@ -163,7 +172,8 @@ class LnvDiscoveryTest {
             "12/04/2028 - --:--");
 
     // When
-    String evidence = new LnvDiscovery().candidateSeason(page, url, "901", "2027/2028");
+    String evidence =
+        new LnvDiscovery().candidateSeason(LnvPage.parse(page, url), url, "901", "2027/2028");
 
     // Then
     assertThat(evidence).isEqualTo(expectedEvidence);
@@ -183,7 +193,10 @@ class LnvDiscoveryTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When / Then
-    assertThatThrownBy(() -> new LnvDiscovery().candidateSeason(page, CALENDAR, "901", "2027/2028"))
+    assertThatThrownBy(
+            () ->
+                new LnvDiscovery()
+                    .candidateSeason(LnvPage.parse(page, CALENDAR), CALENDAR, "901", "2027/2028"))
         .isInstanceOf(LnvAcquisitionException.class)
         .hasMessage("LNV phase has no recognizable groups");
   }
@@ -198,7 +211,9 @@ class LnvDiscoveryTest {
 
     // When
     LnvDiscovery.PhaseCatalog phase =
-        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, "2027/2028");
+        new LnvDiscovery()
+            .phaseCatalog(
+                LnvPage.parse(calendar, CALENDAR), CALENDAR, "901", published, "2027/2028");
 
     // Then
     assertThat(phase.season()).isNull();
@@ -215,7 +230,8 @@ class LnvDiscoveryTest {
 
     // When
     LnvDiscovery.PhaseCatalog phase =
-        new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null);
+        new LnvDiscovery()
+            .phaseCatalog(LnvPage.parse(calendar, CALENDAR), CALENDAR, "901", published, null);
 
     // Then
     assertThat(phase.season()).isEqualTo("2027/2028");
@@ -232,7 +248,9 @@ class LnvDiscoveryTest {
     // When / Then
     assertThatThrownBy(
             () ->
-                new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, "2027/2028"))
+                new LnvDiscovery()
+                    .phaseCatalog(
+                        LnvPage.parse(calendar, CALENDAR), CALENDAR, "901", published, "2027/2028"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -245,7 +263,10 @@ class LnvDiscoveryTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> new LnvDiscovery().phaseCatalog(calendar, CALENDAR, "901", published, null))
+            () ->
+                new LnvDiscovery()
+                    .phaseCatalog(
+                        LnvPage.parse(calendar, CALENDAR), CALENDAR, "901", published, null))
         .isInstanceOf(LnvAcquisitionException.class)
         .hasMessage("LNV phase match dates contradict the season");
   }

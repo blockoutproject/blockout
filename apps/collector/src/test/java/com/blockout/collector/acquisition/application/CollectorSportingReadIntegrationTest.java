@@ -17,6 +17,7 @@ import com.blockout.collector.acquisition.infrastructure.backend.CollectionBacke
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import com.blockout.collector.acquisition.lnv.LnvPage;
 import com.blockout.collector.acquisition.lnv.LnvStandingsParser;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
@@ -828,7 +829,9 @@ class CollectorSportingReadIntegrationTest {
         POOL,
         context(cycle, cycle.nextReadOrdinal(), FIRST, PUBLISHED),
         parser.parse(
-            html.formatted(visitor, home, away).getBytes(StandardCharsets.UTF_8), url, "903"));
+            LnvPage.parse(
+                html.formatted(visitor, home, away).getBytes(StandardCharsets.UTF_8), url),
+            "903"));
     JsonNode initial = read("/pools/" + POOL + "/standings");
 
     // When
@@ -838,7 +841,9 @@ class CollectorSportingReadIntegrationTest {
             POOL,
             context(cycle, cycle.nextReadOrdinal(), refreshedAt, PUBLISHED),
             parser.parse(
-                html.formatted(home, away, visitor).getBytes(StandardCharsets.UTF_8), url, "903"));
+                LnvPage.parse(
+                    html.formatted(home, away, visitor).getBytes(StandardCharsets.UTF_8), url),
+                "903"));
     JsonNode refreshed = read("/pools/" + POOL + "/standings");
 
     // Then

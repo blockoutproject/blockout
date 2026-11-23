@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import java.net.URI;
 import java.time.Instant;
+import org.jsoup.nodes.Document;
 
 /**
  * Explicit FFVB boundary; a passage reads each shared resource once before interpreting its scopes.
@@ -26,13 +27,14 @@ public interface FfvbAcquisition {
   Resource read(URI url);
 
   /**
-   * Reuses a discovery response only while its already admitted scopes are consumed.
+   * Reuses a decoded discovery page only while its already admitted scopes are consumed.
    *
-   * @param page complete bounded native response
+   * @param page read-only source document
+   * @param url final source URL
    * @param observedAt actual response completion time
    * @return transient resource without another page request
    */
-  Resource fromPage(ProviderResponse page, Instant observedAt);
+  Resource fromPage(Document page, URI url, Instant observedAt);
 
   /** One sequentially consumed HTML resource and optional export, discarded after its scopes. */
   interface Resource {

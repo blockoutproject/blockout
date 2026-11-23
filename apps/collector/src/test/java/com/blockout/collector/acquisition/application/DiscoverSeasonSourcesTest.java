@@ -301,7 +301,7 @@ class DiscoverSeasonSourcesTest {
     assertThat(updated.catalog().pools().getFirst().sourceName()).isEqualTo("Groupe B");
     assertThat(updated.catalog().phaseLabels())
         .containsOnly(entry("902", "Saison Régulière"), entry("904", "Playoffs"));
-    assertThat(consumed).extracting(read -> read.response().url()).containsExactly(regular);
+    assertThat(consumed).extracting(DiscoverSeasonSources.PageRead::url).containsExactly(regular);
   }
 
   @ParameterizedTest
@@ -347,7 +347,7 @@ class DiscoverSeasonSourcesTest {
         .containsExactly("902");
     assertThat(read.catalog().phaseLabels()).containsOnly(entry("902", "Regular"));
     assertThat(read.reason()).startsWith("LNV phase ");
-    assertThat(consumed).extracting(page -> page.response().url()).containsExactly(regular);
+    assertThat(consumed).extracting(DiscoverSeasonSources.PageRead::url).containsExactly(regular);
   }
 
   private enum PhaseContextMismatch {

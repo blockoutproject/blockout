@@ -9,10 +9,10 @@ import com.blockout.collector.acquisition.lnv.LnvDiscovery.Championship;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.Phase;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.PhaseCatalog;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery.Root;
+import com.blockout.collector.acquisition.lnv.LnvPage;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSourceScopeEnum;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -24,10 +24,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.event.Level;
@@ -94,8 +94,8 @@ public class DiscoverSeasonSources {
     }
   }
 
-  /** One bounded response consumed immediately, never retained as a passage page cache. */
-  public record PageRead(ProviderResponse response, Instant observedAt, long ordinal) {}
+  /** One decoded publication shared synchronously with the admitted groups of its final URL. */
+  public record PageRead(Document document, URI url, Instant observedAt, long ordinal) {}
 
   /**
    * Composes the existing budgets, native interpreters and generated proposal boundary.
@@ -141,21 +141,20 @@ public class DiscoverSeasonSources {
       try {
         lifecycle.requireActive();
         ProviderResponse page = lnvHttp.page(entry.url());
-        for (Element frame :
-            Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
-                .select("iframe[src]")) {
+        for (Element frame : LnvPage.parse(page.body(), page.url()).select("iframe[src]")) {
           URI candidate = URI.create(frame.absUrl("src"));
           String competition = lnv.championshipReference(candidate);
           if (competition == null) {
             continue;
           }
           ProviderResponse source = lnvHttp.page(candidate);
-          Root root = lnv.root(source.body(), source.url(), competition);
+          Document document = LnvPage.parse(source.body(), source.url());
+          Root root = lnv.root(document, source.url(), competition);
           if (root.championship() != entry.championship()) {
             complete = false;
             continue;
           }
-          String season = currentLnvSeason(source, root, competition);
+          String season = currentLnvSeason(document, source.url(), root, competition);
           boolean accepted =
               season != null
                   && propose(
@@ -181,7 +180,7 @@ public class DiscoverSeasonSources {
    * The standings iframe can omit the season. In that case, find seasonal evidence in a calendar
    * published by this exact championship without relying on which phase is currently selected.
    */
-  private String currentLnvSeason(ProviderResponse source, Root root, String competition) {
+  private String currentLnvSeason(Document document, URI url, Root root, String competition) {
     if (root.season() != null) {
       return root.season();
     }
@@ -190,9 +189,15 @@ public class DiscoverSeasonSources {
       lifecycle.requireActive();
       String phaseSeason;
       try {
-        ProviderResponse page =
-            phase.url().equals(source.url()) ? source : lnvHttp.page(phase.url());
-        phaseSeason = lnv.phaseCatalog(page.body(), page.url(), competition, phase, null).season();
+        if (phase.url().equals(url)) {
+          phaseSeason = lnv.phaseCatalog(document, url, competition, phase, null).season();
+        } else {
+          ProviderResponse page = lnvHttp.page(phase.url());
+          phaseSeason =
+              lnv.phaseCatalog(
+                      LnvPage.parse(page.body(), page.url()), page.url(), competition, phase, null)
+                  .season();
+        }
       } catch (RuntimeException failure) {
         discoveryFailure(failure);
         continue;
@@ -264,12 +269,11 @@ public class DiscoverSeasonSources {
       }
       lifecycle.requireActive();
       try {
-        PageRead read = readPage(ffvbHttp, url, nextOrdinal);
-        ProviderResponse response = read.response();
+        PageRead read = readPage(ffvbHttp, url, nextOrdinal, FfvbPage::document);
         observedAt = read.observedAt();
-        ffvb.requireContext(response.url(), season, organizer);
+        ffvb.requireContext(read.url(), season, organizer);
         consume.accept(read);
-        Document page = FfvbPage.document(response.body(), response.url());
+        Document page = read.document();
         try {
           SportingObservation.Catalog found = ffvb.parse(page, season, organizer);
           recognized |= ffvb.seasonal(page);
@@ -323,10 +327,9 @@ public class DiscoverSeasonSources {
       boolean verifiedHistorical,
       LongSupplier nextOrdinal,
       Consumer<PageRead> consume) {
-    PageRead root = readPage(lnvHttp, target.url(), nextOrdinal);
-    ProviderResponse rootResponse = root.response();
+    PageRead root = readPage(lnvHttp, target.url(), nextOrdinal, LnvPage::parse);
     Instant observedAt = root.observedAt();
-    Root qualified = lnv.root(rootResponse.body(), rootResponse.url(), target.organizerReference());
+    Root qualified = lnv.root(root.document(), root.url(), target.organizerReference());
     if (qualified.season() != null && !qualified.season().equals(target.seasonLabel())) {
       throw new LnvAcquisitionException("LNV championship belongs to a different season");
     }
@@ -338,14 +341,17 @@ public class DiscoverSeasonSources {
       lifecycle.requireActive();
       try {
         PageRead read = root;
-        if (!phase.url().equals(rootResponse.url())) {
-          read = readPage(lnvHttp, phase.url(), nextOrdinal);
+        if (!phase.url().equals(root.url())) {
+          read = readPage(lnvHttp, phase.url(), nextOrdinal, LnvPage::parse);
           observedAt = read.observedAt();
         }
-        ProviderResponse page = read.response();
         PhaseCatalog catalog =
             lnv.phaseCatalog(
-                page.body(), page.url(), target.organizerReference(), phase, target.seasonLabel());
+                read.document(),
+                read.url(),
+                target.organizerReference(),
+                phase,
+                target.seasonLabel());
         pools.addAll(catalog.pools());
         if (catalog.label() != null) {
           phaseLabels.put(phase.reference(), catalog.label());
@@ -377,10 +383,16 @@ public class DiscoverSeasonSources {
         firstFailure);
   }
 
-  private PageRead readPage(ProviderPages provider, URI url, LongSupplier nextOrdinal) {
+  private PageRead readPage(
+      ProviderPages provider,
+      URI url,
+      LongSupplier nextOrdinal,
+      BiFunction<byte[], URI, Document> decode) {
     long ordinal = nextOrdinal.getAsLong();
     ProviderResponse response = provider.page(url);
-    return new PageRead(response, clock.instant(), ordinal);
+    Instant observedAt = clock.instant();
+    return new PageRead(
+        decode.apply(response.body(), response.url()), response.url(), observedAt, ordinal);
   }
 
   /**

@@ -15,6 +15,7 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.hc.core5.http.NameValuePair;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +46,7 @@ class FfvbClubSheetTest {
     // When / Then
     assertThatThrownBy(() -> new FfvbClubSheets(http).read("000042"))
         .isInstanceOf(FfvbAcquisitionException.class);
-    verify(http, never()).post(any(), any());
+    verify(http, never()).post(any(), any(), any());
   }
 
   @Test
@@ -76,7 +77,7 @@ class FfvbClubSheetTest {
                 true))
         .when(http)
         .page(FORM);
-    doReturn(bytes(sheet("000042"))).when(http).post(any(), any());
+    doReturn(bytes(sheet("000042"))).when(http).post(any(), any(), any());
     FfvbClubSheets reader = new FfvbClubSheets(http);
 
     // When
@@ -84,7 +85,8 @@ class FfvbClubSheetTest {
 
     // Then
     ArgumentCaptor<List<NameValuePair>> fields = ArgumentCaptor.captor();
-    verify(http).post(eq(FORM.resolve("current_club.php")), fields.capture());
+    verify(http)
+        .post(eq(FORM.resolve("current_club.php")), fields.capture(), eq(StandardCharsets.UTF_8));
     assertThat(fields.getValue())
         .anySatisfy(
             field -> {

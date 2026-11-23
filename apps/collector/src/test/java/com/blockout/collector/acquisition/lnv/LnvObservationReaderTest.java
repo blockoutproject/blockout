@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -66,7 +67,7 @@ class LnvObservationReaderTest {
             .build();
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
     doReturn(
             new ProviderResponse(
                 """
@@ -78,14 +79,14 @@ class LnvObservationReaderTest {
                 page,
                 true))
         .when(http)
-        .postPage(any(), any());
+        .postPage(any(), any(), eq(StandardCharsets.UTF_8));
 
     // When
     LnvAcquisition.Read<SportingObservation.Facts> read = resource.document(target, label);
 
     // Then
     assertThat(read).isNull();
-    verify(http).postPage(any(), any());
+    verify(http).postPage(any(), any(), eq(StandardCharsets.UTF_8));
     verifyNoMoreInteractions(http);
   }
 
@@ -95,7 +96,7 @@ class LnvObservationReaderTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
-    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, true)).when(http).image(image);
+    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, true)).when(http).get(image);
     LnvObservationReader reader = documentReader(http);
 
     // When
@@ -104,7 +105,7 @@ class LnvObservationReaderTest {
     // Then
     assertThat(read.observation()).containsExactly(1, 2, 3);
     assertThat(read.observedAt()).isEqualTo(Instant.EPOCH);
-    verify(http).image(image);
+    verify(http).get(image);
     verifyNoMoreInteractions(http);
   }
 
@@ -114,7 +115,7 @@ class LnvObservationReaderTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     URI image = URI.create("https://images.dataproject.com/lnv/TeamLogo/team.png");
-    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, false)).when(http).image(image);
+    doReturn(new ProviderResponse(new byte[] {1, 2, 3}, image, false)).when(http).get(image);
     LnvObservationReader reader = documentReader(http);
 
     // When
@@ -122,7 +123,7 @@ class LnvObservationReaderTest {
 
     // Then
     assertThat(read).isNull();
-    verify(http).image(image);
+    verify(http).get(image);
     verifyNoMoreInteractions(http);
   }
 
@@ -142,7 +143,7 @@ class LnvObservationReaderTest {
         """;
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .competitionReference("901")
@@ -160,6 +161,55 @@ class LnvObservationReaderTest {
     verifyNoInteractions(http);
   }
 
+  @Test
+  @DisplayName("An admitted group outside phase headings contributes dates only to its own read")
+  void isolatesDatesFromAnAdmittedGroupWithoutTheViewClass() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    String html =
+        """
+        <div class=rmpView id=Content_Main_903>
+          <span id=group_lbl_title>Alterna VOLSTAR</span><p>Aucun match</p>
+        </div>
+        <div id=Content_Main_904>
+          <span id=other_lbl_title>Play-Offs</span>
+          <div id=playoff_MatchRow><span id=playoff_LB_DataOra>03/10/2027</span></div>
+        </div>
+        """;
+    Instant observedAt = Instant.parse("2026-10-19T12:00:00Z");
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, observedAt);
+    CollectionBackend.Target wrongSeason =
+        CollectionBackend.Target.builder()
+            .competitionReference("901")
+            .poolReference("902")
+            .groupReference("904")
+            .seasonLabel("2026/2027")
+            .build();
+    CollectionBackend.Target regular =
+        CollectionBackend.Target.builder()
+            .competitionReference("901")
+            .poolReference("902")
+            .groupReference("903")
+            .seasonLabel("2026/2027")
+            .build();
+
+    // When
+    Throwable refusal = catchThrowable(() -> resource.calendar(wrongSeason));
+    LnvAcquisition.Calendar read = resource.calendar(regular);
+
+    // Then
+    assertThat(refusal)
+        .isInstanceOf(LnvAcquisitionException.class)
+        .hasMessage("LNV phase match dates contradict the season");
+    assertThat(read.observation().complete()).isTrue();
+    assertThat(read.observation().matches()).isEmpty();
+    assertThat(read.observedAt()).isEqualTo(observedAt);
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"mID=991&ID=901", "mID=990&ID=999", "mID=990&ID=901&PID=999"})
   @DisplayName("A redirected detail context cannot submit a document form for the admitted match")
@@ -173,18 +223,35 @@ class LnvObservationReaderTest {
             .competitionReference("901")
             .poolReference("902")
             .build();
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?" + query);
     LnvAcquisition.Resource resource =
-        reader.fromPage(
-            new ProviderResponse(
-                new byte[0],
-                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?" + query),
-                true),
-            Instant.EPOCH);
+        reader.fromPage(LnvPage.parse(new byte[0], page), page, Instant.EPOCH);
 
     // When / Then
     assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
         .isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
+  }
+
+  @Test
+  @DisplayName("Published detail facts cannot qualify a different native match")
+  void rejectsForeignDetail() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901");
+    String html = "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>";
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
+    CollectionBackend.Target admitted =
+        CollectionBackend.Target.builder()
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+
+    // When / Then
+    assertThatThrownBy(() -> resource.detail(admitted)).isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -205,7 +272,7 @@ class LnvObservationReaderTest {
         "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
 
     // When / Then
     assertThatThrownBy(() -> resource.detail(target)).isInstanceOf(LnvAcquisitionException.class);
@@ -230,7 +297,7 @@ class LnvObservationReaderTest {
         "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
 
     // When / Then
     assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
@@ -262,7 +329,7 @@ class LnvObservationReaderTest {
             .build();
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
     doReturn(
             new ProviderResponse(
                 ("<title>Alterna VOLSTAR "
@@ -275,12 +342,12 @@ class LnvObservationReaderTest {
                         + "&ID=901"),
                 true))
         .when(http)
-        .postPage(any(), any());
+        .postPage(any(), any(), eq(StandardCharsets.UTF_8));
 
     // When / Then
     assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
         .isInstanceOf(LnvAcquisitionException.class);
-    verify(http).postPage(any(), any());
+    verify(http).postPage(any(), any(), eq(StandardCharsets.UTF_8));
     verifyNoMoreInteractions(http);
   }
 
@@ -294,7 +361,7 @@ class LnvObservationReaderTest {
         "<div id=Content_Main_903><table class=rgMasterTable><thead><tr><th>Equipe</th><th>Points</th></tr></thead><tbody><tr><td><span id=TeamName>Home</span><input id=HF_TeamID value=001></td><td>9</td></tr></tbody></table></div>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .competitionReference("901")
@@ -321,7 +388,7 @@ class LnvObservationReaderTest {
         "<span id=Content_Main_LB_DateTime>invalid date</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
     LnvAcquisition.Resource resource =
         reader.fromPage(
-            new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
+            LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, Instant.EPOCH);
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .nativeMatchReference("990")
@@ -377,7 +444,6 @@ class LnvObservationReaderTest {
     LnvObservationReader reader =
         new LnvObservationReader(
             http,
-            new LnvCalendarParser(),
             new LnvStandingsParser(),
             new LnvDetailParser(),
             new LnvDocumentReferences(),
@@ -559,7 +625,6 @@ class LnvObservationReaderTest {
             associations);
     return new LnvObservationReader(
         http,
-        new LnvCalendarParser(),
         new LnvStandingsParser(),
         new LnvDetailParser(),
         new LnvDocumentReferences(),

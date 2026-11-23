@@ -684,7 +684,7 @@ class CollectPassageTest {
       LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
       SportingObservation.Calendar empty =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(lnv.fromPage(response, readAt)).thenReturn(shared);
+      when(lnv.fromPage(any(), eq(page), eq(readAt))).thenReturn(shared);
       LnvAcquisition.Calendar calendarRead =
           new LnvAcquisition.Calendar(empty, Map.of(), readAt, null);
       when(shared.calendar(calendar)).thenReturn(calendarRead);

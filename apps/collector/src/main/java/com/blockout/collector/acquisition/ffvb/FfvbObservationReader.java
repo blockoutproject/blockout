@@ -10,10 +10,12 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -57,56 +59,62 @@ public class FfvbObservationReader implements FfvbAcquisition {
   /** {@inheritDoc} */
   @Override
   public Resource read(URI url) {
+    ProviderResponse response;
     try {
-      ProviderResponse response = http.page(url);
-      return fromPage(response, clock.instant());
+      response = http.page(url);
     } catch (RuntimeException failure) {
       throw readFailure(failure);
     }
+    Instant observedAt = clock.instant();
+    return fromPage(FfvbPage.document(response.body(), response.url()), response.url(), observedAt);
   }
 
   /** {@inheritDoc} */
   @Override
-  public Resource fromPage(ProviderResponse page, Instant observedAt) {
-    return new SharedResource(page.url(), new Read<>(page.body(), observedAt));
+  public Resource fromPage(Document document, URI url, Instant observedAt) {
+    return new SharedResource(
+        observedAt, ProviderReadAttempt.capture(() -> new FfvbPage.Publication(url, document)));
   }
 
   /**
-   * Keeps at most one bounded HTML body and export for the current resource. Export failure is
-   * retained for its other calendar scopes without preventing independent standings interpretation.
+   * Retains decoded publications for one resource. Export failure is shared across calendar scopes
+   * while standings remain independently readable from HTML.
    */
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   private final class SharedResource implements Resource {
-    private final URI url;
-    private final Read<byte[]> html;
-    private ProviderReadAttempt<Read<byte[]>> export;
+    private final Instant htmlObservedAt;
+    private final ProviderReadAttempt<FfvbPage.Publication> html;
+    private ProviderReadAttempt<Read<FfvbCalendarParser.Export>> export;
 
     /** {@inheritDoc} */
     @Override
     public Read<SportingObservation.Calendar> calendar(CollectionBackend.Target target) {
-      FfvbPage page = new FfvbPage(html.observation(), url, scope(target));
+      FfvbPage page = new FfvbPage(html.value(), scope(target));
       if (export == null) {
         export = ProviderReadAttempt.capture(() -> readExport(page));
       }
-      Read<byte[]> csv = export.value();
-      return new Read<>(calendars.parse(csv.observation(), page, scope(target)), csv.observedAt());
+      Read<FfvbCalendarParser.Export> csv = export.value();
+      return new Read<>(calendars.parse(csv.observation(), page), csv.observedAt());
     }
 
     /** {@inheritDoc} */
     @Override
     public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
-      FfvbPage page = new FfvbPage(html.observation(), url, scope(target));
-      return new Read<>(standings.parse(page), html.observedAt());
+      FfvbPage page = new FfvbPage(html.value(), scope(target));
+      return new Read<>(standings.parse(page), htmlObservedAt);
     }
   }
 
-  private Read<byte[]> readExport(FfvbPage page) {
+  private Read<FfvbCalendarParser.Export> readExport(FfvbPage page) {
+    byte[] body;
     try {
-      byte[] body = http.post(page.exportUrl(), page.exportFields());
-      return new Read<>(body, clock.instant());
+      body = http.post(page.exportUrl(), page.exportFields(), StandardCharsets.UTF_8);
     } catch (RuntimeException failure) {
       throw readFailure(failure);
     }
+    Instant observedAt = clock.instant();
+    return new Read<>(
+        calendars.decode(body, page.allReferences(), page.organizerReference()), observedAt);
   }
 
   /**

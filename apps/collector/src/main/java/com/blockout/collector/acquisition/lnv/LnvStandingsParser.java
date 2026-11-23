@@ -2,11 +2,11 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
@@ -18,14 +18,13 @@ public class LnvStandingsParser {
   /**
    * Interprets one qualified group independently from its calendar.
    *
-   * @param bytes complete bounded standings HTML
-   * @param url qualified page base
+   * @param page decoded standings HTML
    * @param group native group container
    * @return explicit publication and source labels/statistics; a native playoff bracket supplies no
    *     tabular standings
    */
-  public SportingObservation.Standings parse(byte[] bytes, URI url, String group) {
-    Element container = LnvPage.group(LnvPage.parse(bytes, url), group);
+  public SportingObservation.Standings parse(Document page, String group) {
+    Element container = LnvPage.group(page, group);
     if (container == null) {
       throw LnvPage.invalid();
     }

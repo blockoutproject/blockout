@@ -5,6 +5,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.function.LongSupplier;
+import org.jsoup.nodes.Document;
 
 /** Explicit professional-page boundary, with independent sporting and media observations. */
 public interface LnvAcquisition {
@@ -61,13 +62,14 @@ public interface LnvAcquisition {
   Resource read(URI uri);
 
   /**
-   * Reuses a discovery response only while its already admitted scopes are consumed.
+   * Reuses a decoded discovery page only while its already admitted scopes are consumed.
    *
-   * @param page complete bounded native response
+   * @param page read-only source document
+   * @param url final source URL
    * @param observedAt actual response completion time
    * @return transient resource without another page request
    */
-  Resource fromPage(ProviderResponse page, Instant observedAt);
+  Resource fromPage(Document page, URI url, Instant observedAt);
 
   /** Calendar plus qualified native-team media references for the admitted passage only. */
   record Calendar(

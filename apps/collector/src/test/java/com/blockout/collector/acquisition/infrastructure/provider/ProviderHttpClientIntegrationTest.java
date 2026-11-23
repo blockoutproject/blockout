@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.config.AcquisitionConfiguration;
 import com.blockout.collector.config.AcquisitionProperties;
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpServer;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import java.io.ByteArrayOutputStream;
@@ -17,15 +18,18 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPOutputStream;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.RedirectException;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.ConnectionRequestTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +61,31 @@ class ProviderHttpClientIntegrationTest {
   void stopPeer() {
     server.stop(0);
     peers.shutdownNow();
+  }
+
+  @Test
+  @DisplayName("Keeps FFVB page headers off the form export")
+  void scopesFfvbPageHeaders() throws Exception {
+    // Given
+    AtomicReference<Headers> request = new AtomicReference<>();
+    server.createContext(
+        "/source",
+        exchange -> {
+          try (exchange) {
+            request.set(exchange.getRequestHeaders());
+            exchange.sendResponseHeaders(200, -1);
+          }
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      URI url = origin.resolve("/source");
+
+      // When / Then
+      client.page(url);
+      assertThat(request.get().getFirst("Cookie")).isEqualTo("timezoneoffset=0");
+      assertThat(request.get().getFirst("Cache-Control")).isEqualTo("no-store");
+      client.post(url, List.of(), StandardCharsets.UTF_8);
+      assertThat(request.get()).doesNotContainKeys("Cookie", "Cache-Control");
+    }
   }
 
   @ParameterizedTest
@@ -241,7 +270,8 @@ class ProviderHttpClientIntegrationTest {
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When / Then
-      assertThatThrownBy(() -> client.post(origin.resolve("/source"), List.of()))
+      assertThatThrownBy(
+              () -> client.post(origin.resolve("/source"), List.of(), StandardCharsets.UTF_8))
           .hasRootCauseInstanceOf(HttpResponseException.class);
       assertThat(requests).hasValue(3);
     }
@@ -264,7 +294,7 @@ class ProviderHttpClientIntegrationTest {
       assertThatThrownBy(
               () -> {
                 if (post) {
-                  client.post(origin.resolve("/source"), List.of());
+                  client.post(origin.resolve("/source"), List.of(), StandardCharsets.UTF_8);
                 } else {
                   client.page(origin.resolve("/source"));
                 }
@@ -364,7 +394,7 @@ class ProviderHttpClientIntegrationTest {
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When
       ProviderHttpClient.StatusResponse response =
-          client.getWithBadRequest(origin.resolve("/source"));
+          client.readStatus(new HttpGet(origin.resolve("/source")), Set.of(200, 400));
 
       // Then
       assertThat(response.status()).isEqualTo(400);
@@ -385,7 +415,8 @@ class ProviderHttpClientIntegrationTest {
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When / Then
-      assertThatThrownBy(() -> client.getWithBadRequest(origin.resolve("/source")))
+      assertThatThrownBy(
+              () -> client.readStatus(new HttpGet(origin.resolve("/source")), Set.of(200, 400)))
           .hasRootCauseMessage("Provider response exceeds the configured byte limit");
     }
   }

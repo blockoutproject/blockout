@@ -187,16 +187,7 @@ class FfvbObservationReaderIntegrationTest {
   @DisplayName("Reuses one HTML and export for different groups with original read times")
   void sharesGroupedResource() {
     // Given
-    html =
-        html.substring(0, html.indexOf("<table>"))
-                .replace("name=\"cal_codpoule\" value=\"TST\"", "name=\"cal_codpoule\" value=\"\"")
-                .replace("name=\"cal_coddiv\" value=\"\"", "name=\"cal_coddiv\" value=\"TEST\"")
-                .replace("name=\"cal_codtour\" value=\"\"", "name=\"cal_codtour\" value=\"02\"")
-            + "<table><tr><td><input name=poule value=A></td></tr></table>"
-            + "<table><tr><td></td><td></td><td>Points</td><td>Jou.</td></tr></table>"
-            + "<table><tr><td>Tour 02</td></tr><tr><td>TST001</td><td></td><td></td><td>A</td><td></td><td>B</td></tr></table>"
-            + "<table><tr><td><input name=poule value=B></td></tr></table>"
-            + "<table><tr><td>Tour 02</td></tr><tr><td>TST002</td><td></td><td></td><td>A</td><td></td><td>xxxxx</td></tr></table></body></html>";
+    html = groupedHtml();
     CollectionBackend.Target first = target("A", "02", "A");
     CollectionBackend.Target second = target("B", "02", "B");
     when(clock.instant()).thenReturn(HTML_TIME, EXPORT_TIME, HTML_TIME.plusSeconds(100));
@@ -219,6 +210,39 @@ class FfvbObservationReaderIntegrationTest {
     assertThat(firstCalendar.observedAt()).isEqualTo(EXPORT_TIME);
     assertThat(secondCalendar.observedAt()).isEqualTo(EXPORT_TIME);
     assertThat(standings.observedAt()).isEqualTo(HTML_TIME);
+  }
+
+  @Test
+  @DisplayName("Retains export-wide failures without assigning malformed rows to sibling groups")
+  void isolatesSharedAndScopedCsvFailures() {
+    // Given
+    html = groupedHtml();
+    String secondRow =
+        csv.lines().filter(line -> line.contains(";TST002;")).findFirst().orElseThrow();
+    csv = csv.replace(secondRow, "ABCCS;02;TST002;malformed\nABCCS;02;UNATTRIBUTED;malformed");
+    CollectionBackend.Target first = target("A", "02", "A");
+    CollectionBackend.Target second = target("B", "02", "B");
+    when(clock.instant()).thenReturn(HTML_TIME, EXPORT_TIME);
+    FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(first));
+    URI invalid = URI.create("urn:blockout:acquisition:invalid-row");
+
+    // When
+    SportingObservation.Calendar secondCalendar = resource.calendar(second).observation();
+    SportingObservation.Calendar firstCalendar = resource.calendar(first).observation();
+
+    // Then
+    assertThat(secondCalendar.complete()).isFalse();
+    assertThat(secondCalendar.failures())
+        .containsExactly(
+            new SportingObservation.Failure("UNATTRIBUTED", invalid),
+            new SportingObservation.Failure("TST002", invalid));
+    assertThat(firstCalendar.complete()).isFalse();
+    assertThat(firstCalendar.failures())
+        .containsExactly(new SportingObservation.Failure("UNATTRIBUTED", invalid));
+    assertThat(firstCalendar.matches())
+        .extracting(SportingObservation.Match::nativeMatchReference)
+        .containsExactly("TST001");
+    assertThat(exportReads).hasValue(1);
   }
 
   @Test
@@ -266,6 +290,21 @@ class FfvbObservationReaderIntegrationTest {
     assertThat(next.observedAt()).isEqualTo(EXPORT_TIME.plusSeconds(60));
     assertThat(htmlReads).hasValue(2);
     assertThat(exportReads).hasValue(2);
+  }
+
+  private String groupedHtml() {
+    return html.substring(0, html.indexOf("<table>"))
+            .replace("name=\"cal_codpoule\" value=\"TST\"", "name=\"cal_codpoule\" value=\"\"")
+            .replace("name=\"cal_coddiv\" value=\"\"", "name=\"cal_coddiv\" value=\"TEST\"")
+            .replace("name=\"cal_codtour\" value=\"\"", "name=\"cal_codtour\" value=\"02\"")
+        + """
+          <table><tr><td><input name=poule value=A></td></tr></table>
+          <table><tr><td></td><td></td><td>Points</td><td>Jou.</td></tr></table>
+          <table><tr><td>Tour 02</td></tr><tr><td>TST001</td><td></td><td></td><td>A</td><td></td><td>B</td></tr></table>
+          <table><tr><td><input name=poule value=B></td></tr></table>
+          <table><tr><td>Tour 02</td></tr><tr><td>TST002</td><td></td><td></td><td>A</td><td></td><td>xxxxx</td></tr></table>
+          </body></html>
+          """;
   }
 
   /**

@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.ign;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -11,8 +12,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.net.URIBuilder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,24 +27,28 @@ import org.mockito.ArgumentCaptor;
 class IgnClubGeocoderTest {
   @Test
   @DisplayName("Uses native municipality/postal filters with the original textual context")
-  void sendsMunicipalFilters() {
+  void sendsMunicipalFilters() throws Exception {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     doReturn(
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
         new IgnClubGeocoder(http).read(null, "ST ETIENNE", "04200", "9");
 
     // Then
-    ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
-    verify(http).getWithBadRequest(request.capture());
-    assertThat(request.getValue().getHost()).isEqualTo("data.geopf.fr");
-    assertThat(new URIBuilder(request.getValue()).getQueryParams())
+    ArgumentCaptor<HttpGet> request = ArgumentCaptor.forClass(HttpGet.class);
+    verify(http).readStatus(request.capture(), eq(Set.of(200, 400)));
+    assertThat(request.getValue().getUri().getHost()).isEqualTo("data.geopf.fr");
+    assertThat(request.getValue().getFirstHeader("Accept").getValue())
+        .isEqualTo("application/json");
+    assertThat(request.getValue().getFirstHeader("Cache-Control").getValue()).isEqualTo("no-store");
+    assertThat(request.getValue().containsHeader("Cookie")).isFalse();
+    assertThat(new URIBuilder(request.getValue().getUri()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains(
             "q=ST ETIENNE",
@@ -190,14 +196,14 @@ class IgnClubGeocoderTest {
 
   @Test
   @DisplayName("Resolves a unique native address without a municipal fallback or score rule")
-  void resolvesAddress() {
+  void resolvesAddress() throws Exception {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     doReturn(
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(addressFeature("address-1", 2.345, 48.865)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
@@ -208,9 +214,9 @@ class IgnClubGeocoderTest {
     assertThat(result.latitude()).isEqualTo(48.865);
     assertThat(result.longitude()).isEqualTo(2.345);
     assertThat(result.localityRevision()).isEqualTo("9");
-    ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
-    verify(http).getWithBadRequest(request.capture());
-    assertThat(new URIBuilder(request.getValue()).getQueryParams())
+    ArgumentCaptor<HttpGet> request = ArgumentCaptor.forClass(HttpGet.class);
+    verify(http).readStatus(request.capture(), eq(Set.of(200, 400)));
+    assertThat(new URIBuilder(request.getValue().getUri()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains("q=73 Demonstration road 00123 Testville", "city=Testville", "postcode=00123")
         .doesNotContain("type=municipality");
@@ -219,7 +225,7 @@ class IgnClubGeocoderTest {
   @ParameterizedTest
   @ValueSource(strings = {"", "ambiguous", "municipality"})
   @DisplayName("Normal unusable address results fall back once to the current municipality")
-  void fallsBackToMunicipality(String kind) {
+  void fallsBackToMunicipality(String kind) throws Exception {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     String addressCandidates =
@@ -234,7 +240,7 @@ class IgnClubGeocoderTest {
             new ProviderHttpClient.StatusResponse(
                 200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), eq(Set.of(200, 400)));
 
     // When
     SportingObservation.Locality result =
@@ -244,9 +250,9 @@ class IgnClubGeocoderTest {
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.LOCATED);
     assertThat(result.latitude()).isEqualTo(48.86);
     assertThat(result.localityRevision()).isEqualTo("9");
-    ArgumentCaptor<URI> requests = ArgumentCaptor.forClass(URI.class);
-    verify(http, org.mockito.Mockito.times(2)).getWithBadRequest(requests.capture());
-    assertThat(new URIBuilder(requests.getAllValues().getLast()).getQueryParams())
+    ArgumentCaptor<HttpGet> requests = ArgumentCaptor.forClass(HttpGet.class);
+    verify(http, org.mockito.Mockito.times(2)).readStatus(requests.capture(), eq(Set.of(200, 400)));
+    assertThat(new URIBuilder(requests.getAllValues().getLast().getUri()).getQueryParams())
         .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
         .contains("q=Paris", "type=municipality", "postcode=75015");
   }
@@ -259,13 +265,13 @@ class IgnClubGeocoderTest {
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     doReturn(new ProviderHttpClient.StatusResponse(200, bytes("{}")))
         .when(http)
-        .getWithBadRequest(any());
+        .readStatus(any(), eq(Set.of(200, 400)));
 
     // When / Then
     assertThatThrownBy(
             () -> new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9"))
         .isInstanceOf(IllegalArgumentException.class);
-    verify(http).getWithBadRequest(any());
+    verify(http).readStatus(any(), eq(Set.of(200, 400)));
   }
 
   /**

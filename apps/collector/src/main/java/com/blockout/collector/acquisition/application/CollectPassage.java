@@ -143,13 +143,16 @@ public class CollectPassage {
 
     private void consumeSharedPage(
         CollectionProviderEnum provider, DiscoverSeasonSources.PageRead page) {
-      URI url = page.response().url();
+      URI url = page.url();
       switch (provider) {
         case FFVB -> {
           List<CollectionBackend.Target> scopes = ffvbGroups.remove(url);
           if (scopes != null) {
             consumeFfvb(
-                context, scopes, ffvb.fromPage(page.response(), page.observedAt()), page.ordinal());
+                context,
+                scopes,
+                ffvb.fromPage(page.document(), url, page.observedAt()),
+                page.ordinal());
           }
         }
         case LNV -> {
@@ -158,7 +161,7 @@ public class CollectPassage {
             consumeLnv(
                 context,
                 scopes,
-                lnv.fromPage(page.response(), page.observedAt()),
+                lnv.fromPage(page.document(), url, page.observedAt()),
                 page.ordinal(),
                 enrichment);
           }
