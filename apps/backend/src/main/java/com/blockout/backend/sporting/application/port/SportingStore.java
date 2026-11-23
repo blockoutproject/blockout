@@ -540,6 +540,9 @@ public interface SportingStore {
    */
   ObservationOrder matchOrder(UUID poolId, String reference);
 
+  /** Locks the match row after the caller has acquired its preceding sporting locks. */
+  void lockMatch(UUID matchId);
+
   /**
    * Locks an existing match after runtime, season and cycle locks and detaches its owned facts.
    *

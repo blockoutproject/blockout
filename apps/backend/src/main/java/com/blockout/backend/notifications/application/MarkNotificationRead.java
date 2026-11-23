@@ -21,19 +21,19 @@ public class MarkNotificationRead {
   private final Clock clock;
 
   /**
-   * Marks the exact current entry read, independently of navigation. Sporting season/division/match
-   * locks precede the account; no sporting root is acquired afterward. Reuses the authorized
-   * projection after the update confirms true; repetition never inserts.
+   * Marks the exact current entry read, independently of navigation. Acquires sporting locks in
+   * season, current division and match order before locking the account. Then checks current access
+   * through the inbox member read and reuses that projection after a successful update.
    *
    * @param owner captured original owner
    * @param id exact personal entry
-   * @return current committed-intent representation with true read state
+   * @return current entry with true read state
    * @throws NotificationNotFoundException for a missing, hidden, expired or foreign entry/owner
    */
   @Transactional
   public InboxViews.Entry mark(NotificationContext owner, UUID id) {
     UUID matchId = reads.matchId(owner, id).orElseThrow(NotificationNotFoundException::new);
-    sporting.lock(matchId);
+    sporting.lockMatch(matchId);
     if (!accounts.lock(owner.accountId())) {
       throw new NotificationNotFoundException();
     }

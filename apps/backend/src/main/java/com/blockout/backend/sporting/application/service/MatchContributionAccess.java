@@ -4,16 +4,18 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Sporting owner boundary for link commands and due processing; entities stay private. */
+/** Sporting locks and current facts for contributions and notifications. */
 @Service
 @RequiredArgsConstructor
 public class MatchContributionAccess {
@@ -21,18 +23,38 @@ public class MatchContributionAccess {
   private final ReadSportingData reads;
 
   /**
-   * Locks season, current division and match in owner order before any account lock.
+   * Locks the sporting roots and reads current contribution facts, including professional status.
    *
    * @param matchId retained match identity
    * @return current facts under retained roots
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public Facts lock(UUID matchId) {
+    lockMatch(matchId);
+    return facts(matchId);
+  }
+
+  /** Reads the sporting inputs for live classification under the same roots as publication. */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public LinkAnnouncementFacts lockForLinkAnnouncement(UUID matchId) {
+    lockMatch(matchId);
+    Instant reliableStart = store.matchSchedule(matchId).reliableStart();
+    MatchView match = requireMatch(matchId);
+    boolean viewable = viewable(matchId);
+    boolean definitiveResult = Result.isFinal(store.matchDetails(matchId).result());
+    return new LinkAnnouncementFacts(match, reliableStart, definitiveResult, viewable);
+  }
+
+  /**
+   * Locks the season, the pool's currently classified division when present, and the match in that
+   * order. Callers needing an account lock acquire it afterward.
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockMatch(UUID matchId) {
     UUID poolId = store.matchPoolId(matchId).orElseThrow(SportingResourceNotFoundException::new);
     store.lockPoolSeason(poolId);
     lockDivisionForPool(poolId);
-    MatchSchedule schedule = store.lockMatchSchedule(matchId);
-    return facts(matchId, schedule);
+    store.lockMatch(matchId);
   }
 
   /**
@@ -44,8 +66,7 @@ public class MatchContributionAccess {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void lockDivisionForPool(UUID poolId) {
-    com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
-        store.pool(poolId).orElseThrow(SportingResourceNotFoundException::new);
+    PoolView pool = store.pool(poolId).orElseThrow(SportingResourceNotFoundException::new);
     if (pool.classification() != null) {
       store
           .lockDivision(pool.classification().divisionId())
@@ -61,27 +82,38 @@ public class MatchContributionAccess {
    */
   @Transactional(readOnly = true)
   public Facts read(UUID matchId) {
-    // The schedule read must not acquire a write lock for private read contexts.
-    return facts(matchId, store.matchSchedule(matchId));
+    return facts(matchId);
   }
 
-  /**
-   * Composes only F02-owned facts; contribution and announcement policy remain with their owners.
-   *
-   * @param matchId existing identity
-   * @param schedule current schedule read under the caller's transaction
-   * @return detached owner facts
-   */
-  private Facts facts(UUID matchId, MatchSchedule schedule) {
-    MatchView match = store.match(matchId).orElseThrow(SportingResourceNotFoundException::new);
-    boolean viewable =
-        reads.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isPresent();
+  private Facts facts(UUID matchId) {
+    MatchSchedule schedule = store.matchSchedule(matchId);
+    MatchView match = requireMatch(matchId);
+    boolean viewable = viewable(matchId);
     boolean professional =
         store.team(match.homeTeamId()).orElseThrow().professional()
             || store.team(match.awayTeamId()).orElseThrow().professional();
     Result result = store.matchDetails(matchId).result();
     return new Facts(match, schedule, result, viewable, professional);
   }
+
+  private MatchView requireMatch(UUID matchId) {
+    return store.match(matchId).orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  private boolean viewable(UUID matchId) {
+    return reads.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isPresent();
+  }
+
+  /**
+   * Current sporting inputs to link announcement processing.
+   *
+   * @param match current match and audience identities
+   * @param reliableStart confirmed start instant, or null while unknown
+   * @param definitiveResult explicit source finality
+   * @param viewable current sporting restrictions permit public viewing
+   */
+  public record LinkAnnouncementFacts(
+      MatchView match, Instant reliableStart, boolean definitiveResult, boolean viewable) {}
 
   /**
    * Current immutable sporting context, never authorization for a later command.

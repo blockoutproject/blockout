@@ -808,9 +808,19 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
+  public void lockMatch(UUID matchId) {
+    requireLockedMatch(matchId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public MatchSchedule lockMatchSchedule(UUID matchId) {
-    return mapper.toSchedule(
-        matches.findByIdForUpdate(matchId).orElseThrow(SportingResourceNotFoundException::new));
+    return mapper.toSchedule(requireLockedMatch(matchId));
+  }
+
+  private MatchEntity requireLockedMatch(UUID matchId) {
+    return matches.findByIdForUpdate(matchId).orElseThrow(SportingResourceNotFoundException::new);
   }
 
   /** {@inheritDoc} */
