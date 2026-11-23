@@ -926,6 +926,12 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public MatchObservation.Result matchResult(UUID matchId) {
+    return mapper.toResult(matches.findById(matchId).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public MatchDetails matchDetails(UUID matchId) {
     return mapper.toDetails(matches.findById(matchId).orElseThrow());
   }

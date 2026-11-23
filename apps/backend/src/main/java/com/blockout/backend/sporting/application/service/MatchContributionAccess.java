@@ -41,7 +41,7 @@ public class MatchContributionAccess {
     Instant reliableStart = store.matchSchedule(matchId).reliableStart();
     MatchView match = requireMatch(matchId);
     boolean viewable = viewable(matchId);
-    boolean definitiveResult = Result.isFinal(store.matchDetails(matchId).result());
+    boolean definitiveResult = Result.isFinal(store.matchResult(matchId));
     return new LinkAnnouncementFacts(match, reliableStart, definitiveResult, viewable);
   }
 
@@ -92,7 +92,7 @@ public class MatchContributionAccess {
     boolean professional =
         store.team(match.homeTeamId()).orElseThrow().professional()
             || store.team(match.awayTeamId()).orElseThrow().professional();
-    Result result = store.matchDetails(matchId).result();
+    Result result = store.matchResult(matchId);
     return new Facts(match, schedule, result, viewable, professional);
   }
 

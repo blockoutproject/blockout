@@ -605,6 +605,13 @@ public interface SportingStore {
       CatalogObservation observation);
 
   /**
+   * Reads the accepted overall result without hydrating match enrichment.
+   *
+   * @return current result, or null when absent
+   */
+  MatchObservation.Result matchResult(UUID matchId);
+
+  /**
    * Reads current enrichment within the caller's read or mutation transaction.
    *
    * @param matchId existing match; the mutation owner acquires any required lock separately
