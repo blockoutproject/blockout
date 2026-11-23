@@ -676,9 +676,16 @@ it("searches the native FFVB reference and applies status and perimeter together
     organizerReference: "PTRA69",
     scope: "departmental",
   };
+  const unscoped: SourceBindingResponse = {
+    ...regional,
+    id: "00000000-0000-4000-8000-000000000197",
+    label: "Source au périmètre inconnu",
+    organizerReference: "UNSCOPED",
+    scope: undefined,
+  };
   mockFetch.mockImplementation(async (url) =>
     new URL(String(url)).pathname.endsWith("/source-bindings")
-      ? Response.json({ items: [ffvbSource, regional, departmental] })
+      ? Response.json({ items: [ffvbSource, regional, departmental, unscoped] })
       : serve(url),
   );
   const user = userEvent.setup();
@@ -689,6 +696,10 @@ it("searches the native FFVB reference and applies status and perimeter together
   );
   await layoutNativeTabs();
   await screen.findByRole("link", { name: regional.label });
+  expect(
+    screen.getByRole("header", { name: "Autres sources" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: unscoped.label })).toBeOnTheScreen();
 
   // When
   await user.type(screen.getByLabelText("Rechercher une source"), "lira");
@@ -734,6 +745,7 @@ it("searches the native FFVB reference and applies status and perimeter together
   expect(
     screen.queryByRole("link", { name: departmental.label }),
   ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: unscoped.label })).toBeNull();
 });
 
 it("keeps an invalid Bilan filter link dismissible without reading collection data", async () => {

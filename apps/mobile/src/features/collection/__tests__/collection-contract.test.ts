@@ -23,6 +23,21 @@ const control: CollectionControlResponse = {
   lastAttemptAt: null,
   lastSuccessAt: null,
 };
+const ffvbBinding: SourceBindingResponse = {
+  id: "00000000-0000-4000-8000-000000000005",
+  seasonId: "00000000-0000-4000-8000-000000000006",
+  provider: "ffvb",
+  organizerReference: "ABCCS",
+  label: "Championnats nationaux",
+  candidateUrl: null,
+  acceptedUrl: "https://provider.example.invalid/official",
+  locked: true,
+  validation: "qualified",
+  validatedAt: null,
+  seasonEvidence: "2026/2027",
+  reason: null,
+  launched: false,
+};
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -120,19 +135,8 @@ it("reads legacy result pages and preserves new search criteria and evidence", a
 it("reads an empty source and a retained catalogue with pools grouped by pack", async () => {
   // Given
   const empty: SourceCatalogueResponse = {
-    id: "00000000-0000-4000-8000-000000000005",
-    seasonId: "00000000-0000-4000-8000-000000000006",
-    provider: "ffvb",
-    organizerReference: "ABCCS",
-    label: "Championnats nationaux",
-    candidateUrl: null,
-    acceptedUrl: "https://provider.example.invalid/official",
-    locked: true,
-    validation: "qualified",
+    ...ffvbBinding,
     validatedAt: "2026-10-16T11:48:00Z",
-    seasonEvidence: "2026/2027",
-    reason: null,
-    launched: false,
     packs: [],
     phases: [],
   };
@@ -172,23 +176,8 @@ it("rejects a mixed-provider source list before admitting any rows to Query", as
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const known: SourceBindingResponse = {
-    id: "00000000-0000-4000-8000-000000000005",
-    seasonId: "00000000-0000-4000-8000-000000000006",
-    provider: "ffvb",
-    organizerReference: "ABCCS",
-    label: "Championnats nationaux",
-    candidateUrl: null,
-    acceptedUrl: "https://provider.example.invalid/official",
-    locked: true,
-    validation: "qualified",
-    validatedAt: null,
-    seasonEvidence: "2026/2027",
-    reason: null,
-    launched: false,
-  };
   const unknown = {
-    ...known,
+    ...ffvbBinding,
     id: "00000000-0000-4000-8000-000000000009",
     provider: "unknown-provider",
     organizerReference: "future",
@@ -197,10 +186,10 @@ it("rejects a mixed-provider source list before admitting any rows to Query", as
   const options = createCollectionQueries({
     enabled: true,
     request: async () => ({}),
-  }).sources(known.seasonId);
+  }).sources(ffvbBinding.seasonId);
   mockFetch
-    .mockResolvedValueOnce(Response.json({ items: [known, unknown] }))
-    .mockResolvedValueOnce(Response.json({ items: [known] }));
+    .mockResolvedValueOnce(Response.json({ items: [ffvbBinding, unknown] }))
+    .mockResolvedValueOnce(Response.json({ items: [ffvbBinding] }));
 
   try {
     // When
@@ -214,8 +203,10 @@ it("rejects a mixed-provider source list before admitting any rows to Query", as
     const supportedRead = await client.fetchQuery(options);
 
     // Then
-    expect(supportedRead).toEqual({ items: [known] });
-    expect(client.getQueryData(options.queryKey)).toEqual({ items: [known] });
+    expect(supportedRead).toEqual({ items: [ffvbBinding] });
+    expect(client.getQueryData(options.queryKey)).toEqual({
+      items: [ffvbBinding],
+    });
   } finally {
     client.clear();
   }

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type {
-  CollectionProviderEnum,
+import {
   SourceCatalogStatusEnum,
+  type CollectionProviderEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { FilterSheetForm } from "@/shared/components/filter-sheet-form";
 import { SelectField } from "@/shared/components/select-field";
@@ -10,14 +10,14 @@ import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { supportsSourceScopeFilter } from "../model/collection-operator-source";
 import {
   sourceCatalogLabels,
+  sourceScopeLabels,
   sourceScopes,
   type SourceFilters,
 } from "../model/source-catalogue";
 
+// Keep observed statuses ahead of sources that have yet to be read.
 const statuses: SourceCatalogStatusEnum[] = [
-  "complete",
-  "partial",
-  "unavailable",
+  ...SourceCatalogStatusEnum.options.filter((status) => status !== "not-read"),
   "not-read",
 ];
 
@@ -89,8 +89,7 @@ export function SourceFiltersSheet({
               <SelectField
                 label="Périmètre"
                 value={
-                  sourceScopes.find(({ value }) => value === draft.scope)
-                    ?.label ?? scopeLabel
+                  draft.scope ? sourceScopeLabels[draft.scope] : scopeLabel
                 }
                 onPress={() => setChoice("scope")}
               />
