@@ -60,16 +60,14 @@ public class CollectionBackendClient implements CollectionBackend {
 
   /** {@inheritDoc} */
   @Override
-  public Cycle record(UUID cycleId, Result result) {
-    return BackendExchange.once(
-        () -> mapper.toView(api.recordCollectionResult(cycleId, mapper.toDto(result))));
+  public void record(UUID cycleId, Result result) {
+    BackendExchange.once(() -> api.recordCollectionResult(cycleId, mapper.toDto(result)));
   }
 
   /** {@inheritDoc} */
   @Override
-  public Cycle complete(UUID cycleId, Instant completedAt) {
-    return BackendExchange.once(
-        () -> mapper.toView(api.completeCollectionCycle(cycleId, mapper.toDto(completedAt))));
+  public void complete(UUID cycleId, Instant completedAt) {
+    BackendExchange.once(() -> api.completeCollectionCycle(cycleId, mapper.toDto(completedAt)));
   }
 
   /** {@inheritDoc} */

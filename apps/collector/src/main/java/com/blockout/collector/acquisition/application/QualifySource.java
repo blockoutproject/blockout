@@ -2,7 +2,6 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
-import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import java.net.URI;
 import java.time.Clock;
@@ -74,46 +73,10 @@ public class QualifySource {
    */
   public Evidence qualify(CollectionBackend.Candidate candidate) {
     try {
-      String season;
-      if (candidate.provider() == CollectionProviderEnum.FFVB) {
-        SportingObservation.Catalog catalog =
-            discovery
-                .catalog(
-                    CollectionBackend.Target.builder()
-                        .provider(CollectionProviderEnum.FFVB)
-                        .url(candidate.candidateUrl())
-                        .seasonLabel(candidate.seasonLabel())
-                        .organizerReference(candidate.organizerReference())
-                        .build())
-                .catalog();
-        if (!catalog.complete()) {
-          return new Evidence(
-              SourceValidationStateEnum.INVALID,
-              null,
-              "Incomplete FFVB catalog",
-              URI.create("urn:blockout:acquisition:structure"));
-        }
-        season = candidate.seasonLabel();
-      } else {
-        ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
-        season =
-            lnv.candidateSeason(
-                response.body(),
-                response.url(),
-                candidate.organizerReference(),
-                candidate.seasonLabel());
-      }
-      if (season == null) {
-        return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
-      }
-      if (!season.equals(candidate.seasonLabel())) {
-        return new Evidence(
-            SourceValidationStateEnum.INVALID,
-            season,
-            "Contradictory season evidence",
-            URI.create("urn:blockout:acquisition:context"));
-      }
-      return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null, null);
+      return switch (candidate.provider()) {
+        case FFVB -> qualifyFfvb(candidate);
+        case LNV -> qualifyLnv(candidate);
+      };
     } catch (RuntimeException failure) {
       return new Evidence(
           SourceValidationStateEnum.INVALID,
@@ -123,5 +86,38 @@ public class QualifySource {
               : "Unavailable or unsupported source context",
           AcquisitionFailure.reasonType(failure));
     }
+  }
+
+  private Evidence qualifyFfvb(CollectionBackend.Candidate candidate) {
+    if (!discovery.hasCompleteFfvbCatalog(
+        candidate.candidateUrl(), candidate.seasonLabel(), candidate.organizerReference())) {
+      return new Evidence(
+          SourceValidationStateEnum.INVALID,
+          null,
+          "Incomplete FFVB catalog",
+          URI.create("urn:blockout:acquisition:structure"));
+    }
+    return new Evidence(SourceValidationStateEnum.QUALIFIED, candidate.seasonLabel(), null, null);
+  }
+
+  private Evidence qualifyLnv(CollectionBackend.Candidate candidate) {
+    ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
+    String season =
+        lnv.candidateSeason(
+            response.body(),
+            response.url(),
+            candidate.organizerReference(),
+            candidate.seasonLabel());
+    if (season == null) {
+      return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
+    }
+    if (!season.equals(candidate.seasonLabel())) {
+      return new Evidence(
+          SourceValidationStateEnum.INVALID,
+          season,
+          "Contradictory season evidence",
+          URI.create("urn:blockout:acquisition:context"));
+    }
+    return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null, null);
   }
 }

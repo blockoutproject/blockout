@@ -1,20 +1,22 @@
 package com.blockout.collector.acquisition.application;
 
-import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
@@ -30,6 +32,7 @@ import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -44,7 +47,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -93,8 +98,7 @@ class CollectPassageTest {
   class ClubAndLocality {
 
     @Test
-    @DisplayName(
-        "F02's secondary-field refusal remains partial integration without a personal diagnostic")
+    @DisplayName("F02's typed secondary-field refusal remains visible in partial club integration")
     void reportsInvalidSecondaryClubFields() {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -115,20 +119,14 @@ class CollectPassageTest {
               .sourceName("Synthetic club")
               .email(JsonNullable.of("invalid-email"))
               .build();
+      URI refusal = URI.create("urn:blockout:problem:unprocessable-content");
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(clubs.read("000042")).thenReturn(sheet);
       when(sporting.club(eq(POOL), any(), eq(sheet)))
           .thenReturn(
               new SportingObservation.Outcome(
-                  "000042",
-                  ObservationOutcomeEnum.ACCEPTED,
-                  POOL,
-                  URI.create("urn:blockout:problem:unprocessable-content"),
-                  null,
-                  null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
+                  "000042", ObservationOutcomeEnum.ACCEPTED, POOL, refusal, null, null));
 
       // When
       passage.execute(admitted);
@@ -141,8 +139,8 @@ class CollectPassageTest {
           .isEqualTo(CollectionOutcomeEnum.SUCCESS);
       assertThat(result.getAllValues().getLast().outcome())
           .isEqualTo(CollectionOutcomeEnum.PARTIAL);
-      assertThat(result.getAllValues().getLast().reason())
-          .isEqualTo("urn:blockout:problem:unprocessable-content");
+      assertThat(result.getAllValues().getLast().reasonType()).isEqualTo(refusal);
+      assertThat(result.getAllValues().getLast().reason()).isEqualTo(refusal.toString());
     }
 
     @Test
@@ -166,8 +164,6 @@ class CollectPassageTest {
               .build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -213,8 +209,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "000042", ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -257,8 +251,6 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(clubs.read("000042")).thenReturn(sheet);
       when(sporting.club(eq(POOL), any(), eq(sheet))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -280,9 +272,10 @@ class CollectPassageTest {
   @DisplayName("Catalog selection")
   class CatalogSelection {
 
-    @Test
-    @DisplayName("Complete accepted catalog removal prevents an old frozen pool from being read")
-    void stopsRemovedPoolImmediately() {
+    @ParameterizedTest(name = "Backend reconciled absence: {0}")
+    @ValueSource(booleans = {true, false})
+    @DisplayName("Only backend-confirmed catalog absence excludes a frozen pool")
+    void honorsReconciledPoolAbsence(boolean absenceReconciled) {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
       when(backend.register(0, lifecycle.getIncarnationId()))
@@ -305,16 +298,22 @@ class CollectPassageTest {
       when(discovery.catalog(eq(source), anyBoolean(), any(), any()))
           .thenReturn(new DiscoverSeasonSources.Read(empty, NOW, null, null));
       when(sporting.catalog(eq(CONTROL), any(), eq(empty)))
-          .thenReturn(new SportingObservation.CatalogOutcome(List.of(), true));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
+          .thenReturn(new SportingObservation.CatalogOutcome(List.of(), absenceReconciled));
+      when(ffvb.resourceUrl(calendar)).thenReturn(SOURCE);
+      when(ffvb.read(SOURCE)).thenReturn(resource);
+      SportingObservation.Calendar matches =
+          new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
+      when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(matches, NOW));
+      when(sporting.calendar(eq(POOL), any(), eq(matches)))
+          .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
 
       // When
       passage.execute(admitted);
 
       // Then
-      verify(ffvb, never()).read(any());
-      verify(sporting, never()).calendar(any(), any(), any());
+      int remainingReads = absenceReconciled ? 0 : 1;
+      verify(ffvb, times(remainingReads)).read(any());
+      verify(sporting, times(remainingReads)).calendar(eq(POOL), any(), eq(matches));
     }
 
     @Test
@@ -347,8 +346,6 @@ class CollectPassageTest {
       when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(empty, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -382,7 +379,6 @@ class CollectPassageTest {
                     1,
                     CollectionModeEnum.INITIAL_IMPORT,
                     CollectionCycleStateEnum.RUNNING,
-                    null,
                     null);
               });
       CollectorLifecycle.AdmittedCycle admitted =
@@ -451,8 +447,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -582,8 +576,6 @@ class CollectPassageTest {
                 new SportingObservation.Outcome(
                     null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
       }
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -619,7 +611,7 @@ class CollectPassageTest {
 
     @Test
     @DisplayName(
-        "Discovery and an admitted LNV calendar consume one page with its original timestamp")
+        "One discovery page submits both admitted LNV calendars before a sibling phase fails")
     void sharesDiscoveryPage() {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -628,8 +620,12 @@ class CollectPassageTest {
       lifecycle.start();
       when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
+      UUID cycle = admitted.getCycle().id();
+      Instant readAt = NOW.minusSeconds(5);
+      UUID secondPool = UUID.fromString("00000000-0000-4000-8000-000000000155");
       URI page =
           URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+      URI sibling = page.resolve("CompetitionMatches.aspx?ID=901&PID=905");
       CollectionBackend.Target source =
           CollectionBackend.Target.builder()
               .scopeId(CONTROL)
@@ -644,16 +640,26 @@ class CollectPassageTest {
           target(CollectionTargetKindEnum.CALENDAR).toBuilder()
               .provider(CollectionProviderEnum.LNV)
               .sourceBindingId(CONTROL)
+              .groupReference("903")
               .url(page)
               .build();
+      CollectionBackend.Target secondCalendar =
+          calendar.toBuilder().scopeId(secondPool).poolId(secondPool).groupReference("904").build();
       ProviderPages http = mock(ProviderPages.class);
       byte[] html =
-          ("<title>Alterna VOLSTAR 2026/2027</title>"
-                  + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
-                  + "<div class=rmpView id=Content_Main_903><span id=group_lbl_title>Regular</span></div>")
+          """
+          <title>Alterna VOLSTAR 2026/2027</title>
+          <a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>
+          <a href='CompetitionMatches.aspx?ID=901&PID=905'>Playoffs</a>
+          <div class=rmpView id=Content_Main_903><span id=group_lbl_title>Group A</span></div>
+          <div class=rmpView id=Content_Main_904><span id=group_lbl_title>Group B</span></div>
+          """
               .getBytes(StandardCharsets.UTF_8);
       ProviderResponse response = new ProviderResponse(html, page, true);
       doReturn(response).when(http).page(page);
+      doThrow(new UncheckedIOException(new IOException("Synthetic unavailable sibling")))
+          .when(http)
+          .page(sibling);
       DiscoverSeasonSources realDiscovery =
           new DiscoverSeasonSources(
               http,
@@ -662,7 +668,7 @@ class CollectPassageTest {
               new LnvDiscovery(),
               backend,
               lifecycle,
-              Clock.fixed(NOW, ZoneOffset.UTC));
+              Clock.fixed(readAt, ZoneOffset.UTC));
       CollectPassage sharedPassage =
           new CollectPassage(
               backend,
@@ -678,34 +684,110 @@ class CollectPassageTest {
       LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
       SportingObservation.Calendar empty =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(lnv.fromPage(response, NOW)).thenReturn(shared);
-      when(shared.calendar(calendar))
-          .thenReturn(new LnvAcquisition.Calendar(empty, Map.of(), NOW, null));
+      when(lnv.fromPage(response, readAt)).thenReturn(shared);
+      LnvAcquisition.Calendar calendarRead =
+          new LnvAcquisition.Calendar(empty, Map.of(), readAt, null);
+      when(shared.calendar(calendar)).thenReturn(calendarRead);
+      when(shared.calendar(secondCalendar)).thenReturn(calendarRead);
       when(lnv.documentIndexes(any())).thenReturn((owner, evidence) -> null);
-      when(backend.targets(admitted.getCycle().id(), 0))
-          .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
+      when(backend.targets(cycle, 0))
+          .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, true));
+      when(backend.targets(cycle, 1))
+          .thenReturn(new CollectionBackend.TargetPage(List.of(secondCalendar), 1, false));
       when(sporting.calendar(eq(POOL), any(), eq(empty)))
+          .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
+      when(sporting.calendar(eq(secondPool), any(), eq(empty)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
       when(sporting.catalog(eq(CONTROL), any(), any()))
           .thenReturn(
               new SportingObservation.CatalogOutcome(
                   List.of(
                       new SportingObservation.Outcome(
-                          "902", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null)),
-                  true));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
+                          "903", ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null),
+                      new SportingObservation.Outcome(
+                          "904", ObservationOutcomeEnum.UNCHANGED, secondPool, null, null, null)),
+                  false));
 
       // When
       sharedPassage.execute(admitted);
 
       // Then
-      verify(http).page(page);
+      InOrder order = inOrder(backend, http, sporting);
+      ArgumentCaptor<CollectionBackend.Result> results =
+          ArgumentCaptor.forClass(CollectionBackend.Result.class);
+      ArgumentCaptor<SportingObservation.Catalog> catalog =
+          ArgumentCaptor.forClass(SportingObservation.Catalog.class);
+      SportingObservation.Context pageContext =
+          new SportingObservation.Context(cycle, 2, readAt, null);
+      order.verify(backend).targets(cycle, 0);
+      order.verify(backend).targets(cycle, 1);
+      order.verify(http).page(page);
+      order.verify(backend).record(eq(cycle), results.capture());
+      order.verify(sporting).calendar(POOL, pageContext, empty);
+      order.verify(backend, times(2)).record(eq(cycle), results.capture());
+      order.verify(sporting).calendar(secondPool, pageContext, empty);
+      order.verify(backend).record(eq(cycle), results.capture());
+      order.verify(http).page(sibling);
+      order.verify(backend).record(eq(cycle), results.capture());
+      order
+          .verify(sporting)
+          .catalog(
+              eq(CONTROL),
+              eq(new SportingObservation.Context(cycle, 1, readAt, null)),
+              catalog.capture());
+      order.verify(backend).record(eq(cycle), results.capture());
+      order.verify(backend).complete(cycle, NOW);
+      assertThat(catalog.getValue().complete()).isFalse();
+      assertThat(catalog.getValue().pools())
+          .extracting(SportingObservation.Pool::groupReference)
+          .containsExactly("903", "904");
+      assertThat(results.getAllValues())
+          .extracting(
+              CollectionBackend.Result::scopeId,
+              CollectionBackend.Result::stage,
+              CollectionBackend.Result::phase,
+              CollectionBackend.Result::readOrdinal,
+              CollectionBackend.Result::outcome)
+          .containsExactly(
+              tuple(
+                  POOL,
+                  CollectionStageEnum.CALENDAR,
+                  CollectionPhaseEnum.ACQUISITION,
+                  2L,
+                  CollectionOutcomeEnum.SUCCESS),
+              tuple(
+                  POOL,
+                  CollectionStageEnum.CALENDAR,
+                  CollectionPhaseEnum.INTEGRATION,
+                  2L,
+                  CollectionOutcomeEnum.SUCCESS),
+              tuple(
+                  secondPool,
+                  CollectionStageEnum.CALENDAR,
+                  CollectionPhaseEnum.ACQUISITION,
+                  2L,
+                  CollectionOutcomeEnum.SUCCESS),
+              tuple(
+                  secondPool,
+                  CollectionStageEnum.CALENDAR,
+                  CollectionPhaseEnum.INTEGRATION,
+                  2L,
+                  CollectionOutcomeEnum.SUCCESS),
+              tuple(
+                  CONTROL,
+                  CollectionStageEnum.DISCOVERY,
+                  CollectionPhaseEnum.ACQUISITION,
+                  1L,
+                  CollectionOutcomeEnum.PARTIAL),
+              tuple(
+                  CONTROL,
+                  CollectionStageEnum.DISCOVERY,
+                  CollectionPhaseEnum.INTEGRATION,
+                  1L,
+                  CollectionOutcomeEnum.SUCCESS));
+      verify(backend, times(6)).record(eq(cycle), any());
       verify(lnv, never()).read(any());
-      ArgumentCaptor<SportingObservation.Context> context =
-          ArgumentCaptor.forClass(SportingObservation.Context.class);
-      verify(sporting).calendar(eq(POOL), context.capture(), eq(empty));
-      assertThat(context.getValue().observedAt()).isEqualTo(NOW);
+      verifyNoMoreInteractions(http, sporting);
     }
 
     @Test
@@ -785,8 +867,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -848,8 +928,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "TST", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -893,8 +971,6 @@ class CollectPassageTest {
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
       when(resource.calendar(target)).thenReturn(new FfvbAcquisition.Read<>(calendar, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(calendar))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -946,8 +1022,6 @@ class CollectPassageTest {
                   new SportingObservation.Calendar(true, matches, List.of(), List.of()), NOW));
       when(sporting.calendar(eq(POOL), any(), any()))
           .thenReturn(new SportingObservation.CalendarOutcome(outcomes, 1, 0, 0, 1, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1039,8 +1113,6 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(ffvb.resourceUrl(target)).thenReturn(SOURCE);
       when(ffvb.read(SOURCE)).thenThrow(new IllegalStateException("PRIVATE_PROVIDER_PAYLOAD"));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1100,8 +1172,6 @@ class CollectPassageTest {
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);

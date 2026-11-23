@@ -79,6 +79,12 @@ public class CollectorLifecycle {
     try {
       cycle = backend.admit(command);
     } catch (CollectionBackendFailure failure) {
+      log.atWarn()
+          .addKeyValue("operation", "collection_admission")
+          .addKeyValue("cycleId", command.cycleId())
+          .addKeyValue("scope", controlId == null ? sourceBindingId : controlId)
+          .addKeyValue("outcome", failure.getKind())
+          .log("Admission did not confirm runnable work");
       inspectConflict(failure);
       throw failure;
     }
@@ -129,10 +135,12 @@ public class CollectorLifecycle {
   }
 
   /**
-   * Sends normal completion once; failure remains an ordinary backend error.
+   * Attempts to close the admitted control once. Earlier sporting writes and phase evidence have
+   * independent commits. A later work poll reads the actual cycle state after a lost response.
    *
    * @param context original admitted control capability
    * @param completedAt actual passage end
+   * @throws CollectionBackendFailure if completion is refused or its outcome is uncertain
    */
   public void complete(AdmittedCycle context, Instant completedAt) {
     if (context.getCycle().controlId() == null) {

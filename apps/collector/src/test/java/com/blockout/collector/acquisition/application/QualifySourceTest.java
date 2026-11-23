@@ -1,11 +1,12 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningCandidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -13,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
-import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import java.io.IOException;
@@ -81,9 +81,9 @@ class QualifySourceTest {
   }
 
   @Test
-  @DisplayName("Qualification consumes the admitted candidate without another backend read")
-  void qualifiesAdmittedSnapshot() {
-    // Given: real admission and qualification, controlled provider and backend boundaries.
+  @DisplayName("Qualification uses the admitted historical FFVB selector and only sends validation")
+  void qualifiesAdmittedFfvbArchive() {
+    // Given
     CollectionBackend backend = mock(CollectionBackend.class);
     CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
     when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
@@ -91,43 +91,36 @@ class QualifySourceTest {
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000151");
-    URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
+    URI url = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/seniors/2023-2024/index.htm");
     CollectionBackend.Candidate candidate =
-        new CollectionBackend.Candidate(url, "2026/2027", CollectionProviderEnum.LNV, "901");
-    when(backend.admit(any()))
-        .thenAnswer(
-            call -> {
-              CollectionBackend.StartCycle command = call.getArgument(0);
-              return new CollectionBackend.Cycle(
-                  command.cycleId(),
-                  command.incarnationId(),
-                  null,
-                  source,
-                  1,
-                  null,
-                  CollectionCycleStateEnum.RUNNING,
-                  candidate,
-                  null);
-            });
+        new CollectionBackend.Candidate(url, "2023/2024", CollectionProviderEnum.FFVB, "ABCCS");
+    when(backend.admit(any())).thenAnswer(call -> runningCandidate(call.getArgument(0), candidate));
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(null, source, 7, null);
-    ProviderPages http = mock(ProviderPages.class);
+    clearInvocations(backend);
+    ProviderPages ffvbHttp = mock(ProviderPages.class);
+    ProviderPages lnvHttp = mock(ProviderPages.class);
     byte[] page =
-        "<title>Alterna VOLSTAR 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
+        """
+        <form><span>Elite</span><select>
+          <option value="/ffvbapp/resu/vbspo_calendrier.php?saison=2023/2024&amp;codent=ABCCS&amp;poule=EA">Elite A</option>
+        </select></form>
+        """
             .getBytes(StandardCharsets.UTF_8);
-    doReturn(new ProviderResponse(page, url, true)).when(http).page(url);
-    QualifySource service =
-        new QualifySource(
-            http,
-            new LnvDiscovery(),
-            mock(DiscoverSeasonSources.class),
-            lifecycle,
-            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+    when(ffvbHttp.page(url)).thenReturn(new ProviderResponse(page, url, true));
+    Clock clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
+    LnvDiscovery lnv = new LnvDiscovery();
+    DiscoverSeasonSources discovery =
+        new DiscoverSeasonSources(
+            ffvbHttp, lnvHttp, new FfvbDiscovery(), lnv, backend, lifecycle, clock);
+    QualifySource service = new QualifySource(lnvHttp, lnv, discovery, lifecycle, clock);
 
     // When
     service.execute(context);
 
     // Then
-    verify(http).page(url);
+    verify(ffvbHttp).page(url);
+    verifyNoMoreInteractions(ffvbHttp);
+    verifyNoInteractions(lnvHttp);
     verify(backend)
         .validate(
             source,
@@ -135,11 +128,10 @@ class QualifySourceTest {
                 context.getCycle().id(),
                 SourceValidationStateEnum.QUALIFIED,
                 Instant.EPOCH,
-                "2026/2027",
+                "2023/2024",
                 null,
                 null));
-
-    verify(backend, never()).complete(any(), any());
+    verifyNoMoreInteractions(backend);
   }
 
   @Test

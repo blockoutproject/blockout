@@ -610,7 +610,7 @@ class CollectorPresentationBoundaryIntegrationTest {
 
   @Test
   @DisplayName(
-      "Club collection preserves a correction, deliberate absence and current restriction independently")
+      "Club collection preserves contact choices and reports a typed rejection of a secondary proposal")
   void preservesContactChoices() {
     // Given
     correct(
@@ -639,7 +639,7 @@ class CollectorPresentationBoundaryIntegrationTest {
                 JsonNullable.of("13001"),
                 JsonNullable.of("source@example.invalid"),
                 JsonNullable.of("0102030405"),
-                JsonNullable.of("https://example.invalid")));
+                JsonNullable.of("ftp://example.invalid")));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(SHEETS, null, 0, null);
 
     // When
@@ -653,6 +653,27 @@ class CollectorPresentationBoundaryIntegrationTest {
     assertThat(current.at("/email/mode").asString()).isEqualTo("hidden");
     assertThat(current.at("/email/effectiveValue").isNull()).isTrue();
     assertThat(current.at("/phone/sourceValue").isNull()).isTrue();
+    assertThat(current.at("/website/sourceValue").isNull()).isTrue();
+    assertThat(
+            runtime.sql.queryForList(
+                """
+                SELECT phase, outcome, reason_type
+                FROM collection_result
+                WHERE scope_id=? AND stage='CLUB_SHEET'
+                ORDER BY phase
+                """,
+                CLUB))
+        .satisfiesExactly(
+            acquisition -> {
+              assertThat(acquisition).containsEntry("phase", "ACQUISITION");
+              assertThat(acquisition).containsEntry("outcome", "SUCCESS");
+            },
+            integration -> {
+              assertThat(integration).containsEntry("phase", "INTEGRATION");
+              assertThat(integration).containsEntry("outcome", "PARTIAL");
+              assertThat(integration)
+                  .containsEntry("reason_type", "urn:blockout:problem:unprocessable-content");
+            });
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT phone FROM sporting_club WHERE id=?", String.class, CLUB))

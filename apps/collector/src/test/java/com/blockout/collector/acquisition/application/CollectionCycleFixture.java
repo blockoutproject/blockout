@@ -2,7 +2,6 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
-import java.time.Instant;
 
 /** Pure backend cycle responses shared by collector lifecycle and orchestration tests. */
 final class CollectionCycleFixture {
@@ -24,7 +23,6 @@ final class CollectionCycleFixture {
         1,
         CollectionModeEnum.PERIODIC,
         CollectionCycleStateEnum.RUNNING,
-        null,
         null);
   }
 
@@ -33,7 +31,7 @@ final class CollectionCycleFixture {
    *
    * @param command explicit candidate admission whose identities remain unchanged
    * @param candidate scenario-owned source configuration frozen by admission
-   * @return running candidate response with cycle order 1 without a control mode or completion time
+   * @return running candidate response with cycle order 1 and no control mode
    */
   static CollectionBackend.Cycle runningCandidate(
       CollectionBackend.StartCycle command, CollectionBackend.Candidate candidate) {
@@ -45,28 +43,6 @@ final class CollectionCycleFixture {
         1,
         null,
         CollectionCycleStateEnum.RUNNING,
-        candidate,
-        null);
-  }
-
-  /**
-   * Retains the accepted context while supplying its exact terminal timestamp.
-   *
-   * @param cycle original admitted response whose identities, order, mode and candidate are
-   *     retained
-   * @param completedAt scenario-owned accepted completion time
-   * @return the original context in the completed state at the supplied instant
-   */
-  static CollectionBackend.Cycle completed(CollectionBackend.Cycle cycle, Instant completedAt) {
-    return new CollectionBackend.Cycle(
-        cycle.id(),
-        cycle.incarnationId(),
-        cycle.controlId(),
-        cycle.sourceBindingId(),
-        cycle.cycleOrder(),
-        cycle.mode(),
-        CollectionCycleStateEnum.COMPLETED,
-        cycle.candidate(),
-        completedAt);
+        candidate);
   }
 }

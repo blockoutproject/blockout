@@ -6,7 +6,7 @@ import java.time.ZoneOffset;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** Converts transport offsets and absolute instants without choosing a display time zone. */
+/** Represents absolute instants in transport requests. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TemporalMapping {
   /**
@@ -17,15 +17,5 @@ public final class TemporalMapping {
    */
   public static OffsetDateTime toDate(Instant source) {
     return source == null ? null : source.atOffset(ZoneOffset.UTC);
-  }
-
-  /**
-   * Retains the absolute instant of a transport date regardless of its offset.
-   *
-   * @param source dated offset value or null
-   * @return equivalent instant or null
-   */
-  public static Instant toInstant(OffsetDateTime source) {
-    return source == null ? null : source.toInstant();
   }
 }

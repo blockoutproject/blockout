@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -142,8 +141,6 @@ class LnvSeasonEvidenceTest {
             .build();
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(calendar), 0, false));
-    when(backend.complete(admitted.getCycle().id(), NOW))
-        .thenReturn(completed(admitted.getCycle(), NOW));
     SportingBackend sporting = mock(SportingBackend.class);
     LnvDiscovery lnvDiscovery = new LnvDiscovery();
     DiscoverSeasonSources discovery =

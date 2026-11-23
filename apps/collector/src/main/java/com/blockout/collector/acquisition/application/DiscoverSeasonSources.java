@@ -208,20 +208,8 @@ public class DiscoverSeasonSources {
   }
 
   /**
-   * Traverses only the bound source's published native catalog, keeping failures distinct from
-   * absence.
-   *
-   * @param target admitted discovery binding and season
-   * @return complete or partial catalog; unsupported roots throw rather than fabricate emptiness
-   * @throws RuntimeException if no seasonal catalog is recognized; failed reads retain their
-   *     original category
-   */
-  public Read catalog(CollectionBackend.Target target) {
-    return catalog(target, false, () -> 0, page -> {});
-  }
-
-  /**
-   * Streams shared pages to already admitted scopes before discarding each body.
+   * Traverses the bound source's catalog and makes shared pages available synchronously to already
+   * admitted scopes. A partial catalog reports usable entries without declaring absence.
    *
    * @param target seasonal discovery scope
    * @param verifiedHistorical exact historical source admitted with verified reference evidence
@@ -236,11 +224,31 @@ public class DiscoverSeasonSources {
       boolean verifiedHistorical,
       LongSupplier nextOrdinal,
       Consumer<PageRead> consume) {
-    if (target.provider() == CollectionProviderEnum.LNV) {
-      return lnvCatalog(target, verifiedHistorical, nextOrdinal, consume);
-    }
-    ffvb.requireContext(target.url(), target.seasonLabel(), target.organizerReference());
-    ArrayDeque<URI> pending = new ArrayDeque<>(List.of(target.url()));
+    return switch (target.provider()) {
+      case FFVB ->
+          ffvbCatalog(
+              target.url(),
+              target.seasonLabel(),
+              target.organizerReference(),
+              nextOrdinal,
+              consume);
+      case LNV -> lnvCatalog(target, verifiedHistorical, nextOrdinal, consume);
+    };
+  }
+
+  /** Uses the candidate's published FFVB catalogue solely as qualification evidence. */
+  boolean hasCompleteFfvbCatalog(URI url, String season, String organizer) {
+    return ffvbCatalog(url, season, organizer, () -> 0, page -> {}).catalog().complete();
+  }
+
+  private Read ffvbCatalog(
+      URI root,
+      String season,
+      String organizer,
+      LongSupplier nextOrdinal,
+      Consumer<PageRead> consume) {
+    ffvb.requireContext(root, season, organizer);
+    ArrayDeque<URI> pending = new ArrayDeque<>(List.of(root));
     Set<URI> visited = new LinkedHashSet<>();
     List<SportingObservation.Pool> pools = new ArrayList<>();
     boolean recognized = false;
@@ -259,18 +267,17 @@ public class DiscoverSeasonSources {
         PageRead read = readPage(ffvbHttp, url, nextOrdinal);
         ProviderResponse response = read.response();
         observedAt = read.observedAt();
-        ffvb.requireContext(response.url(), target.seasonLabel(), target.organizerReference());
+        ffvb.requireContext(response.url(), season, organizer);
         consume.accept(read);
         Document page = FfvbPage.document(response.body(), response.url());
         try {
-          SportingObservation.Catalog found =
-              ffvb.parse(page, target.seasonLabel(), target.organizerReference());
+          SportingObservation.Catalog found = ffvb.parse(page, season, organizer);
           recognized |= ffvb.seasonal(page);
           if (!found.complete() && firstFailure == null) {
             firstFailure = new FfvbAcquisitionException("Unqualified FFVB catalog entries");
           }
           pools.addAll(found.pools());
-          pending.addAll(ffvb.roundLinks(page, target.seasonLabel(), target.organizerReference()));
+          pending.addAll(ffvb.roundLinks(page, season, organizer));
         } catch (FfvbAcquisitionException unsupported) {
           List<URI> links = ffvb.navigation(page);
           if (links.isEmpty()) {

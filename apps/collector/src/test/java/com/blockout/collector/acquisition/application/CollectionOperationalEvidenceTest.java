@@ -15,8 +15,6 @@ import com.blockout.collector.acquisition.ffvb.FfvbCalendarParser;
 import com.blockout.collector.acquisition.ffvb.FfvbObservationReader;
 import com.blockout.collector.acquisition.ffvb.FfvbStandingsParser;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
-import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
-import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
@@ -31,7 +29,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.DisplayName;
@@ -84,18 +81,6 @@ class CollectionOperationalEvidenceTest {
     lifecycle.start();
     when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(cycle.getCycle().id(), NOW))
-        .thenReturn(
-            new CollectionBackend.Cycle(
-                cycle.getCycle().id(),
-                lifecycle.getIncarnationId(),
-                CONTROL,
-                null,
-                1,
-                CollectionModeEnum.PERIODIC,
-                CollectionCycleStateEnum.COMPLETED,
-                null,
-                NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .scopeId(CLUB)
@@ -139,18 +124,6 @@ class CollectionOperationalEvidenceTest {
     lifecycle.start();
     when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(cycle.getCycle().id(), NOW))
-        .thenReturn(
-            new CollectionBackend.Cycle(
-                cycle.getCycle().id(),
-                lifecycle.getIncarnationId(),
-                CONTROL,
-                null,
-                1,
-                CollectionModeEnum.PERIODIC,
-                CollectionCycleStateEnum.COMPLETED,
-                null,
-                NOW));
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
             .scopeId(CLUB)
@@ -194,18 +167,6 @@ class CollectionOperationalEvidenceTest {
     lifecycle.start();
     when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    when(backend.complete(cycle.getCycle().id(), NOW))
-        .thenReturn(
-            new CollectionBackend.Cycle(
-                cycle.getCycle().id(),
-                lifecycle.getIncarnationId(),
-                CONTROL,
-                null,
-                1,
-                CollectionModeEnum.PERIODIC,
-                CollectionCycleStateEnum.COMPLETED,
-                null,
-                NOW));
     URI source =
         URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
     ProviderHttpClient http = mock(ProviderHttpClient.class);
@@ -267,10 +228,6 @@ class CollectionOperationalEvidenceTest {
     return Stream.of(
         Arguments.of(new IllegalArgumentException("private-provider-body"), "structure", null),
         Arguments.of(new IllegalStateException("private-provider-body"), "technical", null),
-        Arguments.of(
-            new CompletionException(new java.io.IOException("private-provider-body")),
-            "technical",
-            null),
         Arguments.of(
             new UncheckedIOException(new HttpResponseException(503, "private-provider-body")),
             "technical",
