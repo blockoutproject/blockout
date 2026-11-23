@@ -2,9 +2,6 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
-import java.time.LocalDate;
-import java.time.Month;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 /** Follows native championship phase links; sampled ID/PID values never become configuration. */
@@ -23,7 +21,6 @@ import org.springframework.stereotype.Component;
 public class LnvDiscovery {
   private static final String HOST = "lnv-web.dataproject.com";
   private static final String MATCHES = "/CompetitionMatches.aspx";
-  private static final DateTimeFormatter MATCH_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
   /** The covered LNV championships, including their published historical labels. */
   public enum Championship {
@@ -53,18 +50,45 @@ public class LnvDiscovery {
   }
 
   /**
-   * Reads the championship, season evidence and phase inventory from one native root.
+   * Reads championship-level evidence and phase links. For a bound traversal, dates on a root that
+   * also serves a phase are checked as phase evidence so a valid sibling can still be read.
    *
    * @param bytes bounded official championship HTML
    * @param url actual final URL
    * @param competition expected championship ID
-   * @return the bounded root evidence; season is absent only when the page omits it
+   * @return the bounded root evidence and any published season heading
    */
   public Root root(byte[] bytes, URI url, String competition) {
+    return root(LnvPage.parse(bytes, url), url, competition);
+  }
+
+  /**
+   * Checks all seasonal evidence already present on the candidate response. The published heading
+   * is retained on a mismatch so candidate validation can record the conflicting season.
+   *
+   * @return the published or corroborated season, or null when explicit confirmation is needed
+   */
+  public String candidateSeason(byte[] bytes, URI url, String competition, String expectedSeason) {
+    Document page = LnvPage.parse(bytes, url);
+    Root root = root(page, url, competition);
+    String headingSeason = root.season();
+    if (headingSeason != null && !headingSeason.equals(expectedSeason)) {
+      return headingSeason;
+    }
+    String phase = LnvPage.query(url).get("PID");
+    if (!url.getPath().endsWith(MATCHES)
+        || root.phases().stream().noneMatch(published -> published.reference().equals(phase))) {
+      return headingSeason;
+    }
+    Elements groups = LnvPage.phaseGroups(page);
+    groups.forEach(this::requirePhaseGroupTitle);
+    return LnvPage.calendarSeason(groups, headingSeason, expectedSeason);
+  }
+
+  private Root root(Document page, URI url, String competition) {
     if (!competition.equals(championshipReference(url))) {
       throw new LnvAcquisitionException("LNV championship does not match the source reference");
     }
-    Document page = LnvPage.parse(bytes, url);
     String title =
         page.select("title, .CompetitionDescription_Header, [id$=lbl_title]")
             .text()
@@ -141,7 +165,7 @@ public class LnvDiscovery {
     }
 
     Document page = LnvPage.parse(bytes, actual);
-    List<Element> groups = page.select("div.rmpView[id^=Content_Main_]");
+    Elements groups = LnvPage.phaseGroups(page);
     if (groups.isEmpty()) {
       throw new LnvAcquisitionException("LNV phase has no recognizable groups");
     }
@@ -158,17 +182,29 @@ public class LnvDiscovery {
 
     List<SportingObservation.Pool> pools = new ArrayList<>();
     for (Element group : groups) {
-      String id = group.id().substring("Content_Main_".length());
-      Element title = group.selectFirst("[id$=lbl_title]");
-      if (!id.matches("[0-9]+") || title == null || title.text().isBlank()) {
-        throw new LnvAcquisitionException("Unqualified LNV phase group");
-      }
       pools.add(
           new SportingObservation.Pool(
-              competition, competition, phase, null, id, actual, standings, title.text()));
+              competition,
+              competition,
+              phase,
+              null,
+              LnvPage.phaseGroupReference(group),
+              actual,
+              standings,
+              requirePhaseGroupTitle(group)));
     }
     return new PhaseCatalog(
-        pools, phaseLabel(page, published), phaseSeason(page, groups, expectedSeason));
+        pools,
+        phaseLabel(page, published),
+        LnvPage.calendarSeason(groups, LnvPage.season(page), expectedSeason));
+  }
+
+  private String requirePhaseGroupTitle(Element group) {
+    String title = LnvPage.phaseGroupTitle(group);
+    if (title == null) {
+      throw new LnvAcquisitionException("Unqualified LNV phase group");
+    }
+    return title;
   }
 
   private String phaseLabel(Document page, Phase published) {
@@ -177,47 +213,5 @@ public class LnvDiscovery {
       return heading.text();
     }
     return "Calendrier".equalsIgnoreCase(published.label()) ? null : published.label();
-  }
-
-  /** A phase spanning both civil years can establish the season through published match dates. */
-  private String phaseSeason(Document page, List<Element> groups, String expectedSeason) {
-    String explicitSeason = LnvPage.season(page);
-    if (explicitSeason != null
-        && expectedSeason != null
-        && !expectedSeason.equals(explicitSeason)) {
-      throw new LnvAcquisitionException("LNV phase belongs to a different season");
-    }
-
-    String season = explicitSeason == null ? expectedSeason : explicitSeason;
-    Set<Integer> calendarYears = new HashSet<>();
-    for (Element group : groups) {
-      for (Element dateField : group.select("[id$=_MatchRow] [id$=_LB_DataOra]")) {
-        LocalDate date = publishedDate(dateField.text());
-        if (date == null) {
-          continue;
-        }
-        int startYear =
-            date.getMonthValue() >= Month.JULY.getValue() ? date.getYear() : date.getYear() - 1;
-        String matchSeason = startYear + "/" + (startYear + 1);
-        if (season != null && !season.equals(matchSeason)) {
-          throw new LnvAcquisitionException("LNV phase match dates contradict the season");
-        }
-        season = matchSeason;
-        calendarYears.add(date.getYear());
-      }
-    }
-    return explicitSeason != null || calendarYears.size() == 2 ? season : null;
-  }
-
-  private LocalDate publishedDate(String rendered) {
-    if (rendered.isBlank()) {
-      return null;
-    }
-    try {
-      return LnvPage.date(rendered.split(" - ", 2)[0], MATCH_DATE);
-    } catch (LnvAcquisitionException invalidDate) {
-      // Calendar parsing reports malformed rows independently. They supply no seasonal evidence.
-      return null;
-    }
   }
 }

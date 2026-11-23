@@ -9,20 +9,30 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Native LNV context and rendered-clock interpretation shared by its explicit parsers. */
 final class LnvPage {
+  static final DateTimeFormatter CALENDAR_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
+
+  // Start at the whitespace run's boundary to avoid retrying from every space in the run.
+  private static final Pattern CLOCK_SEPARATOR = Pattern.compile("(?<=\\S)\\s+-\\s+");
+
   /** Prevents construction of this native page helper. */
   private LnvPage() {}
 
@@ -63,8 +73,7 @@ final class LnvPage {
           .localTime(JsonNullable.of(null))
           .build();
     }
-    // Start only at a whitespace run's boundary, rather than retrying from each space in that run.
-    String[] parts = rendered.strip().split("(?<=\\S)\\s+-\\s+", 2);
+    String[] parts = CLOCK_SEPARATOR.split(rendered.strip(), 2);
     LocalDate date = date(parts[0], dateFormat);
     if (parts.length == 1 || parts[1].equals("--:--")) {
       return SportingObservation.Facts.builder()
@@ -101,6 +110,26 @@ final class LnvPage {
     }
   }
 
+  static String renderedDate(String rendered) {
+    return CLOCK_SEPARATOR.split(rendered.strip(), 2)[0];
+  }
+
+  static Elements phaseGroups(Document page) {
+    return page.select("div.rmpView[id^=Content_Main_]");
+  }
+
+  static String phaseGroupReference(Element group) {
+    return group.id().substring("Content_Main_".length());
+  }
+
+  static String phaseGroupTitle(Element group) {
+    Element title = group.selectFirst("[id$=lbl_title]");
+    if (!phaseGroupReference(group).matches("[0-9]+") || title == null || title.text().isBlank()) {
+      return null;
+    }
+    return title.text();
+  }
+
   /**
    * Reads only published seasonal evidence, without deriving a year from IDs or current time.
    *
@@ -125,6 +154,45 @@ final class LnvPage {
       result = season;
     }
     return result;
+  }
+
+  /**
+   * Checks the native rendered dates against one July–June season before converting any clock.
+   * Dates in both civil years can establish attribution. A single readable date can contradict it.
+   * An unreadable date supplies no season evidence and remains a local calendar parsing failure.
+   *
+   * @return independently established attribution, or null when the publication lacks it
+   */
+  static String calendarSeason(Elements groups, String headingSeason, String expectedSeason) {
+    if (headingSeason != null && expectedSeason != null && !expectedSeason.equals(headingSeason)) {
+      throw new LnvAcquisitionException("LNV phase belongs to a different season");
+    }
+
+    String season = headingSeason == null ? expectedSeason : headingSeason;
+    Set<Integer> calendarYears = new HashSet<>();
+    for (Element dateField : groups.select("[id$=_MatchRow] [id$=_LB_DataOra]")) {
+      String rendered = dateField.text();
+      if (rendered.isBlank()) {
+        continue;
+      }
+      LocalDate publishedDate;
+      try {
+        publishedDate = date(renderedDate(rendered), CALENDAR_DATE_FORMAT);
+      } catch (LnvAcquisitionException invalidDate) {
+        continue;
+      }
+      int startYear =
+          publishedDate.getMonthValue() >= Month.JULY.getValue()
+              ? publishedDate.getYear()
+              : publishedDate.getYear() - 1;
+      String matchSeason = startYear + "/" + (startYear + 1);
+      if (season != null && !season.equals(matchSeason)) {
+        throw new LnvAcquisitionException("LNV phase match dates contradict the season");
+      }
+      season = matchSeason;
+      calendarYears.add(publishedDate.getYear());
+    }
+    return headingSeason != null || calendarYears.size() == 2 ? season : null;
   }
 
   /**

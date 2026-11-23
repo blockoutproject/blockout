@@ -75,14 +75,14 @@ public class LnvObservationReader implements LnvAcquisition {
       /** {@inheritDoc} */
       @Override
       public Calendar calendar(CollectionBackend.Target target) {
-        requireSeason(response, target);
         LnvCalendarParser.Read read =
             calendars.parse(
                 response.body(),
                 response.url(),
                 target.competitionReference(),
                 target.poolReference(),
-                target.groupReference());
+                target.groupReference(),
+                target.seasonLabel());
         return new Calendar(
             read.calendar(),
             read.logos(),
@@ -210,7 +210,7 @@ public class LnvObservationReader implements LnvAcquisition {
   private record Index(Document document, Instant observedAt, long readOrdinal) {}
 
   /**
-   * Rejects positive contradictory seasonal evidence even without a simultaneous discovery target.
+   * Checks the published season heading on standings, detail and document pages.
    *
    * @param response bounded provider response
    * @param target admitted seasonal scope

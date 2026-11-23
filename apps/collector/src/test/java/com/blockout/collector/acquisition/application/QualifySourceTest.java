@@ -7,8 +7,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
@@ -23,6 +26,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -30,6 +34,52 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 @DisplayName("Exact admitted source qualification")
 class QualifySourceTest {
+  @ParameterizedTest(name = "FFVB candidate for {0} is {1}")
+  @CsvSource({"2026/2027, QUALIFIED, 2026/2027", "2025/2026, INVALID,"})
+  @DisplayName("FFVB qualification follows its complete published seasonal selector")
+  void qualifiesFfvbSelector(
+      String season, SourceValidationStateEnum expectedState, String expectedEvidence) {
+    // Given
+    URI root = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/pbscript.htm");
+    URI calendar = root.resolve("vbspo_calendrier.php?saison=2026/2027&codent=ABCCS&poule=EA");
+    ProviderPages ffvbHttp = mock(ProviderPages.class);
+    ProviderPages lnvHttp = mock(ProviderPages.class);
+    when(ffvbHttp.page(root))
+        .thenReturn(
+            new ProviderResponse(
+                """
+                <form><span>Elite</span><select><option value="vbspo_calendrier.php?saison=2026/2027&codent=ABCCS&poule=EA">Elite A</option></select></form>
+                """
+                    .getBytes(StandardCharsets.UTF_8),
+                root,
+                true));
+    when(ffvbHttp.page(calendar)).thenReturn(new ProviderResponse(new byte[0], calendar, true));
+    Clock clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
+    CollectionBackend backend = mock(CollectionBackend.class);
+    CollectorLifecycle lifecycle = mock(CollectorLifecycle.class);
+    LnvDiscovery lnv = new LnvDiscovery();
+    DiscoverSeasonSources discovery =
+        new DiscoverSeasonSources(
+            ffvbHttp, lnvHttp, new FfvbDiscovery(), lnv, backend, lifecycle, clock);
+    QualifySource qualification = new QualifySource(lnvHttp, lnv, discovery, lifecycle, clock);
+
+    // When
+    QualifySource.Evidence result =
+        qualification.qualify(
+            new CollectionBackend.Candidate(root, season, CollectionProviderEnum.FFVB, "ABCCS"));
+
+    // Then
+    assertThat(result.state()).isEqualTo(expectedState);
+    assertThat(result.seasonEvidence()).isEqualTo(expectedEvidence);
+    verify(ffvbHttp).page(root);
+    if (expectedState == SourceValidationStateEnum.INVALID) {
+      verify(ffvbHttp).page(calendar);
+      assertThat(result.reasonType()).isEqualTo(URI.create("urn:blockout:acquisition:structure"));
+    }
+    verifyNoMoreInteractions(ffvbHttp);
+    verifyNoInteractions(lnvHttp);
+  }
+
   @Test
   @DisplayName("Qualification consumes the admitted candidate without another backend read")
   void qualifiesAdmittedSnapshot() {
