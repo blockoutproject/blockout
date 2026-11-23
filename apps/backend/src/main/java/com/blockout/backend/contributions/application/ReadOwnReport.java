@@ -5,7 +5,8 @@ import com.blockout.backend.accounts.application.exception.AccountNotFoundExcept
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
-import com.blockout.backend.sporting.application.service.MatchContributionAccess;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ReadOwnReport {
   private final ContributionStore store;
-  private final MatchContributionAccess sporting;
+  private final ReadSportingData visibility;
   private final AccountAccess accounts;
 
   /**
@@ -39,9 +40,7 @@ public class ReadOwnReport {
     }
     ContributionVersion version =
         store.version(versionId).orElseThrow(SportingResourceNotFoundException::new);
-    if (!sporting.read(version.matchId()).viewable()) {
-      throw new SportingResourceNotFoundException();
-    }
+    visibility.requireViewable(Kind.MATCH, version.matchId());
     boolean reported = store.reported(versionId, reporter);
     if (!reported && version.state() != State.ACTIVE) {
       throw new SportingResourceNotFoundException();

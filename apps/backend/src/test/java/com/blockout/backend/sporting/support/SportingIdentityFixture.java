@@ -55,7 +55,7 @@ public class SportingIdentityFixture {
       UUID poolId, String reference, TeamCandidate home, TeamCandidate away) {
     store.lockPoolSeason(poolId);
     roots.lockDivisionForPool(poolId);
-    store.match(poolId, reference).ifPresent(match -> store.lockMatchSchedule(match.id()));
+    store.match(poolId, reference).ifPresent(match -> store.lockMatch(match.id()));
     return identities.identifyMatch(poolId, reference, home, away);
   }
 }

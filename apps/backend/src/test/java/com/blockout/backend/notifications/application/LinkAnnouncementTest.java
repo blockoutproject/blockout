@@ -18,6 +18,7 @@ import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
+import com.blockout.backend.sporting.application.service.MatchContributionAccess.LinkAnnouncementFacts;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 @DisplayName("Link announcement eligibility")
 class LinkAnnouncementTest {
   private static final UUID MATCH_ID = UUID.fromString("00000000-0000-4000-8000-000000000252");
+  private static final MatchView MATCH =
+      new MatchView(MATCH_ID, MATCH_ID, "synthetic", MATCH_ID, MATCH_ID);
   private static final Instant START = Instant.parse("2026-10-24T12:00:00Z");
   private static final Result FINAL_RESULT = new Result(ResultStateEnum.FINAL, 3, 1, null);
   private final NotificationStore store = mock(NotificationStore.class);
@@ -45,7 +48,7 @@ class LinkAnnouncementTest {
   @DisplayName("Consumes the live allowance at or after the reliable start with no audience")
   void consumesDueLiveAllowance(long elapsedSeconds) {
     // Given
-    Facts sporting = sporting(START, null, true);
+    LinkAnnouncementFacts sporting = new LinkAnnouncementFacts(MATCH, START, false, true);
     when(store.facts(MATCH_ID)).thenReturn(MatchAnnouncementFacts.empty(MATCH_ID));
     when(links.availableForConsultableMatch(MATCH_ID)).thenReturn(true);
     when(recipients.select(sporting.match())).thenReturn(Set.of());
@@ -66,7 +69,7 @@ class LinkAnnouncementTest {
   void skipsIneligibleLiveCandidate(boolean viewable, Long startOffset) {
     // Given
     Instant start = startOffset == null ? null : START.plusSeconds(startOffset);
-    Facts sporting = sporting(start, null, viewable);
+    LinkAnnouncementFacts sporting = new LinkAnnouncementFacts(MATCH, start, false, viewable);
 
     // When
     List<Entry> created = processor.processDueMatch(sporting, START);
@@ -80,7 +83,7 @@ class LinkAnnouncementTest {
   @DisplayName("Only publication can consume an unused post-result allowance")
   void skipsFinalDueMatch() {
     // Given
-    Facts sporting = sporting(START, FINAL_RESULT, true);
+    LinkAnnouncementFacts sporting = new LinkAnnouncementFacts(MATCH, START, true, true);
 
     // When
     List<Entry> created = processor.processDueMatch(sporting, START);
@@ -171,7 +174,7 @@ class LinkAnnouncementTest {
 
   private Facts sporting(Instant start, Result result, boolean viewable) {
     return new Facts(
-        new MatchView(MATCH_ID, MATCH_ID, "synthetic", MATCH_ID, MATCH_ID),
+        MATCH,
         MatchSchedule.builder().id(MATCH_ID).reliableStart(start).build(),
         result,
         viewable,

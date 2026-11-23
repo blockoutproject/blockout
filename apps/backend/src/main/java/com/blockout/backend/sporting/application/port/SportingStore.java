@@ -540,6 +540,9 @@ public interface SportingStore {
    */
   ObservationOrder matchOrder(UUID poolId, String reference);
 
+  /** Locks the match row after the caller has acquired its preceding sporting locks. */
+  void lockMatch(UUID matchId);
+
   /**
    * Locks an existing match after runtime, season and cycle locks and detaches its owned facts.
    *
@@ -600,6 +603,13 @@ public interface SportingStore {
       boolean authoritative,
       ObservationOrder order,
       CatalogObservation observation);
+
+  /**
+   * Reads the accepted overall result without hydrating match enrichment.
+   *
+   * @return current result, or null when absent
+   */
+  MatchObservation.Result matchResult(UUID matchId);
 
   /**
    * Reads current enrichment within the caller's read or mutation transaction.

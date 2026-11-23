@@ -4,6 +4,7 @@ import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
@@ -29,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Immutable owner reads for F01 and current public inputs for F03/F04/F06. */
+/** Current sporting facts and public eligibility for dependent use cases. */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -61,6 +62,11 @@ public class ReadSportingData {
     visibility(kind, id)
         .filter(SportingVisibility::viewable)
         .orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  /** Reads explicit F02 finality for a retained match without loading its enrichment. */
+  public boolean hasDefinitiveMatchResult(UUID matchId) {
+    return Result.isFinal(store.matchResult(matchId));
   }
 
   /**

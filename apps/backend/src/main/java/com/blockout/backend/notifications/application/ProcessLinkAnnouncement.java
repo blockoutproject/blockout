@@ -5,6 +5,7 @@ import com.blockout.backend.notifications.application.AllocateAnnouncements.Entr
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
+import com.blockout.backend.sporting.application.service.MatchContributionAccess.LinkAnnouncementFacts;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -28,21 +29,28 @@ public class ProcessLinkAnnouncement {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public List<Entry> processPublication(Facts sporting, Instant now) {
-    return process(sporting, now, true);
+    return process(
+        new LinkAnnouncementFacts(
+            sporting.match(),
+            sporting.schedule().reliableStart(),
+            sporting.definitiveResult(),
+            sporting.viewable()),
+        now,
+        true);
   }
 
   /** Rechecks live eligibility and current link presence under the due candidate's match lock. */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<Entry> processDueMatch(Facts sporting, Instant now) {
+  public List<Entry> processDueMatch(LinkAnnouncementFacts sporting, Instant now) {
     return process(sporting, now, false);
   }
 
-  private List<Entry> process(Facts sporting, Instant now, boolean publication) {
+  private List<Entry> process(LinkAnnouncementFacts sporting, Instant now, boolean publication) {
     if (!sporting.viewable()) {
       return List.of();
     }
     boolean finalResult = sporting.definitiveResult();
-    Instant start = sporting.schedule().reliableStart();
+    Instant start = sporting.reliableStart();
     if (finalResult && !publication) {
       return List.of();
     }

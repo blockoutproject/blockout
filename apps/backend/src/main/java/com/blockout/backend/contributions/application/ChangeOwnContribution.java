@@ -8,8 +8,9 @@ import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
-import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Clock;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ChangeOwnContribution {
   private final MatchContributionAccess sporting;
+  private final ReadSportingData visibility;
   private final AccountAccess accounts;
   private final ContributionStore store;
   private final Clock clock;
@@ -44,7 +46,7 @@ public class ChangeOwnContribution {
    */
   @Transactional
   public ReadOwnContributions.Detail change(UUID owner, UUID matchId, UUID versionId) {
-    Facts facts = sporting.lock(matchId);
+    sporting.lockMatch(matchId);
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(matchId));
     affected.add(owner);
     for (UUID account : affected.stream().sorted().toList()) {
@@ -53,9 +55,7 @@ public class ChangeOwnContribution {
         throw new AccountNotFoundException();
       }
     }
-    if (!facts.viewable()) {
-      throw new SportingResourceNotFoundException();
-    }
+    visibility.requireViewable(Kind.MATCH, matchId);
     ContributionVersion version =
         store
             .version(versionId)

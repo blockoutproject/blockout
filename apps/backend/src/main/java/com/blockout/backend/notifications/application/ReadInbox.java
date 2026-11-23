@@ -89,7 +89,9 @@ public class ReadInbox {
   }
 
   /**
-   * Composes the shared current-member selection without assigning error semantics to absence.
+   * Composes the shared current-member selection without assigning error semantics to absence. The
+   * inbox foreign key cascades account deletion, so a selected member also establishes the original
+   * account's presence in the same snapshot.
    *
    * @param owner original lifecycle
    * @param id original allocation
@@ -97,9 +99,6 @@ public class ReadInbox {
    * @return authorized current representation, or empty
    */
   private Optional<Entry> currentMember(NotificationContext owner, UUID id, Instant now) {
-    if (!accounts.exists(owner.accountId())) {
-      return Optional.empty();
-    }
     return store.member(owner, id, now).map(row -> hydrate(List.of(row), now).getFirst());
   }
 

@@ -63,7 +63,9 @@ public class ProcessDueLinkAnnouncements {
      */
     @Transactional
     public void process(UUID matchId) {
-      handoff.submit(announcements.processDueMatch(sporting.lock(matchId), clock.instant()));
+      handoff.submit(
+          announcements.processDueMatch(
+              sporting.lockForLinkAnnouncement(matchId), clock.instant()));
     }
   }
 }

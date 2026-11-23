@@ -283,7 +283,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
       Future<?> waiting =
           tx.execute(
               status -> {
-                sporting.lock(matchId);
+                sporting.lockMatch(matchId);
                 Future<?> work =
                     workers.submit(
                         () ->

@@ -7,8 +7,9 @@ import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
-import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReportContribution {
   private final ContributionStore store;
   private final MatchContributionAccess sporting;
+  private final ReadSportingData sportingReads;
   private final AccountAccess accounts;
   private final Clock clock;
 
@@ -53,7 +55,7 @@ public class ReportContribution {
     }
     UUID matchId =
         store.matchForVersion(versionId).orElseThrow(SportingResourceNotFoundException::new);
-    Facts facts = sporting.lock(matchId);
+    sporting.lockMatch(matchId);
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(matchId));
     affected.add(reporter);
     for (UUID account : affected.stream().sorted().toList()) {
@@ -62,9 +64,7 @@ public class ReportContribution {
         throw new AccountNotFoundException();
       }
     }
-    if (!facts.viewable()) {
-      throw new SportingResourceNotFoundException();
-    }
+    sportingReads.requireViewable(Kind.MATCH, matchId);
     ContributionVersion version =
         store.version(versionId).orElseThrow(SportingResourceNotFoundException::new);
     if (store.reported(versionId, reporter)) {
@@ -76,10 +76,11 @@ public class ReportContribution {
     if (version.state() != State.ACTIVE) {
       throw new ContributionConflictException();
     }
+    int threshold = sportingReads.hasDefinitiveMatchResult(matchId) ? 10 : 3;
     Instant now = clock.instant();
     long total = store.report(versionId, reporter, trimmed, now);
     store.advance(matchId, false);
-    if (total >= (facts.definitiveResult() ? 10 : 3)) {
+    if (total >= threshold) {
       store.decide(versionId, State.HIDDEN, new Decision(DecisionKind.HIDING, now, null));
       store.hold(matchId, versionId);
     }
