@@ -8,7 +8,7 @@ import {
   getGetFollowOptionsQueryKey,
 } from "../../../../.generated/mobile";
 import { ApiError } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import {
   followMutationKey,
   followStateKey,
@@ -17,11 +17,6 @@ import {
 } from "./following-keys";
 import type { useFollowStateQuery } from "./use-follow-state-query";
 import { withdrawRefusedFollowingQuery } from "./follow-queries";
-
-/** A current permission/visibility refusal suspends the personal control until a successful member read. */
-export function isFollowRestriction(error: unknown): error is ApiError {
-  return error instanceof ApiError && [403, 404].includes(error.status ?? 0);
-}
 
 /**
  * Accepts a confirmed replacement into the captured private cache and resets personal traversal,
@@ -66,11 +61,7 @@ export function useFollowMutation(
       );
     },
     onError: async (error) => {
-      if (
-        owner &&
-        error instanceof ApiError &&
-        (isAccessDenied(error) || isFollowRestriction(error))
-      ) {
+      if (owner && isResourceReadRefused(error)) {
         await withdrawRefusedFollowingQuery(client, stateKey, error);
       }
     },

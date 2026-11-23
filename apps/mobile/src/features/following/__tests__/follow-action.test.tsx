@@ -819,6 +819,7 @@ it.each([401, 403, 404])(
     );
     const owner = { ...session, accountId };
     const key = followStateKey(owner, team);
+    mockFetch.mockClear();
 
     // When
     memberStatus = status;
@@ -844,6 +845,9 @@ it.each([401, 403, 404])(
       name: "Réessayer",
       busy: false,
     });
+    await waitFor(() =>
+      expect(client.getQueryState(key)?.error).toMatchObject({ status: 503 }),
+    );
     expect(client.getQueryData(key)).toBeUndefined();
     expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
 
@@ -857,6 +861,11 @@ it.each([401, 403, 404])(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),
       ).toHaveLength(2),
     );
+    expect(
+      mockFetch.mock.calls
+        .filter(([url]) => url.endsWith(`/team-follows/${team.id}`))
+        .map(([, request]) => request?.method),
+    ).toEqual(["GET", "GET", "GET"]);
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
     ).toHaveLength(0);

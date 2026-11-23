@@ -1,6 +1,5 @@
 import {
   infiniteQueryOptions,
-  hashKey,
   type InfiniteData,
   type QueryClient,
   type QueryKey,
@@ -8,7 +7,8 @@ import {
 import { listNotifications } from "../../../../.generated/mobile";
 import type { NotificationsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import type { SessionSnapshot } from "@/features/accounts";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
@@ -61,6 +61,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
         signal,
         pageParam,
         client,
+        queryKey,
       }): Promise<NotificationsResponse> => {
         try {
           const page = await listNotifications(
@@ -77,7 +78,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
           };
         } catch (error) {
           if (!signal.aborted) {
-            refuseInboxAccess(client, owner, error, keys.inbox);
+            refuseInboxAccess(client, queryKey, error, "reader");
           }
           throw error;
         }
@@ -100,33 +101,24 @@ export function refreshRetainedInbox(
 }
 
 /**
- * Applies a known current owner refusal or missing owner to the private list. Older reads are
- * cancelled; the list enters ordinary error state so an initial read can be retried.
- * The failing query finishes its own native error transition when its key is supplied.
+ * An external refusal cancels the pending list read before withdrawing the inbox.
+ * A refusal from the list reader leaves that request to finish through Query's error handling.
  */
 export function refuseInboxAccess(
   client: QueryClient,
-  owner: InboxOwner,
+  queryKey: QueryKey,
   error: unknown,
-  failingKey?: QueryKey,
+  source: "reader" | "external",
 ) {
-  if (
-    !(error instanceof ApiError) ||
-    !(isAccessDenied(error) || error.status === 404)
-  ) {
+  if (!isResourceReadRefused(error)) {
     return;
   }
-  const keys = getNotificationKeys(owner);
-  const queryKey = keys.inbox;
-  if (!failingKey || hashKey(failingKey) !== hashKey(queryKey)) {
-    void client.cancelQueries({ queryKey, exact: true });
+  const filters = { queryKey, exact: true };
+  if (source === "external") {
+    void client.cancelQueries(filters);
   }
-  client.getQueryCache().find({ queryKey, exact: true })?.setState({
-    data: undefined,
-    dataUpdatedAt: 0,
-    error,
-    errorUpdatedAt: Date.now(),
-    status: "error",
-    fetchStatus: "idle",
-  });
+  const query = client.getQueryCache().find(filters);
+  if (query) {
+    withdrawCachedRead(query, error);
+  }
 }

@@ -18,8 +18,10 @@ export function createReadNotificationOptions(
   if (!accountId) {
     throw new ApiError("cancelled");
   }
+  const { queryKey } = queries.inbox;
+  const filters = { queryKey, exact: true };
   return mutationOptions({
-    mutationKey: [...queries.inbox.queryKey, "read"],
+    mutationKey: [...queryKey, "read"],
     mutationFn: async (id: string) =>
       markNotificationRead(
         accountId,
@@ -30,14 +32,8 @@ export function createReadNotificationOptions(
     onError: async (error, id) => {
       // A known removed personal entry must leave the local copy, independently of read-flag freshness.
       if (error instanceof ApiError && error.status === 404) {
-        await client.cancelQueries({
-          queryKey: queries.inbox.queryKey,
-          exact: true,
-        });
-        const query = client.getQueryCache().find<InboxData>({
-          queryKey: queries.inbox.queryKey,
-          exact: true,
-        });
+        await client.cancelQueries(filters);
+        const query = client.getQueryCache().find<InboxData>(filters);
         const current = query?.state.data;
         if (current) {
           query.setState({
@@ -54,13 +50,10 @@ export function createReadNotificationOptions(
         }
         return;
       }
-      refuseInboxAccess(client, owner, error);
+      refuseInboxAccess(client, queryKey, error, "external");
     },
     onSettled: () => {
-      void client.invalidateQueries({
-        queryKey: queries.inbox.queryKey,
-        exact: true,
-      });
+      void client.invalidateQueries(filters);
     },
   });
 }
