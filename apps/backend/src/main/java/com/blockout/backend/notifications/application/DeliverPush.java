@@ -34,7 +34,6 @@ public class DeliverPush {
   private final ThreadPoolTaskExecutor executor;
   private final TaskScheduler scheduler;
   private final Clock clock;
-  private final boolean enabled;
   private final Semaphore receiptSlots = new Semaphore(100);
 
   /**
@@ -46,7 +45,7 @@ public class DeliverPush {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Order(Ordered.HIGHEST_PRECEDENCE)
   public void onReady(AfterCommitAnnouncements.Ready ready) {
-    if (!enabled) {
+    if (ready.targets().isEmpty()) {
       return;
     }
     try {

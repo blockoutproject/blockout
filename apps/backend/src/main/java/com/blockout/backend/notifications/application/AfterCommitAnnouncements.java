@@ -8,20 +8,19 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Transient handoff only after successful SQL commit; no provider call or persistent retry. */
-@Service
 @RequiredArgsConstructor
 public class AfterCommitAnnouncements {
   private final ApplicationEventPublisher events;
   private final PushSubscriptionStore subscriptions;
+  private final boolean pushEnabled;
 
   /**
-   * Captures immutable allocations inside the producer transaction for the native after-commit
-   * consumer.
+   * Publishes the allocations for after-commit consumers. Only an enabled deployment captures
+   * destinations, inside the producer transaction and only for the already selected accounts.
    *
    * @param created newly allocated entries
    */
@@ -31,10 +30,9 @@ public class AfterCommitAnnouncements {
       return;
     }
     Map<UUID, List<Target>> targets =
-        created.stream()
-            .map(Entry::accountId)
-            .distinct()
-            .collect(Collectors.toUnmodifiableMap(account -> account, subscriptions::targets));
+        pushEnabled
+            ? subscriptions.targets(created.stream().map(Entry::accountId).toList())
+            : Map.of();
     events.publishEvent(new Ready(created, targets));
   }
 
