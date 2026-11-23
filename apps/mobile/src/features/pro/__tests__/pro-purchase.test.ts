@@ -62,7 +62,7 @@ it("keeps the existing Pro banner eligible after a documented SDK network failur
   const owner = createProSession();
   owner.setTarget(session);
   await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    expect(owner.getSnapshot()?.association).toBe("associated"),
   );
 
   // When
@@ -72,13 +72,10 @@ it("keeps the existing Pro banner eligible after a documented SDK network failur
   );
 
   // Then
-  expect(owner.getSnapshot().evidence?.operation).toBe("failed");
+  expect(owner.getSnapshot()?.operation).toBe("failed");
   expect(
     canShowProOffer(
-      getProState(
-        { status: "authenticated", ...session },
-        owner.getSnapshot().evidence,
-      ),
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
     ),
   ).toBe(true);
 });
@@ -88,7 +85,7 @@ it("keeps confirmed payment separate from activation when verification is unavai
   const owner = createProSession();
   owner.setTarget(session);
   await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    expect(owner.getSnapshot()?.association).toBe("associated"),
   );
   mockPurchases.getCustomerInfo.mockRejectedValue(
     new Error("private provider data"),
@@ -99,13 +96,10 @@ it("keeps confirmed payment separate from activation when verification is unavai
   await owner.refresh(session);
 
   // Then
-  expect(owner.getSnapshot().evidence?.operation).toBe("purchased");
+  expect(owner.getSnapshot()?.operation).toBe("purchased");
   expect(
     canShowProOffer(
-      getProState(
-        { status: "authenticated", ...session },
-        owner.getSnapshot().evidence,
-      ),
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
     ),
   ).toBe(false);
 });
@@ -115,7 +109,7 @@ it("accepts the SDK completion's active entitlement immediately and preserves gi
   const owner = createProSession();
   owner.setTarget(session);
   await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    expect(owner.getSnapshot()?.association).toBe("associated"),
   );
   const active = {
     "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
@@ -134,13 +128,10 @@ it("accepts the SDK completion's active entitlement immediately and preserves gi
   await owner.completeOperation(session, "cancelled");
 
   // Then
-  expect(owner.getSnapshot().evidence?.customerInfo).toBe(gifted);
+  expect(owner.getSnapshot()?.customerInfo).toBe(gifted);
   expect(
     canShowProOffer(
-      getProState(
-        { status: "authenticated", ...session },
-        owner.getSnapshot().evidence,
-      ),
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
     ),
   ).toBe(false);
 });
@@ -150,7 +141,7 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   const owner = createProSession();
   owner.setTarget(session);
   await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    expect(owner.getSnapshot()?.association).toBe("associated"),
   );
 
   // When
@@ -159,21 +150,18 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   const restarted = createProSession();
   restarted.setTarget({ ...session, subject: "restart-A" });
   await waitFor(() =>
-    expect(restarted.getSnapshot().evidence?.association).toBe("associated"),
+    expect(restarted.getSnapshot()?.association).toBe("associated"),
   );
 
   // Then
-  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(owner.getSnapshot()).toBeNull();
   expect(
     canShowProOffer(
-      getProState(
-        { status: "authenticated", ...session },
-        owner.getSnapshot().evidence,
-      ),
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
     ),
   ).toBe(false);
-  expect(restarted.getSnapshot().evidence?.operation).toBe("idle");
-  expect(restarted.getSnapshot().evidence?.customerInfo).toBe(inactive);
+  expect(restarted.getSnapshot()?.operation).toBe("idle");
+  expect(restarted.getSnapshot()?.customerInfo).toBe(inactive);
 });
 
 it.each(["purchased", "already-owned", "pending"] as const)(
@@ -183,7 +171,7 @@ it.each(["purchased", "already-owned", "pending"] as const)(
     const owner = createProSession();
     owner.setTarget(session);
     await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+      expect(owner.getSnapshot()?.association).toBe("associated"),
     );
     const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
     const paid = customerInfo({
@@ -203,7 +191,7 @@ it.each(["purchased", "already-owned", "pending"] as const)(
       canShowProOffer(
         getProState(
           { status: "authenticated", ...session },
-          owner.getSnapshot().evidence,
+          owner.getSnapshot(),
         ),
       ),
     ).toBe(true);
@@ -217,7 +205,7 @@ it.each(["purchased", "pending", "already-owned"] as const)(
     const owner = createProSession();
     owner.setTarget(session);
     await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+      expect(owner.getSnapshot()?.association).toBe("associated"),
     );
     const active = {
       "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
@@ -235,12 +223,12 @@ it.each(["purchased", "pending", "already-owned"] as const)(
     await owner.refresh(session);
 
     // Then
-    expect(owner.getSnapshot().evidence?.operation).toBe(operation);
+    expect(owner.getSnapshot()?.operation).toBe(operation);
     expect(
       canShowProOffer(
         getProState(
           { status: "authenticated", ...session },
-          owner.getSnapshot().evidence,
+          owner.getSnapshot(),
         ),
       ),
     ).toBe(false);

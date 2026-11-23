@@ -47,7 +47,7 @@ export function ProProvider({
 }: Readonly<PropsWithChildren<{ presentationEnabled?: boolean }>>) {
   const account = useAccountSession();
   const { status, subject, accountId } = account;
-  const native = useSyncExternalStore(
+  const evidence = useSyncExternalStore(
     proSession.subscribe,
     proSession.getSnapshot,
   );
@@ -163,11 +163,15 @@ export function ProProvider({
     );
   }
 
+  function getState() {
+    return getProState(account, proSession.getSnapshot());
+  }
+
   function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
     if (!isCurrentHost()) {
       return;
     }
-    const state = getProState(account, proSession.getSnapshot().evidence);
+    const state = getState();
     if (state.status === "guest") {
       return;
     }
@@ -181,8 +185,8 @@ export function ProProvider({
   return (
     <ProSessionContext
       value={{
-        state: getProState(account, native.evidence),
-        getState: () => getProState(account, proSession.getSnapshot().evidence),
+        state: getProState(account, evidence),
+        getState,
         openPaywall,
       }}
     >
