@@ -31,6 +31,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
@@ -68,6 +69,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.annotation.DirtiesContext;
@@ -291,6 +293,71 @@ class TransitionAnnouncementIntegrationTest {
                 "SELECT result_state FROM sporting_match WHERE id=?", String.class, laterMatch))
         .isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM match_announcement", Long.class)).isZero();
+    assertSilent();
+  }
+
+  @Test
+  @DisplayName("Retains an old final result when required announcement bookkeeping fails")
+  void rollsBackWithdrawalOfRetainedFinal() throws Exception {
+    // Given: a retained final result precedes any F07 record for this match.
+    sql.update(
+        "UPDATE sporting_match SET result_state='FINAL', home_sets=3, away_sets=1 WHERE id=?",
+        historicalMatch);
+    results.complete(initial.id(), NOW.plusSeconds(60));
+    Cycle ordinary = ordinaryCycle();
+    MatchObservation withdrawal =
+        new MatchObservation(
+            historicalMatch,
+            context(ordinary, 1),
+            mapper.toFacts(new MatchFactsInternalRequest().result(null)));
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement fixture = connection.createStatement()) {
+      fixture.execute(
+          "ALTER TABLE match_announcement ADD CONSTRAINT reject_result_processing CHECK (NOT result_processed)");
+      try {
+        // When / Then
+        assertThatThrownBy(() -> matches.detail(withdrawal))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("reject_result_processing");
+        assertThat(
+                sql.queryForObject(
+                    "SELECT result_state FROM sporting_match WHERE id=?",
+                    String.class,
+                    historicalMatch))
+            .isEqualTo("FINAL");
+        assertThat(
+                sql.queryForObject(
+                    "SELECT away_sets FROM sporting_match WHERE id=?",
+                    Integer.class,
+                    historicalMatch))
+            .isEqualTo(1);
+        assertThat(sql.queryForObject("SELECT COUNT(*) FROM match_announcement", Long.class))
+            .isZero();
+      } finally {
+        fixture.execute("ALTER TABLE match_announcement DROP CONSTRAINT reject_result_processing");
+      }
+    }
+
+    // When the same observation still qualifies after the failure is removed.
+    assertThat(matches.detail(withdrawal).outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+
+    // Then
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?",
+                String.class,
+                historicalMatch))
+        .isNull();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_processed FROM match_announcement WHERE match_id=?",
+                Boolean.class,
+                historicalMatch))
+        .isTrue();
     assertSilent();
   }
 

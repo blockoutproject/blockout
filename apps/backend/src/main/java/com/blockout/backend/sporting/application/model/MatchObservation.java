@@ -82,7 +82,12 @@ public record MatchObservation(UUID matchId, Context context, Facts facts) {
    * @param specialLabel recognized notation, independently of finality
    */
   public record Result(
-      ResultStateEnum state, Integer homeSets, Integer awaySets, String specialLabel) {}
+      ResultStateEnum state, Integer homeSets, Integer awaySets, String specialLabel) {
+    /** Uses explicit sporting finality, including a final without numeric sets. */
+    public static boolean isFinal(Result result) {
+      return result != null && result.state() == ResultStateEnum.FINAL;
+    }
+  }
 
   /**
    * Qualified information-sheet locator, independent of match identity and accepted result.

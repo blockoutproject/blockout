@@ -22,6 +22,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,10 +50,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Real F07/F06/F05 SQL, controlled producer/link state and deletion; no real erasure/after-commit
- * sender.
- */
+/** Real F07/F06/F05 SQL and public-link reads with controlled sporting, link and account writes. */
 @SpringBootTest
 @DisplayName("Atomic announcement and recipient transactions on PostgreSQL")
 @Import(PostgresTestConfiguration.class)
@@ -70,6 +67,8 @@ class AnnouncementTransactionIntegrationTest {
   private static final UUID AWAY = UUID.fromString("00000000-0000-4000-8000-000000000015");
   private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000000016");
   private static final UUID SECOND = UUID.fromString("00000000-0000-4000-8000-000000000017");
+  private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000018");
+  private static final UUID LINK = UUID.fromString("00000000-0000-4000-8000-000000000019");
   private static final Instant ORIGIN = Instant.parse("2026-10-24T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private ProcessResultAnnouncement processor;
@@ -92,7 +91,8 @@ class AnnouncementTransactionIntegrationTest {
                 "blockout_migration",
                 "harmless-migration");
         Statement fixture = connection.createStatement()) {
-      fixture.execute("TRUNCATE sporting_season, sporting_division, account CASCADE");
+      fixture.execute(
+          "TRUNCATE sporting_season, sporting_division, sporting_club, account CASCADE");
     }
     sql.update(
         "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', 'one', 'first', 'one@example.invalid'), (?, 'https://identity.example.invalid/', 'two', 'second', 'two@example.invalid')",
@@ -104,32 +104,44 @@ class AnnouncementTransactionIntegrationTest {
         "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic',TRUE,'#112233')",
         DIVISION);
     sql.update(
-        "INSERT INTO sporting_pack(id,season_id,provider,organizer_reference,reference) VALUES (?,?,'LNV','synthetic','pack')",
+        "INSERT INTO sporting_club(id,provider,reference,source_name) VALUES (?,'FFVB','000042','Synthetic club')",
+        CLUB);
+    sql.update(
+        "INSERT INTO sporting_pack(id,season_id,provider,organizer_reference,reference) VALUES (?,?,'FFVB','synthetic','pack')",
         PACK,
         SEASON);
     sql.update(
-        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,division_id,format,gender) VALUES (?,?,?,'LNV','synthetic','competition','pool','Pool',?,'_6X6','MIXED')",
+        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,division_id,format,gender) VALUES (?,?,?,'FFVB','synthetic','competition','pool','Pool',?,'_6X6','MIXED')",
         POOL,
         SEASON,
         PACK,
         DIVISION);
     for (UUID team : List.of(HOME, AWAY)) {
       sql.update(
-          "INSERT INTO sporting_team(id,season_id,provider,organizer_reference,competition_reference,native_reference,source_name,comparison_name,division_id,format,gender) VALUES (?,?,'LNV','synthetic','competition',?,'Team',? ,?,'_6X6','MIXED')",
+          "INSERT INTO sporting_team(id,season_id,provider,organizer_reference,competition_reference,club_id,source_name,comparison_name,division_id,format,gender) VALUES (?,?,'FFVB','synthetic','competition',?,'Team',?,?,'_6X6','MIXED')",
           team,
           SEASON,
-          team.toString(),
+          CLUB,
           team.toString(),
           DIVISION);
     }
+    sql.update(
+        "INSERT INTO sporting_participation(id,team_id,pool_id,current) VALUES (?,?,?,TRUE),(?,?,?,TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000020"),
+        HOME,
+        POOL,
+        UUID.fromString("00000000-0000-4000-8000-000000000021"),
+        AWAY,
+        POOL);
     for (UUID match : List.of(MATCH, SECOND)) {
       sql.update(
-          "INSERT INTO sporting_match(id,pool_id,reference,home_team_id,away_team_id) VALUES (?,?,?,?,?)",
+          "INSERT INTO sporting_match(id,pool_id,reference,home_team_id,away_team_id,local_date) VALUES (?,?,?,?,?,?)",
           match,
           POOL,
           match.toString(),
           HOME,
-          AWAY);
+          AWAY,
+          LocalDate.of(2026, 10, 24));
     }
     UUID homeFollow = UUID.fromString("00000000-0000-4000-8000-000000002851");
     UUID awayFollow = UUID.fromString("00000000-0000-4000-8000-000000002852");
@@ -157,7 +169,7 @@ class AnnouncementTransactionIntegrationTest {
         transaction.execute(
             status -> {
               roots(MATCH);
-              return processor.process(transition(MATCH, false));
+              return processor.process(transition(MATCH));
             });
 
     // Then
@@ -174,57 +186,6 @@ class AnnouncementTransactionIntegrationTest {
         .isTrue();
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  @DisplayName("Orders concurrent result/publication inputs under the same sporting roots")
-  void serializesComposition(boolean publicationFirst) throws Exception {
-    // Given
-    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
-    AtomicBoolean publicLink = new AtomicBoolean();
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> waiting =
-          transaction.execute(
-              status -> {
-                roots(MATCH);
-                if (publicationFirst) {
-                  publicLink.set(true);
-                } else {
-                  processor.process(transition(MATCH, false));
-                }
-                Future<?> second =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                inner -> {
-                                  waitingPid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  roots(MATCH);
-                                  processor.process(transition(MATCH, publicLink.get()));
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                if (publicationFirst) {
-                  processor.process(transition(MATCH, true));
-                } else {
-                  publicLink.set(true);
-                }
-                return second;
-              });
-
-      // When
-      waiting.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(count("notification")).isEqualTo(1);
-      assertThat(sql.queryForObject("SELECT family FROM notification", String.class))
-          .isEqualTo(publicationFirst ? "ENRICHED_RESULT" : "PLAIN_RESULT");
-      assertThat(
-              sql.queryForObject(
-                  "SELECT post_result_processed FROM match_announcement", Boolean.class))
-          .isEqualTo(publicationFirst);
-    }
-  }
-
   @Test
   @DisplayName(
       "Rolls back one producer's sporting state, facts and entries on required SQL failure")
@@ -235,7 +196,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(SECOND);
-          processor.process(transition(SECOND, false));
+          processor.process(transition(SECOND));
         });
 
     // When / Then
@@ -247,7 +208,7 @@ class AnnouncementTransactionIntegrationTest {
                       sql.update(
                           "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
                           MATCH);
-                      processor.process(transition(MATCH, false));
+                      processor.process(transition(MATCH));
                       // A distinct UUID still violates the required owner/match/family invariant.
                       notifications.create(
                           new AllocateAnnouncements.Entry(
@@ -284,7 +245,7 @@ class AnnouncementTransactionIntegrationTest {
                       sql.update(
                           "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
                           MATCH);
-                      processor.process(transition(MATCH, false));
+                      processor.process(transition(MATCH));
                       TransactionSynchronizationManager.registerSynchronization(
                           new TransactionSynchronization() {
                             /** {@inheritDoc} */
@@ -333,7 +294,7 @@ class AnnouncementTransactionIntegrationTest {
                       sql.update(
                           "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
                           MATCH);
-                      processor.process(transition(MATCH, false));
+                      processor.process(transition(MATCH));
                     }))
         .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(count("account")).isEqualTo(1);
@@ -353,7 +314,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, false));
+          processor.process(transition(MATCH));
         });
     UUID original = sql.queryForObject("SELECT id FROM notification", UUID.class);
     transaction.executeWithoutResult(
@@ -363,11 +324,21 @@ class AnnouncementTransactionIntegrationTest {
           entry.markRead();
         });
 
+    Transition correction =
+        new Transition(
+            match(MATCH),
+            new Result(ResultStateEnum.FINAL, 3, 1, null),
+            new Result(ResultStateEnum.FINAL, 1, 3, null),
+            false,
+            false,
+            ORIGIN);
+
     // When
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, true));
+          publishLink();
+          processor.process(correction);
         });
 
     // Then
@@ -381,7 +352,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, true));
+          processor.process(correction);
         });
     assertThat(count("notification")).isZero();
     assertThat(
@@ -398,7 +369,7 @@ class AnnouncementTransactionIntegrationTest {
         transaction.execute(
             status -> {
               roots(MATCH);
-              return processor.process(transition(MATCH, false)).getFirst();
+              return processor.process(transition(MATCH)).getFirst();
             });
     transaction.executeWithoutResult(
         status -> {
@@ -434,7 +405,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, false));
+          processor.process(transition(MATCH));
         });
 
     // When
@@ -443,7 +414,8 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, true));
+          publishLink();
+          processor.process(transition(MATCH));
         });
 
     // Then
@@ -457,22 +429,21 @@ class AnnouncementTransactionIntegrationTest {
         .isFalse();
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(name = "First discovery: {0}")
   @ValueSource(booleans = {false, true})
   @DisplayName(
       "Silent final discovery or reconstruction with a link preserves the later-publication allowance")
   void preservesUnusedPostResultCategory(boolean discovery) {
     // Given
     TransactionTemplate transaction = new TransactionTemplate(transactions);
+    publishLink();
     Transition silent =
         new Transition(
-            new MatchView(MATCH, POOL, "controlled", HOME, AWAY),
+            match(MATCH),
             null,
             new Result(ResultStateEnum.FINAL, 3, 1, null),
             discovery,
             !discovery,
-            true,
-            true,
             ORIGIN);
 
     // When
@@ -484,7 +455,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, true));
+          processor.process(transition(MATCH));
         });
 
     // Then
@@ -512,7 +483,7 @@ class AnnouncementTransactionIntegrationTest {
           transaction.execute(
               status -> {
                 roots(MATCH);
-                processor.process(transition(MATCH, false));
+                processor.process(transition(MATCH));
                 entities.flush();
                 Future<?> deletion =
                     worker.submit(
@@ -547,7 +518,7 @@ class AnnouncementTransactionIntegrationTest {
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
-          processor.process(transition(MATCH, false));
+          processor.process(transition(MATCH));
         });
     String insert =
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'PLAIN_RESULT','FIRST',?,FALSE)";
@@ -580,26 +551,29 @@ class AnnouncementTransactionIntegrationTest {
    */
   private void roots(UUID match) {
     sql.queryForObject("SELECT id FROM sporting_season WHERE id=? FOR UPDATE", UUID.class, SEASON);
+    sql.queryForObject(
+        "SELECT id FROM sporting_division WHERE id=? FOR UPDATE", UUID.class, DIVISION);
     sql.queryForObject("SELECT id FROM sporting_match WHERE id=? FOR UPDATE", UUID.class, match);
   }
 
-  /**
-   * Supplies the controlled current-link read and accepted finality under the retained roots.
-   *
-   * @param match scenario's original match UUID
-   * @param link controlled current F08 availability, never inferred from professional media
-   * @return trusted test transition for the mandatory F07 participant
-   */
-  private Transition transition(UUID match, boolean link) {
+  private Transition transition(UUID match) {
     return new Transition(
-        new MatchView(match, POOL, match.toString(), HOME, AWAY),
-        null,
-        new Result(ResultStateEnum.FINAL, 3, 1, null),
-        false,
-        false,
-        true,
-        link,
-        ORIGIN);
+        match(match), null, new Result(ResultStateEnum.FINAL, 3, 1, null), false, false, ORIGIN);
+  }
+
+  private MatchView match(UUID match) {
+    return new MatchView(match, POOL, match.toString(), HOME, AWAY);
+  }
+
+  /**
+   * Writes the active version so F07 reads actual PostgreSQL availability under the shared lock.
+   */
+  private void publishLink() {
+    sql.update(
+        "INSERT INTO contribution_version(id,match_id,address,platform,state,created_at,quota_participating) VALUES (?,?,'https://youtube.com/watch?v=demo','YOUTUBE','ACTIVE',?,FALSE)",
+        LINK,
+        MATCH,
+        Timestamp.from(ORIGIN));
   }
 
   /**

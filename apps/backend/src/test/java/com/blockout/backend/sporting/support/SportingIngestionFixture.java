@@ -64,6 +64,28 @@ public final class SportingIngestionFixture {
       SportingIdentityFixture identities,
       AdmitCollectionCycle cycles,
       RegisterCollectorRuntime runtimes) {
+    return admit(sql, seasons, identities, cycles, runtimes, CollectionProviderEnum.FFVB);
+  }
+
+  /** Same isolated setup for a test exercising a specific provider's native identity. */
+  public static Scope admit(
+      JdbcTemplate sql,
+      ChangeCollectionSeasons seasons,
+      SportingIdentityFixture identities,
+      AdmitCollectionCycle cycles,
+      RegisterCollectorRuntime runtimes,
+      CollectionProviderEnum provider) {
+    SourceUrls urls =
+        switch (provider) {
+          case FFVB ->
+              new SourceUrls(
+                  "https://www.ffvbbeach.org/ffvbapp/resu/", "vbspo_calendrier.php", "standings");
+          case LNV ->
+              new SourceUrls(
+                  "https://lnv-web.dataproject.com/",
+                  "CompetitionMatches.aspx?ID=1",
+                  "CompetitionStandings.aspx?ID=1");
+        };
     UUID season = seasons.getOrCreate(2026).id();
     sql.update("UPDATE sporting_season SET collection_state='ACTIVE' WHERE id=?", season);
     sql.update(
@@ -72,24 +94,28 @@ public final class SportingIngestionFixture {
     UUID pool =
         identities
             .createPool(
-                new PoolKey(
-                    CollectionProviderEnum.FFVB, season, "SYNTHETIC", "COMP", null, null, "POOL"),
+                new PoolKey(provider, season, "SYNTHETIC", "COMP", null, null, "POOL"),
                 "PACK",
                 "Synthetic pool",
                 new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
             .id();
     sql.update(
-        "UPDATE sporting_pool SET calendar_url='https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php', standings_url='https://www.ffvbbeach.org/ffvbapp/resu/standings', setting_division_id=?, setting_format='_6X6', setting_gender='MALE' WHERE id=?",
+        "UPDATE sporting_pool SET calendar_url=?, standings_url=?, setting_division_id=?, setting_format='_6X6', setting_gender='MALE' WHERE id=?",
+        urls.source() + urls.calendarPath(),
+        urls.source() + urls.standingsPath(),
         DIVISION,
         pool);
     sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'FFVB','SYNTHETIC','https://www.ffvbbeach.org/ffvbapp/resu/', 'QUALIFIED',TRUE,TRUE)",
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,?,'SYNTHETIC',?,'QUALIFIED',TRUE,TRUE)",
         SOURCE,
-        season);
+        season,
+        provider.name(),
+        urls.source());
     sql.update(
-        "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',TRUE)",
+        "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,?,TRUE)",
         CONTROL,
-        season);
+        season,
+        provider.name());
     UUID startup = UUID.randomUUID();
     runtimes.register(
         sql.queryForObject("SELECT revision FROM collector_runtime WHERE id = 1", Long.class),
@@ -101,6 +127,8 @@ public final class SportingIngestionFixture {
             .cycle();
     return new Scope(season, pool, cycle);
   }
+
+  private record SourceUrls(String source, String calendarPath, String standingsPath) {}
 
   /** Known identities from an actual admitted cycle. */
   public record Scope(UUID season, UUID pool, CollectionState.Cycle cycle) {}

@@ -19,8 +19,8 @@ public class ReadPublicContribution {
   private final ReadSportingData sporting;
 
   /**
-   * Supplies only current link presence after a consumer's F03 database selection, in the same
-   * consistent transaction. Does not authorize access or return old/private addresses.
+   * Supplies current link presence after the caller has established sporting visibility in the same
+   * transaction. Announcement callers hold the match lock through this read and allocation.
    *
    * @param matchIds bounded currently consultable match identities
    * @return identities with an active public contribution
@@ -30,8 +30,14 @@ public class ReadPublicContribution {
     return store.activeMatchIds(matchIds);
   }
 
+  /** Reads current presence for a match whose visibility the caller has checked under lock. */
+  @Transactional(readOnly = true)
+  public boolean availableForConsultableMatch(UUID matchId) {
+    return store.activeMatchIds(Set.of(matchId)).contains(matchId);
+  }
+
   /**
-   * Reads availability; result composition callers retain the shared F02 match lock.
+   * Resolves the public contribution identity and address for match consultation.
    *
    * @param matchId current sporting identity
    * @return exact contributed identity/address when publicly permitted

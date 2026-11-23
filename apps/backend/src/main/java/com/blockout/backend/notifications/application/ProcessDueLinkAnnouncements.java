@@ -2,7 +2,6 @@ package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
-import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
@@ -52,39 +51,18 @@ public class ProcessDueLinkAnnouncements {
   @RequiredArgsConstructor
   public static class ProcessDueMatch {
     private final MatchContributionAccess sporting;
-    private final ReadPublicContribution links;
     private final ProcessLinkAnnouncement announcements;
-    private final NotificationStore notifications;
     private final AfterCommitAnnouncements handoff;
     private final Clock clock;
 
     /**
-     * Checks actual eligibility under sporting roots before announcement processing.
+     * Holds the sporting roots through current eligibility and announcement processing.
      *
      * @param matchId candidate from current active links, possibly changed since selection
      */
     @Transactional
     public void process(UUID matchId) {
-      Facts facts = sporting.lock(matchId);
-      if (notifications.facts(matchId).liveProcessed()) {
-        return;
-      }
-      if (!facts.viewable()
-          || facts.definitiveResult()
-          || facts.schedule().reliableStart() == null
-          || clock.instant().isBefore(facts.schedule().reliableStart())
-          || links.read(matchId).isEmpty()) {
-        return;
-      }
-      handoff.submit(
-          announcements.process(
-              new ProcessLinkAnnouncement.Context(
-                  facts.match(),
-                  true,
-                  false,
-                  facts.schedule().reliableStart(),
-                  false,
-                  clock.instant())));
+      handoff.submit(announcements.processDueMatch(sporting.lock(matchId), clock.instant()));
     }
   }
 }

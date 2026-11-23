@@ -30,7 +30,7 @@ Race classification correction with match integration and test a shared-particip
 
 Exercise numeric and recognized special results with provisional, final and unconfirmed finality through ingestion and consultation. Preserve notation independently; only a final result establishes a definitive-result transition.
 
-Race first final result with F08 publication. Expect the F07 composition matching the accepted order. Add a follow after the single audience selection: acceptance succeeds without adding that follower retroactively. Fail internal inbox persistence: only that match rolls back. Fail push after commit: score and inbox remain. Verify initial imports, unchanged results, corrections and withdrawal/restoration do not duplicate consumed announcements or resurrect purged inbox entries.
+Use the [result announcement transaction cases](#result-announcement-transaction) for the calendar's independent commit and the required F07 participant.
 
 Carry supplied and omitted `providerPublishedAt` through the actual generated collector/backend boundary, including image metadata. Verify retained fact groups keep their own timestamps, newly accepted facts without a publication time remain unknown, and source publication time cannot overturn the logical token.
 
@@ -44,7 +44,19 @@ Use [F01 partial-success/absence cases](../001-source-acquisition/quickstart.md#
 
 ### Result announcement transaction
 
-Race real F08 publication with first final-result acceptance in both orders. Expect the F07 allowance/inbox participant to share the match transaction: inbox failure rolls it back; post-commit push failure does not. Include zero recipients, stable single selection when a new follow arrives after it, selected-account erasure/FK integrity, initial finished discovery/reconstruction, corrections and withdrawal/restoration. No audience equality conflict or audience account locking is required. Use [F07's producer cases](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for allowance and delivery boundaries.
+After [bundling the contracts](../../README.md#verification), run the focused PostgreSQL cases:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=ResultAnnouncementTest -Dit.test=ResultAnnouncementIntegrationTest,TransitionAnnouncementIntegrationTest
+```
+
+On disposable migrated PostgreSQL, make the current F08 public-link read fail and submit a complete current calendar containing a valid date-only match. Run the case for FFVB and LNV. Verify the persisted match and date, absence reconciliation and its recorded calendar completion, and zero new announcement facts or inbox entries.
+
+Submit a provisional score for a known match with the same read unavailable. Verify the committed score and calendar completion. When a final score later arrives with the reader available, verify that F07 can still consume the final-result allowance.
+
+Fail the same public-link read while accepting an eligible first final result. Verify the match's prior facts, the independent commit of a dated sibling and the absence of new announcements. Also withdraw a retained final result with no prior announcement fact. A failure to persist the required F07 fact preserves the final result. A later successful withdrawal records silent processing and clears the result. When a known match receives a recognized final forfeit without numeric sets, verify that F07 consumes the result even with an empty audience.
+
+Use [F07's atomic producer and link qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for first final results and publication in both orders, required participant rollback, after-commit handoff, single audience selection and preservation of consumed categories through corrections and withdrawal/restoration.
 
 ## Contracts and fields
 
