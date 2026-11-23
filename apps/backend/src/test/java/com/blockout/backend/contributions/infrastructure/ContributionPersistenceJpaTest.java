@@ -123,13 +123,14 @@ class ContributionPersistenceJpaTest {
     insertVersion(FIRST, MATCH, OWNER, "PENDING", true, NOW);
 
     // When
-    List<UUID> first = store.activeMatches(null);
-    List<UUID> next = store.activeMatches(first.getLast());
+    ContributionStore.ActiveMatchFilter all = (query, builder, matchId) -> builder.conjunction();
+    List<UUID> first = store.activeMatches(null, 100, all);
+    List<UUID> next = store.activeMatches(first.getLast(), 100, all);
 
     // Then
     assertThat(first).hasSize(100).isSorted().doesNotContain(MATCH);
     assertThat(next).containsExactly(UUID.fromString("00000000-0000-4000-9000-000000000065"));
-    assertThat(store.activeMatches(next.getLast())).isEmpty();
+    assertThat(store.activeMatches(next.getLast(), 100, all)).isEmpty();
   }
 
   @Test

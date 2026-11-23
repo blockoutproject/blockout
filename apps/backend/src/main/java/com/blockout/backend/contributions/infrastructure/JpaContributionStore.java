@@ -9,6 +9,11 @@ import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKin
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -17,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
@@ -314,7 +318,19 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<UUID> activeMatches(UUID afterId) {
-    return versions.findMatchIdsAfter(State.ACTIVE, afterId, Limit.of(100));
+  public List<UUID> activeMatches(UUID afterId, int limit, ActiveMatchFilter filter) {
+    CriteriaBuilder builder = entities.getCriteriaBuilder();
+    CriteriaQuery<UUID> query = builder.createQuery(UUID.class);
+    Root<ContributionVersionEntity> version = query.from(ContributionVersionEntity.class);
+    Path<UUID> matchId = version.get("matchId");
+    Predicate active = builder.equal(version.get("state"), State.ACTIVE);
+    if (afterId != null) {
+      active = builder.and(active, builder.greaterThan(matchId, afterId));
+    }
+    query
+        .select(matchId)
+        .where(active, filter.select(query, builder, matchId))
+        .orderBy(builder.asc(matchId));
+    return entities.createQuery(query).setMaxResults(limit).getResultList();
   }
 }
