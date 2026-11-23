@@ -65,56 +65,68 @@ public class EstablishMatchIdentity {
         : existing;
   }
 
-  /**
-   * Resolves the source-specific key or its explicit scoped alias before permitting creation.
-   *
-   * @param pool current locked context
-   * @param candidate attributable calendar participant
-   * @param expectedTeam existing participant that cannot be silently replaced, or null
-   * @return established participant
-   */
   private TeamView resolveTeam(PoolView pool, TeamCandidate candidate, UUID expectedTeam) {
     String name = new TeamName(candidate.sourceName()).comparisonKey();
-    UUID clubId = null;
-    Optional<TeamView> known;
-    if (pool.key().provider() == CollectionProviderEnum.FFVB) {
-      if (candidate.clubReference() == null || candidate.clubReference().isBlank()) {
-        throw new UnresolvedSportingIdentityException("FFVB participant has no attributable club");
-      }
-      ClubView club =
-          store.club(CollectionProviderEnum.FFVB, candidate.clubReference()).orElse(null);
-      if (club == null && expectedTeam != null) {
-        throw new UnresolvedSportingIdentityException(
-            "Known participant has an unrecognized club reference");
-      }
-      if (club == null) {
-        club =
-            store.createClub(
-                CollectionProviderEnum.FFVB, candidate.clubReference(), candidate.clubSourceName());
-      }
-      clubId = club.id();
-      known = store.ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), name);
-      if (known.isEmpty()) {
-        known = store.teamAlias(pool, clubId, name);
-      }
-    } else {
-      if (candidate.nativeReference() == null || candidate.nativeReference().isBlank()) {
-        throw new UnresolvedSportingIdentityException(
-            "LNV participant has no native team reference");
-      }
-      known = store.lnvTeam(pool, candidate.nativeReference());
+    return switch (pool.key().provider()) {
+      case FFVB -> resolveFfvbTeam(pool, candidate, name, expectedTeam);
+      case LNV -> resolveLnvTeam(pool, candidate, name, expectedTeam);
+    };
+  }
+
+  /** Uses the club, season, classification and comparison name secured by {@code uk_team_ffvb}. */
+  private TeamView resolveFfvbTeam(
+      PoolView pool, TeamCandidate candidate, String name, UUID expectedTeam) {
+    if (candidate.clubReference() == null || candidate.clubReference().isBlank()) {
+      throw new UnresolvedSportingIdentityException("FFVB participant has no attributable club");
     }
-    if (expectedTeam != null
-        && (known.isEmpty() || !known.orElseThrow().id().equals(expectedTeam))) {
+    Optional<ClubView> knownClub =
+        store.club(CollectionProviderEnum.FFVB, candidate.clubReference());
+    if (knownClub.isEmpty() && expectedTeam != null) {
+      throw new UnresolvedSportingIdentityException(
+          "Known participant has an unrecognized club reference");
+    }
+    UUID clubId =
+        knownClub
+            .orElseGet(
+                () ->
+                    store.createClub(
+                        CollectionProviderEnum.FFVB,
+                        candidate.clubReference(),
+                        candidate.clubSourceName()))
+            .id();
+    Optional<TeamView> known =
+        store
+            .ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), name)
+            .or(() -> store.teamAlias(pool, clubId, name));
+    return retainOrCreateTeam(pool, candidate, name, expectedTeam, clubId, known.orElse(null));
+  }
+
+  /** Uses the season, organizer, competition and native TeamID secured by {@code uk_team_lnv}. */
+  private TeamView resolveLnvTeam(
+      PoolView pool, TeamCandidate candidate, String name, UUID expectedTeam) {
+    if (candidate.nativeReference() == null || candidate.nativeReference().isBlank()) {
+      throw new UnresolvedSportingIdentityException("LNV participant has no native team reference");
+    }
+    TeamView knownTeam = store.lnvTeam(pool, candidate.nativeReference()).orElse(null);
+    return retainOrCreateTeam(pool, candidate, name, expectedTeam, null, knownTeam);
+  }
+
+  /** Guards retained participants and their classification before any new team can be created. */
+  private TeamView retainOrCreateTeam(
+      PoolView pool,
+      TeamCandidate candidate,
+      String name,
+      UUID expectedTeam,
+      UUID clubId,
+      TeamView knownTeam) {
+    if (expectedTeam != null && (knownTeam == null || !expectedTeam.equals(knownTeam.id()))) {
       throw new UnresolvedSportingIdentityException(
           "Known encounter has an unrecognized participant");
     }
-    if (known.isPresent() && !known.orElseThrow().classification().equals(pool.classification())) {
+    if (knownTeam != null && !knownTeam.classification().equals(pool.classification())) {
       throw new UnresolvedSportingIdentityException(
           "Team participation has an incompatible classification");
     }
-    return known.isPresent()
-        ? known.orElseThrow()
-        : store.createTeam(pool, clubId, candidate, name);
+    return knownTeam == null ? store.createTeam(pool, clubId, candidate, name) : knownTeam;
   }
 }

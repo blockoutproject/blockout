@@ -31,7 +31,9 @@ public class AcceptCatalog {
   private final SportingStore store;
 
   /**
-   * Validates every compound identity before changing the source-season catalog.
+   * Validates submitted identities within the admitted source binding before advancing its read
+   * evidence. Newer complete observations reconcile the entire binding across its packs and
+   * competitions. Newer partial observations and empty initial imports advance evidence only.
    *
    * @param sourceId exact admitted source-season binding
    * @param observation complete or partial discovery with safe qualified references
@@ -59,16 +61,15 @@ public class AcceptCatalog {
     }
     Map<String, String> labels = observation.phaseLabels();
     if (labels != null && !labels.isEmpty()) {
+      // LNV groups can share a phase label, but discovery must attest each named phase.
       Set<String> phaseReferences =
-          observation.pools().stream()
-              .map(CatalogObservation.Pool::poolReference)
-              .collect(Collectors.toSet());
+          unique.keySet().stream().map(PoolKey::reference).collect(Collectors.toSet());
       if (source.provider() != CollectionProviderEnum.LNV
           || !phaseReferences.containsAll(labels.keySet())) {
         throw new SportingConflictException("identity-conflict", List.of());
       }
     }
-    ObservationOrder previous = store.catalogOrder(sourceId);
+    ObservationOrder previous = store.catalogOrder(source.id());
     int precedence = previous == null ? 1 : order.compareTo(previous);
     if (precedence < 0) {
       return new ObservationOutcome.Catalog(
@@ -77,7 +78,7 @@ public class AcceptCatalog {
               .toList(),
           false);
     }
-    boolean reconcile =
+    boolean authoritative =
         precedence > 0
             && observation.complete()
             && !(observation.pools().isEmpty()
@@ -86,7 +87,7 @@ public class AcceptCatalog {
     for (Map.Entry<PoolKey, CatalogObservation.Pool> entry : unique.entrySet()) {
       CatalogObservation.Pool candidate = entry.getValue();
       UUID id =
-          reconcile
+          authoritative
               ? store.acceptCatalogPool(entry.getKey(), candidate)
               : store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
       outcomes.put(
@@ -95,7 +96,9 @@ public class AcceptCatalog {
               ? ObservationOutcome.refused(candidate.poolReference(), false)
               : new ObservationOutcome(
                   candidate.poolReference(),
-                  reconcile ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED,
+                  authoritative
+                      ? ObservationOutcomeEnum.ACCEPTED
+                      : ObservationOutcomeEnum.UNCHANGED,
                   id,
                   null,
                   null,
@@ -103,23 +106,15 @@ public class AcceptCatalog {
     }
     if (precedence > 0) {
       Set<UUID> presentIds =
-          reconcile
+          authoritative
               ? outcomes.values().stream()
                   .map(ObservationOutcome::resourceId)
                   .collect(Collectors.toSet())
               : Set.of();
-      store.finishCatalog(
-          sourceId,
-          source.seasonId(),
-          source.provider(),
-          source.organizerReference(),
-          presentIds,
-          reconcile,
-          order,
-          observation);
+      store.finishCatalog(source, presentIds, authoritative, order, observation);
     }
     return new ObservationOutcome.Catalog(
-        observation.pools().stream().map(outcomes::get).toList(), reconcile);
+        observation.pools().stream().map(outcomes::get).toList(), authoritative);
   }
 
   /**

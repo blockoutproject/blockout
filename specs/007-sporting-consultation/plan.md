@@ -79,6 +79,8 @@ apps/mobile/                        # Thin routes, sporting queries/maps/PDF rea
 
 The backend supplies the mobile API. F02 owns identities, classifications, source/manual effective values, result interpretation, visibility and stored references. F03 owns presentation projections and calendar categories. Return public summaries needed by cards and relationships in their read response; do not expose editing revisions, source contact fallbacks or user follow state in public data.
 
+F03's team summaries consume [F02 professional context](../002-sporting-data/plan.md#professional-context) independently of the optional club relationship.
+
 Use resource reads for club detail, club teams by season, team detail, pool detail, pool standings, pool participants, filtered matches and match detail. Document and logo subresources deliver their binary content. The [contract notes](contracts/README.md) identify canonical sources and consumers; no endpoint is added merely for an individual screen.
 
 Standings project F02's accepted table directly: availability, official columns/rows and their order, partial values and observation time. A supplier acquisition failure does not change a successful read of a valid retained table. F01 retains operational diagnostics independently; the public read requires no collection-reader dependency or acquisition lookup.

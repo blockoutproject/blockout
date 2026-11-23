@@ -3,13 +3,26 @@ package com.blockout.backend.contributions.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.contributions.support.ContributionScenario;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
+import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import java.net.URI;
+import java.sql.Timestamp;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -17,6 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @DisplayName("Atomic contribution submission")
 class SubmitContributionIntegrationTest extends ContributionScenario {
+  @Autowired private SubmitModeratedContribution moderated;
 
   @Test
   @DisplayName("An eligible ordinary submission publishes one quota-participating version")
@@ -35,6 +49,49 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
     assertThat(result.revision()).isEqualTo("1");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM contribution_version", Long.class))
         .isEqualTo(1);
+  }
+
+  @ParameterizedTest(name = "Moderator route: {0}")
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Refuses contributions to an LNV match when the participants have no club")
+  void refusesClublessProfessionalMatch(boolean administrative) {
+    // Given
+    UUID pool =
+        identities
+            .createPool(
+                new PoolKey(
+                    CollectionProviderEnum.LNV, scope.season(), "901", "901", null, null, "902"),
+                "901",
+                "Professional phase",
+                new SportingClassification(
+                    SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
+            .id();
+    MatchView professional =
+        identities.identifyMatch(
+            pool,
+            "LNV-MATCH",
+            new TeamCandidate("P1", "Professional home", null, null),
+            new TeamCandidate("P2", "Professional away", null, null));
+    sql.update(
+        "UPDATE sporting_match SET local_date='2026-10-24',reliable_start=?,local_time='14:00',time_zone='Europe/Paris' WHERE id=?",
+        Timestamp.from(NOW),
+        professional.id());
+    moderator(OTHER);
+    URI address = URI.create("https://youtube.com/professional");
+
+    // When / Then
+    assertThatThrownBy(
+            () -> {
+              if (administrative) {
+                moderated.submit(OTHER, professional.id(), "0", address);
+              } else {
+                submissions.submit(AUTHOR, professional.id(), "0", address, false);
+              }
+            })
+        .isInstanceOfSatisfying(
+            ContributionRejectedException.class,
+            rejected -> assertThat(rejected.getStatus()).isEqualTo(Status.PROFESSIONAL_MATCH));
+    assertThat(count("contribution_version")).isZero();
   }
 
   @Test

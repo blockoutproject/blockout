@@ -1,7 +1,6 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.contributions.application.ReadPublicContribution;
-import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
@@ -376,7 +375,7 @@ public class ReadSportingResources {
                         team.clubId() == null
                             ? null
                             : Objects.requireNonNull(clubs.get(team.clubId())),
-                        team.provider() == CollectionProviderEnum.LNV)));
+                        team.professional())));
   }
 
   /**

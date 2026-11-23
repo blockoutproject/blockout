@@ -384,6 +384,47 @@ class SportingIdentityIntegrationTest {
   }
 
   @Test
+  @DisplayName(
+      "Reuses LNV TeamIDs across phases of one championship and scopes them across championships")
+  void scopesProfessionalIdentityToChampionship() {
+    // Given
+    UUID season = seasons.getOrCreate(2026L).id();
+    SportingClassification classification =
+        new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED);
+    PoolView regular =
+        identities.createPool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "A", "A", null, "1", "regular"),
+            "A",
+            "Regular season",
+            classification);
+    PoolView playoff =
+        identities.createPool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "A", "A", null, "2", "playoff"),
+            "A",
+            "Playoff",
+            classification);
+    PoolView other =
+        identities.createPool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "B", "B", null, "1", "regular"),
+            "B",
+            "Other championship",
+            classification);
+    TeamCandidate home = new TeamCandidate("T1", "Home", null, null);
+    TeamCandidate away = new TeamCandidate("T2", "Away", null, null);
+
+    // When
+    MatchView first = identities.identifyMatch(regular.id(), "M1", home, away);
+    MatchView later = identities.identifyMatch(playoff.id(), "M1", home, away);
+    MatchView different = identities.identifyMatch(other.id(), "M1", home, away);
+
+    // Then
+    assertThat(later.homeTeamId()).isEqualTo(first.homeTeamId());
+    assertThat(later.awayTeamId()).isEqualTo(first.awayTeamId());
+    assertThat(different.homeTeamId()).isNotEqualTo(first.homeTeamId());
+    assertThat(different.awayTeamId()).isNotEqualTo(first.awayTeamId());
+  }
+
+  @Test
   @DisplayName("Rolls back a complete encounter when the other FFVB club cannot be identified")
   void rollsBackUnidentifiedClub() {
     // Given
@@ -674,6 +715,62 @@ class SportingIdentityIntegrationTest {
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class))
           .isEqualTo(2L);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class))
+          .isEqualTo(2L);
+    }
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"FFVB,,0001,,0002", "LNV,T1,,T2,"})
+  @DisplayName("Shares the same participants across concurrently accepted compatible pools")
+  void sharesTeamsDuringConcurrentAcceptance(
+      CollectionProviderEnum provider,
+      String homeReference,
+      String homeClub,
+      String awayReference,
+      String awayClub)
+      throws Exception {
+    // Given
+    UUID season = seasons.getOrCreate(2026L).id();
+    SportingClassification classification =
+        new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED);
+    PoolView firstPool =
+        identities.createPool(
+            new PoolKey(provider, season, "LEAGUE", "LEAGUE", null, null, "A"),
+            "LEAGUE",
+            "Pool A",
+            classification);
+    PoolView secondPool =
+        identities.createPool(
+            new PoolKey(provider, season, "LEAGUE", "LEAGUE", null, null, "B"),
+            "LEAGUE",
+            "Pool B",
+            classification);
+    TeamCandidate home = new TeamCandidate(homeReference, "Home", homeClub, null);
+    TeamCandidate away = new TeamCandidate(awayReference, "Away", awayClub, null);
+    CyclicBarrier start = new CyclicBarrier(2);
+
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      // When
+      Future<MatchView> first =
+          workers.submit(
+              () -> {
+                start.await(10, TimeUnit.SECONDS);
+                return identities.identifyMatch(firstPool.id(), "M1", home, away);
+              });
+      Future<MatchView> second =
+          workers.submit(
+              () -> {
+                start.await(10, TimeUnit.SECONDS);
+                return identities.identifyMatch(secondPool.id(), "M1", home, away);
+              });
+
+      // Then
+      MatchView firstMatch = first.get(15, TimeUnit.SECONDS);
+      MatchView secondMatch = second.get(15, TimeUnit.SECONDS);
+      assertThat(secondMatch.id()).isNotEqualTo(firstMatch.id());
+      assertThat(secondMatch.homeTeamId()).isEqualTo(firstMatch.homeTeamId());
+      assertThat(secondMatch.awayTeamId()).isEqualTo(firstMatch.awayTeamId());
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class))
           .isEqualTo(2L);
     }
   }

@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
@@ -869,36 +870,36 @@ public class JpaSportingStore implements SportingStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public void finishCatalog(
-      UUID sourceId,
-      UUID seasonId,
-      CollectionProviderEnum provider,
-      String organizer,
+      Source source,
       Set<UUID> presentIds,
-      boolean complete,
+      boolean authoritative,
       ObservationOrder order,
       CatalogObservation observation) {
-    if (complete) {
+    if (authoritative) {
       for (PoolEntity pool :
           pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
-              seasonId, provider, organizer, Pageable.unpaged())) {
+              source.seasonId(),
+              source.provider(),
+              source.organizerReference(),
+              Pageable.unpaged())) {
         if (!presentIds.contains(pool.getId())) {
           pool.setCatalogEligible(false);
           changes.submit(Kind.POOL, pool.getId());
         }
       }
     }
-    CatalogEntity catalog = catalogs.findById(sourceId).orElse(null);
+    CatalogEntity catalog = catalogs.findById(source.id()).orElse(null);
     boolean created = catalog == null;
     if (created) {
-      catalog = new CatalogEntity(sourceId);
+      catalog = new CatalogEntity(source.id());
     }
     MatchObservation.Context context = observation.context();
     catalog.setCycleOrder(order.cycleOrder());
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
     catalog.setProviderPublishedAt(context.providerPublishedAt());
-    catalog.setComplete(complete);
-    if (complete) {
+    catalog.setComplete(authoritative);
+    if (authoritative) {
       catalog.setLastCompleteReadAt(context.observedAt());
       if (observation.phaseLabels() != null) {
         catalog.replacePhaseLabels(observation.phaseLabels());

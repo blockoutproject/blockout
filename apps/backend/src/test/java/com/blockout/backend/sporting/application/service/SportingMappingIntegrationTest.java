@@ -22,6 +22,8 @@ import com.blockout.backend.sporting.application.model.SportingMapping.MappingPa
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingPresentation.DivisionDefinition;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.port.SportingStore;
@@ -55,6 +57,7 @@ class SportingMappingIntegrationTest {
 
   @Autowired private ReadSportingConfiguration reads;
   @Autowired private ChangeSportingClassification writes;
+  @Autowired private ChangeDivisionLifecycle divisions;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
   @Autowired private CollectionStore collection;
@@ -103,6 +106,33 @@ class SportingMappingIntegrationTest {
                 0));
     assertThat(reads.mappingPack(operator, created.packId(), 0, 1).pools().items())
         .containsExactly(new MappingPool(created.id(), "Poule A", null, null, true));
+  }
+
+  @Test
+  @DisplayName("Maps a newly created editorial division to an existing native pool and source")
+  void mapsNewEditorialDivision() {
+    // Given
+    SeasonView season = seasons.getOrCreate(2026);
+    Source source = source(season, CollectionProviderEnum.FFVB, "001");
+    PoolView pool = discover(source, "Pack", "A", "Poule A");
+    UUID editor = operator(Permission.MANAGE_DIVISION_LIFECYCLE, "Mapping_Division_Editor");
+
+    // When
+    DivisionDetail created =
+        divisions.create(
+            editor, new DivisionDefinition("Coupe de printemps", "#112233", null), null);
+    SportingClassification classification =
+        new SportingClassification(created.id(), SportFormatEnum._6X6, SportGenderEnum.FEMALE);
+    writes.setPool(operator, pool.id(), classification);
+    entityManager.flush();
+    entityManager.clear();
+
+    // Then
+    PoolView mapped = sporting.pool(pool.key()).orElseThrow();
+    assertThat(mapped.id()).isEqualTo(pool.id());
+    assertThat(mapped.packId()).isEqualTo(pool.packId());
+    assertThat(mapped.classification()).isEqualTo(classification);
+    assertThat(collection.sources(season.id())).containsExactly(source);
   }
 
   @Test

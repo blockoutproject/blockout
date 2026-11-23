@@ -1,6 +1,5 @@
 package com.blockout.backend.sporting.application.service;
 
-import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
@@ -79,9 +78,8 @@ public class MatchContributionAccess {
     boolean viewable =
         reads.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isPresent();
     boolean professional =
-        store.team(match.homeTeamId()).orElseThrow().provider() == CollectionProviderEnum.LNV
-            || store.team(match.awayTeamId()).orElseThrow().provider()
-                == CollectionProviderEnum.LNV;
+        store.team(match.homeTeamId()).orElseThrow().professional()
+            || store.team(match.awayTeamId()).orElseThrow().professional();
     Result result = store.matchDetails(matchId).result();
     return new Facts(match, schedule, result, viewable, professional);
   }

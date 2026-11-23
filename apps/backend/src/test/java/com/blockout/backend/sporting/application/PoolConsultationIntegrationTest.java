@@ -83,7 +83,12 @@ class PoolConsultationIntegrationTest {
     assertThat(participants.items())
         .extracting(item -> item.team().team().id())
         .containsExactly(match.awayTeamId(), match.homeTeamId());
-    assertThat(participants.items()).allSatisfy(item -> assertThat(item.location()).isNull());
+    assertThat(participants.items())
+        .allSatisfy(
+            item -> {
+              assertThat(item.team().professional()).isFalse();
+              assertThat(item.location()).isNull();
+            });
   }
 
   @ParameterizedTest(name = "Retains official table after failed acquisition: {0}")
