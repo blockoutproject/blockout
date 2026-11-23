@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -128,8 +127,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "000042", ObservationOutcomeEnum.ACCEPTED, POOL, refusal, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -167,8 +164,6 @@ class CollectPassageTest {
               .build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -214,8 +209,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "000042", ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -258,8 +251,6 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(clubs.read("000042")).thenReturn(sheet);
       when(sporting.club(eq(POOL), any(), eq(sheet))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -315,8 +306,6 @@ class CollectPassageTest {
       when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(matches, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(matches)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -357,8 +346,6 @@ class CollectPassageTest {
       when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(empty, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -392,7 +379,6 @@ class CollectPassageTest {
                     1,
                     CollectionModeEnum.INITIAL_IMPORT,
                     CollectionCycleStateEnum.RUNNING,
-                    null,
                     null);
               });
       CollectorLifecycle.AdmittedCycle admitted =
@@ -461,8 +447,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -592,8 +576,6 @@ class CollectPassageTest {
                 new SportingObservation.Outcome(
                     null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
       }
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -725,7 +707,6 @@ class CollectPassageTest {
                       new SportingObservation.Outcome(
                           "904", ObservationOutcomeEnum.UNCHANGED, secondPool, null, null, null)),
                   false));
-      when(backend.complete(cycle, NOW)).thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       sharedPassage.execute(admitted);
@@ -886,8 +867,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -949,8 +928,6 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "TST", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -994,8 +971,6 @@ class CollectPassageTest {
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
       when(resource.calendar(target)).thenReturn(new FfvbAcquisition.Read<>(calendar, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(calendar))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1047,8 +1022,6 @@ class CollectPassageTest {
                   new SportingObservation.Calendar(true, matches, List.of(), List.of()), NOW));
       when(sporting.calendar(eq(POOL), any(), any()))
           .thenReturn(new SportingObservation.CalendarOutcome(outcomes, 1, 0, 0, 1, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1140,8 +1113,6 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(ffvb.resourceUrl(target)).thenReturn(SOURCE);
       when(ffvb.read(SOURCE)).thenThrow(new IllegalStateException("PRIVATE_PROVIDER_PAYLOAD"));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1201,8 +1172,6 @@ class CollectPassageTest {
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);

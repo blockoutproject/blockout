@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.application;
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningCandidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -95,6 +96,7 @@ class QualifySourceTest {
         new CollectionBackend.Candidate(url, "2023/2024", CollectionProviderEnum.FFVB, "ABCCS");
     when(backend.admit(any())).thenAnswer(call -> runningCandidate(call.getArgument(0), candidate));
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(null, source, 7, null);
+    clearInvocations(backend);
     ProviderPages ffvbHttp = mock(ProviderPages.class);
     ProviderPages lnvHttp = mock(ProviderPages.class);
     byte[] page =
@@ -119,9 +121,6 @@ class QualifySourceTest {
     verify(ffvbHttp).page(url);
     verifyNoMoreInteractions(ffvbHttp);
     verifyNoInteractions(lnvHttp);
-    verify(backend).current();
-    verify(backend).register(0, lifecycle.getIncarnationId());
-    verify(backend).admit(any());
     verify(backend)
         .validate(
             source,

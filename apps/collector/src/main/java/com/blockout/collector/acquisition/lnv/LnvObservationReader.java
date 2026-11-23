@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.LnvAcquisition;
+import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
@@ -13,7 +14,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.LongSupplier;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -150,7 +150,7 @@ public class LnvObservationReader implements LnvAcquisition {
   /** {@inheritDoc} */
   @Override
   public DocumentIndexes documentIndexes(LongSupplier nextOrdinal) {
-    Map<String, CompletableFuture<Index>> indexes = new LinkedHashMap<>();
+    Map<String, ProviderReadAttempt<Index>> indexes = new LinkedHashMap<>();
     return (target, calendar) -> {
       String code = calendar.documentCompetition();
       if (code == null) {
@@ -164,23 +164,11 @@ public class LnvObservationReader implements LnvAcquisition {
                       && item.championshipReference().equals(target.competitionReference()))) {
         return null;
       }
-      if (!indexes.containsKey(code)) {
-        // Store a completed result, including its original failure, without scheduling another
-        // task or retrying an unavailable index for another pool in this passage.
-        try {
-          long ordinal = nextOrdinal.getAsLong();
-          ProviderResponse xml =
-              http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml"));
-          Instant observedAt = clock.instant();
-          Document document =
-              Jsoup.parse(new String(xml.body(), StandardCharsets.UTF_8), "", Parser.xmlParser());
-          indexes.put(
-              code, CompletableFuture.completedFuture(new Index(document, observedAt, ordinal)));
-        } catch (RuntimeException failure) {
-          indexes.put(code, CompletableFuture.failedFuture(failure));
-        }
-      }
-      Index index = indexes.get(code).join();
+      Index index =
+          indexes
+              .computeIfAbsent(
+                  code, key -> ProviderReadAttempt.capture(() -> readIndex(key, nextOrdinal)))
+              .value();
       Map<String, SportingObservation.InformationSheet> sheets = new LinkedHashMap<>();
       for (SportingObservation.Match match : calendar.observation().matches()) {
         LocalDate date =
@@ -201,6 +189,16 @@ public class LnvObservationReader implements LnvAcquisition {
       }
       return new DocumentRead(Map.copyOf(sheets), index.observedAt(), index.readOrdinal());
     };
+  }
+
+  private Index readIndex(String code, LongSupplier nextOrdinal) {
+    long ordinal = nextOrdinal.getAsLong();
+    ProviderResponse xml =
+        http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml"));
+    Instant observedAt = clock.instant();
+    Document document =
+        Jsoup.parse(new String(xml.body(), StandardCharsets.UTF_8), "", Parser.xmlParser());
+    return new Index(document, observedAt, ordinal);
   }
 
   /**

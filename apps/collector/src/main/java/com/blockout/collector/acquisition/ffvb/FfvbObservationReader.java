@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.application.AcquisitionFailure;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
@@ -78,26 +79,17 @@ public class FfvbObservationReader implements FfvbAcquisition {
   private final class SharedResource implements Resource {
     private final URI url;
     private final Read<byte[]> html;
-    private Read<byte[]> export;
-    private RuntimeException exportFailure;
+    private ProviderReadAttempt<Read<byte[]>> export;
 
     /** {@inheritDoc} */
     @Override
     public Read<SportingObservation.Calendar> calendar(CollectionBackend.Target target) {
       FfvbPage page = new FfvbPage(html.observation(), url, scope(target));
-      if (export == null && exportFailure == null) {
-        try {
-          byte[] body = http.post(page.exportUrl(), page.exportFields());
-          export = new Read<>(body, clock.instant());
-        } catch (RuntimeException failure) {
-          exportFailure = readFailure(failure);
-        }
+      if (export == null) {
+        export = ProviderReadAttempt.capture(() -> readExport(page));
       }
-      if (exportFailure != null) {
-        throw exportFailure;
-      }
-      return new Read<>(
-          calendars.parse(export.observation(), page, scope(target)), export.observedAt());
+      Read<byte[]> csv = export.value();
+      return new Read<>(calendars.parse(csv.observation(), page, scope(target)), csv.observedAt());
     }
 
     /** {@inheritDoc} */
@@ -105,6 +97,15 @@ public class FfvbObservationReader implements FfvbAcquisition {
     public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
       FfvbPage page = new FfvbPage(html.observation(), url, scope(target));
       return new Read<>(standings.parse(page), html.observedAt());
+    }
+  }
+
+  private Read<byte[]> readExport(FfvbPage page) {
+    try {
+      byte[] body = http.post(page.exportUrl(), page.exportFields());
+      return new Read<>(body, clock.instant());
+    } catch (RuntimeException failure) {
+      throw readFailure(failure);
     }
   }
 

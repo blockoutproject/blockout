@@ -96,7 +96,7 @@ public class CollectPassage {
           .addKeyValue("operation", "collection_passage")
           .addKeyValue("cycleId", context.getCycle().id())
           .addKeyValue("outcome", "refused")
-          .log("Admitted context was refused; no further reads or completion were attempted");
+          .log("Backend refused an operation in the admitted passage");
     }
   }
 
@@ -111,9 +111,7 @@ public class CollectPassage {
     return selected;
   }
 
-  /**
-   * Groups only frozen scopes. Discovery supplies decoded bodies synchronously for immediate use.
-   */
+  /** Groups only frozen scopes. Discovery supplies the shared response for immediate use. */
   private final class SeasonalResources {
     private final CollectorLifecycle.AdmittedCycle context;
     private final Map<URI, List<CollectionBackend.Target>> ffvbGroups = new LinkedHashMap<>();
@@ -129,7 +127,7 @@ public class CollectPassage {
           add(target);
         }
       }
-      enrichment = new LnvEnrichment(context, !lnvGroups.isEmpty());
+      enrichment = new LnvEnrichment(context);
     }
 
     private void add(CollectionBackend.Target target) {
@@ -305,9 +303,8 @@ public class CollectPassage {
    */
   private boolean remainsPresent(
       CollectionBackend.Target target, Map<UUID, Set<UUID>> presentPools) {
-    return target.poolId() == null
-        || !presentPools.containsKey(target.sourceBindingId())
-        || presentPools.get(target.sourceBindingId()).contains(target.poolId());
+    Set<UUID> present = presentPools.get(target.sourceBindingId());
+    return target.poolId() == null || present == null || present.contains(target.poolId());
   }
 
   /**
@@ -605,12 +602,11 @@ public class CollectPassage {
     private final CollectorLifecycle.AdmittedCycle context;
     private final Set<UUID> readTeams = new LinkedHashSet<>();
     private final Set<UUID> readMatches = new LinkedHashSet<>();
-    private final LnvAcquisition.DocumentIndexes indexes;
     private final Map<UUID, Map<CollectionPhaseEnum, DetailTotal>> totals = new LinkedHashMap<>();
+    private LnvAcquisition.DocumentIndexes indexes;
 
-    private LnvEnrichment(CollectorLifecycle.AdmittedCycle context, boolean hasLnvResources) {
+    private LnvEnrichment(CollectorLifecycle.AdmittedCycle context) {
       this.context = context;
-      indexes = hasLnvResources ? lnv.documentIndexes(context::nextReadOrdinal) : null;
     }
 
     /**
@@ -678,6 +674,9 @@ public class CollectPassage {
       long ordinal = context.nextReadOrdinal();
       LnvAcquisition.DocumentRead read;
       try {
+        if (indexes == null) {
+          indexes = lnv.documentIndexes(context::nextReadOrdinal);
+        }
         read = indexes.informationSheets(target, calendar);
       } catch (RuntimeException failure) {
         for (SportingObservation.Outcome item : outcome.outcomes()) {
@@ -808,14 +807,11 @@ public class CollectPassage {
             reasonType,
             reason);
       } catch (CollectionBackendFailure failure) {
-        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-          throw failure;
-        }
         addEvidence(
             match,
             ordinal,
             CollectionPhaseEnum.INTEGRATION,
-            failed(failure),
+            submissionFailure(failure),
             clock.instant(),
             null,
             diagnosticPrefix + AcquisitionFailure.diagnostic(failure));
@@ -999,8 +995,8 @@ public class CollectPassage {
   }
 
   /**
-   * Records the failed observation through its backend owner. If that write is unconfirmed, keeps
-   * the original safe cause here for investigation while independent scopes may proceed.
+   * Records the failed observation through its backend owner. A failed evidence write carries the
+   * original safe acquisition diagnostic for investigation.
    *
    * @param context admitted capability
    * @param target affected stage and scope
@@ -1012,42 +1008,29 @@ public class CollectPassage {
       CollectionBackend.Target target,
       long ordinal,
       RuntimeException failure) {
-    URI reasonType = AcquisitionFailure.reasonType(failure);
-    boolean confirmed =
-        record(
-            context,
-            new CollectionBackend.Result(
-                target.scopeId(),
-                stageMapper.toStage(target.kind()),
-                CollectionPhaseEnum.ACQUISITION,
-                ordinal,
-                clock.instant(),
-                CollectionOutcomeEnum.FAILED,
-                reasonType,
-                AcquisitionFailure.reason(failure),
-                null,
-                null));
-    if (!confirmed) {
-      log.atWarn()
-          .addKeyValue("operation", "collection_acquisition")
-          .addKeyValue("cycleId", context.getCycle().id())
-          .addKeyValue("scope", target.scopeId())
-          .addKeyValue("stage", target.kind().getValue())
-          .addKeyValue("reason", AcquisitionFailure.diagnostic(failure))
-          .log("Failed source observation has no confirmed backend evidence");
-    }
+    record(
+        context,
+        new CollectionBackend.Result(
+            target.scopeId(),
+            stageMapper.toStage(target.kind()),
+            CollectionPhaseEnum.ACQUISITION,
+            ordinal,
+            clock.instant(),
+            CollectionOutcomeEnum.FAILED,
+            AcquisitionFailure.reasonType(failure),
+            AcquisitionFailure.reason(failure),
+            null,
+            null),
+        failure);
   }
 
-  /**
-   * Distinguishes a confirmed refusal from a lost acknowledgement.
-   *
-   * @param failure classified single exchange
-   * @return honest refusal or uncertainty without a retry
-   */
-  private CollectionOutcomeEnum failed(CollectionBackendFailure failure) {
-    return failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
-        ? CollectionOutcomeEnum.UNCONFIRMED
-        : CollectionOutcomeEnum.FAILED;
+  /** A context conflict stops the passage. Other failures remain scoped integration evidence. */
+  private CollectionOutcomeEnum submissionFailure(CollectionBackendFailure failure) {
+    return switch (failure.getKind()) {
+      case CONFLICT -> throw failure;
+      case REJECTED -> CollectionOutcomeEnum.FAILED;
+      case UNCONFIRMED -> CollectionOutcomeEnum.UNCONFIRMED;
+    };
   }
 
   private SportingObservation.Context sourceContext(
@@ -1069,16 +1052,13 @@ public class CollectPassage {
     try {
       return submit.get();
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        throw failure;
-      }
       record(
           context,
           scope,
           stage,
           ordinal,
           CollectionPhaseEnum.INTEGRATION,
-          failed(failure),
+          submissionFailure(failure),
           null,
           null,
           clock.instant(),
@@ -1202,22 +1182,29 @@ public class CollectPassage {
   }
 
   /**
-   * Sends one actual result once. The backend owns committed diagnostics; an unconfirmed reporting
-   * exchange is logged here without repeating the underlying business mutation.
+   * The backend diagnoses committed results. The collector reports a rejected or uncertain evidence
+   * exchange once, with the original acquisition diagnostic when available.
    *
    * @param context admitted control capability
    * @param result safe typed evidence including its original reason category
-   * @return whether backend acceptance of the evidence was confirmed
    */
-  private boolean record(
-      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Result result) {
+  private void record(CollectorLifecycle.AdmittedCycle context, CollectionBackend.Result result) {
+    record(context, result, null);
+  }
+
+  private void record(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Result result,
+      RuntimeException acquisitionFailure) {
     try {
       backend.record(context.getCycle().id(), result);
-      return true;
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        throw failure;
-      }
+      String outcome =
+          switch (failure.getKind()) {
+            case CONFLICT -> throw failure;
+            case REJECTED -> "rejected";
+            case UNCONFIRMED -> "unconfirmed";
+          };
       log.atError()
           .addKeyValue("operation", "collection_result")
           .addKeyValue("cycleId", context.getCycle().id())
@@ -1225,10 +1212,11 @@ public class CollectPassage {
           .addKeyValue("scope", result.scopeId())
           .addKeyValue("stage", result.stage().getValue())
           .addKeyValue("phase", result.phase().getValue())
-          .addKeyValue("outcome", "unconfirmed")
-          .log(
-              "Current collection evidence could not be confirmed; the operation was not replayed");
-      return false;
+          .addKeyValue("outcome", outcome)
+          .addKeyValue(
+              "reason",
+              acquisitionFailure == null ? null : AcquisitionFailure.diagnostic(acquisitionFailure))
+          .log("Collection evidence write failed");
     }
   }
 }

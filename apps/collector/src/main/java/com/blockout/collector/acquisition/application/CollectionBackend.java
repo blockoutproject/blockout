@@ -83,8 +83,7 @@ public interface CollectionBackend {
       long cycleOrder,
       CollectionModeEnum mode,
       CollectionCycleStateEnum state,
-      Candidate candidate,
-      Instant completedAt) {}
+      Candidate candidate) {}
 
   /**
    * Acquisition inputs from the backend-selected target. Classification and scheduling evidence
@@ -212,22 +211,22 @@ public interface CollectionBackend {
   TargetPage targets(UUID cycleId, long page);
 
   /**
-   * Records one independent phase without changing sporting data.
+   * Records one independent phase once without changing sporting data.
    *
    * @param cycleId admitted control
    * @param result attributable evidence
-   * @return current running context
+   * @throws CollectionBackendFailure if the exchange is refused or unconfirmed
    */
-  Cycle record(UUID cycleId, Result result);
+  void record(UUID cycleId, Result result);
 
   /**
-   * Ends selected control work without asserting global success.
+   * Attempts to end selected control work once without asserting global success.
    *
    * @param cycleId admitted control
    * @param completedAt actual selected-work end
-   * @return accepted terminal context
+   * @throws CollectionBackendFailure if the exchange is refused or unconfirmed
    */
-  Cycle complete(UUID cycleId, Instant completedAt);
+  void complete(UUID cycleId, Instant completedAt);
 
   /**
    * Submits candidate evidence once through its separate terminal operation.
