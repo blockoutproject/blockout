@@ -24,11 +24,14 @@ public class ProcessLinkAnnouncement {
   private final ReadPublicContribution links;
 
   /**
-   * Processes a newly accepted publication under the caller's sporting locks. This event may
-   * consume a post-result allowance.
+   * Processes a version made active by F08 in this transaction under the required sporting locks.
+   * That write establishes link presence and can trigger a live or post-result announcement.
+   *
+   * @param sporting current locked facts for the published match
+   * @param now publication-processing instant supplied by F08
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<Entry> processPublication(Facts sporting, Instant now) {
+  public List<Entry> processAcceptedPublication(Facts sporting, Instant now) {
     return process(
         new LinkAnnouncementFacts(
             sporting.match(),
@@ -45,13 +48,14 @@ public class ProcessLinkAnnouncement {
     return process(sporting, now, false);
   }
 
-  private List<Entry> process(LinkAnnouncementFacts sporting, Instant now, boolean publication) {
+  private List<Entry> process(
+      LinkAnnouncementFacts sporting, Instant now, boolean acceptedPublication) {
     if (!sporting.viewable()) {
       return List.of();
     }
     boolean finalResult = sporting.definitiveResult();
     Instant start = sporting.reliableStart();
-    if (finalResult && !publication) {
+    if (finalResult && !acceptedPublication) {
       return List.of();
     }
     if (!finalResult && (start == null || now.isBefore(start))) {
@@ -60,7 +64,7 @@ public class ProcessLinkAnnouncement {
     UUID matchId = sporting.match().id();
     MatchAnnouncementFacts facts = store.facts(matchId);
     boolean processed = finalResult ? facts.postResultProcessed() : facts.liveProcessed();
-    if (processed || !links.availableForConsultableMatch(matchId)) {
+    if (processed || (!acceptedPublication && !links.availableForConsultableMatch(matchId))) {
       return List.of();
     }
 
