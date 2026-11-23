@@ -8,7 +8,7 @@ import {
   getTeamFollowState,
 } from "../../../../.generated/mobile";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import {
   followStateKey,
@@ -28,11 +28,12 @@ export async function withdrawRefusedFollowingQuery(
   queryKey: QueryKey,
   error: ApiError,
 ) {
-  const cancellation = client.cancelQueries(
-    { queryKey, exact: true },
-    { revert: false, silent: true },
-  );
-  const query = client.getQueryCache().find({ queryKey, exact: true });
+  const exactRead = { queryKey, exact: true };
+  const cancellation = client.cancelQueries(exactRead, {
+    revert: false,
+    silent: true,
+  });
+  const query = client.getQueryCache().find(exactRead);
   if (query) {
     withdrawCachedRead(query, error);
   }
@@ -72,11 +73,7 @@ export function createFollowStateQueryOptions(
         }
         return state;
       } catch (error) {
-        if (
-          !signal.aborted &&
-          error instanceof ApiError &&
-          (isAccessDenied(error) || error.status === 404)
-        ) {
+        if (!signal.aborted && isResourceReadRefused(error)) {
           await withdrawRefusedFollowingQuery(client, queryKey, error);
         }
         throw error;

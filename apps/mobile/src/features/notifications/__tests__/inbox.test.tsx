@@ -191,21 +191,22 @@ it.each([401, 403])(
       ...queries.inbox,
       enabled: (query) => query.state.status !== "error",
     });
-    const stopList = list.subscribe(() => undefined);
     const delayed = Promise.withResolvers<Response>();
     const command = new MutationObserver(
       client,
       createReadNotificationOptions(client, owner, queries),
     );
-    await waitFor(() => expect(list.getCurrentResult().isSuccess).toBe(true));
-    const retained = list.getCurrentResult().data;
-    client.setQueryData(other.inbox, retained);
-    mockFetch
-      .mockImplementationOnce(() => delayed.promise)
-      .mockResolvedValueOnce(new Response(null, { status }));
-    const refresh = list.refetch();
+    const stopList = list.subscribe(() => undefined);
+    let refresh: Promise<unknown> | undefined;
 
     try {
+      await waitFor(() => expect(list.getCurrentResult().isSuccess).toBe(true));
+      const retained = list.getCurrentResult().data;
+      client.setQueryData(other.inbox, retained);
+      mockFetch
+        .mockImplementationOnce(() => delayed.promise)
+        .mockResolvedValueOnce(new Response(null, { status }));
+      refresh = list.refetch();
       await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
       // When
@@ -219,18 +220,24 @@ it.each([401, 403])(
         error: { status },
         data: undefined,
       });
+      expect(client.getQueryData(other.inbox)).toEqual(retained);
     } finally {
       delayed.resolve(Response.json({ notifications: [row] }));
-      await refresh;
       stopList();
+      await refresh;
     }
 
     expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
-    expect(client.getQueryData(other.inbox)).toEqual(retained);
-    expect(mockFetch.mock.calls.map(([, init]) => init.method)).toEqual([
-      "GET",
-      "GET",
-      "PATCH",
+    const inboxPath = `/accounts/${owner.accountId}/notifications`;
+    expect(
+      mockFetch.mock.calls.map(([url, init]) => [
+        init.method,
+        new URL(String(url)).pathname,
+      ]),
+    ).toEqual([
+      ["GET", inboxPath],
+      ["GET", inboxPath],
+      ["PATCH", `${inboxPath}/${row.id}`],
     ]);
   },
 );

@@ -3,6 +3,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  type Query,
   type QueryFunctionContext,
 } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -29,7 +30,10 @@ import {
   type UpdateModeratedStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import {
+  isAccessDenied,
+  isResourceReadRefused,
+} from "@/shared/api/access-denied";
 import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountAvailability } from "@/features/accounts/current-account";
@@ -59,15 +63,12 @@ function useModerationAuthority() {
     usable &&
     account.data?.permissions?.moderateStreamLinks === true;
   const client = useQueryClient();
-  // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
     if (
       account.isSuccess &&
       account.data?.permissions?.moderateStreamLinks !== true
     ) {
-      client.removeQueries({
-        predicate: (query) => isModerationResource(query.queryKey[0]),
-      });
+      client.removeQueries({ predicate: isModerationQuery });
     }
   }, [client, account.isSuccess, account.data]);
 
@@ -83,8 +84,9 @@ function useModerationAuthority() {
   return { canRetain, session, account, request };
 }
 
-/** Identifies only generated private video-moderation resources for known grant withdrawal. */
-function isModerationResource(key: unknown) {
+/** Matches the generated queue, version and report paths governed by the moderation grant. */
+function isModerationQuery(query: Query) {
+  const [key] = query.queryKey;
   return (
     typeof key === "string" &&
     (key === "/administration/stream-moderation" ||
@@ -95,28 +97,22 @@ function isModerationResource(key: unknown) {
 }
 
 /** Withdraws refused private data while the reader reports the current attempt's error. */
-async function refuse(
+async function rejectModerationRead(
   error: unknown,
-  context: QueryFunctionContext,
+  { client, queryKey, signal }: QueryFunctionContext,
 ): Promise<never> {
-  if (
-    !context.signal.aborted &&
-    error instanceof ApiError &&
-    (isAccessDenied(error) || error.status === 404)
-  ) {
-    const refused = context.client
-      .getQueryCache()
-      .find({ queryKey: context.queryKey, exact: true });
-    await context.client.cancelQueries({
+  if (!signal.aborted && isResourceReadRefused(error)) {
+    const accessDenied = isAccessDenied(error);
+    const cache = client.getQueryCache();
+    const refused = cache.find({ queryKey, exact: true });
+    // Let sibling cancellations settle before clearing the restored snapshots.
+    await client.cancelQueries({
       predicate: (query) =>
-        query !== refused &&
-        isAccessDenied(error) &&
-        isModerationResource(query.queryKey[0]),
+        accessDenied && query !== refused && isModerationQuery(query),
     });
-    for (const query of context.client.getQueryCache().findAll({
+    for (const query of cache.findAll({
       predicate: (query) =>
-        query === refused ||
-        (isAccessDenied(error) && isModerationResource(query.queryKey[0])),
+        query === refused || (accessDenied && isModerationQuery(query)),
     })) {
       withdrawCachedRead(query, error);
     }
@@ -141,7 +137,7 @@ export function useModerationQueue(filters: ModerationFilters, enabled = true) {
           await authority.request(context.signal),
         );
       } catch (error) {
-        return refuse(error, context);
+        return rejectModerationRead(error, context);
       }
     },
     getNextPageParam: (page) => page.nextPage,
@@ -184,7 +180,7 @@ export function useModerationVersions(
           await authority.request(context.signal),
         );
       } catch (error) {
-        return refuse(error, context);
+        return rejectModerationRead(error, context);
       }
     },
     getNextPageParam: (page) => page.nextPage,
@@ -218,9 +214,7 @@ export function useModerationMatch(
   /** Invalidates original private traversals and public F03 composition without rejecting an acknowledged mutation. */
   function settled(_data: unknown, error: unknown) {
     if (isAccessDenied(error)) {
-      client.removeQueries({
-        predicate: (query) => isModerationResource(query.queryKey[0]),
-      });
+      client.removeQueries({ predicate: isModerationQuery });
     }
     const refetchType =
       error &&
@@ -334,7 +328,7 @@ export function useModerationReports(
           await authority.request(context.signal),
         );
       } catch (error) {
-        return refuse(error, context);
+        return rejectModerationRead(error, context);
       }
     },
     getNextPageParam: (page) => page.nextPage,

@@ -34,15 +34,16 @@ async function refuseOwnAccess(
   client: QueryClient,
   queryKey: QueryKey,
   error: unknown,
-  reading = false,
+  source: "reader" | "external",
 ) {
   if (!isResourceReadRefused(error)) {
     return;
   }
-  if (!reading) {
-    await client.cancelQueries({ queryKey, exact: true });
+  const filters = { queryKey, exact: true };
+  if (source === "external") {
+    await client.cancelQueries(filters);
   }
-  const query = client.getQueryCache().find({ queryKey, exact: true });
+  const query = client.getQueryCache().find(filters);
   if (query) {
     withdrawCachedRead(query, error);
   }
@@ -71,7 +72,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
         (personal.state.data !== undefined ||
           personal.state.fetchStatus === "fetching")
       ) {
-        void refuseOwnAccess(client, personal.queryKey, error);
+        void refuseOwnAccess(client, personal.queryKey, error, "external");
       }
     }
 
@@ -114,7 +115,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
         );
       } catch (error) {
         if (!signal.aborted) {
-          await refuseOwnAccess(client, queryKey, error, true);
+          await refuseOwnAccess(client, queryKey, error, "reader");
         }
         throw error;
       }
@@ -138,7 +139,8 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     account,
     canRetain,
     readFirstPage,
-    refuseAccess: (error: unknown) => refuseOwnAccess(client, queryKey, error),
+    refuseAccess: (error: unknown) =>
+      refuseOwnAccess(client, queryKey, error, "external"),
   };
 }
 
@@ -193,7 +195,7 @@ export function useOwnContributions(matchId: string) {
         schema: OwnStreamContributionDetailResponse,
       }),
     onSettled: settled,
-    onError: (error) => refuseAccess(error),
+    onError: refuseAccess,
   });
   const change = useMutation({
     mutationKey: contributionKeys.updateOwn(actor, matchId),
@@ -203,7 +205,7 @@ export function useOwnContributions(matchId: string) {
         schema: OwnStreamContributionDetailResponse,
       }),
     onSettled: settled,
-    onError: (error) => refuseAccess(error),
+    onError: refuseAccess,
   });
   return {
     query,

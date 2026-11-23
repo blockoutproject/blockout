@@ -4,9 +4,8 @@ import {
   getPoolFollowerCount,
 } from "../../../../.generated/mobile";
 import { ApiError } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { useSportingTargetAvailability } from "@/features/sporting/availability";
-import { isFollowRestriction } from "./follow-mutations";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
@@ -70,11 +69,7 @@ export function useFollowerCountQuery(target: FollowingTarget) {
           ? getTeamFollowerCount(target.id, options)
           : getPoolFollowerCount(target.id, options));
       } catch (error) {
-        if (
-          !signal.aborted &&
-          error instanceof ApiError &&
-          (isAccessDenied(error) || isFollowRestriction(error))
-        ) {
+        if (!signal.aborted && isResourceReadRefused(error)) {
           await cleanUpRefusedCount(error);
         }
         throw error;

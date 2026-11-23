@@ -1,6 +1,5 @@
 import {
   infiniteQueryOptions,
-  hashKey,
   type InfiniteData,
   type QueryClient,
   type QueryKey,
@@ -8,7 +7,7 @@ import {
 import { listNotifications } from "../../../../.generated/mobile";
 import type { NotificationsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
 import type { SessionSnapshot } from "@/features/accounts";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
@@ -62,6 +61,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
         signal,
         pageParam,
         client,
+        queryKey,
       }): Promise<NotificationsResponse> => {
         try {
           const page = await listNotifications(
@@ -78,7 +78,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
           };
         } catch (error) {
           if (!signal.aborted) {
-            refuseInboxAccess(client, owner, error, keys.inbox);
+            refuseInboxAccess(client, queryKey, error, "reader");
           }
           throw error;
         }
@@ -106,22 +106,18 @@ export function refreshRetainedInbox(
  */
 export function refuseInboxAccess(
   client: QueryClient,
-  owner: InboxOwner,
+  queryKey: QueryKey,
   error: unknown,
-  failingKey?: QueryKey,
+  source: "reader" | "external",
 ) {
-  if (
-    !(error instanceof ApiError) ||
-    !(isAccessDenied(error) || error.status === 404)
-  ) {
+  if (!isResourceReadRefused(error)) {
     return;
   }
-  const keys = getNotificationKeys(owner);
-  const queryKey = keys.inbox;
-  if (!failingKey || hashKey(failingKey) !== hashKey(queryKey)) {
-    void client.cancelQueries({ queryKey, exact: true });
+  const filters = { queryKey, exact: true };
+  if (source === "external") {
+    void client.cancelQueries(filters);
   }
-  const query = client.getQueryCache().find({ queryKey, exact: true });
+  const query = client.getQueryCache().find(filters);
   if (query) {
     withdrawCachedRead(query, error);
   }

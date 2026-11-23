@@ -4,7 +4,7 @@ import type {
   ListTeamFollows200,
   ListPoolFollows200,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "@/shared/api/access-denied";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
 import {
   hashKey,
   infiniteQueryOptions,
@@ -58,9 +58,8 @@ export function createFollowListOptions(
       } catch (error) {
         if (
           !signal.aborted &&
-          error instanceof Error &&
-          (isAccessDenied(error) ||
-            (error instanceof ApiError && error.status === 404 && !seasonId))
+          isResourceReadRefused(error) &&
+          (error.status !== 404 || !seasonId)
         ) {
           await withdrawRefusedPersonalCollections(
             client,
@@ -101,11 +100,7 @@ export function createFollowOptionsQueryOptions(
         }
         return result;
       } catch (error) {
-        if (
-          !signal.aborted &&
-          error instanceof ApiError &&
-          (isAccessDenied(error) || error.status === 404)
-        ) {
+        if (!signal.aborted && isResourceReadRefused(error)) {
           await withdrawRefusedFollowingQuery(client, queryKey, error);
         }
         throw error;
@@ -143,12 +138,9 @@ export function createPersonalCalendarOptions(
       } catch (error) {
         // A missing selected season does not revoke the owner’s other retained sporting projections.
         if (
-          error instanceof Error &&
           !signal.aborted &&
-          (isAccessDenied(error) ||
-            (error instanceof ApiError &&
-              error.status === 404 &&
-              !selection.seasonId))
+          isResourceReadRefused(error) &&
+          (error.status !== 404 || !selection.seasonId)
         ) {
           await withdrawRefusedPersonalCollections(
             client,
