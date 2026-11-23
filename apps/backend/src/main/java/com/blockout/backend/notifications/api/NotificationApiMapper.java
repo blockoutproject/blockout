@@ -6,7 +6,6 @@ import com.blockout.backend.generated.mobile.model.NotificationResponse;
 import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.generated.mobile.model.PushSubscriptionResponse;
 import com.blockout.backend.generated.mobile.model.ReplacePushSubscriptionRequest;
-import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Association;
@@ -15,7 +14,6 @@ import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationMessage;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.api.ConsultationApiMapper;
-import com.blockout.backend.sporting.application.ConsultationViews.Result;
 import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -80,25 +78,14 @@ public interface NotificationApiMapper {
   }
 
   /**
-   * Renders factual French card text using the persisted editorial choice.
+   * Maps the shared editorial body to the inbox card's title field.
    *
    * @param entry current authorized sporting facts with fixed family/variant
    * @return factual French card text including corrected/absent result or link
    */
   @Named("notificationText")
   default String text(Entry entry) {
-    Result result = entry.match().result();
-    return NotificationMessage.render(
-            entry.family(),
-            entry.variant(),
-            new NotificationMessage.Facts(
-                entry.match().home().name(),
-                entry.match().away().name(),
-                result != null && result.state() == ResultStateEnum.FINAL,
-                result == null ? null : result.homeSets(),
-                result == null ? null : result.awaySets(),
-                result == null ? null : result.specialLabel(),
-                entry.publicLink()))
+    return NotificationMessage.render(entry.family(), entry.variant(), entry.editorialFacts())
         .body();
   }
 }

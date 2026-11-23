@@ -15,6 +15,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Gatherers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.task.TaskRejectedException;
@@ -62,42 +63,58 @@ public class DeliverPush {
   }
 
   /**
-   * Runs one paced batch on the single worker. Reads finish before F12's final current check and
-   * HTTP; maintenance/read/transport failures lose only ephemeral work.
+   * Runs one paced batch on the single worker. Device snapshots finish before F12's last check and
+   * the single provider call. An exception from the transport boundary leaves its outcome unknown.
    *
    * @param attempts at most 100 immutable original targets
    */
   public void deliver(List<Attempt> attempts) {
+    List<Message> messages = new ArrayList<>();
     try {
       // One worker and at least 200 ms between batches cap this project's rate below 600/s.
       Thread.sleep(Duration.ofMillis(200));
-      List<Message> messages = new ArrayList<>();
       for (Attempt attempt : attempts) {
         eligibility.current(attempt.entry(), attempt.target()).ifPresent(messages::add);
       }
       if (messages.isEmpty() || !admission.allowsHandoff()) {
         return;
       }
-      List<Outcome> outcomes = provider.send(messages);
-      Map<String, Target> tickets = new LinkedHashMap<>();
-      for (int i = 0; i < messages.size(); i++) {
-        Outcome outcome = outcomes.get(i);
-        Target target = messages.get(i).target();
-        if (outcome.status() == Status.DEVICE_NOT_REGISTERED) {
-          invalidate(target);
-        }
-        if (outcome.status() == Status.ACCEPTED && outcome.ticketId() != null) {
-          tickets.put(outcome.ticketId(), target);
-        }
-      }
-      if (!tickets.isEmpty()) {
-        scheduleReceipts(Map.copyOf(tickets));
-      }
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
-      lost("interrupted", attempts.size());
+      warn("failed", "interrupted", attempts.size())
+          .addKeyValue("stage", "preparation")
+          .log("Push batch preparation failed");
+      return;
     } catch (RuntimeException failure) {
-      lost("handoff_unavailable_or_uncertain", attempts.size());
+      warn("failed", "handoff_unavailable", attempts.size())
+          .addKeyValue("stage", "preparation")
+          .log("Push batch preparation failed");
+      return;
+    }
+
+    List<Outcome> outcomes;
+    try {
+      outcomes = provider.send(messages);
+    } catch (RuntimeException failure) {
+      warn("unknown", "handoff_uncertain", messages.size())
+          .addKeyValue("stage", "transport")
+          .log("Push transport outcome is unknown");
+      return;
+    }
+
+    Map<String, Target> tickets = new LinkedHashMap<>();
+    for (int i = 0; i < messages.size(); i++) {
+      Outcome outcome = outcomes.get(i);
+      Target target = messages.get(i).target();
+      if (outcome.status() == Status.DEVICE_NOT_REGISTERED) {
+        invalidate(target);
+      }
+      if (outcome.status() == Status.ACCEPTED && outcome.ticketId() != null) {
+        tickets.put(outcome.ticketId(), target);
+      }
+    }
+    if (!tickets.isEmpty()) {
+      scheduleReceipts(Map.copyOf(tickets));
     }
   }
 
@@ -168,13 +185,16 @@ public class DeliverPush {
    * @param count ephemeral targets or tickets affected
    */
   private void lost(String reason, int count) {
-    log.atWarn()
+    warn("dropped", reason, count).log("Ephemeral push work dropped");
+  }
+
+  private LoggingEventBuilder warn(String outcome, String reason, int count) {
+    return log.atWarn()
         .addKeyValue("operation", "sporting_push")
         .addKeyValue("provider", "expo")
-        .addKeyValue("outcome", "dropped")
+        .addKeyValue("outcome", outcome)
         .addKeyValue("reason", reason)
-        .addKeyValue("affected_count", count)
-        .log("Ephemeral push work dropped");
+        .addKeyValue("affected_count", count);
   }
 
   /** One original allocation and selected association; never a durable job. */

@@ -570,9 +570,13 @@ An empty or non-JSON HTTP refusal, including 401/403, can remain UNKNOWN under t
 
 Keep `logging.level.com.niamedtech.expo.exposerversdk=OFF`: the upstream SDK has a raw response-body DEBUG log, which must not expose private provider evidence. Do not enable that logger; do not parse/log SDK exception messages.
 
-Inspect existing structured stdout fields `operation=sporting_push` (drop reason/count),
+Inspect existing structured stdout fields `operation=sporting_push` (worker reason/count),
 `operation=expo_push_evidence` (acceptance/rejection/unknown counts) and
-`operation=sporting_push_configuration` (disabled/enabled or credential/project diagnostic). These
+`operation=sporting_push_configuration` (disabled/enabled or credential/project diagnostic).
+For `sporting_push`, `stage=preparation` with `outcome=failed` counts captured device attempts in a
+batch that never called transport. `stage=transport` with `outcome=unknown` counts the eligible
+messages passed to the provider boundary when an unexpected exception leaves their disposition
+unknown. Returned ticket and receipt outcomes are reported by `expo_push_evidence`. These logs
 contain no account/destination/ticket identities, content, raw provider error or secret.
 Acceptance at Expo/APNs/FCM is not phone receipt. Correct credentials/project settings only in an
 authorized environment; do not repair lost transient work by replaying announcements. Follow the

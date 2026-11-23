@@ -44,4 +44,15 @@ public interface FollowStore {
    * @return immutable selected account identities, without captured follow identities
    */
   Set<UUID> recipients(Set<FollowContext.Target> targets);
+
+  /**
+   * Checks both follow relation types in one read for an already selected account.
+   *
+   * @param accountId original selected account
+   * @param homeTeamId admitted current home team
+   * @param awayTeamId admitted current away team
+   * @param poolId admitted current pool
+   * @return whether a current relation to any of these origins exists
+   */
+  boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId);
 }

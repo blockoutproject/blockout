@@ -72,4 +72,10 @@ public class JpaFollowStore implements FollowStore {
     }
     return Set.copyOf(teams.findRecipientAccounts(teamIds, poolIds));
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId) {
+    return teams.followsMatch(accountId, homeTeamId, awayTeamId, poolId);
+  }
 }

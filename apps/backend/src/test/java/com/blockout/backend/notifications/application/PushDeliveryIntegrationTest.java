@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.backend.notifications.api.NotificationApiMapper;
 import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
@@ -20,6 +21,7 @@ import com.blockout.backend.notifications.application.PushSubscriptionStore.Targ
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +64,8 @@ class PushDeliveryIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private AfterCommitAnnouncements announcements;
   @Autowired private ReadPushEligibility eligibility;
+  @Autowired private ReadInbox inbox;
+  @Autowired private NotificationApiMapper inboxTransport;
   @Autowired private PushSubscriptionStore subscriptions;
   @Autowired private PlatformTransactionManager transactions;
   @MockitoBean private Clock clock;
@@ -246,19 +251,53 @@ class PushDeliveryIntegrationTest {
         .isEqualTo(1);
   }
 
-  @Test
-  @DisplayName("Current corrected sporting facts and link absence supply safe text")
-  void usesCurrentContent() {
+  @ParameterizedTest(name = "Current wording for {3}")
+  @CsvSource({"1, 3, , Score final : 1–3.", ", , F/P, Résultat particulier : F/P."})
+  @DisplayName("The current inbox title and push body agree after the result and link change")
+  void sharesCurrentWording(
+      Integer homeSets, Integer awaySets, String specialLabel, String expectedResult) {
     // Given
-    sql.update("UPDATE sporting_match SET home_sets=1,away_sets=3 WHERE id=?", notification);
+    UUID link = UUID.fromString("00000000-0000-4000-8000-000000002835");
+    sql.update(
+        "INSERT INTO contribution_version(id,match_id,address,platform,state,created_at,quota_participating) VALUES (?,?,'https://youtube.com/watch?v=demo','YOUTUBE','ACTIVE',?,FALSE)",
+        link,
+        notification,
+        Timestamp.from(NOW));
+    NotificationContext owner = new NotificationContext(ACCOUNT);
+    assertThat(
+            inboxTransport.toDto(inbox.page(owner, null)).getNotifications().getFirst().getTitle())
+        .contains("Score final : 3–1.", "Un lien a été proposé");
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(status -> announcements.submit(List.of(created)));
+    ArgumentCaptor<Runnable> work = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor).execute(work.capture());
+    sql.update("UPDATE contribution_version SET state='HIDDEN' WHERE id=?", link);
+    sql.update(
+        "UPDATE sporting_match SET home_sets=?,away_sets=?,special_label=? WHERE id=?",
+        homeSets,
+        awaySets,
+        specialLabel,
+        notification);
 
     // When
-    Message result = eligibility.current(created, target).orElseThrow();
+    String inboxTitle =
+        inboxTransport.toDto(inbox.page(owner, null)).getNotifications().getFirst().getTitle();
+    work.getValue().run();
 
     // Then
-    assertThat(result.text().body())
-        .contains("1–3", "Le lien n’est plus proposé.")
+    assertThat(inboxTitle)
+        .contains(expectedResult, "Le lien n’est plus proposé.")
         .doesNotContain("3–1");
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.text().body()).isEqualTo(inboxTitle);
+              assertThat(message.text().title()).isNotBlank().isNotEqualTo(inboxTitle);
+            });
   }
 
   @Test
