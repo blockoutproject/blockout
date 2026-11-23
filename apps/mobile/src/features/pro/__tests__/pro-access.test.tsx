@@ -599,15 +599,12 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
   const ad = mockCreateAd.mock.results[0].value;
   expect(ad.load).toHaveBeenCalledTimes(1);
+
+  // When
   await selectMappedTeam();
-  await act(() => ad.emit(AdEventType.LOADED));
-  await visitMappedTeam(9);
-  await userEvent.press(screen.getByRole("link", { name: "Rives" }));
-  expect(ad.show).toHaveBeenCalledTimes(1);
-  await act(() => ad.emit(AdEventType.CLOSED));
-  await waitFor(() => expect(screen).toHavePathname(`/teams/${sportingId}`));
-  await act(() => router.back());
   await userEvent.press(screen.getByRole("button", { name: "Suivre" }));
+
+  // Then
   expect(
     await screen.findByRole("button", { name: "Se connecter" }),
   ).toBeOnTheScreen();

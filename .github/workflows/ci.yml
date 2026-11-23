@@ -93,6 +93,10 @@ jobs:
           distribution: temurin
           java-version: 25
           cache: maven
+          cache-dependency-path: |
+            pom.xml
+            apps/${{ matrix.project }}/pom.xml
+            .mvn/wrapper/maven-wrapper.properties
 
       - name: Install locked workspace dependencies
         run: npm ci --no-audit --no-fund
