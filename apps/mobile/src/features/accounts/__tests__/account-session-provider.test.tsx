@@ -654,7 +654,7 @@ it("returns the SDK's explicit login principal without establishing on restorati
   ).toBe(false);
 });
 
-it("does not restore A's native identity after B has signed in while A credentials were pending", async () => {
+it("rejects A's pending credential read after B has signed in", async () => {
   // Given
   const credentialsA = { ...credentialsFor("auth0|a"), accessToken: "token-a" };
   const credentialsB = { ...credentialsFor("auth0|b"), accessToken: "token-b" };
@@ -683,10 +683,7 @@ it("does not restore A's native identity after B has signed in while A credentia
   mockAuth0.getCredentials
     .mockReturnValueOnce(delayed.promise)
     .mockResolvedValue(credentialsB);
-  let oldRead: Promise<unknown> | undefined;
-  await act(async () => {
-    oldRead = original.getCredentials();
-  });
+  const oldRead = original.getCredentials();
   await act(async () => {
     await hook.result.current.session.signIn("https://api.example.invalid");
   });
@@ -700,8 +697,11 @@ it("does not restore A's native identity after B has signed in while A credentia
   try {
     // When
     await act(async () => {
+      const cancellation = expect(oldRead).rejects.toMatchObject({
+        kind: "cancelled",
+      });
       delayed.resolve(credentialsA);
-      await oldRead;
+      await cancellation;
     });
 
     // Then

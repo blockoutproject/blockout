@@ -9,13 +9,21 @@ import {
 } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
+import { PermissionStatus } from "expo";
+import * as Notifications from "expo-notifications";
 import { Pressable, Text } from "react-native";
+import { CredentialsManagerErrorCodes } from "react-native-auth0";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { NotificationLifecycle } from "@/features/notifications/native/notification-lifecycle";
+import {
+  createPushRegistration,
+  type PushRegistration,
+} from "@/features/notifications/native/push-registration";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -31,7 +39,7 @@ import {
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 
-// Router, Auth0 reducer, Query and generated transport are real; only native/network I/O is controlled.
+// Router, Auth0, Query, push lifecycle and generated transport are real; only I/O is controlled.
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
@@ -45,6 +53,31 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    ...jest.requireActual("expo-constants").default,
+    easConfig: { projectId: "synthetic-project" },
+  },
+}));
+jest.mock("expo-notifications", () => ({
+  setNotificationHandler: jest.fn(),
+  setBadgeCountAsync: jest.fn().mockResolvedValue(true),
+  getLastNotificationResponse: jest.fn().mockReturnValue(null),
+  addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
+  getPermissionsAsync: jest.fn(),
+  requestPermissionsAsync: jest.fn(),
+  getExpoPushTokenAsync: jest.fn(),
+}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
     String(url).endsWith("/application-access")
@@ -62,6 +95,8 @@ const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000284",
   username: "Demo284",
 });
+const accountUrl = `https://api.example.invalid/accounts/${account.accountId}`;
+const currentAccountUrl = "https://api.example.invalid/accounts/me";
 const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
@@ -82,6 +117,16 @@ beforeEach(() => {
   mockAuth0.webAuthLogout
     .mockReset()
     .mockRejectedValue(new Error("Browser logout unavailable"));
+  jest.mocked(Notifications.getPermissionsAsync).mockReset().mockResolvedValue({
+    granted: true,
+    canAskAgain: true,
+    status: PermissionStatus.GRANTED,
+    expires: "never",
+  });
+  jest
+    .mocked(Notifications.getExpoPushTokenAsync)
+    .mockReset()
+    .mockResolvedValue({ type: "expo", data: "ExponentPushToken[synthetic]" });
   mockFetch.mockReset().mockImplementation(async () => Response.json(account));
 });
 afterEach(async () => {
@@ -129,10 +174,15 @@ function SessionSwitch() {
 }
 
 /** Real public access changes may remove the ordinary form while its command is already in flight. */
-function OrdinaryRoutes() {
+function OrdinaryRoutes({
+  registration,
+}: Readonly<{ registration?: PushRegistration }>) {
   return (
     <AccessAdmissionProvider>
       <AccountFeedbackProvider>
+        {registration && (
+          <NotificationLifecycle registration={registration} enabled />
+        )}
         <SessionSwitch />
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       </AccountFeedbackProvider>
@@ -140,14 +190,17 @@ function OrdinaryRoutes() {
   );
 }
 
-/** Opens the actual erasure route from Profile with ordinary admission and real feedback. */
-async function openErasure() {
+/** Mounts the Profile stack with ordinary admission and real session feedback. */
+async function openProfile(registration?: PushRegistration) {
   await renderRouter(
     {
       _layout: () => (
-        <AccountSessionProvider>
+        <AccountSessionProvider
+          removePushRegistration={registration?.remove}
+          abandonPushRegistration={registration?.abandon}
+        >
           <PrivateQueries>
-            <OrdinaryRoutes />
+            <OrdinaryRoutes registration={registration} />
           </PrivateQueries>
         </AccountSessionProvider>
       ),
@@ -166,12 +219,57 @@ async function openErasure() {
       ),
     },
   );
-  const user = userEvent.setup();
+  return userEvent.setup();
+}
+
+/** Opens the actual erasure route through the Profile action. */
+async function openErasure(registration?: PushRegistration) {
+  const user = await openProfile(registration);
   await user.press(
     await screen.findByRole("button", { name: "Supprimer mon compte" }),
   );
   await screen.findByRole("header", { name: "Supprimer mon compte ?" });
   return user;
+}
+
+/** Supplies the transport responses for a real registration and subsequent departure. */
+function mockDepartureTransport(lostPushResponse = false) {
+  mockFetch.mockImplementation(async (url, request) => {
+    if (request?.method === "PUT") {
+      if (lostPushResponse) {
+        throw new TypeError("Lost registration response");
+      }
+      return Response.json({
+        id: String(url).split("/").at(-1),
+        installationId: JSON.parse(String(request.body)).installationId,
+      });
+    }
+    if (request?.method === "DELETE") {
+      return new Response(null, {
+        status: String(url) === accountUrl ? 204 : 404,
+      });
+    }
+    return Response.json(account);
+  });
+}
+
+/** Captures effective departure I/O after the original registration has settled. */
+function departureOperations() {
+  return {
+    writes: mockFetch.mock.calls.flatMap(([url, request]) =>
+      request?.method === "PUT" || request?.method === "DELETE"
+        ? [
+            [
+              request.method,
+              String(url) === accountUrl ? "account" : "push subscription",
+            ],
+          ]
+        : [],
+    ),
+    credentialReads: mockAuth0.getCredentials.mock.calls.length,
+    nativeClears: mockAuth0.clearCredentials.mock.calls.length,
+    browserLogouts: mockAuth0.webAuthLogout.mock.calls.length,
+  };
 }
 
 it("requires the checkbox, keeps plain store guidance and cancels without deleting or signing out", async () => {
@@ -369,10 +467,17 @@ it.each(["refused", "lost-response"])(
 
 it("returns directly to guest home on 204 even when browser logout is unavailable", async () => {
   // Given: 204 is authoritative even when backend provider cleanup failed.
-  const user = await openErasure();
+  mockDepartureTransport();
+  const user = await openErasure(createPushRegistration());
+  await waitFor(() =>
+    expect(departureOperations().writes).toEqual([
+      ["PUT", "push subscription"],
+    ]),
+  );
   const originalClient = privateClient;
   originalClient.setQueryData(["private-example"], "private-data");
-  mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+  mockFetch.mockClear();
+  mockAuth0.getCredentials.mockClear();
   await user.press(screen.getByRole("checkbox"));
 
   // When
@@ -383,14 +488,278 @@ it("returns directly to guest home on 204 even when browser logout is unavailabl
   // Then
   expect(await screen.findByText("Accueil invité")).toBeOnTheScreen();
   expect(screen).toHavePathname("/");
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
-  expect(mockAuth0.webAuthLogout).not.toHaveBeenCalled();
+  expect(departureOperations()).toEqual({
+    writes: [["DELETE", "account"]],
+    credentialReads: 1,
+    nativeClears: 1,
+    browserLogouts: 0,
+  });
   await waitFor(() =>
     expect(originalClient.getQueryCache().getAll()).toHaveLength(0),
   );
   expect(screen.queryByText(TECHNICAL_ERROR)).toBeNull();
   expect(jest.mocked(initializeV2Installation)).toHaveBeenCalledTimes(1);
 });
+
+it("retries only native departure when storage refuses local clearing after 204", async () => {
+  // Given
+  mockDepartureTransport();
+  const localRetry = Promise.withResolvers<void>();
+  mockAuth0.clearCredentials
+    .mockRejectedValueOnce({
+      code: CredentialsManagerErrorCodes.STORE_FAILED,
+      message: "Storage unavailable",
+    })
+    .mockReturnValueOnce(localRetry.promise);
+  const user = await openErasure(createPushRegistration());
+  await waitFor(() =>
+    expect(departureOperations().writes).toEqual([
+      ["PUT", "push subscription"],
+    ]),
+  );
+  mockFetch.mockClear();
+  mockAuth0.getCredentials.mockClear();
+  await user.press(screen.getByRole("checkbox"));
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Supprimer mon compte" }),
+  );
+
+  // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(screen).toHavePathname("/profile/erase");
+  expect(screen.queryByText("Accueil invité")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Supprimer mon compte" }),
+  ).not.toBeOnTheScreen();
+  const retry = screen.getByRole("button", { name: "Réessayer" });
+  expect(retry).toBeEnabled();
+  expect(departureOperations()).toEqual({
+    writes: [["DELETE", "account"]],
+    credentialReads: 1,
+    nativeClears: 1,
+    browserLogouts: 0,
+  });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+
+  try {
+    // When
+    await user.press(retry);
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen).toHavePathname("/profile/erase");
+    expect(departureOperations()).toEqual({
+      writes: [["DELETE", "account"]],
+      credentialReads: 1,
+      nativeClears: 2,
+      browserLogouts: 0,
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // When
+    await act(() => localRetry.resolve());
+
+    // Then
+    expect(await screen.findByText("Accueil invité")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/");
+  } finally {
+    await act(() => localRetry.resolve());
+  }
+});
+
+it("withdraws the erased account even if an older account read returns after native clear fails", async () => {
+  // Given
+  const user = await openErasure();
+  const key = getGetMyAccountQueryKey();
+  const deletion = Promise.withResolvers<Response>();
+  const oldAccountRead = Promise.withResolvers<Response>();
+  let reading: Promise<void> | undefined;
+  mockAuth0.clearCredentials.mockRejectedValueOnce({
+    code: CredentialsManagerErrorCodes.STORE_FAILED,
+    message: "Storage unavailable",
+  });
+  mockAuth0.getCredentials.mockClear();
+  mockFetch
+    .mockClear()
+    .mockImplementation(async (_url, request) =>
+      request?.method === "DELETE" ? deletion.promise : oldAccountRead.promise,
+    );
+  await user.press(screen.getByRole("checkbox"));
+
+  try {
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Supprimer mon compte" }),
+    );
+    await act(async () => {
+      reading = privateClient.refetchQueries({ queryKey: key, exact: true });
+    });
+
+    // Then: the one ordinary GET is already in flight when the DELETE completes.
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        currentAccountUrl,
+        expect.objectContaining({ method: "GET" }),
+      ),
+    );
+    const oldRead = mockFetch.mock.calls.find(
+      ([url, request]) =>
+        url === currentAccountUrl && request?.method === "GET",
+    )?.[1];
+    expect(oldRead?.signal?.aborted).toBe(false);
+
+    // When
+    await act(() => deletion.resolve(new Response(null, { status: 204 })));
+    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+    await act(async () => {
+      oldAccountRead.resolve(Response.json(account));
+      await reading;
+    });
+
+    // Then
+    expect(oldRead?.signal?.aborted).toBe(true);
+    expect(privateClient.getQueryData(key)).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(departureOperations()).toEqual({
+      writes: [["DELETE", "account"]],
+      credentialReads: 2,
+      nativeClears: 1,
+      browserLogouts: 0,
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  } finally {
+    await act(async () => {
+      deletion.resolve(new Response(null, { status: 204 }));
+      oldAccountRead.resolve(Response.json(account));
+      await reading;
+    });
+  }
+});
+
+it.each([
+  { registration: "accepted", browser: "success", sent: true, tokenReads: 1 },
+  {
+    registration: "lost response",
+    browser: "cancelled",
+    sent: true,
+    tokenReads: 1,
+  },
+  {
+    registration: "denied permission",
+    browser: "success",
+    sent: false,
+    tokenReads: 0,
+  },
+  {
+    registration: "failed token",
+    browser: "success",
+    sent: false,
+    tokenReads: 1,
+  },
+] as const)(
+  "preserves $browser browser logout with $registration push registration",
+  async ({ registration, browser, sent, tokenReads }) => {
+    // Given
+    mockDepartureTransport(registration === "lost response");
+    if (registration === "denied permission") {
+      jest.mocked(Notifications.getPermissionsAsync).mockResolvedValueOnce({
+        granted: false,
+        canAskAgain: true,
+        status: PermissionStatus.UNDETERMINED,
+        expires: "never",
+      });
+      jest.mocked(Notifications.requestPermissionsAsync).mockResolvedValueOnce({
+        granted: false,
+        canAskAgain: false,
+        status: PermissionStatus.DENIED,
+        expires: "never",
+      });
+    }
+    if (registration === "failed token") {
+      jest
+        .mocked(Notifications.getExpoPushTokenAsync)
+        .mockRejectedValueOnce(new Error("Native token unavailable"));
+    }
+    const browserResponse = Promise.withResolvers<void>();
+    mockAuth0.webAuthLogout.mockReturnValueOnce(browserResponse.promise);
+    const user = await openProfile(createPushRegistration());
+    const signOut = await screen.findByRole("button", {
+      name: "Se déconnecter",
+    });
+    await waitFor(() => {
+      expect(Notifications.getPermissionsAsync).toHaveBeenCalledTimes(1);
+      expect(Notifications.requestPermissionsAsync).toHaveBeenCalledTimes(
+        registration === "denied permission" ? 1 : 0,
+      );
+      expect(Notifications.getExpoPushTokenAsync).toHaveBeenCalledTimes(
+        tokenReads,
+      );
+      expect(departureOperations().writes).toEqual(
+        sent ? [["PUT", "push subscription"]] : [],
+      );
+    });
+    const registeredUrl = mockFetch.mock.calls.find(
+      ([, request]) => request?.method === "PUT",
+    )?.[0];
+    mockFetch.mockClear();
+    mockAuth0.getCredentials.mockClear();
+
+    try {
+      // When
+      await user.press(signOut);
+
+      // Then: the Profile remains mounted until the browser actually returns.
+      await waitFor(() =>
+        expect(mockAuth0.webAuthLogout).toHaveBeenCalledTimes(1),
+      );
+      expect(screen).toHavePathname("/profile");
+      expect(screen.queryByText("Accueil invité")).not.toBeOnTheScreen();
+      expect(departureOperations()).toEqual({
+        writes: sent ? [["DELETE", "push subscription"]] : [],
+        credentialReads: sent ? 1 : 0,
+        nativeClears: 0,
+        browserLogouts: 1,
+      });
+      if (registeredUrl) {
+        expect(mockFetch).toHaveBeenCalledWith(
+          registeredUrl,
+          expect.objectContaining({ method: "DELETE" }),
+        );
+      }
+
+      // When
+      await act(() => {
+        if (browser === "success") {
+          browserResponse.resolve();
+        } else {
+          browserResponse.reject({
+            code: "a0.session.user_cancelled",
+            message: "Cancelled",
+          });
+        }
+      });
+
+      // Then
+      if (browser === "success") {
+        expect(await screen.findByText("Accueil invité")).toBeOnTheScreen();
+        expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+      } else {
+        expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+        expect(screen).toHavePathname("/profile");
+        expect(
+          screen.getByRole("button", { name: "Se déconnecter" }),
+        ).toBeEnabled();
+        expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+      }
+    } finally {
+      await act(() => browserResponse.resolve());
+    }
+  },
+);
 
 it("keeps one pending request and prevents cancellation until its result is known", async () => {
   // Given
@@ -429,32 +798,111 @@ it("keeps one pending request and prevents cancellation until its result is know
   }
 });
 
-it("does not clear a replacement principal when A's already dispatched deletion completes", async () => {
-  // Given
-  const user = await openErasure();
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (_url, request) =>
-    request?.method === "DELETE" ? response.promise : Response.json(account),
-  );
-  await user.press(screen.getByRole("checkbox"));
-  await user.press(
-    screen.getByRole("button", { name: "Supprimer mon compte" }),
-  );
-  try {
-    // When
-    mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|two"));
-    await user.press(screen.getByRole("button", { name: "Changer de compte" }));
-    await screen.findByText("Sujet : auth0|two");
-    await act(() => response.resolve(new Response(null, { status: 204 })));
+it.each([
+  { pending: "credentials", replacementOwner: "new subject" },
+  { pending: "acknowledgment", replacementOwner: "new subject" },
+  { pending: "acknowledgment", replacementOwner: "same subject" },
+] as const)(
+  "leaves the replacement account ($replacementOwner) untouched after A's late $pending",
+  async ({ pending, replacementOwner }) => {
+    // Given
+    const user = await openErasure();
+    const originalCredentials = credentialsFor("auth0|one");
+    const delayedCredentials =
+      Promise.withResolvers<typeof originalCredentials>();
+    const response = Promise.withResolvers<Response>();
+    const replacement = accountResponse({
+      accountId: "00000000-0000-4000-8000-000000000285",
+      username: "Demo285",
+      permissions: { ...account.permissions, manageMaintenance: true },
+    });
+    mockFetch
+      .mockClear()
+      .mockImplementation(async (_url, request) =>
+        request?.method === "DELETE"
+          ? response.promise
+          : Response.json(replacement),
+      );
+    mockAuth0.getCredentials.mockClear();
+    if (pending === "credentials") {
+      mockAuth0.getCredentials.mockReturnValueOnce(delayedCredentials.promise);
+    }
+    await user.press(screen.getByRole("checkbox"));
 
-    // Then
-    expect(screen.getByText("Sujet : auth0|two")).toBeOnTheScreen();
-    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-    expect(screen.queryByText("Accueil invité")).toBeNull();
-  } finally {
-    await act(() => response.resolve(new Response(null, { status: 204 })));
-  }
-});
+    try {
+      // When
+      await user.press(
+        screen.getByRole("button", { name: "Supprimer mon compte" }),
+      );
+
+      // Then
+      expect(departureOperations()).toEqual({
+        writes: pending === "credentials" ? [] : [["DELETE", "account"]],
+        credentialReads: 1,
+        nativeClears: 0,
+        browserLogouts: 0,
+      });
+
+      // When
+      const subject =
+        replacementOwner === "new subject" ? "auth0|two" : "auth0|one";
+      if (replacementOwner === "new subject") {
+        mockAuth0.getCredentials.mockResolvedValue(credentialsFor(subject));
+        await user.press(
+          screen.getByRole("button", { name: "Changer de compte" }),
+        );
+      } else {
+        await act(() =>
+          privateClient.refetchQueries({
+            queryKey: getGetMyAccountQueryKey(),
+            exact: true,
+          }),
+        );
+      }
+      await waitFor(() =>
+        expect(privateClient.getQueryData(getGetMyAccountQueryKey())).toEqual(
+          replacement,
+        ),
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        currentAccountUrl,
+        expect.objectContaining({ method: "GET" }),
+      );
+      mockFetch.mockClear();
+      mockAuth0.getCredentials.mockClear();
+      await act(() => {
+        delayedCredentials.resolve(originalCredentials);
+        response.resolve(new Response(null, { status: 204 }));
+      });
+
+      // Then
+      expect(screen.getByText(`Sujet : ${subject}`)).toBeOnTheScreen();
+      expect(privateClient.getQueryData(getGetMyAccountQueryKey())).toEqual(
+        replacement,
+      );
+      expect(departureOperations()).toEqual({
+        writes: [],
+        credentialReads: 0,
+        nativeClears: 0,
+        browserLogouts: 0,
+      });
+      expect(screen.queryByText("Accueil invité")).toBeNull();
+      if (replacementOwner === "same subject") {
+        expect(
+          await screen.findByRole("button", {
+            name: "Réessayer",
+            disabled: true,
+          }),
+        ).toBeDisabled();
+      }
+    } finally {
+      await act(() => {
+        delayedCredentials.resolve(originalCredentials);
+        response.resolve(new Response(null, { status: 204 }));
+      });
+    }
+  },
+);
 
 it("still clears A after admission removes the pending confirmation", async () => {
   // Given

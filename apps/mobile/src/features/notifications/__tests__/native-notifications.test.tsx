@@ -129,7 +129,7 @@ function Root() {
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <ApplicationAccessProvider>
-          <AccountSessionProvider preparePushRemoval={push.prepareRemoval}>
+          <AccountSessionProvider removePushRegistration={push.remove}>
             <AccessAdmissionProvider>
               <Capture />
             </AccessAdmissionProvider>

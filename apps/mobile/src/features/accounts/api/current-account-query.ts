@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import {
   getGetMyAccountQueryKey,
   getMyAccount,
@@ -8,6 +8,8 @@ import { isAccessDenied } from "@/shared/api/access-denied";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import type { AccountSession } from "../session/account-session-provider";
 import { requiresReauthentication } from "../session/native-session";
+
+const currentAccountKey = getGetMyAccountQueryKey();
 
 /**
  * Shares one read between native identity and feature observers, without establishing an account.
@@ -19,7 +21,7 @@ export function currentAccountQuery(
   session: Pick<AccountSession, "status" | "getCredentials">,
 ) {
   return queryOptions<AccountResponse | null>({
-    queryKey: getGetMyAccountQueryKey(),
+    queryKey: currentAccountKey,
     enabled: session.status === "authenticated",
     staleTime: Infinity,
     refetchOnMount: false,
@@ -51,6 +53,27 @@ export function currentAccountQuery(
       }
     },
   });
+}
+
+/**
+ * Publishes a confirmed command only for its original account.
+ * Even an empty cache may have an older read in flight. A known replacement owns its read.
+ */
+export async function updateCurrentAccount(
+  client: QueryClient,
+  accountId: string,
+  update: (current: AccountResponse) => AccountResponse | null,
+) {
+  const current = client.getQueryData<AccountResponse | null>(
+    currentAccountKey,
+  );
+  if (current && current.accountId !== accountId) {
+    return;
+  }
+  await client.cancelQueries({ queryKey: currentAccountKey, exact: true });
+  client.setQueryData<AccountResponse | null>(currentAccountKey, (latest) =>
+    latest?.accountId === accountId ? update(latest) : undefined,
+  );
 }
 
 /** Only the canonical account-absence problem permits absence-specific recovery; a bare 404 does not. */

@@ -70,8 +70,8 @@ export interface AccountSession extends SessionSnapshot {
   signIn(audience: string): Promise<AccountCommandSession | undefined>;
   /** Attempts exact push removal, then uses the native SDK's ordinary logout semantics. */
   signOut(): Promise<void>;
-  /** Clears this caller's native subject locally after bounded push removal; refuses a different current subject. */
-  clearCredentials(): Promise<void>;
+  /** Clears this caller's native subject, retiring the specified push association locally after erasure. */
+  clearCredentials(options?: { erasedAccountId: string }): Promise<void>;
   /** Retries installation/SDK initialization only in initialization-error; otherwise does nothing. */
   retryInitialization(): void;
   /** Retries SDK credential restoration only in authentication-error; otherwise does nothing. */
@@ -84,13 +84,12 @@ export interface AccountConnectionInput {
   signIn: AccountSession["signIn"];
 }
 
-/** F07 captures the exact original association and owns the bounded attempt before native logout. */
-export type AccountCredentialCleanup = () => Promise<void>;
-
 /** Root composition supplies the process-wide push owner without transferring its authority. */
 export interface AccountSessionProviderProps extends PropsWithChildren {
   fallback?: ReactNode;
-  preparePushRemoval?: () => AccountCredentialCleanup | undefined;
+  /** F07 captures the original association immediately and owns the bounded attempt. */
+  removePushRegistration?: () => Promise<void>;
+  abandonPushRegistration?: (erasedAccountId: string) => void;
 }
 
 /** F14 setup result; the credentials manager exists only after native initialization succeeds. */
@@ -110,7 +109,8 @@ const AccountSessionContext = createContext<AccountSession | null>(null);
 export function AccountSessionProvider({
   children,
   fallback = null,
-  preparePushRemoval,
+  removePushRegistration,
+  abandonPushRegistration,
 }: Readonly<AccountSessionProviderProps>) {
   const [initialization, setInitialization] = useState<Initialization>({
     status: "initializing",
@@ -158,7 +158,8 @@ export function AccountSessionProvider({
       initialization={initialization}
       retryInitialization={() => setInitializationAttempt((value) => value + 1)}
       retryAuthentication={() => setRestorationAttempt((value) => value + 1)}
-      preparePushRemoval={preparePushRemoval}
+      removePushRegistration={removePushRegistration}
+      abandonPushRegistration={abandonPushRegistration}
     >
       {children}
     </SessionScope>
@@ -183,13 +184,15 @@ function SessionScope({
   initialization,
   retryInitialization,
   retryAuthentication,
-  preparePushRemoval,
+  removePushRegistration,
+  abandonPushRegistration,
 }: Readonly<
   PropsWithChildren<{
     initialization: Exclude<Initialization, { status: "initializing" }>;
     retryInitialization(): void;
     retryAuthentication(): void;
-    preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
+    removePushRegistration?: AccountSessionProviderProps["removePushRegistration"];
+    abandonPushRegistration?: AccountSessionProviderProps["abandonPushRegistration"];
   }>
 >) {
   const auth = useAuth0();
@@ -203,6 +206,7 @@ function SessionScope({
     currentSubject.current = subject;
   }, [subject]);
   const [operation, setOperation] = useState<AccountSession["operation"]>();
+  const nativeOperationPending = useRef(false);
   const { request } = useOrdinaryRequest();
   /** Prepares credentials for the captured principal without allowing another subject to dispatch. */
   const credentialsFor = useCallback(
@@ -213,8 +217,15 @@ function SessionScope({
       if (!manager) {
         throw new ApiError("configuration");
       }
+      if (currentSubject.current !== original) {
+        throw new ApiError("cancelled");
+      }
       const credentials = await manager.getCredentials();
-      if (!credentials || parseIdToken(credentials.idToken).sub !== original) {
+      if (
+        currentSubject.current !== original ||
+        !credentials ||
+        parseIdToken(credentials.idToken).sub !== original
+      ) {
         throw new ApiError("cancelled");
       }
       return credentials;
@@ -263,6 +274,53 @@ function SessionScope({
     status = "authentication-error";
   }
 
+  /** A command captured before a network wait cannot run over an active native identity change. */
+  async function runNativeOperation<T>(
+    next: NonNullable<AccountSession["operation"]>,
+    run: () => Promise<T>,
+  ): Promise<T | undefined> {
+    if (currentSubject.current !== subject) {
+      throw new ApiError("cancelled");
+    }
+    if (activeOperation || nativeOperationPending.current) {
+      return;
+    }
+    nativeOperationPending.current = true;
+    setOperation(next);
+    try {
+      return await run();
+    } finally {
+      nativeOperationPending.current = false;
+      setOperation(undefined);
+    }
+  }
+
+  /** Retains the departure's original subject throughout the bounded push attempt. */
+  async function removeOldPushRegistration() {
+    await removePushRegistration?.().catch(() => undefined);
+    if (currentSubject.current !== subject) {
+      throw new ApiError("cancelled");
+    }
+  }
+
+  async function depart(clear: () => Promise<void>, erasedAccountId?: string) {
+    const completed = await runNativeOperation("signing-out", async () => {
+      connection.reset();
+      if (erasedAccountId) {
+        abandonPushRegistration?.(erasedAccountId);
+      } else {
+        await removeOldPushRegistration();
+      }
+      if (initialization.status === "ready") {
+        await clear();
+        return true;
+      }
+    });
+    if (erasedAccountId && !completed) {
+      throw new ApiError("cancelled");
+    }
+  }
+
   const session: Omit<AccountSession, "accountId"> = {
     subject,
     status,
@@ -290,10 +348,8 @@ function SessionScope({
       if (initialization.status !== "ready") {
         throw new Error("Native authentication is unavailable");
       }
-      const remove = preparePushRemoval?.();
-      setOperation("authenticating");
-      try {
-        await remove?.().catch(() => undefined);
+      return runNativeOperation("authenticating", async () => {
+        await removeOldPushRegistration();
         const credentials = await auth.authorize({
           audience,
           scope: "openid profile email offline_access",
@@ -305,47 +361,13 @@ function SessionScope({
           subject: principal,
           getCredentials: () => credentialsFor(principal),
         };
-      } finally {
-        setOperation(undefined);
-      }
+      });
     },
-    async signOut() {
-      if (activeOperation) {
-        return;
-      }
-      connection.reset();
-      const remove = preparePushRemoval?.();
-      setOperation("signing-out");
-      try {
-        await remove?.().catch(() => undefined);
-        if (initialization.status === "ready") {
-          await auth.clearSession();
-        }
-      } finally {
-        setOperation(undefined);
-      }
+    signOut() {
+      return depart(() => auth.clearSession());
     },
-    async clearCredentials() {
-      if (currentSubject.current !== subject) {
-        throw new ApiError("cancelled");
-      }
-      if (activeOperation) {
-        return;
-      }
-      connection.reset();
-      const remove = preparePushRemoval?.();
-      setOperation("signing-out");
-      try {
-        await remove?.().catch(() => undefined);
-        if (currentSubject.current !== subject) {
-          throw new ApiError("cancelled");
-        }
-        if (initialization.status === "ready") {
-          await auth.clearCredentials();
-        }
-      } finally {
-        setOperation(undefined);
-      }
+    clearCredentials(options) {
+      return depart(auth.clearCredentials, options?.erasedAccountId);
     },
   };
   return (
