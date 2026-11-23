@@ -140,18 +140,11 @@ export function OwnContributionsScreen({
     : ([editing.account, match, query].find(
         (read) =>
           hasReadError(read) && (read !== query || !query.isFetchNextPageError),
-      ) ??
-      (!editing.account.data ? editing.account : !match.data ? match : query));
+      ) ?? (!match.data ? match : query));
   const readFailed =
     hasReadError(requiredRead) &&
     (requiredRead !== query || !query.isFetchNextPageError);
-  const blocked =
-    session.status !== "authenticated" ||
-    !editing.canRetain ||
-    !current ||
-    !authorized ||
-    !match.data ||
-    readFailed;
+  const blocked = !current || !authorized || !match.data || readFailed;
   const rows = blocked
     ? []
     : [
@@ -219,11 +212,7 @@ export function OwnContributionsScreen({
                   />
                 ) : (
                   <ReadFeedback
-                    failed={
-                      !editing.canRetain &&
-                      editing.session.status === "authenticated" &&
-                      !editing.account.isPending
-                    }
+                    failed={!editing.canRetain && !editing.account.isPending}
                     query={requiredRead}
                     loadingContent={<ContributionProposalsLoading />}
                     onRetry={

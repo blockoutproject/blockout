@@ -66,7 +66,6 @@ export function PersonalScreen() {
   const guestRevealStyle = useSingleContentReveal(
     focused && session.status === "guest",
   );
-  const profile = useCurrentAccount();
   const router = useRouter();
   const scope = usePersonalSeasonScope();
   const authenticated = session.status === "authenticated";
@@ -101,7 +100,6 @@ export function PersonalScreen() {
       <PersonalSpace
         key={`${session.subject}:${scope?.owner.accountId ?? ""}`}
         scope={scope}
-        profile={profile}
       />
     );
   }
@@ -158,11 +156,10 @@ function PersonalHeader() {
 /** Keeps the native pager before a business UUID exists; private reads retain their matching personal scope. */
 function PersonalSpace({
   scope,
-  profile,
 }: Readonly<{
   scope: PersonalSeasonScope | null;
-  profile: ReturnType<typeof useCurrentAccount>;
 }>) {
+  const profile = useCurrentAccount();
   const season = scope?.season;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");

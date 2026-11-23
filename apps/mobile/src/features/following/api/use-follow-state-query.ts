@@ -12,13 +12,11 @@ import { createFollowStateQueryOptions } from "./follow-queries";
  * composition and the query-free control without mounting another relationship observer.
  */
 export function useFollowStateQuery(target: FollowingTarget) {
-  const availability = useAccountAvailability();
-  const { session, account: profile } = availability;
+  const { session, usable: accountUsable } = useAccountAvailability();
   const admission = useOrdinaryRequest();
   const { getCredentials } = session;
   const owner = captureFollowingOwner(session);
-  const usable = admission.admitted && availability.usable;
-  const bypass = Boolean(admission.bypass);
+  const usable = admission.admitted && accountUsable;
 
   /** Prepares each captured-owner request after native credentials so F12 rechecks current intent. */
   async function request(signal?: AbortSignal) {
@@ -26,9 +24,6 @@ export function useFollowStateQuery(target: FollowingTarget) {
       throw new ApiError("cancelled");
     }
     const credentials = await getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
@@ -44,12 +39,9 @@ export function useFollowStateQuery(target: FollowingTarget) {
     query,
     owner,
     usable,
-    accountUsable: availability.usable,
-    admitted: admission.admitted,
+    accountUsable,
     request,
     options,
-    bypass,
-    profile,
     sessionStatus: session.status,
   };
 }

@@ -31,10 +31,7 @@ import {
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "@/features/accounts/current-account";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/match-consultation";
 
 /** Queue selection; native infinite-query page parameters own continuation. */
@@ -52,16 +49,13 @@ export type ModerationReactivation = {
   body: CreateStreamReactivationRequest;
 };
 
-/** F05/F12 supply the current literal capability, admission and captured-principal credentials. */
+/** Combines F05 account availability with F12 ordinary admission and the literal moderation grant. */
 function useModerationAuthority() {
-  const session = useAccountSession();
-  const account = useCurrentAccount();
+  const { session, account, usable } = useAccountAvailability();
   const admission = useOrdinaryRequest();
   const canRetain =
     admission.admitted &&
-    session.status === "authenticated" &&
-    account.data?.accountId === session.accountId &&
-    !isAccessDenied(account.error) &&
+    usable &&
     account.data?.permissions?.moderateStreamLinks === true;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.

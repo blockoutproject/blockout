@@ -21,7 +21,6 @@ import type {
   SetClassificationRequest,
   SetDivisionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "@/shared/api/api-fetch";
 import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
 import { canReadDivisions } from "@/features/access/division-catalog-access";
 import { useOperationalVersionAdmission } from "@/features/access/operational-version-admission";
@@ -87,9 +86,6 @@ export function useSportingAuthority(action: SportingAction) {
   /** The server validates the current action grant after native principal credential preparation. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return {
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },

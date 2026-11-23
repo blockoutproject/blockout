@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { useRouter } from "expo-router";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { ErrorState } from "@/shared/components/state-card";
@@ -9,33 +9,29 @@ import { usePersonalSeasonScope } from "../components/personal-season-provider";
 /** Home's native route rereads shared options once on opening; a failed required read masks retained choices. */
 export function PersonalSeasonScreen() {
   const scope = usePersonalSeasonScope();
+  const season = scope?.usable && !scope.blocked ? scope.season : undefined;
   const router = useRouter();
-  const opening = useRef(scope);
+  const refreshOnOpen = useEffectEvent(() => {
+    void season?.options.refetch({ cancelRefetch: false });
+  });
   useEffect(() => {
-    const current = opening.current;
-    if (!current?.usable || current.blocked) {
-      return;
-    }
-    void current.season.options.refetch({ cancelRefetch: false });
-    // This route's mount is the opening event. Query rerenders must not start another read.
+    refreshOnOpen();
   }, []);
   return (
     <Sheet title="Saison des suivis" onClose={() => router.back()}>
       <SheetContent>
-        {scope?.usable &&
-        !scope.blocked &&
-        hasReadError(scope.season.options) ? (
-          <ReadFeedback query={scope.season.options} loadingContent={null} />
-        ) : scope?.usable && !scope.blocked && scope.season.options.data ? (
+        {season && hasReadError(season.options) ? (
+          <ReadFeedback query={season.options} loadingContent={null} />
+        ) : season?.options.data ? (
           <PersonalSeasonChoices
-            options={scope.season.options.data}
-            seasonId={scope.season.seasonId}
+            options={season.options.data}
+            seasonId={season.seasonId}
             onSelect={(id) => {
-              scope.season.selectSeason(id);
+              season.selectSeason(id);
               router.back();
             }}
             onReset={() => {
-              scope.season.resetSeason();
+              season.resetSeason();
               router.back();
             }}
           />

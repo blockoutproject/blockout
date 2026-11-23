@@ -24,7 +24,6 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "@/features/accounts/session/account-session-provider";
-import { useCurrentAccount } from "@/features/accounts/current-account";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -95,7 +94,6 @@ function Harness({ children }: Readonly<PropsWithChildren>) {
   useLayoutEffect(() => {
     currentSession = session;
   }, [session]);
-  useCurrentAccount();
   return (
     <AccountFeedbackProvider>
       <NotificationState>{children}</NotificationState>
@@ -165,8 +163,8 @@ afterEach(async () => {
 });
 
 /** Renders the real feature below its production owner boundaries. */
-async function showInbox() {
-  return render(<NotificationsScreen />, {
+async function showInbox(content = <NotificationsScreen />) {
+  return render(content, {
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
@@ -182,6 +180,62 @@ async function showInbox() {
     ),
   });
 }
+
+it("opens the inbox without repeating the current-account read", async () => {
+  // Given: the ordinary layout's notification state already observes the current account.
+  const view = await showInbox(<Text>Autre écran</Text>);
+  await waitFor(() => expect(currentSession.accountId).toBe(row.id));
+  const accountReads = () =>
+    mockFetch.mock.calls.filter(
+      ([url, init]) => url.endsWith("/accounts/me") && init?.method === "GET",
+    );
+  expect(accountReads()).toHaveLength(1);
+
+  // When
+  await view.rerender(<NotificationsScreen />);
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /non lue$/ }),
+  ).toBeOnTheScreen();
+  expect(accountReads()).toHaveLength(1);
+});
+
+it.each([
+  { scenario: "a technical failure", status: 503, inboxVisible: true },
+  { scenario: "a confirmed refusal", status: 403, inboxVisible: false },
+])(
+  "uses the current account outcome after $scenario",
+  async ({ status, inboxVisible }) => {
+    // Given: the current account has already opened its inbox.
+    await showInbox();
+    await screen.findByRole("link", { name: /non lue$/ });
+    mockFetch
+      .mockClear()
+      .mockImplementation((url: string, init: RequestInit) =>
+        url.endsWith("/accounts/me")
+          ? Promise.resolve(new Response(null, { status }))
+          : response(url, init),
+      );
+
+    // When
+    await act(async () => {
+      await privateClient.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    // Then
+    expect(Boolean(screen.queryByRole("link", { name: /non lue$/ }))).toBe(
+      inboxVisible,
+    );
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/notifications")),
+    ).toHaveLength(0);
+  },
+);
 
 it("displays one unread card without summary requests or marking on display", async () => {
   // Given

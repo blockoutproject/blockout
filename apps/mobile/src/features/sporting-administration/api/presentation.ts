@@ -72,10 +72,8 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   const authority = useSportingAuthority(
     target.kind === "division" ? "divisions" : "presentation",
   );
-  const { session } = authority;
   const client = useQueryClient();
-  const canRead =
-    enabled && authority.enabled && session.status === "authenticated";
+  const canRead = enabled && authority.enabled;
   const queries = createSportingAdministrationQueries({
     ...authority,
     enabled: canRead,
