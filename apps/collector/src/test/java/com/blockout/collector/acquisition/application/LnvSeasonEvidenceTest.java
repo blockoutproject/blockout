@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
-import com.blockout.collector.acquisition.lnv.LnvCalendarParser;
 import com.blockout.collector.acquisition.lnv.LnvDetailParser;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.acquisition.lnv.LnvDocumentReferences;
@@ -157,7 +156,6 @@ class LnvSeasonEvidenceTest {
     LnvObservationReader reader =
         new LnvObservationReader(
             calendarHttp,
-            new LnvCalendarParser(),
             new LnvStandingsParser(),
             new LnvDetailParser(),
             new LnvDocumentReferences(),
@@ -212,7 +210,7 @@ class LnvSeasonEvidenceTest {
     assertThat(read.catalog().pools())
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("904");
-    assertThat(consumed).extracting(page -> page.response().url()).containsExactly(PLAYOFFS);
+    assertThat(consumed).extracting(DiscoverSeasonSources.PageRead::url).containsExactly(PLAYOFFS);
     ArgumentCaptor<CollectionBackend.Result> results =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
     verify(backend).record(eq(admitted.getCycle().id()), results.capture());

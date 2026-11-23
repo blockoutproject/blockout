@@ -23,10 +23,13 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.message.StatusLine.StatusClass;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
@@ -122,7 +125,13 @@ public class AcquisitionConfiguration {
    */
   @Bean
   public ProviderHttpClient ffvbProviderClient(AcquisitionProperties properties) {
-    return client("ffvb", properties.ffvbOrigins(), properties);
+    // Preserve the header already sent by FFVB page reads.
+    return client(
+        "ffvb",
+        properties.ffvbOrigins(),
+        properties,
+        HttpClients.custom(),
+        List.of(new BasicHeader("Cookie", "timezoneoffset=0")));
   }
 
   /**
@@ -133,7 +142,27 @@ public class AcquisitionConfiguration {
    */
   @Bean
   public ProviderHttpClient lnvProviderClient(AcquisitionProperties properties) {
-    return client("lnv", properties.lnvOrigins(), properties);
+    HttpClientBuilder builder =
+        CachingHttpClients.custom()
+            .setCacheConfig(
+                CacheConfig.custom()
+                    .setMaxCacheEntries(128)
+                    .setMaxObjectSize(Math.min(properties.maxResponseBytes(), 5L * 1024 * 1024))
+                    .setHeuristicCachingEnabled(false)
+                    .setAsynchronousWorkers(0)
+                    .setStaleIfErrorEnabled(false)
+                    .build())
+            .addResponseInterceptorLast(
+                (response, entity, context) ->
+                    context.setAttribute(
+                        ProviderHttpClient.SUPPLIER_BODY,
+                        StatusClass.from(response.getCode()) == StatusClass.SUCCESSFUL));
+    return client(
+        "lnv",
+        properties.lnvOrigins(),
+        properties,
+        builder,
+        List.of(new BasicHeader("Cookie", "timezoneoffset=0")));
   }
 
   /**
@@ -144,7 +173,7 @@ public class AcquisitionConfiguration {
    */
   @Bean
   public ProviderHttpClient ignProviderClient(AcquisitionProperties properties) {
-    return client("ign", properties.ignOrigins(), properties);
+    return client("ign", properties.ignOrigins(), properties, HttpClients.custom(), List.of());
   }
 
   /**
@@ -154,10 +183,16 @@ public class AcquisitionConfiguration {
    * @param name finite provider budget name
    * @param allowedOrigins configured exact origins including allowed redirect destinations
    * @param properties validated budgets
+   * @param builder native client with source-specific cache policy
+   * @param pageHeaders source conventions for text pages and their form submissions
    * @return client owning its pooled connections
    */
   private ProviderHttpClient client(
-      String name, List<String> allowedOrigins, AcquisitionProperties properties) {
+      String name,
+      List<String> allowedOrigins,
+      AcquisitionProperties properties,
+      HttpClientBuilder builder,
+      List<Header> pageHeaders) {
     Set<HttpHost> origins =
         allowedOrigins.stream()
             .map(URI::create)
@@ -171,26 +206,9 @@ public class AcquisitionConfiguration {
                 .limitRefreshPeriod(properties.refreshPeriod())
                 .timeoutDuration(properties.permitTimeout())
                 .build());
-    HttpClientBuilder builder =
-        name.equals("lnv")
-            ? CachingHttpClients.custom()
-                .setCacheConfig(
-                    CacheConfig.custom()
-                        .setMaxCacheEntries(128)
-                        .setMaxObjectSize(Math.min(properties.maxResponseBytes(), 5L * 1024 * 1024))
-                        .setHeuristicCachingEnabled(false)
-                        .setAsynchronousWorkers(0)
-                        .setStaleIfErrorEnabled(false)
-                        .build())
-            : HttpClients.custom();
     CloseableHttpClient http =
         builder
             .disableCookieManagement()
-            .addResponseInterceptorLast(
-                (response, entity, context) ->
-                    context.setAttribute(
-                        ProviderHttpClient.SUPPLIER_BODY,
-                        response.getCode() >= 200 && response.getCode() < 300))
             .setConnectionManager(
                 PoolingHttpClientConnectionManagerBuilder.create()
                     .setMaxConnTotal(properties.concurrencyPerProvider())
@@ -229,6 +247,6 @@ public class AcquisitionConfiguration {
                   return chain.proceed(request, scope);
                 })
             .build();
-    return new ProviderHttpClient(http, origins, properties.maxResponseBytes());
+    return new ProviderHttpClient(http, origins, properties.maxResponseBytes(), pageHeaders);
   }
 }

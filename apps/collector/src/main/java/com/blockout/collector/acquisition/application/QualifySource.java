@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
+import com.blockout.collector.acquisition.lnv.LnvPage;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import java.net.URI;
 import java.time.Clock;
@@ -104,7 +105,7 @@ public class QualifySource {
     ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
     String season =
         lnv.candidateSeason(
-            response.body(),
+            LnvPage.parse(response.body(), response.url()),
             response.url(),
             candidate.organizerReference(),
             candidate.seasonLabel());

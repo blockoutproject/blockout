@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
+import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -303,7 +305,7 @@ class CollectPassageTest {
       when(ffvb.read(SOURCE)).thenReturn(resource);
       SportingObservation.Calendar matches =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(matches, NOW));
+      when(resource.calendar(calendar)).thenReturn(new ProviderObservation<>(matches, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(matches)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
 
@@ -343,7 +345,7 @@ class CollectPassageTest {
       when(ffvb.read(SOURCE)).thenReturn(resource);
       SportingObservation.Calendar empty =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(empty, NOW));
+      when(resource.calendar(calendar)).thenReturn(new ProviderObservation<>(empty, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
 
@@ -424,7 +426,7 @@ class CollectPassageTest {
               new LnvAcquisition.Calendar(
                   calendar, Map.of("100", homeLogo, "101", awayLogo), NOW, null));
       when(resource.standings(standingsTarget))
-          .thenReturn(new LnvAcquisition.Read<>(standings, NOW));
+          .thenReturn(new ProviderObservation<>(standings, NOW));
       when(lnv.documentIndexes(any())).thenReturn((target, read) -> null);
       when(sporting.calendar(eq(POOL), any(), eq(calendar)))
           .thenReturn(
@@ -441,8 +443,8 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "902", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
-      when(lnv.image(homeLogo)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
-      when(lnv.image(awayLogo)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
+      when(lnv.image(homeLogo)).thenReturn(new ProviderObservation<>(image, NOW));
+      when(lnv.image(awayLogo)).thenReturn(new ProviderObservation<>(image, NOW));
       when(sporting.logo(any(), any(), eq(image)))
           .thenReturn(
               new SportingObservation.Outcome(
@@ -560,7 +562,7 @@ class CollectPassageTest {
                   true));
       LnvAcquisition.Resource detail = mock(LnvAcquisition.Resource.class);
       when(lnv.read(page.resolve("MatchStatistics.aspx?mID=new&ID=901"))).thenReturn(detail);
-      when(detail.detail(any())).thenReturn(new LnvAcquisition.Read<>(facts, NOW));
+      when(detail.detail(any())).thenReturn(new LnvAcquisition.Detail(facts, NOW));
       when(sporting.detail(eq(newMatch), any(), eq(facts)))
           .thenReturn(
               new SportingObservation.Outcome(
@@ -570,7 +572,7 @@ class CollectPassageTest {
       } else if (imageOutcome == ImageOutcome.CACHED) {
         when(lnv.image(logo)).thenReturn(null);
       } else {
-        when(lnv.image(logo)).thenReturn(new LnvAcquisition.Read<>(image, imageReadAt));
+        when(lnv.image(logo)).thenReturn(new ProviderObservation<>(image, imageReadAt));
         when(sporting.logo(any(), any(), eq(image)))
             .thenReturn(
                 new SportingObservation.Outcome(
@@ -684,7 +686,7 @@ class CollectPassageTest {
       LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
       SportingObservation.Calendar empty =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(lnv.fromPage(response, readAt)).thenReturn(shared);
+      when(lnv.fromPage(any(), eq(page), eq(readAt))).thenReturn(shared);
       LnvAcquisition.Calendar calendarRead =
           new LnvAcquisition.Calendar(empty, Map.of(), readAt, null);
       when(shared.calendar(calendar)).thenReturn(calendarRead);
@@ -862,7 +864,7 @@ class CollectPassageTest {
                   null,
                   null));
       when(lnv.read(detailUrl)).thenReturn(detailResource);
-      when(detailResource.detail(detailTarget)).thenReturn(new LnvAcquisition.Read<>(facts, NOW));
+      when(detailResource.detail(detailTarget)).thenReturn(new LnvAcquisition.Detail(facts, NOW));
       when(sporting.detail(eq(match), any(), eq(facts)))
           .thenReturn(
               new SportingObservation.Outcome(
@@ -900,30 +902,53 @@ class CollectPassageTest {
   @DisplayName("Calendar stage execution")
   class CalendarExecution {
 
-    @Test
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(CollectionProviderEnum.class)
     @DisplayName("Keeps independent standings when calendar acquisition fails")
-    void continuesIndependentStage() {
+    void continuesIndependentStage(CollectionProviderEnum provider) {
       // Given
-      when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
-      when(ffvb.read(SOURCE)).thenReturn(resource);
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
       when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
-      CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
-      CollectionBackend.Target table = target(CollectionTargetKindEnum.STANDINGS);
+      URI source =
+          provider == CollectionProviderEnum.FFVB
+              ? SOURCE
+              : URI.create(
+                  "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+      CollectionBackend.Target calendar =
+          target(CollectionTargetKindEnum.CALENDAR).toBuilder()
+              .provider(provider)
+              .url(source)
+              .build();
+      CollectionBackend.Target table =
+          calendar.toBuilder().kind(CollectionTargetKindEnum.STANDINGS).build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(calendar), 0, true));
       when(backend.targets(admitted.getCycle().id(), 1))
           .thenReturn(new CollectionBackend.TargetPage(List.of(table), 1, false));
-      when(resource.calendar(calendar)).thenThrow(new FfvbAcquisitionException("Wrong season"));
       SportingObservation.Standings standings =
           new SportingObservation.Standings(
               StandingsPublicationStateEnum.PUBLISHED, List.of(), List.of());
-      when(resource.standings(table))
-          .thenReturn(new FfvbAcquisition.Read<>(standings, NOW.minusSeconds(1)));
+      ProviderObservation<SportingObservation.Standings> publication =
+          new ProviderObservation<>(standings, NOW.minusSeconds(1));
+      switch (provider) {
+        case FFVB -> {
+          when(ffvb.resourceUrl(any())).thenReturn(source);
+          when(ffvb.read(source)).thenReturn(resource);
+          when(resource.calendar(calendar)).thenThrow(new FfvbAcquisitionException("Wrong season"));
+          when(resource.standings(table)).thenReturn(publication);
+        }
+        case LNV -> {
+          LnvAcquisition.Resource lnvResource = mock(LnvAcquisition.Resource.class);
+          when(lnv.read(source)).thenReturn(lnvResource);
+          when(lnvResource.calendar(calendar))
+              .thenThrow(new LnvAcquisitionException("Wrong season"));
+          when(lnvResource.standings(table)).thenReturn(publication);
+        }
+      }
       when(sporting.standings(eq(POOL), any(), eq(standings)))
           .thenReturn(
               new SportingObservation.Outcome(
@@ -947,8 +972,12 @@ class CollectPassageTest {
           .containsExactly(1L, 1L, 1L);
       assertThat(results.getAllValues().getFirst().reason()).isEqualTo("Wrong season");
       assertThat(results.getAllValues().get(1).observedAt()).isEqualTo(NOW.minusSeconds(1));
-      verify(ffvb).read(SOURCE);
+      switch (provider) {
+        case FFVB -> verify(ffvb).read(source);
+        case LNV -> verify(lnv).read(source);
+      }
       verify(sporting, never()).calendar(any(), any(), any());
+      verify(sporting).standings(eq(POOL), any(), eq(standings));
     }
 
     @Test
@@ -969,7 +998,7 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       SportingObservation.Calendar calendar =
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-      when(resource.calendar(target)).thenReturn(new FfvbAcquisition.Read<>(calendar, NOW));
+      when(resource.calendar(target)).thenReturn(new ProviderObservation<>(calendar, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(calendar))).thenThrow(uncertain());
 
       // When
@@ -1018,7 +1047,7 @@ class CollectPassageTest {
                   "rejected", ObservationOutcomeEnum.REJECTED, null, null, null, null));
       when(resource.calendar(target))
           .thenReturn(
-              new FfvbAcquisition.Read<>(
+              new ProviderObservation<>(
                   new SportingObservation.Calendar(true, matches, List.of(), List.of()), NOW));
       when(sporting.calendar(eq(POOL), any(), any()))
           .thenReturn(new SportingObservation.CalendarOutcome(outcomes, 1, 0, 0, 1, false));
@@ -1054,7 +1083,7 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, standings), 0, false));
       when(resource.calendar(calendar))
           .thenReturn(
-              new FfvbAcquisition.Read<>(
+              new ProviderObservation<>(
                   new SportingObservation.Calendar(true, List.of(), List.of(), List.of()), NOW));
       doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
           .when(backend)
@@ -1145,7 +1174,7 @@ class CollectPassageTest {
       when(ffvb.read(SOURCE)).thenReturn(resource);
       when(resource.calendar(calendar))
           .thenReturn(
-              new FfvbAcquisition.Read<>(
+              new ProviderObservation<>(
                   new SportingObservation.Calendar(true, List.of(), List.of(), List.of()), NOW));
       when(sporting.calendar(eq(POOL), any(), any()))
           .thenAnswer(

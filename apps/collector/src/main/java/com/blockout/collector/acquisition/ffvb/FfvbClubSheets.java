@@ -6,6 +6,7 @@ import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -76,7 +77,8 @@ public class FfvbClubSheets implements ClubSheets {
     if (fields.stream().filter(field -> field.getName().equals("id_club")).count() != 1) {
       throw invalid();
     }
-    return parse(http.post(URI.create(form.absUrl("action")), fields), reference);
+    return parse(
+        http.post(URI.create(form.absUrl("action")), fields, StandardCharsets.UTF_8), reference);
   }
 
   /**

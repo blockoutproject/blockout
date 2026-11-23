@@ -3,6 +3,7 @@ package com.blockout.collector.acquisition.lnv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.io.InputStream;
 import java.net.URI;
@@ -45,8 +46,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser()
-            .parse(bytes(page.html()), CALENDAR, "901", "902", "903", "2026/2027");
+        calendarParser(bytes(page.html())).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches())
@@ -77,8 +77,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser()
-            .parse(bytes(page.html()), CALENDAR, "901", "902", "903", "2026/2027");
+        calendarParser(bytes(page.html())).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().complete()).isFalse();
@@ -97,7 +96,8 @@ class LnvObservationsTest {
             + " 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
 
     // When
-    String season = new LnvDiscovery().root(bytes(html), CALENDAR, "901").season();
+    String season =
+        new LnvDiscovery().root(LnvPage.parse(bytes(html), CALENDAR), CALENDAR, "901").season();
 
     // Then
     assertThat(season).isEqualTo("2026/2027");
@@ -118,7 +118,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903", "2026/2027");
+        calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().complete()).isTrue();
@@ -139,8 +139,8 @@ class LnvObservationsTest {
 
     // When
     SportingObservation.Facts facts =
-        new LnvCalendarParser()
-            .parse(bytes(html), CALENDAR, "901", "902", "903", "2026/2027")
+        calendarParser(bytes(html))
+            .parse("901", "902", "903", "2026/2027")
             .calendar()
             .matches()
             .getFirst()
@@ -158,10 +158,7 @@ class LnvObservationsTest {
     String html = "<div id=Content_Main_903><span id=group_lbl_title>Alterna VOLSTAR</span></div>";
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                new LnvCalendarParser()
-                    .parse(bytes(html), CALENDAR, "901", "902", "903", "2026/2027"))
+    assertThatThrownBy(() -> calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -181,7 +178,7 @@ class LnvObservationsTest {
 
     // When
     SportingObservation.Standings table =
-        new LnvStandingsParser().parse(bytes(html), CALENDAR, "903");
+        new LnvStandingsParser().parse(LnvPage.parse(bytes(html), CALENDAR), "903");
 
     // Then
     assertThat(table.rows())
@@ -205,11 +202,10 @@ class LnvObservationsTest {
     LnvDetailParser.Read read =
         new LnvDetailParser()
             .inspect(
-                bytes(html),
-                URI.create(
-                    "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
-                "990",
-                "901");
+                LnvPage.parse(
+                    bytes(html),
+                    URI.create(
+                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902")));
 
     // Then
     assertThat(read.complete()).isTrue();
@@ -236,10 +232,10 @@ class LnvObservationsTest {
     LnvDetailParser.Read read =
         new LnvDetailParser()
             .inspect(
-                bytes(html),
-                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
-                "990",
-                "901");
+                LnvPage.parse(
+                    bytes(html),
+                    URI.create(
+                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901")));
 
     // Then
     assertThat(read.complete()).isTrue();
@@ -263,7 +259,7 @@ class LnvObservationsTest {
 
     // When
     LnvCalendarParser.Read read =
-        new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903", "2026/2027");
+        calendarParser(bytes(html)).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
@@ -303,8 +299,7 @@ class LnvObservationsTest {
     byte[] page = bytes(html);
 
     // When / Then
-    assertThatThrownBy(
-            () -> new LnvCalendarParser().parse(page, CALENDAR, "901", "902", "903", "2026/2027"))
+    assertThatThrownBy(() -> calendarParser(page).parse("901", "902", "903", "2026/2027"))
         .isInstanceOf(LnvAcquisitionException.class)
         .hasMessage("LNV phase match dates contradict the season");
   }
@@ -328,8 +323,8 @@ class LnvObservationsTest {
 
     // When
     SportingObservation.Result result =
-        new LnvCalendarParser()
-            .parse(bytes(html), CALENDAR, "901", "902", "903", "2026/2027")
+        calendarParser(bytes(html))
+            .parse("901", "902", "903", "2026/2027")
             .calendar()
             .matches()
             .getFirst()
@@ -353,11 +348,10 @@ class LnvObservationsTest {
     LnvDetailParser.Read read =
         new LnvDetailParser()
             .inspect(
-                html,
-                URI.create(
-                    "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902"),
-                "990",
-                "901");
+                LnvPage.parse(
+                    html,
+                    URI.create(
+                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902")));
 
     // Then
     assertThat(read.complete()).isTrue();
@@ -381,7 +375,7 @@ class LnvObservationsTest {
         """;
     // When
     List<LnvDiscovery.Phase> phases =
-        new LnvDiscovery().root(bytes(html), CALENDAR, "901").phases();
+        new LnvDiscovery().root(LnvPage.parse(bytes(html), CALENDAR), CALENDAR, "901").phases();
 
     // Then
     assertThat(phases)
@@ -402,20 +396,7 @@ class LnvObservationsTest {
     byte[] html = bytes("<h1>Error</h1>");
 
     // When / Then
-    assertThatThrownBy(() -> parser.inspect(html, detail, "990", "901"))
-        .isInstanceOf(LnvAcquisitionException.class);
-  }
-
-  @Test
-  @DisplayName("Published detail facts cannot qualify a different native match")
-  void rejectsForeignDetail() {
-    // Given
-    LnvDetailParser parser = new LnvDetailParser();
-    URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901");
-    byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
-
-    // When / Then
-    assertThatThrownBy(() -> parser.inspect(html, detail, "990", "901"))
+    assertThatThrownBy(() -> parser.inspect(LnvPage.parse(html, detail)))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
@@ -433,8 +414,7 @@ class LnvObservationsTest {
     }
 
     // When
-    LnvCalendarParser.Read read =
-        new LnvCalendarParser().parse(html, CALENDAR, "901", "902", "903", "2026/2027");
+    LnvCalendarParser.Read read = calendarParser(html).parse("901", "902", "903", "2026/2027");
 
     // Then
     assertThat(read.calendar().matches()).hasSize(1);
@@ -456,8 +436,14 @@ class LnvObservationsTest {
     LnvStandingsParser parser = new LnvStandingsParser();
 
     // When / Then
-    assertThatThrownBy(() -> parser.parse(html, CALENDAR, "903"))
+    assertThatThrownBy(() -> parser.parse(LnvPage.parse(html, CALENDAR), "903"))
         .isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  private LnvCalendarParser calendarParser(byte[] bytes) {
+    Document page = LnvPage.parse(bytes, CALENDAR);
+    return new LnvCalendarParser(
+        page, CALENDAR, ProviderReadAttempt.capture(() -> LnvPage.seasonHeading(page)));
   }
 
   /**

@@ -37,7 +37,8 @@ class LnvDocumentReferencesTest {
 
     // When
     boolean unavailable =
-        new LnvDocumentReferences().unavailableFile(html.getBytes(StandardCharsets.UTF_8), page);
+        new LnvDocumentReferences()
+            .unavailableFile(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page));
 
     // Then
     assertThat(unavailable).isFalse();
@@ -63,12 +64,14 @@ class LnvDocumentReferencesTest {
 
     // When / Then
     assertThatThrownBy(
-            () -> references.form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet"))
+            () ->
+                references.form(
+                    LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "Scoresheet"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
-  @DisplayName("Document postbacks retain successful controls without submitting unrelated buttons")
+  @DisplayName("A document postback selects controls without changing the shared match page")
   void preservesSubmittedFormControls() {
     // Given
     URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
@@ -76,25 +79,30 @@ class LnvDocumentReferencesTest {
         """
         <form method=post action="MatchStatistics.aspx?mID=990&ID=901">
         <input type=hidden name=__VIEWSTATE value=synthetic-state>
+        <input type=hidden name=filter value=first>
         <input type=hidden name=disabled-state value=not-submitted disabled>
         <select name=language><option value=fr selected>French</option></select>
         <input type=checkbox name=confirmed value=yes checked>
         <input type=checkbox name=unchecked value=no>
         <input type=submit name=previous-image value=Prev>
+        <input type=hidden name=filter value=second>
         <input type=submit name=next-image value=Next>
         <input type=image name=image-button src=button.png>
         <input type=reset name=reset-button value=Reset>
-        <button type=submit name=submit-button>Submit</button>
+        <button type=submit name=submit-button>Submit
+          <input type=hidden name=button-state value=unselected>
+        </button>
         <div id=NativeTabs><ul><li class=rtsLI>Scoresheet</li></ul></div>
         <input type=hidden id=NativeTabs_State name=Native$Tabs$State value='{"selectedIndexes":[]}'>
         </form><script>
         $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('actual$Control','arguments')","clientStateFieldID":"NativeTabs_State","tabData":[{"value":"sheet"}]}, null, null, $get("NativeTabs"));
         </script>
         """;
+    Document document = LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page);
 
     // When
     LnvDocumentReferences.Form form =
-        new LnvDocumentReferences().form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet");
+        new LnvDocumentReferences().form(document, page, "Scoresheet");
 
     // Then
     assertThat(form.fields())
@@ -102,7 +110,8 @@ class LnvDocumentReferencesTest {
         .contains(
             tuple("__VIEWSTATE", "synthetic-state"),
             tuple("language", "fr"),
-            tuple("confirmed", "yes"));
+            tuple("confirmed", "yes"))
+        .containsSubsequence(tuple("filter", "first"), tuple("filter", "second"));
     assertThat(form.fields())
         .extracting(NameValuePair::getName)
         .doesNotContain(
@@ -112,7 +121,12 @@ class LnvDocumentReferencesTest {
             "next-image",
             "image-button",
             "reset-button",
-            "submit-button");
+            "submit-button",
+            "button-state");
+    assertThat(document.select("input[type=submit], input[type=image], input[type=reset], button"))
+        .extracting(element -> element.attr("name"))
+        .containsExactly(
+            "previous-image", "next-image", "image-button", "reset-button", "submit-button");
   }
 
   @ParameterizedTest
@@ -136,7 +150,8 @@ class LnvDocumentReferencesTest {
 
     // When
     LnvDocumentReferences.Form form =
-        new LnvDocumentReferences().form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet");
+        new LnvDocumentReferences()
+            .form(LnvPage.parse(html.getBytes(StandardCharsets.UTF_8), page), page, "Scoresheet");
 
     // Then
     assertThat(form.action()).isEqualTo(page);
@@ -174,7 +189,7 @@ class LnvDocumentReferencesTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When
-    URI pdf = new LnvDocumentReferences().publishedPdf(html, page);
+    URI pdf = new LnvDocumentReferences().publishedPdf(LnvPage.parse(html, page));
 
     // Then
     assertThat(pdf).isEqualTo(URI.create("https://documents.example.invalid/qualified.pdf"));
