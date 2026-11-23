@@ -45,7 +45,8 @@ export interface CollectionBilanScreenProps {
   criteria: CollectionResultCriteria;
   onSearch: (query?: string) => void;
   onOpenFilters: () => void;
-  onViewSource: (source: CollectionResultSourceResponse) => void;
+  onViewSource?: (source: CollectionResultSourceResponse) => void;
+  searchPlaceholder?: string;
 }
 
 /** Query owns the server-ordered traversal. A failed continuation leaves its accepted list mounted. */
@@ -56,6 +57,7 @@ export function CollectionBilanScreen({
   onSearch,
   onOpenFilters,
   onViewSource,
+  searchPlaceholder = "Poule, source, étape…",
 }: Readonly<CollectionBilanScreenProps>) {
   const navigation = useNavigation();
   const authority = useCollectionAuthority();
@@ -107,7 +109,7 @@ export function CollectionBilanScreen({
               <SearchField
                 {...searchField}
                 label="Rechercher dans le bilan"
-                placeholder="Poule, source, étape…"
+                placeholder={searchPlaceholder}
               />
             </SearchToolbar>
           )}
@@ -153,10 +155,13 @@ export function CollectionBilanScreen({
           renderItem={({ item }) => (
             <CollectionBilanResult
               result={item}
-              onViewSource={(source) => {
-                Keyboard.dismiss();
-                onViewSource(source);
-              }}
+              onViewSource={
+                onViewSource &&
+                ((source) => {
+                  Keyboard.dismiss();
+                  onViewSource(source);
+                })
+              }
             />
           )}
           onEndReached={() => {

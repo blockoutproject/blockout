@@ -29,6 +29,14 @@ export function collectionBilanRouteCriteria(
   };
 }
 
+/** A seasonless control offers outcome and text search without a competition catalogue. */
+export function collectionClubBilanRouteCriteria(
+  params: Record<string, string | string[] | undefined>,
+): Pick<CollectionResultCriteria, "query" | "status"> {
+  const { query, status } = collectionBilanRouteCriteria(params);
+  return { query, status };
+}
+
 export type SourceCatalogueFocus = Pick<
   CollectionResultSourceResponse,
   "packId" | "poolId" | "phaseReference"

@@ -12,7 +12,7 @@ import {
 } from "@/shared/components/search-toolbar";
 import { tokens } from "@/shared/theme/tokens";
 import { useCollectionSeason } from "../api/use-collection-season";
-import { CollectionProviderRead } from "../components/collection-provider-read";
+import { CollectionProviderRead } from "../components/collection-control-read";
 import { collectionBilanHref } from "../model/collection-hrefs";
 import {
   CollectionFollowUp,

@@ -33,11 +33,12 @@ export function CollectionBilanResult({
   onViewSource,
 }: Readonly<{
   result: CollectionResultResponse;
-  onViewSource: (source: CollectionResultSourceResponse) => void;
+  onViewSource?: (source: CollectionResultSourceResponse) => void;
 }>) {
   const { colors } = useTheme();
   const { source, reason, reasonType, lastSuccessAt } = result;
-  const sourceLink = result.outcome === "success" ? undefined : source;
+  const sourceLink =
+    onViewSource && result.outcome !== "success" ? source : undefined;
   const outlinedBadge =
     result.outcome === "success" || result.outcome === "failed";
   const lastUsefulSuccess =
@@ -123,7 +124,7 @@ export function CollectionBilanResult({
               {reasonType}
             </Text>
           )}
-          {sourceLink && (
+          {sourceLink && onViewSource && (
             <CollectionLink
               label="Voir la source"
               accessibilityHint={sourceLink.label}

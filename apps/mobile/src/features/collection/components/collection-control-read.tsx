@@ -22,7 +22,7 @@ type ProviderContent = (
   controls: ReturnType<typeof useCollectionControls>,
 ) => ReactNode;
 
-type ProviderView = "suivi" | "bilan";
+type ControlView = "suivi" | "bilan";
 
 /** Keeps admission and control selection the same for Suivi and a directly opened Bilan. */
 export function CollectionProviderRead({
@@ -35,7 +35,7 @@ export function CollectionProviderRead({
 }: Readonly<{
   provider: CollectionProviderEnum;
   reading: ReturnType<typeof useCollectionSeason>;
-  view: ProviderView;
+  view: ControlView;
   /** A standalone page retains its header when context has yet to admit its content. */
   header?: ReactNode;
   loadingContent: ReactNode;
@@ -44,76 +44,88 @@ export function CollectionProviderRead({
   const { authority, season } = reading;
   if (!authority.enabled) {
     return (
-      <ProviderReadState header={header} pending={isAccessLoading(authority)}>
+      <ControlReadState header={header} pending={isAccessLoading(authority)}>
         <AccessFeedback {...authority} loadingContent={loadingContent} />
-      </ProviderReadState>
+      </ControlReadState>
     );
   }
-  if (!season.data || hasReadError(season)) {
+  const current = season.data;
+  if (!current || hasReadError(season)) {
     return (
-      <ProviderReadState
+      <ControlReadState
         header={header}
         pending={season.isLoading && !hasReadError(season)}
       >
         <ReadFeedback query={season} loadingContent={loadingContent} />
-      </ProviderReadState>
+      </ControlReadState>
     );
   }
   return (
-    <ProviderControlRead
-      provider={provider}
-      season={season.data}
+    <CollectionControlRead
+      family={provider}
+      seasonId={current.id}
       view={view}
       header={header}
       loadingContent={loadingContent}
     >
-      {children}
-    </ProviderControlRead>
+      {(control, controls) => children(control, current, controls)}
+    </CollectionControlRead>
   );
 }
 
-function ProviderControlRead({
-  provider,
-  season,
+/** Selects the exact family within the admitted competition season or seasonless scope. */
+export function CollectionControlRead({
+  family,
+  seasonId,
   view,
   header,
   loadingContent,
   children,
 }: Readonly<{
-  provider: CollectionProviderEnum;
-  season: CollectionSeasonResponse;
-  view: ProviderView;
+  family: CollectionControlResponse["family"];
+  seasonId?: string;
+  view: ControlView;
   header?: ReactNode;
   loadingContent: ReactNode;
-  children: ProviderContent;
+  children: (
+    control: CollectionControlResponse,
+    controls: ReturnType<typeof useCollectionControls>,
+  ) => ReactNode;
 }>) {
-  const controls = useCollectionControls(season.id);
-  const { query } = controls;
+  const controls = useCollectionControls(seasonId);
+  const { authority, query } = controls;
+  if (!authority.enabled) {
+    return (
+      <ControlReadState header={header} pending={isAccessLoading(authority)}>
+        <AccessFeedback {...authority} loadingContent={loadingContent} />
+      </ControlReadState>
+    );
+  }
   const failed = hasReadError(query);
   const control = query.data?.items.find(
-    (item) => item.family === provider && item.seasonId === season.id,
+    (item) => item.family === family && item.seasonId === seasonId,
   );
-  // Suivi keeps its separately read results while the retained control is unavailable.
+  // Keep Suivi mounted through a scoped control failure so its independent summary can recover.
   if (control && (!failed || view === "suivi")) {
-    return children(control, season, controls);
+    return children(control, controls);
   }
   if (!query.data || failed) {
     return (
-      <ProviderReadState header={header} pending={query.isLoading && !failed}>
+      <ControlReadState header={header} pending={query.isLoading && !failed}>
         <ReadFeedback query={query} loadingContent={loadingContent} />
-      </ProviderReadState>
+      </ControlReadState>
     );
   }
   return (
-    <ProviderReadState header={header}>
+    <ControlReadState header={header}>
       <EmptyState title="Aucun contrôle de collecte">
         {view === "suivi" && <ReloadButton query={query} />}
       </EmptyState>
-    </ProviderReadState>
+    </ControlReadState>
   );
 }
 
-function ProviderReadState({
+function ControlReadState({
   header,
   pending = false,
   children,

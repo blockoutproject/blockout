@@ -5,11 +5,12 @@ import { ErrorState } from "@/shared/components/state-card";
 
 import { useLocalSearchParams } from "expo-router";
 import { CollectionControlScreen } from "@/features/collection/screens/collection-dashboard-screen";
+import { collectionClubFamilyFromRoute } from "@/features/collection/model/collection-club-family";
 
 /** Only the two seasonless families are admitted here; competition controls require an explicit season route. */
 export default function ClubCollectionRoute() {
-  const { family } = useLocalSearchParams<{ family: string }>();
-  return family === "club-sheets" || family === "geocoding" ? (
+  const family = collectionClubFamilyFromRoute(useLocalSearchParams().family);
+  return family ? (
     <CollectionControlScreen family={family} />
   ) : (
     <Page header={<PageHeader title="Collectes" />}>

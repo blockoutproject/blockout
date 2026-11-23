@@ -4,6 +4,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import type { CollectionResultCriteria } from "../api/collection-queries";
 import type { SourceFilters } from "./source-catalogue";
+import type { ClubCollectionFamily } from "./collection-club-family";
 
 type SourceAttribution = Pick<
   CollectionResultSourceResponse,
@@ -45,6 +46,22 @@ export function collectionBilanHref(
   return {
     pathname: "/collection/[seasonId]/controls/[provider]/bilan" as const,
     params: { seasonId, provider, ...criteriaParams },
+  };
+}
+
+export function collectionClubBilanHref(
+  family: ClubCollectionFamily,
+  criteria?: Pick<CollectionResultCriteria, "query" | "status">,
+) {
+  return {
+    pathname: "/collection/clubs/[family]/bilan" as const,
+    params: {
+      family,
+      ...(criteria && {
+        query: criteria.query ?? "",
+        status: criteria.status ?? "",
+      }),
+    },
   };
 }
 
