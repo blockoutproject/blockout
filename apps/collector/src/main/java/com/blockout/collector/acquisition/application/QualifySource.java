@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -17,7 +18,7 @@ public class QualifySource {
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
 
-  /** Supported structure and optional explicit season evidence, without operator confirmation. */
+  /** Supported structure and optional published season evidence, without operator confirmation. */
   public record Evidence(
       SourceValidationStateEnum state, String seasonEvidence, String reason, URI reasonType) {}
 
@@ -95,7 +96,12 @@ public class QualifySource {
         season = candidate.seasonLabel();
       } else {
         ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
-        season = lnv.root(response.body(), response.url(), candidate.organizerReference()).season();
+        season =
+            lnv.candidateSeason(
+                response.body(),
+                response.url(),
+                candidate.organizerReference(),
+                candidate.seasonLabel());
       }
       if (season == null) {
         return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
@@ -112,7 +118,9 @@ public class QualifySource {
       return new Evidence(
           SourceValidationStateEnum.INVALID,
           null,
-          "Unavailable or unsupported source context",
+          failure instanceof LnvAcquisitionException
+              ? AcquisitionFailure.reason(failure)
+              : "Unavailable or unsupported source context",
           AcquisitionFailure.reasonType(failure));
     }
   }

@@ -2,7 +2,6 @@ package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import java.net.URI;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -50,16 +49,23 @@ public class LnvCalendarParser {
    * @param competition expected native championship
    * @param phase expected published phase
    * @param group expected native group container
+   * @param expectedSeason admitted season to check against the native phase publication
    * @return usable matches, local failures, participating team logos and the admitted group title
-   * @throws LnvAcquisitionException when the response cannot establish the admitted group context
+   * @throws LnvAcquisitionException when the response conflicts with the admitted season or group
    */
-  public Read parse(byte[] bytes, URI url, String competition, String phase, String group) {
+  public Read parse(
+      byte[] bytes,
+      URI url,
+      String competition,
+      String phase,
+      String group,
+      String expectedSeason) {
     Map<String, String> query = LnvPage.query(url);
     if (!competition.equals(query.get("ID")) || !phase.equals(query.get("PID"))) {
       throw LnvPage.invalid();
     }
     Document page = LnvPage.parse(bytes, url);
-    Element container = page.getElementById("Content_Main_" + group);
+    Element container = LnvPage.group(page, group);
     if (container == null) {
       throw LnvPage.invalid();
     }
@@ -71,6 +77,15 @@ public class LnvCalendarParser {
         && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match")) {
       throw LnvPage.invalid();
     }
+    // An already admitted group remains readable by its exact ID when the view class is absent.
+    Elements groups = new Elements(container);
+    for (Element sibling : LnvPage.phaseGroups(page)) {
+      if (sibling != container && LnvPage.phaseGroupTitle(sibling) != null) {
+        groups.add(sibling);
+      }
+    }
+    LnvPage.calendarSeason(groups, LnvPage.seasonHeading(page), expectedSeason);
+
     Map<String, RosterTeam> roster = roster(page);
     Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
     Map<String, URI> logos = new LinkedHashMap<>();
@@ -96,12 +111,10 @@ public class LnvCalendarParser {
         // The native false flag can render a local clock even with offset zero. Preserve its date,
         // omit the unqualified clock, and let an independently qualified detail read supply
         // it.
+        String schedule = qualifiedClock ? rendered : LnvPage.renderedDate(rendered);
         SportingObservation.Facts time = SportingObservation.Facts.builder().build();
         try {
-          time =
-              LnvPage.time(
-                  qualifiedClock ? rendered : rendered.split(" - ")[0],
-                  DateTimeFormatter.ofPattern("dd/MM/uuuu"));
+          time = LnvPage.time(schedule, LnvPage.CALENDAR_DATE_FORMAT);
         } catch (LnvAcquisitionException invalidTime) {
           failures.add(
               new SportingObservation.Failure(
@@ -122,7 +135,7 @@ public class LnvCalendarParser {
         SportingObservation.Facts facts =
             SportingObservation.Facts.builder()
                 .localDate(time.localDate())
-                .localTime(qualifiedClock || !rendered.contains(" - ") ? time.localTime() : null)
+                .localTime(rendered.equals(schedule) ? time.localTime() : null)
                 .timeZone(time.timeZone())
                 .result(result)
                 .referees(referees(row))
