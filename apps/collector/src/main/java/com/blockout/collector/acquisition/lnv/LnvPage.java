@@ -30,6 +30,8 @@ import org.openapitools.jackson.nullable.JsonNullable;
 final class LnvPage {
   static final DateTimeFormatter CALENDAR_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
+  private static final String GROUP_ID_PREFIX = "Content_Main_";
+  private static final Pattern SEASON_HEADING = Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})");
   // Start at the whitespace run's boundary to avoid retrying from every space in the run.
   private static final Pattern CLOCK_SEPARATOR = Pattern.compile("(?<=\\S)\\s+-\\s+");
 
@@ -114,12 +116,16 @@ final class LnvPage {
     return CLOCK_SEPARATOR.split(rendered.strip(), 2)[0];
   }
 
+  static Element group(Document page, String reference) {
+    return page.getElementById(GROUP_ID_PREFIX + reference);
+  }
+
   static Elements phaseGroups(Document page) {
-    return page.select("div.rmpView[id^=Content_Main_]");
+    return page.select("div.rmpView[id^=" + GROUP_ID_PREFIX + "]");
   }
 
   static String phaseGroupReference(Element group) {
-    return group.id().substring("Content_Main_".length());
+    return group.id().substring(GROUP_ID_PREFIX.length());
   }
 
   static String phaseGroupTitle(Element group) {
@@ -136,12 +142,10 @@ final class LnvPage {
    * @param page native response DOM
    * @return one consistent sporting season, or null without positive evidence
    */
-  static String season(Document page) {
+  static String seasonHeading(Document page) {
     Matcher seasons =
-        Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})")
-            .matcher(
-                page.select("title, [id$=LB_Season], select[name*=Season] option[selected]")
-                    .text());
+        SEASON_HEADING.matcher(
+            page.select("title, [id$=LB_Season], select[name*=Season] option[selected]").text());
     String result = null;
     while (seasons.find()) {
       if (Integer.parseInt(seasons.group(2)) != Integer.parseInt(seasons.group(1)) + 1) {

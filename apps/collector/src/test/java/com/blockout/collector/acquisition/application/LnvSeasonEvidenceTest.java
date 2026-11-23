@@ -2,12 +2,11 @@ package com.blockout.collector.acquisition.application;
 
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
 import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
-import static org.assertj.core.api.Assertions.tuple;
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -61,17 +60,25 @@ class LnvSeasonEvidenceTest {
   @CsvSource(
       delimiter = '|',
       value = {
-        "Out-of-season date without a season heading | Alterna VOLSTAR | 17/10/2023 - 23:30 | false | LNV phase match dates contradict the season",
-        "Out-of-season heading with an in-season date | Alterna VOLSTAR 2023/2024 | 17/10/2026 - 23:30 | false | LNV phase belongs to a different season",
-        "Out-of-season date on a phase also serving as the root | Alterna VOLSTAR 2026/2027 | 17/10/2023 - 23:30 | true | LNV phase match dates contradict the season"
+        "Out-of-season date without a season heading | Alterna VOLSTAR | 17/10/2023 - 23:30 | false | true | LNV phase match dates contradict the season",
+        "Out-of-season date without a self-link | Alterna VOLSTAR | 17/10/2023 - 23:30 | false | false | LNV phase match dates contradict the season",
+        "Out-of-season heading with an in-season date | Alterna VOLSTAR 2023/2024 | 17/10/2026 - 23:30 | false | true | LNV phase belongs to a different season",
+        "Out-of-season date on a phase also serving as the root | Alterna VOLSTAR 2026/2027 | 17/10/2023 - 23:30 | true | true | LNV phase match dates contradict the season"
       })
   @DisplayName(
       "Contradictory publication is refused while a valid linked phase remains discoverable")
   void refusesContradictoryPublication(
-      String scenario, String heading, String date, boolean phaseRoot, String reason)
+      String scenario,
+      String heading,
+      String date,
+      boolean phaseRoot,
+      boolean selfLink,
+      String reason)
       throws IOException {
     // Given
-    String links = "<a href='%s'>Regular</a><a href='%s'>Playoffs</a>".formatted(REGULAR, PLAYOFFS);
+    String regularLink = "<a href='%s'>Regular</a>".formatted(REGULAR);
+    String playoffsLink = "<a href='%s'>Playoffs</a>".formatted(PLAYOFFS);
+    String phaseLinks = (selfLink ? regularLink : "") + playoffsLink;
     String html;
     try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
       html = new String(input.readAllBytes(), StandardCharsets.UTF_8);
@@ -79,14 +86,20 @@ class LnvSeasonEvidenceTest {
     ProviderResponse publication =
         response(
             REGULAR,
-            "<title>" + heading + "</title>" + links + html.replace("17/10/2026 - 23:30", date));
+            "<title>"
+                + heading
+                + "</title>"
+                + phaseLinks
+                + html.replace("17/10/2026 - 23:30", date));
     URI root = phaseRoot ? REGULAR : HOME;
     ProviderPages qualificationHttp = mock(ProviderPages.class);
     when(qualificationHttp.page(REGULAR)).thenReturn(publication);
     ProviderPages discoveryHttp = mock(ProviderPages.class);
     if (!phaseRoot) {
       when(discoveryHttp.page(HOME))
-          .thenReturn(response(HOME, "<title>Alterna VOLSTAR 2026/2027</title>" + links));
+          .thenReturn(
+              response(
+                  HOME, "<title>Alterna VOLSTAR 2026/2027</title>" + regularLink + playoffsLink));
     }
     when(discoveryHttp.page(REGULAR)).thenReturn(publication);
     when(discoveryHttp.page(PLAYOFFS))
@@ -132,13 +145,6 @@ class LnvSeasonEvidenceTest {
     when(backend.complete(admitted.getCycle().id(), NOW))
         .thenReturn(completed(admitted.getCycle(), NOW));
     SportingBackend sporting = mock(SportingBackend.class);
-    List<SportingObservation.Calendar> submissions = new ArrayList<>();
-    when(sporting.calendar(eq(POOL), any(), any()))
-        .thenAnswer(
-            call -> {
-              submissions.add(call.getArgument(2));
-              return new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true);
-            });
     LnvDiscovery lnvDiscovery = new LnvDiscovery();
     DiscoverSeasonSources discovery =
         new DiscoverSeasonSources(
@@ -203,39 +209,32 @@ class LnvSeasonEvidenceTest {
     verifyNoMoreInteractions(discoveryHttp);
     verify(calendarHttp).page(REGULAR);
     verifyNoMoreInteractions(calendarHttp);
+    verify(sporting, never()).calendar(any(), any(), any());
+    assertThat(read.catalog().complete()).isFalse();
+    assertThat(read.reason()).isEqualTo(reason);
+    assertThat(read.catalog().pools())
+        .extracting(SportingObservation.Pool::poolReference)
+        .containsExactly("904");
+    assertThat(consumed).extracting(page -> page.response().url()).containsExactly(PLAYOFFS);
     ArgumentCaptor<CollectionBackend.Result> results =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
-    verify(backend, atLeastOnce()).record(eq(admitted.getCycle().id()), results.capture());
-    assertSoftly(
-        softly -> {
-          softly.assertThat(qualified.state()).isEqualTo(SourceValidationStateEnum.INVALID);
-          softly.assertThat(read.catalog().complete()).isFalse();
-          softly.assertThat(read.reason()).isEqualTo(reason);
-          softly
-              .assertThat(read.catalog().pools())
-              .extracting(SportingObservation.Pool::poolReference)
-              .containsExactly("904");
-          softly
-              .assertThat(consumed)
-              .extracting(page -> page.response().url())
-              .containsExactly(PLAYOFFS);
-          softly.assertThat(submissions).isEmpty();
-          softly
-              .assertThat(results.getAllValues())
-              .extracting(
-                  CollectionBackend.Result::stage,
-                  CollectionBackend.Result::phase,
-                  CollectionBackend.Result::outcome,
-                  CollectionBackend.Result::reasonType,
-                  CollectionBackend.Result::reason)
-              .containsExactly(
-                  tuple(
-                      CollectionStageEnum.CALENDAR,
-                      CollectionPhaseEnum.ACQUISITION,
-                      CollectionOutcomeEnum.FAILED,
-                      URI.create("urn:blockout:acquisition:structure"),
-                      reason));
-        });
+    verify(backend).record(eq(admitted.getCycle().id()), results.capture());
+    assertThat(results.getValue())
+        .extracting(
+            CollectionBackend.Result::scopeId,
+            CollectionBackend.Result::stage,
+            CollectionBackend.Result::phase,
+            CollectionBackend.Result::outcome,
+            CollectionBackend.Result::reasonType,
+            CollectionBackend.Result::reason)
+        .containsExactly(
+            POOL,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            URI.create("urn:blockout:acquisition:structure"),
+            reason);
+    assertThat(qualified.state()).isEqualTo(SourceValidationStateEnum.INVALID);
   }
 
   private ProviderResponse response(URI url, String html) {

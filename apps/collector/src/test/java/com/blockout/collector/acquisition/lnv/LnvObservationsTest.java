@@ -419,13 +419,17 @@ class LnvObservationsTest {
         .isInstanceOf(LnvAcquisitionException.class);
   }
 
-  @Test
-  @DisplayName("Reads native match identities, local time and logo references from a calendar")
-  void parsesCalendar() throws Exception {
+  @ParameterizedTest
+  @CsvSource({"17/10/2026 - 23:30, 2026-10-18", "30/06/2027 - 23:30, 2027-07-01"})
+  @DisplayName("Season evidence uses the native date while match facts use the Paris date")
+  void parsesCalendar(String schedule, LocalDate parisDate) throws Exception {
     // Given
     byte[] html;
     try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
-      html = input.readAllBytes();
+      html =
+          bytes(
+              new String(input.readAllBytes(), StandardCharsets.UTF_8)
+                  .replace("17/10/2026 - 23:30", schedule));
     }
 
     // When
@@ -438,6 +442,7 @@ class LnvObservationsTest {
     assertThat(match.nativeMatchReference()).isEqualTo("990");
     assertThat(match.home().nativeTeamReference()).isEqualTo("001");
     assertThat(match.home().clubReference()).isNull();
+    assertThat(match.facts().localDate().get()).isEqualTo(parisDate);
     assertThat(match.facts().localTime().get()).isEqualTo("01:30");
     assertThat(read.logos()).containsKeys("001", "002");
     assertThat(read.calendar().complete()).isTrue();

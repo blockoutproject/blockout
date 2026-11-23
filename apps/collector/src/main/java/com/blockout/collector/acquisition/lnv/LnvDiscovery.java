@@ -63,8 +63,9 @@ public class LnvDiscovery {
   }
 
   /**
-   * Checks all seasonal evidence already present on the candidate response. The published heading
-   * is retained on a mismatch so candidate validation can record the conflicting season.
+   * Checks the candidate response in place. A phase can disprove the selected season even when its
+   * navigation omits the active phase link. Attribution from dates requires that link. The
+   * published heading is retained on a mismatch for the validation result.
    *
    * @return the published or corroborated season, or null when explicit confirmation is needed
    */
@@ -75,14 +76,16 @@ public class LnvDiscovery {
     if (headingSeason != null && !headingSeason.equals(expectedSeason)) {
       return headingSeason;
     }
-    String phase = LnvPage.query(url).get("PID");
-    if (!url.getPath().endsWith(MATCHES)
-        || root.phases().stream().noneMatch(published -> published.reference().equals(phase))) {
+    String phase = calendarQuery(url).get("PID");
+    if (phase == null || phase.isBlank()) {
       return headingSeason;
     }
-    Elements groups = LnvPage.phaseGroups(page);
+    Elements groups = requirePhaseGroups(page);
     groups.forEach(this::requirePhaseGroupTitle);
-    return LnvPage.calendarSeason(groups, headingSeason, expectedSeason);
+    String season = LnvPage.calendarSeason(groups, headingSeason, expectedSeason);
+    return root.phases().stream().anyMatch(published -> published.reference().equals(phase))
+        ? season
+        : headingSeason;
   }
 
   private Root root(Document page, URI url, String competition) {
@@ -100,7 +103,14 @@ public class LnvDiscovery {
     if (championships.size() != 1) {
       throw new LnvAcquisitionException("Missing or contradictory LNV championship heading");
     }
-    return new Root(championships.getFirst(), LnvPage.season(page), phaseLinks(page, competition));
+    return new Root(
+        championships.getFirst(), LnvPage.seasonHeading(page), phaseLinks(page, competition));
+  }
+
+  private Map<String, String> calendarQuery(URI url) {
+    return HOST.equalsIgnoreCase(url.getHost()) && url.getPath().endsWith(MATCHES)
+        ? LnvPage.query(url)
+        : Map.of();
   }
 
   private List<Phase> phaseLinks(Document page, String competition) {
@@ -113,18 +123,16 @@ public class LnvDiscovery {
       } catch (IllegalArgumentException failure) {
         throw LnvPage.invalid();
       }
-      if (HOST.equalsIgnoreCase(target.getHost()) && target.getPath().endsWith(MATCHES)) {
-        Map<String, String> reference = LnvPage.query(target);
-        if (competition.equals(reference.get("ID")) && reference.containsKey("PID")) {
-          String phase = reference.get("PID");
-          if (phase == null || phase.isBlank()) {
-            throw new LnvAcquisitionException("LNV phase link has no phase identity");
-          }
-          links.putIfAbsent(target, phase);
-          String label = link.text();
-          if (!label.isBlank() && label.length() <= 255) {
-            labels.computeIfAbsent(phase, ignored -> new HashSet<>()).add(label);
-          }
+      Map<String, String> reference = calendarQuery(target);
+      if (competition.equals(reference.get("ID")) && reference.containsKey("PID")) {
+        String phase = reference.get("PID");
+        if (phase == null || phase.isBlank()) {
+          throw new LnvAcquisitionException("LNV phase link has no phase identity");
+        }
+        links.putIfAbsent(target, phase);
+        String label = link.text();
+        if (!label.isBlank() && label.length() <= 255) {
+          labels.computeIfAbsent(phase, ignored -> new HashSet<>()).add(label);
         }
       }
     }
@@ -154,21 +162,15 @@ public class LnvDiscovery {
    */
   public PhaseCatalog phaseCatalog(
       byte[] bytes, URI actual, String competition, Phase published, String expectedSeason) {
-    Map<String, String> context = LnvPage.query(actual);
+    Map<String, String> context = calendarQuery(actual);
     String phase = published.reference();
-    if (!HOST.equalsIgnoreCase(actual.getHost())
-        || !actual.getPath().endsWith(MATCHES)
-        || !competition.equals(context.get("ID"))
-        || !phase.equals(context.get("PID"))) {
+    if (!competition.equals(context.get("ID")) || !phase.equals(context.get("PID"))) {
       throw new LnvAcquisitionException(
           "LNV phase response does not match its published reference");
     }
 
     Document page = LnvPage.parse(bytes, actual);
-    Elements groups = LnvPage.phaseGroups(page);
-    if (groups.isEmpty()) {
-      throw new LnvAcquisitionException("LNV phase has no recognizable groups");
-    }
+    Elements groups = requirePhaseGroups(page);
     URI standings = null;
     for (Element link : page.select("a[href*=CompetitionStandings.aspx]")) {
       URI candidate = URI.create(link.absUrl("href"));
@@ -196,7 +198,15 @@ public class LnvDiscovery {
     return new PhaseCatalog(
         pools,
         phaseLabel(page, published),
-        LnvPage.calendarSeason(groups, LnvPage.season(page), expectedSeason));
+        LnvPage.calendarSeason(groups, LnvPage.seasonHeading(page), expectedSeason));
+  }
+
+  private Elements requirePhaseGroups(Document page) {
+    Elements groups = LnvPage.phaseGroups(page);
+    if (groups.isEmpty()) {
+      throw new LnvAcquisitionException("LNV phase has no recognizable groups");
+    }
+    return groups;
   }
 
   private String requirePhaseGroupTitle(Element group) {

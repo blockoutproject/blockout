@@ -148,6 +148,7 @@ class LnvDiscoveryTest {
   @ParameterizedTest
   @CsvSource({
     "CompetitionMatches.aspx?ID=901&PID=902, 2027/2028",
+    "CompetitionMatches.aspx?PID=902&ID=901, 2027/2028",
     "CompetitionMatches.aspx?ID=901&PID=904,",
     "CompetitionHome.aspx?ID=901,"
   })
@@ -166,6 +167,25 @@ class LnvDiscoveryTest {
 
     // Then
     assertThat(evidence).isEqualTo(expectedEvidence);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"Alterna VOLSTAR", "Alterna VOLSTAR 2027/2028"})
+  @DisplayName("Candidate phase without supported group structure cannot be confirmed")
+  void rejectsCandidatePhaseWithoutGroups(String heading) {
+    // Given
+    byte[] page =
+        """
+        <title>%s</title>
+        <a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>
+        """
+            .formatted(heading)
+            .getBytes(StandardCharsets.UTF_8);
+
+    // When / Then
+    assertThatThrownBy(() -> new LnvDiscovery().candidateSeason(page, CALENDAR, "901", "2027/2028"))
+        .isInstanceOf(LnvAcquisitionException.class)
+        .hasMessage("LNV phase has no recognizable groups");
   }
 
   @ParameterizedTest

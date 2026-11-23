@@ -217,7 +217,7 @@ public class LnvObservationReader implements LnvAcquisition {
    * @throws LnvAcquisitionException when source context is unreadable or contradicts the season
    */
   private void requireSeason(ProviderResponse response, CollectionBackend.Target target) {
-    String season = LnvPage.season(LnvPage.parse(response.body(), response.url()));
+    String season = LnvPage.seasonHeading(LnvPage.parse(response.body(), response.url()));
     if (season != null && !season.equals(target.seasonLabel())) {
       throw LnvPage.invalid();
     }

@@ -65,7 +65,7 @@ public class LnvCalendarParser {
       throw LnvPage.invalid();
     }
     Document page = LnvPage.parse(bytes, url);
-    Element container = page.getElementById("Content_Main_" + group);
+    Element container = LnvPage.group(page, group);
     if (container == null) {
       throw LnvPage.invalid();
     }
@@ -77,16 +77,14 @@ public class LnvCalendarParser {
         && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match")) {
       throw LnvPage.invalid();
     }
-    Elements groups =
-        new Elements(
-            LnvPage.phaseGroups(page).stream()
-                .filter(groupView -> LnvPage.phaseGroupTitle(groupView) != null)
-                .toList());
-    // The admitted container also has a direct ID-based lookup when the phase view class is absent.
-    if (!groups.contains(container)) {
-      groups.add(container);
+    // An already admitted group remains readable by its exact ID when the view class is absent.
+    Elements groups = new Elements(container);
+    for (Element sibling : LnvPage.phaseGroups(page)) {
+      if (sibling != container && LnvPage.phaseGroupTitle(sibling) != null) {
+        groups.add(sibling);
+      }
     }
-    LnvPage.calendarSeason(groups, LnvPage.season(page), expectedSeason);
+    LnvPage.calendarSeason(groups, LnvPage.seasonHeading(page), expectedSeason);
 
     Map<String, RosterTeam> roster = roster(page);
     Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
@@ -108,16 +106,15 @@ public class LnvCalendarParser {
         SportingObservation.Team home = team(row, "Home", roster, logos);
         SportingObservation.Team away = team(row, "Guest", roster, logos);
         String rendered = text(row, "_LB_DataOra");
-        String renderedDate = LnvPage.renderedDate(rendered);
         Element flag = row.parent().selectFirst("[id$=_HF_LocalMatchTimeVisible]");
         boolean qualifiedClock = flag != null && flag.attr("value").equalsIgnoreCase("true");
         // The native false flag can render a local clock even with offset zero. Preserve its date,
         // omit the unqualified clock, and let an independently qualified detail read supply
         // it.
+        String schedule = qualifiedClock ? rendered : LnvPage.renderedDate(rendered);
         SportingObservation.Facts time = SportingObservation.Facts.builder().build();
         try {
-          time =
-              LnvPage.time(qualifiedClock ? rendered : renderedDate, LnvPage.CALENDAR_DATE_FORMAT);
+          time = LnvPage.time(schedule, LnvPage.CALENDAR_DATE_FORMAT);
         } catch (LnvAcquisitionException invalidTime) {
           failures.add(
               new SportingObservation.Failure(
@@ -138,8 +135,7 @@ public class LnvCalendarParser {
         SportingObservation.Facts facts =
             SportingObservation.Facts.builder()
                 .localDate(time.localDate())
-                .localTime(
-                    qualifiedClock || rendered.equals(renderedDate) ? time.localTime() : null)
+                .localTime(rendered.equals(schedule) ? time.localTime() : null)
                 .timeZone(time.timeZone())
                 .result(result)
                 .referees(referees(row))
