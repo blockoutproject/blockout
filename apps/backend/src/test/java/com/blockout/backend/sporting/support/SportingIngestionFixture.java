@@ -75,14 +75,17 @@ public final class SportingIngestionFixture {
       AdmitCollectionCycle cycles,
       RegisterCollectorRuntime runtimes,
       CollectionProviderEnum provider) {
-    String sourceUrl =
+    SourceUrls urls =
         switch (provider) {
-          case FFVB -> "https://www.ffvbbeach.org/ffvbapp/resu/";
-          case LNV -> "https://lnv-web.dataproject.com/";
+          case FFVB ->
+              new SourceUrls(
+                  "https://www.ffvbbeach.org/ffvbapp/resu/", "vbspo_calendrier.php", "standings");
+          case LNV ->
+              new SourceUrls(
+                  "https://lnv-web.dataproject.com/",
+                  "CompetitionMatches.aspx?ID=1",
+                  "CompetitionStandings.aspx?ID=1");
         };
-    boolean lnv = provider == CollectionProviderEnum.LNV;
-    String calendarPath = lnv ? "CompetitionMatches.aspx?ID=1" : "vbspo_calendrier.php";
-    String standingsPath = lnv ? "CompetitionStandings.aspx?ID=1" : "standings";
     UUID season = seasons.getOrCreate(2026).id();
     sql.update("UPDATE sporting_season SET collection_state='ACTIVE' WHERE id=?", season);
     sql.update(
@@ -98,8 +101,8 @@ public final class SportingIngestionFixture {
             .id();
     sql.update(
         "UPDATE sporting_pool SET calendar_url=?, standings_url=?, setting_division_id=?, setting_format='_6X6', setting_gender='MALE' WHERE id=?",
-        sourceUrl + calendarPath,
-        sourceUrl + standingsPath,
+        urls.source() + urls.calendarPath(),
+        urls.source() + urls.standingsPath(),
         DIVISION,
         pool);
     sql.update(
@@ -107,7 +110,7 @@ public final class SportingIngestionFixture {
         SOURCE,
         season,
         provider.name(),
-        sourceUrl);
+        urls.source());
     sql.update(
         "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,?,TRUE)",
         CONTROL,
@@ -124,6 +127,8 @@ public final class SportingIngestionFixture {
             .cycle();
     return new Scope(season, pool, cycle);
   }
+
+  private record SourceUrls(String source, String calendarPath, String standingsPath) {}
 
   /** Known identities from an actual admitted cycle. */
   public record Scope(UUID season, UUID pool, CollectionState.Cycle cycle) {}

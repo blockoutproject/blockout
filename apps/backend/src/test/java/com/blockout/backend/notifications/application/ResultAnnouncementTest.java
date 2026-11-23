@@ -53,8 +53,7 @@ class ResultAnnouncementTest {
         .thenReturn(new MatchAnnouncementFacts(MATCH, true, false, false, null));
     when(sporting.visibility(Kind.MATCH, MATCH))
         .thenReturn(Optional.of(new SportingVisibility(MATCH, Kind.MATCH, Set.of())));
-    when(links.availableForConsultableMatches(Set.of(MATCH)))
-        .thenReturn(link ? Set.of(MATCH) : Set.of());
+    when(links.availableForConsultableMatch(MATCH)).thenReturn(link);
     when(recipients.select(any())).thenReturn(Set.of());
 
     // When

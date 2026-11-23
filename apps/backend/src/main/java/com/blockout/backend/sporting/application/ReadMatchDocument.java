@@ -1,11 +1,11 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.MatchDocumentKindEnum;
 import com.blockout.backend.sporting.application.MatchDocumentSource.Reference;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchDetails;
+import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.port.SportingStore;
@@ -107,7 +107,7 @@ public class ReadMatchDocument {
       result.put(
           MatchDocumentKindEnum.INFORMATION, new Reference(null, details.informationSheet()));
     }
-    if (details.result() != null && details.result().state() == ResultStateEnum.FINAL) {
+    if (Result.isFinal(details.result())) {
       if (details.scoresheetUrl() != null) {
         result.put(
             MatchDocumentKindEnum.SCORESHEET,

@@ -65,6 +65,70 @@ class ResultAnnouncementIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(CollectionProviderEnum.class)
+  @DisplayName("Commits a provisional score during an F08 outage and preserves its final allowance")
+  void acceptsProvisionalWithoutConsumingResult(CollectionProviderEnum provider)
+      throws SQLException {
+    // Given
+    scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes, provider);
+    CalendarObservation.Match scheduled =
+        scheduledMatch(provider, "M1", LocalDate.of(2026, 10, 24));
+    UUID matchId =
+        calendars.accept(scope.pool(), calendar(1, scheduled)).outcomes().getFirst().resourceId();
+    CalendarObservation provisional =
+        calendar(
+            2,
+            withFacts(
+                scheduled,
+                new MatchFactsInternalRequest()
+                    .result(
+                        new MatchResultInternalRequest(ResultStateEnum.PROVISIONAL)
+                            .homeSets(3)
+                            .awaySets(1))));
+    contributionReadAvailable(false);
+
+    // When
+    ObservationOutcome.Calendar outcome;
+    try {
+      outcome = calendars.accept(scope.pool(), provisional);
+    } finally {
+      contributionReadAvailable(true);
+    }
+
+    // Then
+    assertThat(outcome.acceptedCount()).isEqualTo(1);
+    assertThat(outcome.absenceReconciled()).isTrue();
+    assertThat(
+            sql.queryForMap(
+                "SELECT result_state, home_sets, away_sets FROM sporting_match WHERE id=?",
+                matchId))
+        .containsEntry("result_state", "PROVISIONAL")
+        .containsEntry("home_sets", 3)
+        .containsEntry("away_sets", 1);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM match_announcement", Long.class)).isZero();
+
+    // When the same match later receives a final result.
+    matches.detail(
+        new MatchObservation(
+            matchId,
+            context(3),
+            mapper.toFacts(
+                new MatchFactsInternalRequest()
+                    .result(
+                        new MatchResultInternalRequest(ResultStateEnum.FINAL)
+                            .homeSets(3)
+                            .awaySets(1)))));
+
+    // Then
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_composition FROM match_announcement WHERE match_id=?",
+                String.class,
+                matchId))
+        .isEqualTo("PLAIN_RESULT");
+  }
+
+  @ParameterizedTest
+  @EnumSource(CollectionProviderEnum.class)
   @DisplayName("Commits and reconciles a date-only calendar when the F08 reader fails")
   void acceptsDateWithoutContributionRead(CollectionProviderEnum provider) throws SQLException {
     // Given
@@ -121,18 +185,12 @@ class ResultAnnouncementIntegrationTest {
     CalendarObservation.Match existing = scheduledMatch(provider, "M1", retainedDate);
     calendars.accept(scope.pool(), calendar(1, existing));
     CalendarObservation.Match result =
-        new CalendarObservation.Match(
-            existing.nativeMatchReference(),
-            existing.home(),
-            existing.away(),
-            mapper.toFacts(
-                new MatchFactsInternalRequest()
-                    ._localDate(LocalDate.of(2026, 10, 25))
-                    .result(
-                        new MatchResultInternalRequest(ResultStateEnum.FINAL)
-                            .homeSets(3)
-                            .awaySets(1))),
-            null);
+        withFacts(
+            existing,
+            new MatchFactsInternalRequest()
+                ._localDate(LocalDate.of(2026, 10, 25))
+                .result(
+                    new MatchResultInternalRequest(ResultStateEnum.FINAL).homeSets(3).awaySets(1)));
     LocalDate siblingDate = LocalDate.of(2026, 10, 27);
     CalendarObservation.Match sibling = scheduledMatch(provider, "M2", siblingDate);
     contributionReadAvailable(false);
@@ -222,16 +280,26 @@ class ResultAnnouncementIntegrationTest {
 
   private CalendarObservation.Match scheduledMatch(
       CollectionProviderEnum provider, String reference, LocalDate date) {
-    CalendarObservation.Match schedule = candidate(reference, "Home", date);
-    if (provider == CollectionProviderEnum.LNV) {
-      return new CalendarObservation.Match(
-          reference,
-          new TeamCandidate("HOME", "Professional home", null, null),
-          new TeamCandidate("AWAY", "Professional away", null, null),
-          schedule.facts(),
-          null);
-    }
-    return schedule;
+    return switch (provider) {
+      case FFVB -> candidate(reference, "Home", date);
+      case LNV ->
+          new CalendarObservation.Match(
+              reference,
+              new TeamCandidate("HOME", "Professional home", null, null),
+              new TeamCandidate("AWAY", "Professional away", null, null),
+              mapper.toFacts(new MatchFactsInternalRequest()._localDate(date)),
+              null);
+    };
+  }
+
+  private CalendarObservation.Match withFacts(
+      CalendarObservation.Match match, MatchFactsInternalRequest facts) {
+    return new CalendarObservation.Match(
+        match.nativeMatchReference(),
+        match.home(),
+        match.away(),
+        mapper.toFacts(facts),
+        match.detailUrl());
   }
 
   private CalendarObservation calendar(long ordinal, CalendarObservation.Match... candidates) {

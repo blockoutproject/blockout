@@ -15,26 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AnnounceContribution {
-  private final ReadPublicContribution links;
   private final ProcessLinkAnnouncement announcements;
   private final AfterCommitAnnouncements handoff;
 
   /**
-   * Composes actual current availability under retained match/account locks.
+   * Sends an accepted publication to F07 while the match and account locks are still held.
    *
    * @param facts current F02 context
    * @param now actual publication-processing instant
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void published(Facts facts, Instant now) {
-    handoff.submit(
-        announcements.process(
-            new ProcessLinkAnnouncement.Context(
-                facts.match(),
-                links.read(facts.match().id()).isPresent(),
-                facts.definitiveResult(),
-                facts.schedule().reliableStart(),
-                true,
-                now)));
+    handoff.submit(announcements.processPublication(facts, now));
   }
 }

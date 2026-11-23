@@ -52,6 +52,8 @@ After [bundling the contracts](../../README.md#verification), run the focused Po
 
 On disposable migrated PostgreSQL, make the current F08 public-link read fail and submit a complete current calendar containing a valid date-only match. Run the case for FFVB and LNV. Verify the persisted match and date, absence reconciliation and its recorded calendar completion, and zero new announcement facts or inbox entries.
 
+Submit a provisional score for a known match with the same read unavailable. Verify the committed score and calendar completion. When a final score later arrives with the reader available, verify that F07 can still consume the final-result allowance.
+
 Fail the same public-link read while accepting an eligible first final result. Verify the match's prior facts, the independent commit of a dated sibling and the absence of new announcements. Also withdraw a retained final result with no prior announcement fact. A failure to persist the required F07 fact preserves the final result. A later successful withdrawal records silent processing and clears the result. When a known match receives a recognized final forfeit without numeric sets, verify that F07 consumes the result even with an empty audience.
 
 Use [F07's atomic producer and link qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for first final results and publication in both orders, required participant rollback, after-commit handoff, single audience selection and preservation of consumed categories through corrections and withdrawal/restoration.

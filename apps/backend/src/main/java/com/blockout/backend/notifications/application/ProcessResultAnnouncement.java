@@ -12,7 +12,6 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -61,7 +60,7 @@ public class ProcessResultAnnouncement {
       return List.of();
     }
     NotificationFamily family =
-        links.availableForConsultableMatches(Set.of(matchId)).contains(matchId)
+        links.availableForConsultableMatch(matchId)
             ? NotificationFamily.ENRICHED_RESULT
             : NotificationFamily.PLAIN_RESULT;
     store.saveFacts(previous.consumeResult(family));
