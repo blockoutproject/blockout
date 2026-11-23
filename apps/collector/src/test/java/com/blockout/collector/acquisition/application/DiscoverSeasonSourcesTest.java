@@ -67,7 +67,7 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When / Then
-    assertThatThrownBy(() -> service.catalog(target))
+    assertThatThrownBy(() -> readCatalog(service, target))
         .isInstanceOfSatisfying(
             RuntimeException.class,
             failure ->
@@ -127,7 +127,7 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When
-    DiscoverSeasonSources.Read read = service.catalog(target);
+    DiscoverSeasonSources.Read read = readCatalog(service, target);
 
     // Then
     assertThat(read.catalog().complete()).isFalse();
@@ -175,7 +175,7 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When / Then
-    assertThatThrownBy(() -> service.catalog(target))
+    assertThatThrownBy(() -> readCatalog(service, target))
         .isInstanceOf(FfvbAcquisitionException.class)
         .satisfies(
             failure ->
@@ -249,7 +249,7 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When
-    DiscoverSeasonSources.Read read = service.catalog(target);
+    DiscoverSeasonSources.Read read = readCatalog(service, target);
 
     // Then
     assertThat(read.catalog().pools().getFirst().standingsUrl())
@@ -286,7 +286,7 @@ class DiscoverSeasonSourcesTest {
     List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
     // When
-    DiscoverSeasonSources.Read first = service.catalog(target);
+    DiscoverSeasonSources.Read first = readCatalog(service, target);
     DiscoverSeasonSources.Read updated = service.catalog(target, false, () -> 1, consumed::add);
 
     // Then
@@ -373,7 +373,7 @@ class DiscoverSeasonSourcesTest {
     CollectionBackend.Target target = lnvTarget(phase);
 
     // When / Then
-    assertThatThrownBy(() -> service.catalog(target))
+    assertThatThrownBy(() -> readCatalog(service, target))
         .hasMessage("LNV championship has no published season");
     DiscoverSeasonSources.Read historical = service.catalog(target, true, () -> 1, ignored -> {});
     assertThat(historical.catalog().complete()).isTrue();
@@ -705,6 +705,11 @@ class DiscoverSeasonSourcesTest {
    */
   private ProviderResponse response(URI url, String html) {
     return new ProviderResponse(html.getBytes(Charset.forName("windows-1252")), url, true);
+  }
+
+  private DiscoverSeasonSources.Read readCatalog(
+      DiscoverSeasonSources service, CollectionBackend.Target target) {
+    return service.catalog(target, false, () -> 1, ignored -> {});
   }
 
   private DiscoverSeasonSources discovery(ProviderPages http) {

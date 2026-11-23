@@ -4,7 +4,6 @@ import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
 import java.io.UncheckedIOException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.util.concurrent.CompletionException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.hc.client5.http.HttpResponseException;
@@ -13,8 +12,7 @@ import org.apache.hc.client5.http.HttpResponseException;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AcquisitionFailure {
   /**
-   * Classifies transport failures and passage-local memoized failures separately from unsupported
-   * content.
+   * Classifies transport failures separately from unsupported content.
    *
    * @param failure absorbed acquisition failure; source bodies/messages are never inspected
    * @return finite technical or structural URI used by current backend evidence
@@ -49,12 +47,7 @@ public final class AcquisitionFailure {
   }
 
   private static Throwable unwrap(RuntimeException failure) {
-    Throwable cause = failure;
-    while ((cause instanceof CompletionException || cause instanceof UncheckedIOException)
-        && cause.getCause() != null) {
-      cause = cause.getCause();
-    }
-    return cause;
+    return failure instanceof UncheckedIOException io ? io.getCause() : failure;
   }
 
   private static String factualReason(Throwable cause) {

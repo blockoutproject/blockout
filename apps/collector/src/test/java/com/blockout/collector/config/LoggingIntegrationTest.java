@@ -1,10 +1,11 @@
 package com.blockout.collector.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.CollectPassage;
@@ -29,6 +30,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -53,9 +56,11 @@ import tools.jackson.databind.json.JsonMapper;
 class LoggingIntegrationTest {
   private static final Logger LOG = LoggerFactory.getLogger(LoggingIntegrationTest.class);
 
-  @Test
-  @DisplayName("Retains the context of a failed passage with unconfirmed evidence and completion")
-  void retainsUnconfirmedPassageContext(CapturedOutput output) {
+  @ParameterizedTest(name = "{0} evidence write")
+  @CsvSource({"REJECTED, rejected", "UNCONFIRMED, unconfirmed"})
+  @DisplayName("Reports the evidence write failure once with the original safe acquisition reason")
+  void reportsEvidenceWriteFailure(
+      CollectionBackendFailure.Kind kind, String outcome, CapturedOutput output) {
     // Given
     Instant now = Instant.parse("2026-10-21T08:00:00Z");
     UUID control = UUID.fromString("00000000-0000-4000-8000-000000000153");
@@ -77,7 +82,6 @@ class LoggingIntegrationTest {
                   1,
                   CollectionModeEnum.PERIODIC,
                   CollectionCycleStateEnum.RUNNING,
-                  null,
                   null);
             });
     lifecycle.start();
@@ -95,12 +99,9 @@ class LoggingIntegrationTest {
     URI source = URI.create("https://provider.example.invalid/calendar");
     when(ffvb.resourceUrl(target)).thenReturn(source);
     when(ffvb.read(source)).thenThrow(new IllegalStateException("private-provider-body"));
-    CollectionBackendFailure responseLost =
-        new CollectionBackendFailure(
-            CollectionBackendFailure.Kind.UNCONFIRMED,
-            new IllegalStateException("harmless-secret"));
-    when(backend.record(eq(admitted.getCycle().id()), any())).thenThrow(responseLost);
-    when(backend.complete(admitted.getCycle().id(), now)).thenThrow(responseLost);
+    CollectionBackendFailure resultFailure =
+        new CollectionBackendFailure(kind, new IllegalStateException("harmless-secret"));
+    doThrow(resultFailure).when(backend).record(eq(admitted.getCycle().id()), any());
 
     CollectPassage passage =
         new CollectPassage(
@@ -116,34 +117,27 @@ class LoggingIntegrationTest {
             new CollectionStageMapperImpl());
 
     // When
-    assertThatThrownBy(() -> passage.execute(admitted))
-        .isInstanceOf(CollectionBackendFailure.class);
+    passage.execute(admitted);
 
     // Then
+    verify(backend).record(eq(admitted.getCycle().id()), any());
+    verify(backend).complete(admitted.getCycle().id(), now);
     assertThat(output.getAll()).doesNotContain("private-provider-body", "harmless-secret");
     JsonMapper json = JsonMapper.builder().build();
     List<JsonNode> events = output.getOut().lines().map(json::readTree).toList();
     assertThat(events)
-        .extracting(event -> event.path("cycleId").asText())
-        .containsOnly(admitted.getCycle().id().toString());
-    assertThat(events)
-        .filteredOn(event -> event.path("operation").asText().equals("collection_acquisition"))
         .singleElement()
         .satisfies(
             event -> {
-              assertThat(event.path("scope").asText()).isEqualTo(scope.toString());
-              assertThat(event.path("stage").asText()).isEqualTo("calendar");
-              assertThat(event.path("reason").asText()).isEqualTo("IllegalStateException");
-            });
-    assertThat(events)
-        .filteredOn(event -> event.path("operation").asText().equals("collection_result"))
-        .singleElement()
-        .satisfies(
-            event -> {
+              assertThat(event.path("operation").asText()).isEqualTo("collection_result");
+              assertThat(event.path("cycleId").asText())
+                  .isEqualTo(admitted.getCycle().id().toString());
+              assertThat(event.path("collection_control").asText()).isEqualTo(control.toString());
               assertThat(event.path("scope").asText()).isEqualTo(scope.toString());
               assertThat(event.path("stage").asText()).isEqualTo("calendar");
               assertThat(event.path("phase").asText()).isEqualTo("acquisition");
-              assertThat(event.path("outcome").asText()).isEqualTo("unconfirmed");
+              assertThat(event.path("outcome").asText()).isEqualTo(outcome);
+              assertThat(event.path("reason").asText()).isEqualTo("IllegalStateException");
             });
   }
 

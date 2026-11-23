@@ -5,9 +5,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
+import com.blockout.collector.acquisition.application.CollectionBackend;
+import com.blockout.collector.acquisition.application.CollectionBackendFailure;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
@@ -20,6 +28,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -31,6 +40,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClientException;
@@ -38,6 +48,11 @@ import org.springframework.web.client.RestClientException;
 /** Exercises real generated serialization and decoding against an isolated HTTP server. */
 @DisplayName("Generated ingestion client boundary")
 class GeneratedClientIntegrationTest {
+  private enum Acknowledgement {
+    EVIDENCE,
+    COMPLETION
+  }
+
   private HttpServer server;
   private CollectorOperationsApi api;
   private String body;
@@ -166,6 +181,47 @@ class GeneratedClientIntegrationTest {
 
     // When / Then
     assertThatThrownBy(() -> api.getCollectorRuntime()).isInstanceOf(RestClientException.class);
+  }
+
+  @ParameterizedTest(name = "{0} preserves an undecodable response as unconfirmed")
+  @EnumSource(Acknowledgement.class)
+  @DisplayName("An invalid successful acknowledgement still requires generated decoding")
+  void reportsUndecodableAcknowledgement(Acknowledgement operation) {
+    // Given
+    body = "{";
+    UUID cycle = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    Instant observedAt = Instant.parse("2026-10-16T12:00:00Z");
+    CollectionBackend backend =
+        new CollectionBackendClient(
+            api, new CollectionApi(api.getApiClient()), new CollectionBackendMapperImpl());
+    Runnable acknowledge =
+        switch (operation) {
+          case EVIDENCE ->
+              () ->
+                  backend.record(
+                      cycle,
+                      new CollectionBackend.Result(
+                          pool,
+                          CollectionStageEnum.CALENDAR,
+                          CollectionPhaseEnum.ACQUISITION,
+                          1,
+                          observedAt,
+                          CollectionOutcomeEnum.SUCCESS,
+                          null,
+                          null,
+                          1L,
+                          0L));
+          case COMPLETION -> () -> backend.complete(cycle, observedAt);
+        };
+
+    // When / Then
+    assertThatThrownBy(acknowledge::run)
+        .isInstanceOfSatisfying(
+            CollectionBackendFailure.class,
+            failure ->
+                assertThat(failure.getKind()).isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
+    assertThat(calls).hasValue(1);
   }
 
   @ParameterizedTest

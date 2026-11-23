@@ -99,22 +99,26 @@ public class AcquisitionScheduler {
   private void schedule(UUID controlId, UUID sourceBindingId, long revision, UUID requestId) {
     try {
       executor.execute(
-          () ->
-              safely(
-                  () -> {
-                    CollectorLifecycle.AdmittedCycle context =
-                        lifecycle.admit(controlId, sourceBindingId, revision, requestId);
-                    if (sourceBindingId == null) {
-                      passages.execute(context);
-                    } else {
-                      qualification.execute(context);
-                    }
-                  }));
+          () -> safely(() -> admitAndRun(controlId, sourceBindingId, revision, requestId)));
     } catch (TaskRejectedException saturated) {
       log.atWarn()
           .addKeyValue("operation", "collection_schedule")
           .addKeyValue("outcome", "saturated")
           .log("Acquisition capacity is full; this opportunity was skipped");
+    }
+  }
+
+  private void admitAndRun(UUID controlId, UUID sourceBindingId, long revision, UUID requestId) {
+    CollectorLifecycle.AdmittedCycle context;
+    try {
+      context = lifecycle.admit(controlId, sourceBindingId, revision, requestId);
+    } catch (CollectionBackendFailure alreadyReported) {
+      return;
+    }
+    if (sourceBindingId == null) {
+      passages.execute(context);
+    } else {
+      qualification.execute(context);
     }
   }
 
