@@ -94,8 +94,12 @@ Run age-boundary and failure cases with a controlled clock and migrated PostgreS
 Run the selected SDK, current-eligibility, HTTP and transaction boundaries with controlled external I/O:
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=AnnouncementTransactionIntegrationTest,FollowRecipientDeliveryIntegrationTest,PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest
 ```
+
+Verify committed inbox entries and match facts in both configurations and rollback on a required inbox failure. Verify that an account without a destination still has its entry, a registration after capture adds no send, a rotated destination is excluded by the current association check, and an account crossing the send batch limit keeps its eligible devices across batches. Observe handoffs through the provider double.
+
+To compare SQL counts, use the same recipients and installations with push enabled and disabled on disposable PostgreSQL. Hold the worker until the producer finishes and count its installation reads separately. Expect one capture read for the selected accounts when enabled and zero when disabled.
 
 Exercise the push and destination rows above. Expect no handoff before commit, current F12 admission before each batch, current account/destination association, unexpired visible entry, a current qualifying follow and current live-link conditions before handoff. A selected recipient with no current qualifying follow is excluded; a selected recipient who unfollows/re-follows remains eligible for the prepared push. No later follower is added and no captured follow UUID is required. Exact destination-row/revision/address invalidation remains only for `DeviceNotRegistered`, with one ordinary send and one delayed receipt observation. Refusal, timeout, restart or maintenance must create no resend/catch-up work. The [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits) owns activation inputs, bounds and safe diagnostics.
 

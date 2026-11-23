@@ -1,6 +1,7 @@
 package com.blockout.backend.notifications.application;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -12,12 +13,13 @@ public interface PushSubscriptionStore {
   record Target(UUID id, long revision, String address) {}
 
   /**
-   * Captures only existing destinations under the producer's original-account locks.
+   * Captures existing destinations for the selected audience in one statement snapshot inside the
+   * producer transaction. Later registrations are never added to this event.
    *
-   * @param accountId original owner
-   * @return immutable current targets; later registrations are never added to this event
+   * @param accountIds nonempty list of already selected original owners
+   * @return current targets grouped by original owner, omitting owners without destinations
    */
-  List<Target> targets(UUID accountId);
+  Map<UUID, List<Target>> targets(List<UUID> accountIds);
 
   /**
    * Checks a captured target without authorizing a replacement incarnation or owner.

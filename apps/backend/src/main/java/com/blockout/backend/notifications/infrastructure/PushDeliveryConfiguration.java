@@ -1,5 +1,6 @@
 package com.blockout.backend.notifications.infrastructure;
 
+import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
 import com.blockout.backend.notifications.application.DeliverPush;
 import com.blockout.backend.notifications.application.PushProvider;
 import com.blockout.backend.notifications.application.PushSubscriptionStore;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.http.client.HttpComponentsHttpClientBuilder;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -25,6 +27,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @EnableConfigurationProperties(PushProperties.class)
 @Slf4j
 public class PushDeliveryConfiguration {
+  @Bean
+  AfterCommitAnnouncements afterCommitAnnouncements(
+      ApplicationEventPublisher events,
+      PushSubscriptionStore subscriptions,
+      PushProperties properties) {
+    return new AfterCommitAnnouncements(events, subscriptions, properties.enabled());
+  }
+
   /**
    * Creates one worker and 100 queued batches; shutdown interrupts/discards transient work.
    *

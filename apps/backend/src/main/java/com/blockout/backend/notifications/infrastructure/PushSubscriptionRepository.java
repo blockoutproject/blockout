@@ -15,14 +15,22 @@ import org.springframework.data.jpa.repository.Query;
  */
 interface PushSubscriptionRepository extends JpaRepository<PushSubscriptionEntity, UUID> {
   /**
-   * Captures detached private targets for one locked original owner.
+   * Uses a single array bind to preserve one statement snapshot even for a large audience.
    *
-   * @param accountId original account UUID
-   * @return existing row incarnations without a delivery ledger
+   * @param accountIds original account UUIDs
+   * @return existing row incarnations paired with their original owner
    */
   @Query(
-      "SELECT NEW com.blockout.backend.notifications.application.PushSubscriptionStore$Target(p.id, p.revision, p.expoPushToken) FROM PushSubscriptionEntity p WHERE p.accountId=:accountId")
-  List<Target> targets(UUID accountId);
+      """
+      SELECT NEW com.blockout.backend.notifications.infrastructure.PushSubscriptionRepository$AccountTarget(
+        p.accountId, NEW com.blockout.backend.notifications.application.PushSubscriptionStore$Target(
+          p.id, p.revision, p.expoPushToken))
+      FROM PushSubscriptionEntity p
+      WHERE CAST(SQL('? = ANY(CAST(? AS uuid[]))', p.accountId, :accountIds) AS Boolean) = TRUE
+      """)
+  List<AccountTarget> targets(UUID[] accountIds);
+
+  record AccountTarget(UUID accountId, Target target) {}
 
   /**
    * Rechecks all private target values and ownership just before handoff.

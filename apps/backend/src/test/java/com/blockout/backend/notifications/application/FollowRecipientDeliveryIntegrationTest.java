@@ -1,7 +1,9 @@
 package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -13,12 +15,16 @@ import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.ReadPersonalCalendar;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
+import com.blockout.backend.notifications.application.AfterCommitAnnouncements.Ready;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +38,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real F02/F08 producers through F06 selection and F07 sending, with controlled worker and I/O. */
 @SpringBootTest(
@@ -42,10 +52,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "blockout.notifications.retention-cron=-",
       "blockout.notifications.link-announcements-cron=-"
     })
+@RecordApplicationEvents
 @DisplayName("Actual producer-to-send consumption of current follows")
 class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
+  private static final UUID DESTINATION = UUID.fromString("00000000-0000-4000-8000-000000000090");
+  private static final UUID CONNECTION = UUID.fromString("00000000-0000-4000-8000-000000000091");
+  private static final UUID INSTALLATION = UUID.fromString("00000000-0000-4000-8000-000000000092");
+
   @Autowired private ReadPersonalCalendar calendar;
   @Autowired private ReadInbox inbox;
+  @Autowired private ChangePushSubscriptions subscriptions;
+  @Autowired private ApplicationEvents events;
   @MockitoBean private PushProvider provider;
 
   @MockitoBean(name = "pushExecutor")
@@ -80,9 +97,9 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     }
     sql.update(
         "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,0)",
-        UUID.fromString("00000000-0000-4000-8000-000000000090"),
-        UUID.fromString("00000000-0000-4000-8000-000000000091"),
-        UUID.fromString("00000000-0000-4000-8000-000000000092"),
+        DESTINATION,
+        CONNECTION,
+        INSTALLATION,
         FOLLOWER,
         "ExponentPushToken[synthetic]");
   }
@@ -121,6 +138,101 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
               assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER);
               assertThat(message.matchId()).isEqualTo(matchId);
             });
+  }
+
+  @Test
+  @DisplayName("Captures only destinations belonging to the selected audience at processing")
+  void capturesCurrentSelectedDestinations() {
+    // Given
+    follow(OTHER);
+    UUID unselectedConnection = UUID.fromString("00000000-0000-4000-8000-000000000093");
+    UUID lateConnection = UUID.fromString("00000000-0000-4000-8000-000000000099");
+    subscriptions.replace(
+        new Registration(unselectedConnection, unselectedConnection, AUTHOR, "Expo[unselected]"));
+    String rotatedAddress = "Expo[rotated-before-capture]";
+    subscriptions.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, rotatedAddress));
+    long revision =
+        sql.queryForObject(
+            "SELECT revision FROM push_subscription WHERE id=?", Long.class, DESTINATION);
+    PushSubscriptionStore.Target rotated =
+        new PushSubscriptionStore.Target(DESTINATION, revision, rotatedAddress);
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+    TransactionTemplate registration = new TransactionTemplate(transactions);
+    registration.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              announce(Producer.RESULT);
+              // Commit an ordinary registration after capture while the producer is still open.
+              registration.executeWithoutResult(
+                  ignored -> {
+                    sql.execute("SET LOCAL lock_timeout = '5s'");
+                    subscriptions.replace(
+                        new Registration(lateConnection, lateConnection, OTHER, "Expo[late]"));
+                  });
+              verifyNoInteractions(executor, provider);
+            });
+    pending().run();
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactlyInAnyOrder(FOLLOWER, OTHER);
+    Ready captured = events.stream(Ready.class).findFirst().orElseThrow();
+    assertThat(captured.targets().entrySet())
+        .filteredOn(targets -> !targets.getValue().isEmpty())
+        .containsExactly(entry(FOLLOWER, List.of(rotated)));
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER);
+              assertThat(message.target()).isEqualTo(rotated);
+            });
+  }
+
+  @Test
+  @DisplayName("A single recipient's destinations span consecutive push batches")
+  void sendsDestinationsAcrossBatchBoundary() {
+    // Given
+    List<UUID> destinations = new ArrayList<>();
+    destinations.add(DESTINATION);
+    List<Object[]> additionalDevices = new ArrayList<>();
+    for (int deviceNumber = 1; deviceNumber <= 100; deviceNumber++) {
+      UUID id = new UUID(0, deviceNumber);
+      destinations.add(id);
+      additionalDevices.add(
+          new Object[] {id, id, id, FOLLOWER, "Expo[extra-" + deviceNumber + "]"});
+    }
+    sql.batchUpdate(
+        "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,0)",
+        additionalDevices);
+    when(provider.send(any()))
+        .thenAnswer(
+            invocation -> {
+              List<Message> batch = invocation.getArgument(0);
+              return Collections.nCopies(batch.size(), new Outcome(Status.UNKNOWN, null));
+            });
+
+    // When
+    announce(Producer.RESULT);
+    ArgumentCaptor<Runnable> work = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor, times(2)).execute(work.capture());
+    work.getAllValues().forEach(Runnable::run);
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactly(FOLLOWER);
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider, times(2)).send(sent.capture());
+    assertThat(sent.getAllValues()).extracting(List::size).containsExactly(100, 1);
+    assertThat(sent.getAllValues().stream().flatMap(List::stream))
+        .allSatisfy(message -> assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER))
+        .extracting(message -> message.target().id())
+        .containsExactlyInAnyOrderElementsOf(destinations);
   }
 
   @ParameterizedTest

@@ -2,10 +2,13 @@ package com.blockout.backend.notifications.infrastructure;
 
 import com.blockout.backend.notifications.application.PushSubscriptionConflictException;
 import com.blockout.backend.notifications.application.PushSubscriptionStore;
+import com.blockout.backend.notifications.infrastructure.PushSubscriptionRepository.AccountTarget;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -26,8 +29,12 @@ public class JpaPushSubscriptionStore implements PushSubscriptionStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<Target> targets(UUID accountId) {
-    return List.copyOf(subscriptions.targets(accountId));
+  public Map<UUID, List<Target>> targets(List<UUID> accountIds) {
+    return subscriptions.targets(accountIds.toArray(UUID[]::new)).stream()
+        .collect(
+            Collectors.groupingBy(
+                AccountTarget::accountId,
+                Collectors.mapping(AccountTarget::target, Collectors.toList())));
   }
 
   /** {@inheritDoc} */
