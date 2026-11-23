@@ -29,10 +29,14 @@ class LnvHttpCachingIntegrationTest {
     // Given
     HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     AtomicInteger reads = new AtomicInteger();
+    AtomicReference<String> validator = new AtomicReference<>();
     server.createContext(
         "/logo",
         exchange -> {
           int count = reads.incrementAndGet();
+          if (count == 2) {
+            validator.set(exchange.getRequestHeaders().getFirst("If-None-Match"));
+          }
           exchange.getResponseHeaders().add("Cache-Control", "public, max-age=0");
           exchange
               .getResponseHeaders()
@@ -61,13 +65,14 @@ class LnvHttpCachingIntegrationTest {
             Duration.ZERO,
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
-      http.image(origin.resolve("/logo"));
+      http.get(origin.resolve("/logo"));
 
       // When
-      ProviderResponse result = http.image(origin.resolve("/logo"));
+      ProviderResponse result = http.get(origin.resolve("/logo"));
 
       // Then
       assertThat(reads).hasValue(2);
+      assertThat(validator).hasValue("\"v1\"");
       assertThat(result.supplierRead()).isEqualTo(supplierRead);
       assertThat(result.body()).containsExactly(expectedByte);
     } finally {
@@ -108,8 +113,8 @@ class LnvHttpCachingIntegrationTest {
             List.of());
     try (ProviderHttpClient http = new AcquisitionConfiguration().lnvProviderClient(properties)) {
       // When
-      ProviderResponse first = http.image(origin.resolve("/logo"));
-      ProviderResponse second = http.image(origin.resolve("/logo"));
+      ProviderResponse first = http.get(origin.resolve("/logo"));
+      ProviderResponse second = http.get(origin.resolve("/logo"));
 
       // Then
       assertThat(first.supplierRead()).isTrue();

@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.application.ProviderQuery;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -26,8 +27,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openapitools.jackson.nullable.JsonNullable;
 
-/** Native LNV context and rendered-clock interpretation shared by its explicit parsers. */
-final class LnvPage {
+/** UTF-8 HTML decoding, native LNV context and rendered-clock interpretation. */
+public final class LnvPage {
+  static final Charset CHARSET = StandardCharsets.UTF_8;
   static final DateTimeFormatter CALENDAR_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
   private static final String GROUP_ID_PREFIX = "Content_Main_";
@@ -45,8 +47,8 @@ final class LnvPage {
    * @param url qualified response context
    * @return local DOM for this read only
    */
-  static Document parse(byte[] bytes, URI url) {
-    return Jsoup.parse(new String(bytes, StandardCharsets.UTF_8), url.toString());
+  public static Document parse(byte[] bytes, URI url) {
+    return Jsoup.parse(new String(bytes, CHARSET), url.toString());
   }
 
   /**
@@ -168,11 +170,24 @@ final class LnvPage {
    * @return independently established attribution, or null when the publication lacks it
    */
   static String calendarSeason(Elements groups, String headingSeason, String expectedSeason) {
+    String requiredSeason = requireHeadingSeason(headingSeason, expectedSeason);
+    SeasonDates dates = seasonDates(groups);
+    dates.requireSeason(requiredSeason);
+    if (headingSeason != null) {
+      return headingSeason;
+    }
+    return dates.spansCivilYears() ? dates.season() : null;
+  }
+
+  static String requireHeadingSeason(String headingSeason, String expectedSeason) {
     if (headingSeason != null && expectedSeason != null && !expectedSeason.equals(headingSeason)) {
       throw new LnvAcquisitionException("LNV phase belongs to a different season");
     }
+    return headingSeason == null ? expectedSeason : headingSeason;
+  }
 
-    String season = headingSeason == null ? expectedSeason : headingSeason;
+  static SeasonDates seasonDates(Elements groups) {
+    String season = null;
     Set<Integer> calendarYears = new HashSet<>();
     for (Element dateField : groups.select("[id$=_MatchRow] [id$=_LB_DataOra]")) {
       String rendered = dateField.text();
@@ -191,12 +206,22 @@ final class LnvPage {
               : publishedDate.getYear() - 1;
       String matchSeason = startYear + "/" + (startYear + 1);
       if (season != null && !season.equals(matchSeason)) {
-        throw new LnvAcquisitionException("LNV phase match dates contradict the season");
+        return new SeasonDates(null, false, true);
       }
       season = matchSeason;
       calendarYears.add(publishedDate.getYear());
     }
-    return headingSeason != null || calendarYears.size() == 2 ? season : null;
+    return new SeasonDates(season, calendarYears.size() == 2, false);
+  }
+
+  /** Detached native date evidence can be compared against each admitted group independently. */
+  record SeasonDates(String season, boolean spansCivilYears, boolean contradictory) {
+    void requireSeason(String requiredSeason) {
+      if (contradictory
+          || season != null && requiredSeason != null && !requiredSeason.equals(season)) {
+        throw new LnvAcquisitionException("LNV phase match dates contradict the season");
+      }
+    }
   }
 
   /**

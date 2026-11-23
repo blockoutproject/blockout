@@ -1,6 +1,8 @@
 package com.blockout.collector.acquisition.lnv;
 
+import com.blockout.collector.acquisition.application.ProviderReadAttempt;
 import com.blockout.collector.acquisition.application.SportingObservation;
+import com.blockout.collector.acquisition.lnv.LnvPage.SeasonDates;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -15,17 +17,33 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openapitools.jackson.nullable.JsonNullable;
-import org.springframework.stereotype.Component;
 
-/** Parses one published LNV group using native roster identities and independent visible facts. */
-@Component
-public class LnvCalendarParser {
+/** Shares a decoded phase's roster and season evidence across its admitted calendar groups. */
+final class LnvCalendarParser {
   private static final Pattern MATCH = Pattern.compile("MatchStatistics\\.aspx\\?[^'\";\\s]+");
   private static final Pattern IMAGE = Pattern.compile("url\\([\"']?([^\"')]+)");
+  private final Document page;
+  private final URI url;
+  private final Elements seasonGroups;
+  private final ProviderReadAttempt<String> headingSeason;
+  private final SeasonDates seasonDates;
+  private final Map<String, RosterTeam> roster;
+
+  LnvCalendarParser(Document page, URI url, ProviderReadAttempt<String> headingSeason) {
+    this.page = page;
+    this.url = url;
+    this.headingSeason = headingSeason;
+    seasonGroups =
+        new Elements(
+            LnvPage.phaseGroups(page).stream()
+                .filter(group -> LnvPage.phaseGroupTitle(group) != null)
+                .toList());
+    seasonDates = LnvPage.seasonDates(seasonGroups);
+    roster = readRoster(page);
+  }
 
   /** Interpreted calendar, published group title and logos keyed by native team identity. */
-  public record Read(
-      SportingObservation.Calendar calendar, Map<String, URI> logos, String groupTitle) {
+  record Read(SportingObservation.Calendar calendar, Map<String, URI> logos, String groupTitle) {
     /**
      * Detaches the passage's selected media references.
      *
@@ -33,7 +51,7 @@ public class LnvCalendarParser {
      * @param logos published images keyed by participating native team identity
      * @param groupTitle validated native heading used for auxiliary document qualification
      */
-    public Read {
+    Read {
       logos = Map.copyOf(logos);
     }
   }
@@ -44,8 +62,6 @@ public class LnvCalendarParser {
   /**
    * Interprets only an admitted group; malformed local rows never become absence evidence.
    *
-   * @param bytes complete bounded calendar HTML with pinned offset-zero request
-   * @param url actual response URL
    * @param competition expected native championship
    * @param phase expected published phase
    * @param group expected native group container
@@ -53,18 +69,11 @@ public class LnvCalendarParser {
    * @return usable matches, local failures, participating team logos and the admitted group title
    * @throws LnvAcquisitionException when the response conflicts with the admitted season or group
    */
-  public Read parse(
-      byte[] bytes,
-      URI url,
-      String competition,
-      String phase,
-      String group,
-      String expectedSeason) {
+  Read parse(String competition, String phase, String group, String expectedSeason) {
     Map<String, String> query = LnvPage.query(url);
     if (!competition.equals(query.get("ID")) || !phase.equals(query.get("PID"))) {
       throw LnvPage.invalid();
     }
-    Document page = LnvPage.parse(bytes, url);
     Element container = LnvPage.group(page, group);
     if (container == null) {
       throw LnvPage.invalid();
@@ -73,25 +82,23 @@ public class LnvCalendarParser {
     if (titles.isEmpty()) {
       throw LnvPage.invalid();
     }
-    if (container.select("[id$=_MatchRow]").isEmpty()
-        && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match")) {
+    Elements rows = container.select("[id$=_MatchRow]");
+    if (rows.isEmpty() && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match")) {
       throw LnvPage.invalid();
     }
-    // An already admitted group remains readable by its exact ID when the view class is absent.
-    Elements groups = new Elements(container);
-    for (Element sibling : LnvPage.phaseGroups(page)) {
-      if (sibling != container && LnvPage.phaseGroupTitle(sibling) != null) {
-        groups.add(sibling);
-      }
+    String requiredSeason = LnvPage.requireHeadingSeason(headingSeason.value(), expectedSeason);
+    seasonDates.requireSeason(requiredSeason);
+    // An admitted group can lack the view class. Its dates still count for that group alone.
+    if (!seasonGroups.contains(container)) {
+      LnvPage.seasonDates(new Elements(container))
+          .requireSeason(requiredSeason == null ? seasonDates.season() : requiredSeason);
     }
-    LnvPage.calendarSeason(groups, LnvPage.seasonHeading(page), expectedSeason);
 
-    Map<String, RosterTeam> roster = roster(page);
     Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
     Map<String, URI> logos = new LinkedHashMap<>();
     List<SportingObservation.Failure> failures = new ArrayList<>();
     Set<String> contradictory = new LinkedHashSet<>();
-    for (Element row : container.select("[id$=_MatchRow]")) {
+    for (Element row : rows) {
       String reference = null;
       try {
         URI detail = detail(row, url);
@@ -185,7 +192,7 @@ public class LnvCalendarParser {
    * @param page official championship roster
    * @return unambiguous native roster associations
    */
-  private Map<String, RosterTeam> roster(Document page) {
+  private Map<String, RosterTeam> readRoster(Document page) {
     Map<String, RosterTeam> result = new LinkedHashMap<>();
     Set<String> ambiguous = new LinkedHashSet<>();
     for (Element team : page.select("[id$=_DIV_Team]")) {

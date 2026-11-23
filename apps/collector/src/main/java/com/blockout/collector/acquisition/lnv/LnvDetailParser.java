@@ -1,12 +1,10 @@
 package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
-import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -23,19 +21,11 @@ public class LnvDetailParser {
   /**
    * Isolates invalid secondary fields while refusing an unrecognized global detail page.
    *
-   * @param bytes bounded native detail HTML acquired with timezoneoffset=0
-   * @param url actual response context
-   * @param match expected match identity
-   * @param competition expected championship identity
+   * @param page decoded HTML already qualified for the admitted match and offset-zero request
    * @return usable facts with unknown/omitted distinctions and partial-acquisition evidence
-   * @throws LnvAcquisitionException when the response cannot establish the admitted match context
+   * @throws LnvAcquisitionException when the response has no recognizable sporting detail
    */
-  public Read inspect(byte[] bytes, URI url, String match, String competition) {
-    Map<String, String> query = LnvPage.query(url);
-    if (!match.equals(query.get("mID")) || !competition.equals(query.get("ID"))) {
-      throw LnvPage.invalid();
-    }
-    Document page = LnvPage.parse(bytes, url);
+  Read inspect(Document page) {
     Element date = page.getElementById("Content_Main_LB_DateTime");
     if (date == null
         && page.getElementById("Content_Main_LBL_WonSetHome") == null

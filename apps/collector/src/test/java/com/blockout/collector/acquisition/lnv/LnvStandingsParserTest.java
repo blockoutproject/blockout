@@ -38,7 +38,8 @@ class LnvStandingsParserTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When
-    SportingObservation.Standings standings = new LnvStandingsParser().parse(html, PAGE, "903");
+    SportingObservation.Standings standings =
+        new LnvStandingsParser().parse(LnvPage.parse(html, PAGE), "903");
 
     // Then
     assertThat(standings.publicationState()).isEqualTo(StandingsPublicationStateEnum.PUBLISHED);
@@ -61,7 +62,8 @@ class LnvStandingsParserTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When
-    SportingObservation.Standings standings = new LnvStandingsParser().parse(html, PAGE, "903");
+    SportingObservation.Standings standings =
+        new LnvStandingsParser().parse(LnvPage.parse(html, PAGE), "903");
 
     // Then
     assertThat(standings.publicationState()).isEqualTo(StandingsPublicationStateEnum.NOT_PUBLISHED);
@@ -85,7 +87,7 @@ class LnvStandingsParserTest {
             .getBytes(StandardCharsets.UTF_8);
 
     // When / Then
-    assertThatThrownBy(() -> new LnvStandingsParser().parse(html, PAGE, "903"))
+    assertThatThrownBy(() -> new LnvStandingsParser().parse(LnvPage.parse(html, PAGE), "903"))
         .isInstanceOf(LnvAcquisitionException.class);
   }
 }

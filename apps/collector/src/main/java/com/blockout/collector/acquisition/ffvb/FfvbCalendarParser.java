@@ -12,6 +12,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,18 +48,26 @@ public class FfvbCalendarParser {
    *
    * @param body complete bounded Windows-1252 export
    * @param page positively qualified full calendar context
-   * @param scope expected native identity
    * @return independently usable matches and attributable failures, never synthesized absence
    * @throws FfvbAcquisitionException for unreadable structure or unqualified overall context
    */
-  public SportingObservation.Calendar parse(byte[] body, FfvbPage page, FfvbScope scope) {
-    if (!page.calendarPresent()) {
-      throw new FfvbAcquisitionException("FFVB calendar completeness is not established");
-    }
+  public SportingObservation.Calendar parse(byte[] body, FfvbPage page) {
+    return parse(decode(body, page), page);
+  }
+
+  /**
+   * Indexes qualified match rows once, retaining CSV-wide diagnostics in published order. A
+   * deferred export refusal lets each HTML scope retain its own structural outcome.
+   */
+  Export decode(byte[] body, FfvbPage page) {
+    Set<String> publishedReferences = page.allReferences();
+    String organizerReference = page.organizerReference();
     Map<String, CSVRecord> selected = new LinkedHashMap<>();
     Set<String> contradictions = new LinkedHashSet<>();
     Set<String> malformed = new LinkedHashSet<>();
     List<SportingObservation.Failure> failures = new ArrayList<>();
+    boolean hasConsistentRows = false;
+    FfvbAcquisitionException refusal = null;
     try (CSVParser csv = FORMAT.parse(new StringReader(new String(body, FfvbPage.CHARSET)))) {
       if (!csv.getHeaderNames().equals(HEADERS)) {
         throw new FfvbAcquisitionException("Unsupported FFVB calendar columns");
@@ -65,17 +75,15 @@ public class FfvbCalendarParser {
       for (CSVRecord row : csv) {
         if (!row.isConsistent()) {
           String reference = row.size() > 2 ? row.get(2).strip() : "row-" + row.getRecordNumber();
-          if (page.references().contains(reference)) {
+          if (publishedReferences.contains(reference)) {
             malformed.add(reference);
-          } else if (!page.allReferences().contains(reference)) {
+          } else {
             failures.add(failure(reference, "invalid-row"));
           }
           continue;
         }
-        if (page.qualifiedEmpty()) {
-          throw new FfvbAcquisitionException("Nonempty export contradicts the empty FFVB calendar");
-        }
-        if (!scope.organizerReference().equals(row.get("Entité"))) {
+        hasConsistentRows = true;
+        if (!organizerReference.equals(row.get("Entité"))) {
           throw new FfvbAcquisitionException("Wrong FFVB organizer in export");
         }
         String reference = row.get("Match").strip();
@@ -83,30 +91,54 @@ public class FfvbCalendarParser {
           failures.add(failure("row-" + row.getRecordNumber(), "invalid-match-reference"));
           continue;
         }
-        if (!page.allReferences().contains(reference)) {
+        if (!publishedReferences.contains(reference)) {
           failures.add(failure(reference, "unqualified-match-context"));
           continue;
         }
-        if (!page.references().contains(reference)) {
-          continue;
-        }
         CSVRecord previous = selected.putIfAbsent(reference, row);
-        if (previous != null && !previous.toList().equals(row.toList())) {
+        if (previous != null && !Arrays.equals(previous.values(), row.values())) {
           contradictions.add(reference);
         }
       }
     } catch (IOException | UncheckedIOException | IllegalArgumentException exception) {
-      throw new FfvbAcquisitionException("Unreadable FFVB calendar export");
+      refusal = new FfvbAcquisitionException("Unreadable FFVB calendar export");
+    } catch (FfvbAcquisitionException invalid) {
+      refusal = invalid;
     }
+    return new Export(selected, contradictions, malformed, failures, hasConsistentRows, refusal);
+  }
+
+  SportingObservation.Calendar parse(Export export, FfvbPage page) {
+    if (!page.calendarPresent()) {
+      throw new FfvbAcquisitionException("FFVB calendar completeness is not established");
+    }
+    // The first consistent export row already contradicts a positively empty pool.
+    if (page.qualifiedEmpty() && export.hasConsistentRows()) {
+      throw new FfvbAcquisitionException("Nonempty export contradicts the empty FFVB calendar");
+    }
+    if (export.refusal() != null) {
+      throw export.refusal();
+    }
+    List<SportingObservation.Failure> failures = new ArrayList<>(export.failures());
     List<SportingObservation.Match> matches = new ArrayList<>();
     List<SportingObservation.ContextSlot> slots = new ArrayList<>();
-    Set<String> orderedReferences = new LinkedHashSet<>(selected.keySet());
+    // Attributed export rows keep their CSV order; missing rows follow in HTML order.
+    List<String> csvReferences =
+        page.references().stream()
+            .filter(export.rows()::containsKey)
+            .sorted(
+                Comparator.comparingLong(
+                    reference -> export.rows().get(reference).getRecordNumber()))
+            .toList();
+    Set<String> orderedReferences = new LinkedHashSet<>(csvReferences);
     orderedReferences.addAll(page.references());
     for (String reference : orderedReferences) {
-      CSVRecord row = selected.get(reference);
-      if (row == null || malformed.contains(reference) || contradictions.contains(reference)) {
+      CSVRecord row = export.rows().get(reference);
+      if (row == null
+          || export.malformed().contains(reference)
+          || export.contradictions().contains(reference)) {
         String reason = "contradictory-match";
-        if (malformed.contains(reference)) {
+        if (export.malformed().contains(reference)) {
           reason = "invalid-row";
         } else if (row == null) {
           reason = "missing-match";
@@ -145,6 +177,14 @@ public class FfvbCalendarParser {
     }
     return new SportingObservation.Calendar(failures.isEmpty(), matches, slots, failures);
   }
+
+  record Export(
+      Map<String, CSVRecord> rows,
+      Set<String> contradictions,
+      Set<String> malformed,
+      List<SportingObservation.Failure> failures,
+      boolean hasConsistentRows,
+      FfvbAcquisitionException refusal) {}
 
   /**
    * Preserves unknown fields and isolates malformed proposals without zero substitution.
