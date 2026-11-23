@@ -50,13 +50,17 @@ Exercise the inbox rows in the scenario table through the actual F03 destination
 
 ## Atomic producer and link qualification
 
-Run the focused announcement boundaries after the ordinary contract bundle:
+Run the focused announcement boundaries after the ordinary contract bundle.
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest='ResultAnnouncementTest,NotificationMessageTest' -Dit.test=AnnouncementTransactionIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=ResultAnnouncementTest,LinkAnnouncementTest,NotificationMessageTest \
+  -Dit.test=AnnouncementAudienceIntegrationTest,AnnouncementTransactionIntegrationTest,LinkAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,ContributionPersistenceJpaTest
 ```
 
-Use the real F02/F08 producers and F06 follow owner for composition, audience and atomicity scenarios. Add a follow after the single audience selection: result acceptance/publication succeeds, existing selected recipients remain stable and the new follower gets no retroactive entry. Private proposals, unchanged submissions and consumed-category transitions perform no audience work. Preserve selected-account foreign-key/cascade integrity against actual erasure; a required inbox insertion failure can still roll back only its match. Keep real quota, active-link uniqueness and both result/publication category orders. After-commit provider failure preserves accepted sporting facts and inbox entries. The minute pass selects once for a newly allocated category and preserves consumed categories.
+Use the real F02/F08 producers and F06 follow owner for composition, audience and atomicity scenarios. Add a follow after the single audience selection and verify result acceptance or publication succeeds, existing selected recipients remain stable and the new follower gets no retroactive entry. Private proposals, unchanged submissions and consumed-category transitions perform no audience work. Preserve selected-account foreign-key/cascade integrity against actual erasure. A required inbox insertion failure rolls back only its match. Keep real quota, active-link uniqueness and both result/publication category orders. After-commit provider failure preserves accepted sporting facts and inbox entries.
+
+Run the minute pass against migrated PostgreSQL. Verify that repeated passes skip match transactions for consumed live categories, including those consumed with an empty audience. Exercise a correction to H, a newly confirmed start and a return to visibility with a live category still available. Withdraw a selected link before the match lock and race a publication with processing. The checks under the lock prevent allocation for the withdrawn link and preserve a single live allocation in the race. Traverse more than one full candidate page, advancing a match in the final page to its reliable start and checking that it allocates during the next pass.
 
 ## Current sporting and link visibility
 

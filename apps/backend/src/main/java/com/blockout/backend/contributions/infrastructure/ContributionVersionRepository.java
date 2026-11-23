@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -64,18 +63,6 @@ interface ContributionVersionRepository extends JpaRepository<ContributionVersio
   @Query(
       "SELECT v.ownerId AS ownerId, v.publicationActorId AS publicationActorId, v.decisionActorId AS decisionActorId FROM ContributionVersionEntity v WHERE v.id = :id")
   Optional<Attribution> findAttribution(UUID id);
-
-  /**
-   * Reads a bounded deterministic maintenance batch, exclusive of the last processed match.
-   *
-   * @param state active lifecycle selected by the store
-   * @param afterId exclusive match UUID, or null for the first batch
-   * @param limit maximum batch size
-   * @return ordered match identities; active uniqueness guarantees no duplicates
-   */
-  @Query(
-      "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.state = :state AND (:afterId IS NULL OR v.matchId > :afterId) ORDER BY v.matchId")
-  List<UUID> findMatchIdsAfter(State state, UUID afterId, Limit limit);
 
   /** Scalar attribution projection; null means absent attribution or an erased original account. */
   interface Attribution {

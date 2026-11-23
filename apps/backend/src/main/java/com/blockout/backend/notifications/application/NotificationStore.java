@@ -3,10 +3,21 @@ package com.blockout.backend.notifications.application;
 import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
-/** F07 writes: producer/read locks are caller ordered; retention deletes only due personal rows. */
+/** F07 announcement facts, personal allocations and live candidate selection. */
 public interface NotificationStore {
+  /**
+   * Selects active-link matches whose live allowance has not been consumed in a short read
+   * transaction. The caller rechecks current eligibility under the sporting locks.
+   *
+   * @param afterId exclusive last visited match UUID, or null for the first page
+   * @param limit maximum page size
+   * @return candidate identities in database UUID order
+   */
+  List<UUID> liveLinkCandidates(UUID afterId, int limit);
+
   /**
    * Deletes all personal rows at the inclusive cutoff across owners/read/visibility states. The
    * caller owns one retention transaction; facts and installation associations are untouched.

@@ -3,6 +3,11 @@ package com.blockout.backend.contributions.application;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
+import jakarta.persistence.criteria.CommonAbstractCriteria;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -220,12 +225,21 @@ public interface ContributionStore {
   ContributionState advance(UUID matchId, boolean clearHold);
 
   /**
-   * Selects one bounded keyset page of active-link matches for the ordinary due pass.
+   * Selects one keyset page of active-link matches, applying the caller's predicate before paging.
    *
    * @param afterId exclusive last visited match UUID, or null for the first page
-   * @return at most one hundred current candidate identities in database UUID order
+   * @param limit maximum page size
+   * @param filter caller-owned selection on the scalar match identity
+   * @return candidate identities in database UUID order
    */
-  java.util.List<UUID> activeMatches(UUID afterId);
+  List<UUID> activeMatches(UUID afterId, int limit, ActiveMatchFilter filter);
+
+  /** Composes another owner's predicate without exposing contribution entities to the caller. */
+  @FunctionalInterface
+  interface ActiveMatchFilter {
+    Predicate select(
+        CommonAbstractCriteria query, CriteriaBuilder builder, Expression<UUID> matchId);
+  }
 
   /**
    * Detached native page, independent from a total or cross-request snapshot promise.

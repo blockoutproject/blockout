@@ -1,6 +1,5 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import java.time.Clock;
 import java.util.List;
@@ -16,19 +15,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ProcessDueLinkAnnouncements {
-  private final ReadPublicContribution links;
+  private static final int PAGE_SIZE = 100;
+
+  private final NotificationStore store;
   private final ProcessDueMatch transaction;
 
   /**
-   * Visits active links in bounded identity pages; failure leaves a match for the next normal pass.
-   * No exact-H audience, timer per match or durable retry is retained.
+   * Reconsiders active links with an available live allowance. Mutable eligibility is checked in
+   * each match transaction. A failed candidate can return on the next ordinary pass.
    */
   @Transactional(propagation = Propagation.NEVER)
   public void run() {
     UUID after = null;
-    List<UUID> candidates;
-    do {
-      candidates = links.activeMatches(after);
+    while (true) {
+      List<UUID> candidates = store.liveLinkCandidates(after, PAGE_SIZE);
       for (UUID id : candidates) {
         try {
           transaction.process(id);
@@ -40,10 +40,11 @@ public class ProcessDueLinkAnnouncements {
               .log("Link announcement candidate failed");
         }
       }
-      if (!candidates.isEmpty()) {
-        after = candidates.getLast();
+      if (candidates.size() < PAGE_SIZE) {
+        return;
       }
-    } while (candidates.size() == 100);
+      after = candidates.getLast();
+    }
   }
 
   /** Required independent transaction owner, separate from the nontransactional scheduled loop. */

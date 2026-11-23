@@ -1,7 +1,6 @@
 package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.contributions.domain.StreamAddress;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -10,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Reads public contributions for admitted consumers and supplies identities for the due scan. */
+/** Reads public contributions for admitted consumers. */
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
@@ -41,18 +40,6 @@ public class ReadPublicContribution {
    */
   public Optional<Link> readForConsultableMatch(UUID matchId) {
     return store.activeLink(matchId);
-  }
-
-  /**
-   * Selects the next bounded set of candidates in a standalone read. The due pass rechecks current
-   * sporting eligibility and publication under each candidate's match lock.
-   *
-   * @param afterId exclusive previous match identity, or null for the first page
-   * @return at most one hundred current candidates without private contribution details
-   */
-  @Transactional(readOnly = true)
-  public List<UUID> activeMatches(UUID afterId) {
-    return store.activeMatches(afterId);
   }
 
   /**
