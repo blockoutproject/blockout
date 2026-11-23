@@ -3,14 +3,11 @@ import type {
   SetClubPresentationBody,
   SetTeamPresentationBody,
   SetPoolPresentationBody,
-  SetDivisionPresentationBody,
 } from "../../../../.generated/schemas/index.zod";
 import type { PresentationValues } from "../schemas/presentation-schema";
 
-/** Encodes division creation; three empty stops restore the automatic gradient and do not invent colors. */
-export function toCreateDivisionBody(
-  values: PresentationValues,
-): CreateDivisionBody {
+/** Uses the common multipart fields for creation and presentation; empty stops restore the automatic gradient. */
+export function toDivisionBody(values: PresentationValues): CreateDivisionBody {
   return {
     metadata: {
       name: values.name.trim(),
@@ -63,11 +60,4 @@ export function toPoolPresentationBody(
     manualName: values.name === "" ? null : values.name.trim(),
     manualShortName: values.shortName === "" ? null : values.shortName.trim(),
   };
-}
-
-/** Encodes division presentation fields without changing its separate activity state. */
-export function toDivisionPresentationBody(
-  values: PresentationValues,
-): SetDivisionPresentationBody {
-  return toCreateDivisionBody(values);
 }

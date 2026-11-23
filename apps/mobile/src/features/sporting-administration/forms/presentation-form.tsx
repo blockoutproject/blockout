@@ -1,30 +1,25 @@
 import { PresentationIdentity } from "../components/presentation-identity";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
-import { useImageSelection } from "@/shared/images/use-image-selection";
+import {
+  useImageSelection,
+  type ImageSelection,
+} from "@/shared/images/use-image-selection";
 import { ImageValidationError } from "@/shared/images/image-validation-error";
 import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
-import { useDivisionActivity } from "../api/classification";
 import { DivisionColorFields } from "../components/division-color-fields";
-import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "@/shared/api/api-fetch";
-import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "@/shared/components/button";
 import { SingleImageField } from "@/shared/components/single-image-field";
 import { TextField } from "@/shared/components/text-field";
 import { Surface } from "@/shared/components/surface";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import {
-  usePresentationLogo,
-  type Presentation,
-  type PresentationTarget,
-  type usePresentation,
-} from "../api/presentation";
+import { usePresentationLogo } from "../api/presentation-logo-query";
+import type { Presentation, PresentationTarget } from "../api/presentation";
 import { copySelectedImage } from "@/shared/images/copy-selected-image";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
@@ -32,11 +27,19 @@ import type { usePresentationDraft } from "./use-presentation-draft";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
-  presentation: Presentation;
-  target: PresentationTarget;
-  editing: ReturnType<typeof usePresentation>;
+  kind: PresentationTarget["kind"];
+  logoTarget?: PresentationTarget;
+  onSave: (values: PresentationValues) => Promise<Presentation | undefined>;
+  saving: boolean;
   editor: ReturnType<typeof usePresentationDraft>;
   disabled: boolean;
+  locked?: boolean;
+  activityPending?: boolean;
+  beforeSave?: ReactNode;
+  afterSave?: (
+    imageSelection: ImageSelection,
+    feedback: ReturnType<typeof useActionFeedback>,
+  ) => ReactNode;
   /** Current F03 team/pool context when publicly readable; absence never blocks editing. */
   seasonLabel?: string;
   /** Known public team context refines automatic-logo copy without gating the administrative editor. */
@@ -45,30 +48,30 @@ export interface PresentationFormProps {
 
 /** Saves the explicit draft atomically and retains dirty fields and prepared files through ordinary refusals. */
 export function PresentationForm({
-  presentation,
-  target,
-  editing,
+  kind,
+  logoTarget,
+  onSave,
+  saving,
   editor,
   disabled,
+  locked = false,
+  activityPending = false,
+  beforeSave,
+  afterSave,
   seasonLabel,
   professionalTeam,
 }: Readonly<PresentationFormProps>) {
-  const router = useRouter();
-  const confirmAction = useActionConfirmation();
-  const activity = useDivisionActivity(target.id ?? "");
-  const creating = target.kind === "division-creation";
-  const isDivision = target.kind === "division" || creating;
+  const isDivision = kind === "division";
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
   const state = editor.state;
-  const baseline = state.baseline ?? presentation;
+  const baseline = state.baseline;
   const feedback = state.feedback;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
     mode: "crop",
-    canSelect: () =>
-      !disabled && !editing.save.isPending && !activity.save.isPending,
+    canSelect: () => !disabled && !locked && !saving && !activityPending,
     onSelect: async ([asset]) => {
       try {
         const prepared = await copySelectedImage(asset);
@@ -105,35 +108,27 @@ export function PresentationForm({
     : colors.mediaPlaceholder;
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
-  const created = creating && baseline.kind === "division";
   const busy =
-    disabled ||
-    created ||
-    imageSelection.pending ||
-    editing.save.isPending ||
-    activity.save.isPending;
+    disabled || locked || imageSelection.pending || saving || activityPending;
   const { logo: currentLogo, title, names } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
-  const hasLogo =
-    editing.query.data !== null &&
-    (draft.action === "automatic"
-      ? currentLogo?.automaticUrl != null
-      : currentLogo?.effectiveUrl != null);
+  const remoteUrl =
+    draft.action === "automatic"
+      ? currentLogo?.automaticUrl
+      : currentLogo?.effectiveUrl;
+  const hasLogo = logoTarget !== undefined && remoteUrl != null;
   const artwork = usePresentationLogo(
-    created && baseline.kind === "division"
-      ? { kind: "division", id: baseline.data.id }
-      : target,
+    logoTarget,
     selection,
     hasLogo && draft.action !== "replace",
   );
-  let uri;
+  let uri: string | undefined;
   if (draft.action === "replace") {
     uri = draft.prepared.uri;
   } else if (hasLogo) {
-    uri = artwork.data;
-  } else {
-    uri = undefined;
+    uri = artwork?.data ?? undefined;
   }
+
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -149,18 +144,18 @@ export function PresentationForm({
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
-    const attempt = editing.save.mutateAsync(values);
     actionFeedback.clear();
     editor.beginUpload(file);
     try {
-      const accepted = await attempt;
-      editor.update({
-        baseline: accepted,
-        feedback: undefined,
-      });
-      editor.reset(presentationValues(accepted));
+      const accepted = await onSave(values);
+      if (accepted && mounted.current) {
+        editor.update({ baseline: accepted });
+        editor.reset(presentationValues(accepted));
+      }
     } catch (error) {
-      handleSaveError(error);
+      if (mounted.current) {
+        handleSaveError(error);
+      }
     } finally {
       editor.finishUpload(file);
     }
@@ -184,53 +179,6 @@ export function PresentationForm({
     ) {
       setError("name", { message: "Ce nom de division est déjà utilisé." });
     } else {
-      actionFeedback.error();
-    }
-  }
-
-  /** Confirms and executes the separate lifecycle command for the original division. */
-  async function changeActivity() {
-    if (
-      baseline.kind !== "division" ||
-      imageSelection.isPending() ||
-      editing.save.isPending ||
-      activity.save.isPending ||
-      editing.query.data === null ||
-      !activity.authority.enabled
-    ) {
-      return;
-    }
-    const division = baseline.data;
-    if (
-      !(await confirmAction({
-        title: `${division.active ? "Désactiver" : "Réactiver"} la division ?`,
-        message: division.active
-          ? "Les poules, équipes et matchs seront masqués sans effacer leur historique. La collecte s’arrêtera selon ses règles habituelles."
-          : "Seule l’inactivité sera levée. Les autres restrictions de visibilité et de collecte restent applicables.",
-        confirmLabel: division.active ? "Désactiver" : "Réactiver",
-      }))
-    ) {
-      return;
-    }
-    if (!mounted.current || imageSelection.isPending()) {
-      return;
-    }
-    try {
-      const attempt = activity.save.mutateAsync({
-        active: !division.active,
-      });
-      editor.update({ ...editor.state, feedback: undefined });
-      actionFeedback.clear();
-      const response = await attempt;
-      const accepted: Presentation = { kind: "division", data: response };
-      editor.update({
-        baseline: accepted,
-        feedback: response.active
-          ? "Division réactivée. Les autres restrictions restent applicables."
-          : "Division désactivée. L’historique est conservé.",
-      });
-      editor.reset(presentationValues(accepted), true);
-    } catch {
       actionFeedback.error();
     }
   }
@@ -267,42 +215,23 @@ export function PresentationForm({
             {feedback}
           </Text>
         )}
-        {created && (
-          <Button
-            label="Voir les divisions"
-            variant="secondary"
-            onPress={() => router.replace("/administration/divisions")}
-          />
-        )}
+        {beforeSave}
         {(!disabled || !isDivision) && (
           <Button
             label="Enregistrer"
             fullWidth
             disabled={busy}
-            loading={editing.save.isPending}
+            loading={saving}
             onPress={() => void handleSubmit(submit)()}
           />
         )}
-        {baseline.kind === "division" &&
-          !creating &&
-          activity.authority.permissions?.manageDivisionLifecycle === true && (
-            <DivisionActivityAction
-              division={baseline.data}
-              executing={activity.save.isPending}
-              disabled={
-                imageSelection.pending ||
-                editing.save.isPending ||
-                editing.query.data === null
-              }
-              onPress={() => void changeActivity()}
-            />
-          )}
+        {afterSave?.(imageSelection, actionFeedback)}
       </>
     );
   }
 
   const logoPending =
-    draft.action !== "replace" && hasLogo && artwork.isLoading;
+    draft.action !== "replace" && hasLogo && artwork?.isLoading === true;
   const identity = (
     <PresentationIdentity
       uri={uri}
@@ -337,14 +266,14 @@ export function PresentationForm({
       )}
       <Surface>
         <View style={styles.form}>
-          {target.kind !== "pool" && (
+          {kind !== "pool" && (
             <Controller
               control={control}
               name="logo"
               render={({ fieldState }) => {
                 /** Distinguishes restoring a known club fallback from removing another manual logo. */
                 function logoResetLabel() {
-                  if (target.kind === "team") {
+                  if (kind === "team") {
                     if (professionalTeam === false) {
                       return "Rétablir le logo du club";
                     }
@@ -359,7 +288,7 @@ export function PresentationForm({
                     image={uri ? { id: "logo", uri, label: "Logo" } : undefined}
                     readRevision={
                       draft.action !== "replace"
-                        ? artwork.dataUpdatedAt
+                        ? artwork?.dataUpdatedAt
                         : undefined
                     }
                     hasImage={draft.action === "replace" || hasLogo}
@@ -393,7 +322,7 @@ export function PresentationForm({
                 if (isDivision) {
                   return "Nom de la division";
                 }
-                if (target.kind === "club") {
+                if (kind === "club") {
                   return "Nom personnalisé";
                 }
                 return "Nom complet personnalisé";
@@ -413,7 +342,7 @@ export function PresentationForm({
               );
             }}
           />
-          {(target.kind === "team" || target.kind === "pool") && (
+          {(kind === "team" || kind === "pool") && (
             <Controller
               control={control}
               name="shortName"
@@ -445,9 +374,9 @@ export function PresentationForm({
   );
 }
 
-/** Projects the retained baseline's supported fields without inventing artwork for pool or creation drafts. */
-function presentationContext(baseline: Presentation) {
-  if (baseline.kind === "division-creation") {
+/** Projects known names and artwork from the draft baseline. An empty division starts with its own preview title. */
+function presentationContext(baseline?: Presentation) {
+  if (!baseline) {
     return {
       title: "Nouvelle division",
       logo: undefined,

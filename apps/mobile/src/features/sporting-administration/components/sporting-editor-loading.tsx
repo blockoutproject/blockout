@@ -29,7 +29,7 @@ export function PresentationLoading({
 }: Readonly<{
   kind: PresentationTarget["kind"];
 }>) {
-  const division = kind === "division" || kind === "division-creation";
+  const division = kind === "division";
   return (
     <LoadingGroup label="Chargement de la présentation" style={styles.form}>
       <Surface>

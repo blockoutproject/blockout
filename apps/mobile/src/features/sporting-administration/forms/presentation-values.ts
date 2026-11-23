@@ -1,20 +1,20 @@
 import type { Presentation } from "../api/presentation";
 import type { PresentationValues } from "../schemas/presentation-schema";
 
+/** An editorial division starts with local field values. */
+export const newDivisionValues: PresentationValues = {
+  kind: "division",
+  name: "",
+  shortName: "",
+  color: "#245FD8",
+  gradient: ["", "", ""],
+  logo: { action: "keep" },
+};
+
 /** Starts an editing snapshot from current manual values; automatic names are not copied into overrides. */
 export function presentationValues(
   presentation: Presentation,
 ): PresentationValues {
-  if (presentation.kind === "division-creation") {
-    return {
-      kind: "division",
-      name: "",
-      shortName: "",
-      color: "#245FD8",
-      gradient: ["", "", ""],
-      logo: { action: "keep" },
-    };
-  }
   const division =
     presentation.kind === "division" ? presentation.data : undefined;
   const names =

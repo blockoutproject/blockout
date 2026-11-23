@@ -14,6 +14,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import {
+  getGetDivisionLogoQueryKey,
   getGetPoolClassificationQueryKey,
   getGetMappingPackQueryKey,
   getListMappingPacksQueryKey,
@@ -289,6 +290,34 @@ it("announces the pending division catalogue without inventing editable rows", a
     await screen.findByRole("link", { name: division.name }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it("shows a missing division logo when the current catalogue has no artwork", async () => {
+  // Given a cached preview from a previous logo read and a catalogue that now omits it.
+  const catalogue = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? catalogue.promise
+      : respond(url, options),
+  );
+  await renderEditor("divisions");
+  const oldLogo = "data:image/png;base64,b2xk";
+  const logoKey = getGetDivisionLogoQueryKey(divisionId);
+  client.setQueryData(logoKey, oldLogo);
+
+  // When
+  await act(() => catalogue.resolve(json({ items: [division] })));
+
+  // Then
+  expect(
+    await screen.findByRole("image", {
+      name: `Logo absent : ${division.name}`,
+    }),
+  ).toBeOnTheScreen();
+  expect(client.getQueryData(logoKey)).toBe(oldLogo);
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).endsWith("/logo")),
+  ).toBe(false);
 });
 
 it("submits a complete pool override directly and excludes inactive choices", async () => {

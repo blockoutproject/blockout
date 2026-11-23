@@ -4,13 +4,13 @@ import { Page, PageScrollView } from "@/shared/components/page";
 import { ErrorState } from "@/shared/components/state-card";
 
 import { useOperationalAdmission } from "@/features/access/queries/use-access-admission";
-import { PresentationScreen } from "@/features/sporting-administration/screens/presentation-screen";
+import { CreateDivisionScreen } from "@/features/sporting-administration/screens/create-division-screen";
 
-/** Creation uses the existing presentation form, draft and native removal guard. */
+/** F12 operational admission precedes the creation visit. */
 export default function CreateDivisionRoute() {
   const admitted = useOperationalAdmission();
   return admitted ? (
-    <PresentationScreen target={{ kind: "division-creation" }} />
+    <CreateDivisionScreen />
   ) : (
     <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView>
