@@ -13,6 +13,7 @@ export function collectionProviderFromRoute(value: unknown) {
 }
 
 type RouteParams = Record<string, string | string[] | undefined>;
+
 export type BilanSearchCriteria = Pick<
   CollectionResultCriteria,
   "query" | "status"
