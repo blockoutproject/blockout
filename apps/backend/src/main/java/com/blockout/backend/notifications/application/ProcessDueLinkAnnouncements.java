@@ -27,9 +27,8 @@ public class ProcessDueLinkAnnouncements {
   @Transactional(propagation = Propagation.NEVER)
   public void run() {
     UUID after = null;
-    List<UUID> candidates;
-    do {
-      candidates = store.liveLinkCandidates(after, PAGE_SIZE);
+    while (true) {
+      List<UUID> candidates = store.liveLinkCandidates(after, PAGE_SIZE);
       for (UUID id : candidates) {
         try {
           transaction.process(id);
@@ -41,10 +40,11 @@ public class ProcessDueLinkAnnouncements {
               .log("Link announcement candidate failed");
         }
       }
-      if (!candidates.isEmpty()) {
-        after = candidates.getLast();
+      if (candidates.size() < PAGE_SIZE) {
+        return;
       }
-    } while (candidates.size() == PAGE_SIZE);
+      after = candidates.getLast();
+    }
   }
 
   /** Required independent transaction owner, separate from the nontransactional scheduled loop. */

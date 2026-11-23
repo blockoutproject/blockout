@@ -55,7 +55,7 @@ Run the focused announcement boundaries after the ordinary contract bundle.
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
   -Dtest=ResultAnnouncementTest,LinkAnnouncementTest,NotificationMessageTest \
-  -Dit.test=AnnouncementTransactionIntegrationTest,LinkAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,ContributionPersistenceJpaTest
+  -Dit.test=AnnouncementAudienceIntegrationTest,AnnouncementTransactionIntegrationTest,LinkAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,ContributionPersistenceJpaTest
 ```
 
 Use the real F02/F08 producers and F06 follow owner for composition, audience and atomicity scenarios. Add a follow after the single audience selection and verify result acceptance or publication succeeds, existing selected recipients remain stable and the new follower gets no retroactive entry. Private proposals, unchanged submissions and consumed-category transitions perform no audience work. Preserve selected-account foreign-key/cascade integrity against actual erasure. A required inbox insertion failure rolls back only its match. Keep real quota, active-link uniqueness and both result/publication category orders. After-commit provider failure preserves accepted sporting facts and inbox entries.
