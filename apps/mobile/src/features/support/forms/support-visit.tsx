@@ -38,8 +38,8 @@ export function SupportVisitProvider({
   const { getFieldState, getValues, setValue } = form;
   const { isDirty, isSubmitting } = useFormState({ control: form.control });
   const confirm = useActionConfirmation();
-  usePreventRemove(isDirty, async ({ repeat }) => {
-    const accepted = await confirm({
+  usePreventRemove(isDirty, ({ repeat }) => {
+    void confirm({
       title: isSubmitting
         ? "Quitter pendant l’envoi ?"
         : "Abandonner les modifications ?",
@@ -49,11 +49,12 @@ export function SupportVisitProvider({
       confirmLabel: isSubmitting ? "Quitter" : "Abandonner",
       cancelLabel: "Continuer la saisie",
       destructive: true,
+    }).then((accepted) => {
+      if (accepted) {
+        form.reset();
+        repeat();
+      }
     });
-    if (accepted) {
-      form.reset();
-      repeat();
-    }
   });
   useEffect(() => {
     const state = getFieldState("replyEmail");

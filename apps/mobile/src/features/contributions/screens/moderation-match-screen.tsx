@@ -108,7 +108,7 @@ export function ModerationMatchScreen({
     editing.publish.isPending;
 
   /** Captures exact target, original actor and the displayed page revision before native confirmation. */
-  async function decide(
+  function decide(
     version: ModeratedStreamContributionResponse,
     action: Action,
     revision: string,
@@ -124,32 +124,31 @@ export function ModerationMatchScreen({
       withdraw: "Retirer",
       reactivate: "Réactiver",
     }[action];
-    const actionConfirmed = await confirmation({
+    confirmation({
       title: `${label} ce lien ?`,
       message: `${version.url}${(action === "approve" || action === "reactivate") && activeUrl ? `\n\nLien remplacé : ${activeUrl}` : ""}`,
       confirmLabel: label,
       destructive: action === "reject" || action === "withdraw",
-    });
-    if (!actionConfirmed || !mounted.current) {
-      return;
-    }
-    feedback.clear();
-    try {
-      if (action === "reactivate") {
-        await editing.reactivate.mutateAsync({
-          versionId: version.id,
-          body: { actorAccountId, revision },
-        });
-      } else {
-        await editing.change.mutateAsync({
-          versionId: version.id,
-          body: { actorAccountId, revision, action },
-        });
-      }
-      setConfirmed(true);
-    } catch {
-      feedback.error();
-    }
+    })
+      .then(async (actionConfirmed) => {
+        if (!actionConfirmed || !mounted.current) {
+          return;
+        }
+        feedback.clear();
+        if (action === "reactivate") {
+          await editing.reactivate.mutateAsync({
+            versionId: version.id,
+            body: { actorAccountId, revision },
+          });
+        } else {
+          await editing.change.mutateAsync({
+            versionId: version.id,
+            body: { actorAccountId, revision, action },
+          });
+        }
+        setConfirmed(true);
+      })
+      .catch(() => feedback.error());
   }
 
   return (

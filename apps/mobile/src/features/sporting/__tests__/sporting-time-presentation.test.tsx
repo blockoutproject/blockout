@@ -2,7 +2,7 @@ import {
   useLayoutEffect,
   useState as useQueryFixtureState,
   type PropsWithChildren as QueryFixtureProps,
-  PropsWithChildren,
+  type PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";

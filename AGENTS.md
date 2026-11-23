@@ -46,7 +46,7 @@ For an explicitly authorized history rewrite, verify the clean starting state an
 
 Keep normal branch protections active; there is no planning bypass. Do not weaken protections without explicit owner authorization. After any authorized temporary exception, restore the normal protections and verify them. Delivery does not widen the issue's scope or waive specification validation and design gates.
 
-On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced: true`), force-push bypass actors are empty (`bypassForcePushActorIds: []`), unrestricted force pushes remain disabled (`allowsForcePushes: false`) and deletion prevention remains enabled. Preserve every other protection: `main` requires the up-to-date `verify` check, conversation resolution and stale-review dismissal, with zero required approvals; `develop` retains its existing check and review settings.
+On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced: true`), force-push bypass actors are empty (`bypassForcePushActorIds: []`), unrestricted force pushes remain disabled (`allowsForcePushes: false`) and deletion prevention remains enabled. Both branches require the up-to-date `verify` check from GitHub Actions. Preserve the remaining protections, including conversation resolution, stale-review dismissal and zero required approvals on `main`, and the existing review settings on `develop`.
 
 ## Verification
 

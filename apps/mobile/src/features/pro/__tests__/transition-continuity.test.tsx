@@ -10,7 +10,7 @@ import {
 import { router } from "expo-router";
 import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
-import RevenueCatUI from "react-native-purchases-ui";
+import type RevenueCatUI from "react-native-purchases-ui";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import SignInRoute from "@/app/(recovery)/sign-in";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";

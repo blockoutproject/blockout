@@ -2,7 +2,7 @@ import {
   useLayoutEffect,
   useState,
   type PropsWithChildren,
-  ComponentType,
+  type ComponentType,
 } from "react";
 import {
   act,

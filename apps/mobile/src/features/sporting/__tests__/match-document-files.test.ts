@@ -142,8 +142,8 @@ it("cleans only feature-owned leftover PDF files at cold start", () => {
     "f03-00000000-0000-4000-8000-000000000259.pdf",
   );
   const unrelated = new File(directory, "profile.jpg");
-  owned.write(new Uint8Array([1]));
-  unrelated.write(new Uint8Array([2]));
+  owned.create();
+  unrelated.create();
 
   // When
   cleanupMatchDocuments();

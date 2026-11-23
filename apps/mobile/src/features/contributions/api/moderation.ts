@@ -23,10 +23,10 @@ import {
 import {
   ModeratedStreamContributionDetailResponse,
   type CreateModeratedStreamContributionRequest,
-  CreateStreamReactivationRequest,
-  ListStreamModerationParams,
-  StreamVersionFilterEnum,
-  UpdateModeratedStreamContributionRequest,
+  type CreateStreamReactivationRequest,
+  type ListStreamModerationParams,
+  type StreamVersionFilterEnum,
+  type UpdateModeratedStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";

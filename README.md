@@ -91,26 +91,42 @@ Use `@/` to cross module boundaries, including routes importing feature screens;
 the single `@/*` alias maps to `./src/*` in `apps/mobile/tsconfig.json` through
 Expo/Metro and Jest Expo's native TypeScript path support. Keep package imports
 and existing paths to generated output or assets outside `src` unchanged.
+Keep shared application code independent of features. Shared integration tests
+can compose features. Route mobile API requests through the shared transport and
+import React Native through its public API.
 
-Prettier retains its 80-column target and standard JSX wrapping. The existing
-Expo ESLint preset is supplemented only by mandatory braces and two ESLint
-Stylistic spacing rules: separate imports from other statements, separate
-function/class/export declarations, and separate methods while keeping related
-fields together. These use documented statement kinds, without custom selectors.
-Exported overload signatures also receive a separating line; local arrow
-functions follow the readability convention without a syntax-specific check.
+Prettier retains its 80-column target and standard JSX wrapping. ESLint builds on
+the Expo preset with mandatory braces and spacing between imports and other
+statements, around function/class/export declarations, and between methods.
+Exported overload signatures also receive a separating line. Related fields
+stay together. The mobile lint command fails on warnings as well as errors.
 
-Java retains Google Java Format's 100-column style. Native Checkstyle rules
-require braces and separate methods while allowing related fields to stay
-together. Neither language mandates a blank line before every return or bans
-nested ternaries: simplify difficult expressions during review rather than
-rewriting readable conditions mechanically.
+Use kebab-case basenames for mobile source files and preserve Expo Router's
+reserved names and platform or test suffixes. Use PascalCase for TypeScript type
+names. Mark type-only imports with `import type` or inline `type` specifiers.
+
+ESLint checks switch fall-through and case declarations, redundant `else`
+branches and unnecessary ternaries. Keep debug statements out of committed
+mobile files and use `console.warn` or `console.error` for appropriate diagnostics.
+TypeScript ESLint checks explicit `any`, unnecessary assertions, type-check
+directives, thrown values, promises, and exhaustive switches.
+
+Java retains Google Java Format's 100-column style. Checkstyle requires braces
+and separates methods while allowing related fields to stay together. It also
+checks empty catch blocks, `equals`/`hashCode` pairs, reference comparisons with
+string literals, nested assignments, and unintended switch fall-through.
+It also checks lowercase package names, type, method and constant names, one
+top-level type per file with a matching filename, modifier and declaration
+annotation order, and unused local variables.
+Review expression readability, including nested ternaries, and use blank lines
+where they clarify the flow.
 
 XML, generated sources, upstream imports, licenses and protected artwork remain
 excluded from Prettier.
 EditorConfig shares basic editor settings with matching protected-file exceptions.
 
 ```sh
+npm run lint            # Mobile ESLint and Java Checkstyle
 npm run style:fix       # Available ESLint fixes, Prettier and Java Spotless
 npm run lint:fix        # ESLint automatic fixes only
 npm run format         # Prettier
@@ -119,12 +135,13 @@ npm run verify         # Formatting and application checks
 ```
 
 Spotless formats Java but does not add braces reported by Checkstyle. Fix remaining
-lint errors directly. There are no custom analyzers, regex/XPath style checks,
-arbitrary function-size limits, Git hooks or suppression baselines.
+lint errors directly. There are no custom analyzers, source-text regex or XPath
+checks, arbitrary function-size limits, Git hooks or suppression baselines.
 
-Integration references: [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
+See [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
 [Prettier with linters](https://prettier.io/docs/integrating-with-linters),
-and [Stylistic spacing](https://eslint.style/rules/padding-line-between-statements).
+[Stylistic spacing](https://eslint.style/rules/padding-line-between-statements),
+and [Checkstyle package naming](https://checkstyle.org/checks/naming/packagename.html).
 
 ### Collector-to-sporting qualification
 

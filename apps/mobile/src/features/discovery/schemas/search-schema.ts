@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { type z } from "zod";
 import { ListClubsParams } from "../../../../.generated/schemas/index.zod";
 
 /** Shares the contract's Unicode limit while keeping a definite editable string in RHF. */

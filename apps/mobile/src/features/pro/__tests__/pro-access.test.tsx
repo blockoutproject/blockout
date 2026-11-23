@@ -17,7 +17,7 @@ import type {
   AccountResponse,
   PoolParticipantsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import RevenueCatUI from "react-native-purchases-ui";
+import type RevenueCatUI from "react-native-purchases-ui";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
