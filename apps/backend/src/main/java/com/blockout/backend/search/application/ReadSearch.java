@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ReadSearch {
+  private static final int TEXT_PAGE_SIZE = 20;
+  private static final int EXAMPLE_LIMIT = 5;
+
   private final SearchEngine engine;
   private final HydrateSearch hydration;
 
@@ -64,25 +67,28 @@ public class ReadSearch {
    */
   private SearchPage traverse(SearchContext context, SearchEngine.Position after) {
     List<SearchPage.Summary> results = new ArrayList<>();
+    int summaryTarget = context.examples() ? EXAMPLE_LIMIT : TEXT_PAGE_SIZE + 1;
     SearchEngine.Position beforeLastEligible = null;
     SearchEngine.Position consumed = after;
     for (int batchNumber = 0; batchNumber < 10; batchNumber++) {
       SearchEngine.Batch batch = engine.search(context, consumed, 200);
       Map<UUID, SearchPage.Summary> current =
-          batch.candidates().isEmpty() ? Map.of() : hydration.current(context, batch.candidates());
+          batch.candidates().isEmpty()
+              ? Map.of()
+              : hydration.current(context, batch.candidates(), summaryTarget - results.size());
       for (SearchEngine.Candidate candidate : batch.candidates()) {
         SearchPage.Summary summary = current.get(candidate.position().id());
         if (summary != null) {
-          if (context.examples() && results.size() == 4) {
-            results.add(summary);
-            return new SearchPage(results, null);
-          }
-          if (results.size() == 20) {
+          if (results.size() == TEXT_PAGE_SIZE) {
             return new SearchPage(results, consumed);
           }
           beforeLastEligible = consumed;
           results.add(summary);
+          if (context.examples() && results.size() == EXAMPLE_LIMIT) {
+            return new SearchPage(results, null);
+          }
         }
+        // A stale hit still advances the cursor up to the next eligible result.
         consumed = candidate.position();
       }
       if (batch.exhausted()) {

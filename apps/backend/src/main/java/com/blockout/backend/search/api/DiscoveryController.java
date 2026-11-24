@@ -11,8 +11,6 @@ import com.blockout.backend.generated.mobile.model.TeamSearchResponse;
 import com.blockout.backend.search.application.ReadSearch;
 import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
-import com.blockout.backend.search.application.SearchContinuation;
-import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import java.util.UUID;
@@ -43,7 +41,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toClubDto(page, cursor(page)));
+        .body(mapper.toClubDto(page, requests.encode(page.next())));
   }
 
   /** {@inheritDoc} */
@@ -68,7 +66,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toTeamDto(page, cursor(page)));
+        .body(mapper.toTeamDto(page, requests.encode(page.next())));
   }
 
   /** {@inheritDoc} */
@@ -93,7 +91,7 @@ public class DiscoveryController implements DiscoveryApi {
     SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(mapper.toPoolDto(page, cursor(page)));
+        .body(mapper.toPoolDto(page, requests.encode(page.next())));
   }
 
   /**
@@ -119,31 +117,7 @@ public class DiscoveryController implements DiscoveryApi {
     }
   }
 
-  /**
-   * Validates the canonical mode before current text or example orchestration.
-   *
-   * @param context admitted current selection
-   * @param cursor optional encoded boundary
-   * @return current collection, with no pagination for examples
-   */
   private SearchPage read(SearchContext context, String cursor) {
-    SearchContinuation continuation = requests.bind(context, cursor);
-    return reads.read(
-        context,
-        continuation == null
-            ? null
-            : new SearchEngine.Position(continuation.score(), continuation.id()));
-  }
-
-  /**
-   * Encodes only the consumed native boundary; it grants no authority.
-   *
-   * @param page completed current page
-   * @return ordinary opaque continuation, or null at exhaustion
-   */
-  private String cursor(SearchPage page) {
-    return page.next() == null
-        ? null
-        : requests.encode(new SearchContinuation(page.next().score(), page.next().id()));
+    return reads.read(context, requests.bind(context, cursor));
   }
 }

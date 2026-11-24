@@ -3,20 +3,24 @@ package com.blockout.backend.search.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
 import com.blockout.backend.sporting.application.ReadSportingResources;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -36,8 +40,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Real migrated PostgreSQL and F02/F03 reads; engine cities are deliberate stale inputs. The F03
- * spy records forbidden detail reads while executing the real owner projections.
+ * Exercises the real PostgreSQL reads with deliberately stale indexed cities. Spies record which
+ * identities reach the F02 eligibility and F03 presentation boundaries.
  */
 @SpringBootTest
 @DisplayName("Current search hydration")
@@ -48,6 +52,7 @@ class SearchCurrentDataIntegrationTest {
   @Autowired JdbcTemplate sql;
   @Autowired HydrateSearch hydration;
   @Autowired EntityManagerFactory entityManagerFactory;
+  @MockitoSpyBean ReadSportingData owners;
   @MockitoSpyBean ReadSportingResources consultation;
 
   /** Clears only this suite's disposable database before each independent fixture. */
@@ -65,7 +70,7 @@ class SearchCurrentDataIntegrationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"corrected", "absent", "restricted"})
-  @DisplayName("Omits a stale city even when the resource name matches")
+  @DisplayName("Skips presentation when the only candidate has a stale city")
   void omitsStaleCity(String change) {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
@@ -89,10 +94,11 @@ class SearchCurrentDataIntegrationTest {
 
     // When
     Map<UUID, SearchPage.Summary> current =
-        hydration.current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")));
+        hydration.current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")), 1);
 
     // Then
     assertThat(current).isEmpty();
+    verifyNoInteractions(consultation);
   }
 
   @Test
@@ -111,7 +117,7 @@ class SearchCurrentDataIntegrationTest {
     // When
     SearchPage.Club club =
         hydration
-            .current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")))
+            .current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")), 1)
             .get(id)
             .club();
 
@@ -142,7 +148,7 @@ class SearchCurrentDataIntegrationTest {
     // When
     SearchPage.Summary summary =
         hydration
-            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)))
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1)
             .get(fixture.team());
 
     // Then
@@ -177,7 +183,8 @@ class SearchCurrentDataIntegrationTest {
 
     // When
     Map<UUID, SearchPage.Summary> result =
-        hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
 
     // Then
     assertThat(result).isEmpty();
@@ -200,7 +207,8 @@ class SearchCurrentDataIntegrationTest {
 
     // When
     Map<UUID, SearchPage.Summary> result =
-        hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
 
     // Then
     assertThat(result).isEmpty();
@@ -222,10 +230,11 @@ class SearchCurrentDataIntegrationTest {
 
     // When
     Map<UUID, SearchPage.Summary> stale =
-        hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)));
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
     SearchPage.Summary current =
         hydration
-            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), "Lyon")))
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), "Lyon")), 1)
             .get(fixture.team());
 
     // Then
@@ -253,7 +262,8 @@ class SearchCurrentDataIntegrationTest {
 
     // When
     Map<UUID, SearchPage.Summary> result =
-        hydration.current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)));
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)), 1);
 
     // Then
     assertThat(result).isEmpty();
@@ -272,7 +282,7 @@ class SearchCurrentDataIntegrationTest {
     // When
     SearchPage.Summary result =
         hydration
-            .current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)))
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)), 1)
             .get(fixture.pool());
 
     // Then
@@ -284,14 +294,25 @@ class SearchCurrentDataIntegrationTest {
   @ParameterizedTest
   @CsvSource({"CLUB, 2", "TEAM, 6", "POOL, 5"})
   @DisplayName(
-      "Hydrates a full native candidate batch with distinct parents without per-candidate SQL reads")
-  void readsSummariesInBatches(
+      "Composes only the leading admitted candidates in native rank order with bounded SQL reads")
+  void readsLeadingSummariesInBatches(
       SearchContext.Resource resource, int maxStatements, TestReporter reporter) {
     // Given: distinct parents prevent the persistence context from hiding per-parent reads.
     List<Candidate> candidates = new ArrayList<>();
+    Set<UUID> candidateIds = new HashSet<>();
+    Set<UUID> expectedSummaryIds = new HashSet<>();
     for (int number = 1; number <= 200; number++) {
-      String suffix = String.format("%012d", number);
+      int score = 201 - number;
+      String suffix = String.format("%012d", score);
       UUID id = UUID.fromString("10000000-0000-4000-8000-" + suffix);
+      candidates.add(new Candidate(new Position(score, id), null));
+      candidateIds.add(id);
+      if (number == 2) {
+        continue; // The index still contains this missing owner.
+      }
+      if (number <= 22) {
+        expectedSummaryIds.add(id);
+      }
       if (resource == SearchContext.Resource.CLUB) {
         sql.update(
             "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, 'image/png')",
@@ -329,7 +350,7 @@ class SearchCurrentDataIntegrationTest {
             pool.toString(),
             division);
         if (resource == SearchContext.Resource.TEAM) {
-          UUID club = number == 200 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
+          UUID club = number == 20 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
           if (club != null) {
             sql.update(
                 "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, 'image/png')",
@@ -354,7 +375,6 @@ class SearchCurrentDataIntegrationTest {
               pool);
         }
       }
-      candidates.add(new Candidate(new Position(number, id), null));
     }
     SearchContext context = new SearchContext(resource, "source", null, null, null, null, false);
     Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
@@ -362,12 +382,12 @@ class SearchCurrentDataIntegrationTest {
     statistics.setStatisticsEnabled(true);
     try {
       long before = statistics.getPrepareStatementCount();
-      hydration.current(context, candidates.subList(0, 1));
+      hydration.current(context, candidates.subList(0, 1), 1);
       long singleReads = statistics.getPrepareStatementCount() - before;
 
       // When
       before = statistics.getPrepareStatementCount();
-      Map<UUID, SearchPage.Summary> current = hydration.current(context, candidates);
+      Map<UUID, SearchPage.Summary> current = hydration.current(context, candidates, 21);
       long batchReads = statistics.getPrepareStatementCount() - before;
       reporter.publishEntry(
           Map.of(
@@ -376,26 +396,30 @@ class SearchCurrentDataIntegrationTest {
               "twoHundredCandidateStatements", Long.toString(batchReads)));
 
       // Then
-      assertThat(current).hasSize(200);
+      verify(owners).searchEligibility(resource.getSportingKind(), candidateIds);
+      assertThat(current.keySet()).isEqualTo(expectedSummaryIds);
       assertThat(batchReads).isEqualTo(singleReads).isLessThanOrEqualTo(maxStatements);
       SearchPage.Summary first = current.get(candidates.getFirst().position().id());
       switch (resource) {
         case CLUB -> {
+          verify(consultation).clubIdentities(expectedSummaryIds);
           assertThat(first.club().club().name()).isEqualTo("Current");
           assertThat(first.club().club().logoUrl()).endsWith("/logo");
         }
         case TEAM -> {
+          verify(consultation).teamSummaries(expectedSummaryIds);
           assertThat(first.team().team().name()).isEqualTo("Current");
           assertThat(first.team().team().logoUrl()).endsWith("/logo?selection=automatic");
           assertThat(first.team().season().startYear()).isEqualTo(2001);
           assertThat(first.team().club().name()).isEqualTo("Current club 1");
           assertThat(first.team().club().logoUrl()).endsWith("/logo");
-          SearchPage.Summary clubless = current.get(candidates.getLast().position().id());
-          assertThat(clubless.team().season().startYear()).isEqualTo(2200);
+          SearchPage.Summary clubless = current.get(candidates.get(19).position().id());
+          assertThat(clubless.team().season().startYear()).isEqualTo(2020);
           assertThat(clubless.team().club()).isNull();
           assertThat(clubless.team().team().logoUrl()).endsWith("/logo?selection=automatic");
         }
         case POOL -> {
+          verify(consultation).poolSummaries(expectedSummaryIds);
           assertThat(first.pool().pool().name()).isEqualTo("Current");
           assertThat(first.pool().season().startYear()).isEqualTo(2001);
         }

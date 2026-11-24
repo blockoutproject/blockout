@@ -47,14 +47,14 @@ public class ReadPrivateMatches {
    * @return existing contexts, including hidden/dateless matches, without per-match queries
    */
   public Map<UUID, Context> read(Set<UUID> ids) {
-    Map<UUID, MatchInput> inputs = reads.matches(ids);
+    List<MatchInput> inputs = reads.matches(ids);
     Set<UUID> teamIds =
-        inputs.values().stream()
+        inputs.stream()
             .flatMap(input -> Stream.of(input.homeTeamId(), input.awayTeamId()))
             .collect(Collectors.toSet());
     Map<UUID, View> teams = facts.presentations(SportingProjectionChanges.Kind.TEAM, teamIds);
     Map<UUID, SportingVisibility> restrictions = visibility.matchVisibilities(ids);
-    return inputs.values().stream()
+    return inputs.stream()
         .collect(
             Collectors.toUnmodifiableMap(
                 MatchInput::id,

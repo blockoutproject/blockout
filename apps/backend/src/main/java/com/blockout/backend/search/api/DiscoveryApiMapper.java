@@ -32,7 +32,7 @@ public interface DiscoveryApiMapper {
    * Projects a current club page while preserving its opaque continuation.
    *
    * @param page authorized current page with exactly the club variant populated
-   * @param nextCursor encoded boundary, or null at exhaustion
+   * @param nextCursor encoded textual continuation, omitted for examples and at exhaustion
    * @return generated collection in current search order
    */
   default ClubSearchResponse toClubDto(SearchPage page, String nextCursor) {
@@ -45,7 +45,7 @@ public interface DiscoveryApiMapper {
    * Selects current team variants before delegating the complete cards to their sporting owner.
    *
    * @param page authorized current page with exactly the team variant populated
-   * @param nextCursor encoded boundary, or null at exhaustion
+   * @param nextCursor encoded textual continuation, omitted for examples and at exhaustion
    * @return generated collection in current search order
    */
   default TeamSearchResponse toTeamDto(SearchPage page, String nextCursor) {
@@ -58,7 +58,7 @@ public interface DiscoveryApiMapper {
    * Selects current pool variants before delegating the complete cards to their sporting owner.
    *
    * @param page authorized current page with exactly the pool variant populated
-   * @param nextCursor encoded boundary, or null at exhaustion
+   * @param nextCursor encoded textual continuation, omitted for examples and at exhaustion
    * @return generated collection in current search order
    */
   default PoolSearchResponse toPoolDto(SearchPage page, String nextCursor) {

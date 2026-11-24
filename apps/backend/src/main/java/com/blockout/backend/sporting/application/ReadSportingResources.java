@@ -287,7 +287,7 @@ public class ReadSportingResources {
     if (ids.size() > 20) {
       throw new IllegalArgumentException("At most twenty matches per read");
     }
-    return composeMatchSummaries(reads.matches(ids).values(), now);
+    return composeMatchSummaries(reads.matches(ids), now);
   }
 
   /**
@@ -310,7 +310,7 @@ public class ReadSportingResources {
    * @return detached summaries without participation detail or per-team database reads
    */
   public Map<UUID, ConsultationViews.TeamSummary> teamSummaries(Set<UUID> ids) {
-    return composeTeams(List.copyOf(reads.teams(ids).values()));
+    return composeTeams(reads.teams(ids));
   }
 
   /**
@@ -360,17 +360,17 @@ public class ReadSportingResources {
    * @return detached current pools without a second paging or visibility boundary
    */
   public Map<UUID, ConsultationViews.PoolSummary> poolSummaries(Set<UUID> ids) {
-    Map<UUID, PoolView> pools = reads.pools(ids);
+    List<PoolView> pools = reads.pools(ids);
     Map<UUID, View> presentations = facts.presentations(SportingProjectionChanges.Kind.POOL, ids);
     Map<UUID, SeasonView> seasons =
         reads.seasons(
-            pools.values().stream().map(pool -> pool.key().seasonId()).collect(Collectors.toSet()));
+            pools.stream().map(pool -> pool.key().seasonId()).collect(Collectors.toSet()));
     Map<UUID, DivisionDetail> divisions =
         reads.divisions(
-            pools.values().stream()
+            pools.stream()
                 .map(pool -> pool.classification().divisionId())
                 .collect(Collectors.toSet()));
-    return pools.values().stream()
+    return pools.stream()
         .collect(
             Collectors.toUnmodifiableMap(
                 PoolView::id,

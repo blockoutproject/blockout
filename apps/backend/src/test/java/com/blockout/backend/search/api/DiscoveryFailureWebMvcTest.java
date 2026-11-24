@@ -2,6 +2,7 @@ package com.blockout.backend.search.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -122,7 +123,8 @@ class DiscoveryFailureWebMvcTest {
     // Given
     when(client.search(any(SearchRequest.class), eq(OpenSearchEngine.IndexedCity.class)))
         .thenReturn(complete(List.of(hit(1))));
-    when(hydration.current(any(), any())).thenThrow(new QueryTimeoutException(PRIVATE_PAYLOAD));
+    when(hydration.current(any(), any(), anyInt()))
+        .thenThrow(new QueryTimeoutException(PRIVATE_PAYLOAD));
 
     // When
     ResultActions response = mvc.perform(get("/clubs").param("q", QUERY));
@@ -146,7 +148,7 @@ class DiscoveryFailureWebMvcTest {
               .toList();
       batches = batches.thenReturn(complete(hits));
     }
-    when(hydration.current(any(), any())).thenReturn(Map.of());
+    when(hydration.current(any(), any(), anyInt())).thenReturn(Map.of());
 
     // When
     ResultActions response = mvc.perform(get("/clubs").param("q", QUERY));

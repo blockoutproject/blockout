@@ -20,8 +20,7 @@ import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.search.application.ReadSearch;
 import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
-import com.blockout.backend.search.application.SearchContinuation;
-import com.blockout.backend.search.application.SearchEngine;
+import com.blockout.backend.search.application.SearchEngine.Position;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -62,13 +61,16 @@ import org.springframework.test.web.servlet.ResultActions;
 })
 @DisplayName("Text search generated HTTP boundary")
 class DiscoveryWebMvcTest {
+  private static final String ZERO_SCORE_CURSOR =
+      encodedCursor("{\"score\":0.0,\"id\":\"00000000-0000-4000-8000-000000000001\"}");
+
   @Autowired MockMvc mvc;
-  @Autowired private DiscoveryRequest requests;
   @MockitoBean ReadSearch reads;
   @MockitoBean private ReadSearchOptions options;
 
   @Test
-  @DisplayName("Serializes only current club presentation with absent context omitted")
+  @DisplayName(
+      "Returns current club presentation and the consumed position with absent city omitted")
   void returnsCurrentClub() throws Exception {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
@@ -81,7 +83,7 @@ class DiscoveryWebMvcTest {
                             new ConsultationViews.Identity(id, "Current name", null, null), null),
                         null,
                         null)),
-                null));
+                new Position(0.0, id)));
 
     // When
     ResultActions response = mvc.perform(get("/clubs").param("q", "source"));
@@ -93,7 +95,7 @@ class DiscoveryWebMvcTest {
         .andExpect(jsonPath("$.clubs[0].club.id").value(id.toString()))
         .andExpect(jsonPath("$.clubs[0].club.name").value("Current name"))
         .andExpect(jsonPath("$.clubs[0].city").doesNotExist())
-        .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        .andExpect(jsonPath("$.nextCursor").value(ZERO_SCORE_CURSOR));
   }
 
   @ParameterizedTest
@@ -293,7 +295,7 @@ class DiscoveryWebMvcTest {
   @DisplayName("Current examples reject even a valid textual continuation")
   void rejectsExampleContinuation(String text) throws Exception {
     // Given
-    String cursor = requests.encode(new SearchContinuation(1.5, new UUID(0, 1)));
+    String cursor = ZERO_SCORE_CURSOR;
 
     // When
     ResultActions response = mvc.perform(get("/clubs").param("q", text).param("cursor", cursor));
@@ -320,12 +322,13 @@ class DiscoveryWebMvcTest {
     verifyNoInteractions(reads);
   }
 
-  @Test
-  @DisplayName("Passes native continuation positions independently of the current selection")
-  void bindsCursorPosition() throws Exception {
+  @ParameterizedTest
+  @ValueSource(doubles = {0.0, 1.5})
+  @DisplayName("Binds previously issued cursor positions independently of the current selection")
+  void bindsCursorPosition(double score) throws Exception {
     // Given
     UUID positionId = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    String cursor = requests.encode(new SearchContinuation(1.5, positionId));
+    String cursor = encodedCursor("{\"score\":" + score + ",\"id\":\"" + positionId + "\"}");
     when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(), null));
 
     // When
@@ -341,8 +344,7 @@ class DiscoveryWebMvcTest {
     differentResource.andExpect(status().isOk());
     differentText.andExpect(status().isOk());
     ArgumentCaptor<SearchContext> selections = ArgumentCaptor.forClass(SearchContext.class);
-    ArgumentCaptor<SearchEngine.Position> positions =
-        ArgumentCaptor.forClass(SearchEngine.Position.class);
+    ArgumentCaptor<Position> positions = ArgumentCaptor.forClass(Position.class);
     verify(reads, times(3)).read(selections.capture(), positions.capture());
     assertThat(selections.getAllValues())
         .extracting(SearchContext::resource, SearchContext::text)
@@ -350,7 +352,7 @@ class DiscoveryWebMvcTest {
             tuple(SearchContext.Resource.TEAM, "étoile volley"),
             tuple(SearchContext.Resource.POOL, "étoile volley"),
             tuple(SearchContext.Resource.TEAM, "different"));
-    assertThat(positions.getAllValues()).containsOnly(new SearchEngine.Position(1.5, positionId));
+    assertThat(positions.getAllValues()).containsOnly(new Position(score, positionId));
   }
 
   @ParameterizedTest
@@ -360,15 +362,14 @@ class DiscoveryWebMvcTest {
         "null",
         "[]",
         "{\"context\":null,\"score\":1,\"id\":null}",
+        "{\"id\":\"00000000-0000-4000-8000-000000000001\"}",
+        "{\"score\":null,\"id\":\"00000000-0000-4000-8000-000000000001\"}",
         "{\"future\":true}"
       })
   @DisplayName("Rejects malformed decoded cursor structures")
   void rejectsCursorStructure(String payload) throws Exception {
     // Given
-    String cursor =
-        Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+    String cursor = encodedCursor(payload);
 
     // When
     ResultActions response =
@@ -401,5 +402,11 @@ class DiscoveryWebMvcTest {
     assertThat(selection.getValue().seasonId()).isEqualTo(season);
     assertThat(selection.getValue().format()).isEqualTo(SportFormatEnum._6X6);
     assertThat(selection.getValue().gender()).isEqualTo(SportGenderEnum.FEMALE);
+  }
+
+  private static String encodedCursor(String payload) {
+    return Base64.getUrlEncoder()
+        .withoutPadding()
+        .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
   }
 }
