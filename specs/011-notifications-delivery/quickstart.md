@@ -93,11 +93,15 @@ Run age-boundary and failure cases with a controlled clock and migrated PostgreS
 
 ## After-commit push
 
-Run the selected SDK, current-eligibility, HTTP and transaction boundaries with controlled external I/O:
+Run the server-side checks for A26–A33 against the F02/F08 producers, F06 follows, F05 erasure and F12 maintenance on disposable PostgreSQL. The Expo SDK uses controlled local HTTP responses.
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest='PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest' -Dit.test=AnnouncementTransactionIntegrationTest,FollowRecipientDeliveryIntegrationTest,PushDeliveryIntegrationTest,ExpoPushTransportIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=PushDeliveryTest,ExpoPushClientTest,PushDeliveryConfigurationTest,NotificationMessageTest,ResultAnnouncementTest,LinkAnnouncementTest \
+  -Dit.test=AnnouncementAudienceIntegrationTest,AnnouncementTransactionIntegrationTest,ResultAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,LinkAnnouncementIntegrationTest,FollowRecipientDeliveryIntegrationTest,PushDeliveryIntegrationTest,MaintenanceNotificationIntegrationTest,PushSubscriptionIntegrationTest,NotificationErasureIntegrationTest,ExpoPushTransportIntegrationTest,PurgeNotificationsIntegrationTest
 ```
+
+For account changes and an old registration already in flight, reuse the [F05 authentication and isolation checks](../005-accounts-identity/quickstart.md#authentication-and-isolation) and the [destination scenarios](#essential-scenarios).
 
 Verify committed inbox entries and match facts in both configurations and rollback on a required inbox failure. Verify that an account without a destination still has its entry, a registration after capture adds no send, a rotated destination is excluded by the current association check, and an account crossing the send batch limit keeps its eligible devices across batches. Observe handoffs through the provider double.
 
