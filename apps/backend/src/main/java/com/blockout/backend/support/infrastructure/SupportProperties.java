@@ -12,8 +12,8 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * Server-owned private support settings. An absent destination keeps this unactivated foundation
- * unconfigured; once supplied, every destination field is required. Actual repository privacy,
- * permissions and erasure require the separate pre-use qualification, never a local boolean claim.
+ * unconfigured; once supplied, every destination field is required. Qualify effective repository
+ * permissions and actual attachment access before accepting real requests.
  *
  * @param destination fixed private provider inputs, absent until explicitly configured
  * @param connectTimeout positive HTTP connection wait
