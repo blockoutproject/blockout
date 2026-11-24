@@ -89,7 +89,7 @@ function FollowAction({
       label={label}
       size="compact"
       variant={following ? "secondary" : "solid"}
-      contextColor={following ? colors.onSuccessSubtle : followColor}
+      contextColor={following ? colors.accentPrimary : followColor}
       leadingIcon={unavailable ? undefined : followIcon}
       selected={following}
       accessibilityHint={
