@@ -232,7 +232,7 @@ F05 owns the native launch splash during SDK identity resolution, ordinary Login
 
 #### Initial control adoption boundary
 
-The reproduced iOS truncation after changing system text size during use is temporarily accepted as a nonblocking limitation for the initial shared controls and their dependent consumers. FR-030 remains the intended accessibility outcome. [Research](research.md#native-ui-projection-and-system-appearance) records the defect and [T077](tasks.md#phase-9-user-story-6--use-the-application-with-the-phones-capabilities-priority-p2) owns requalification; this scoped acceptance neither treats the failed case as passed nor permits unrelated accessibility failures.
+Under FR-030, mounted iOS controls must keep their labels and actions readable when the system text size changes, including after keyboard dismissal and cancellation of a discard confirmation. [T077](tasks.md#phase-9-user-story-6--use-the-application-with-the-phones-capabilities-priority-p2) covers representative forms and contextual sheets on a supported native runtime.
 
 ### Key Entities
 
