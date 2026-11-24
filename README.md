@@ -215,7 +215,7 @@ docker run --rm -p 127.0.0.1:9090:9090 \
   adobe/s3mock:5.2.3
 ```
 
-Load the regular local backend environment first. Run the backend with the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#using-environment-variables) and synthetic signing values. Use the loopback IP for path-style bucket addressing.
+Load the regular local backend environment first. Run the backend with the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#environment-variables-for-endpoints) and synthetic signing values. Use the loopback IP for path-style bucket addressing.
 
 ```sh
 AWS_ENDPOINT_URL_S3=http://127.0.0.1:9090 \
