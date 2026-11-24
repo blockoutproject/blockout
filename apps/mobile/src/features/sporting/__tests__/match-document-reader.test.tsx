@@ -16,7 +16,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Pressable, Text, View } from "react-native";
+import { AccessibilityInfo, Pressable, Text, View } from "react-native";
 import Pdf from "react-native-pdf";
 import {
   mockAuth0,
@@ -206,6 +206,30 @@ it.each([
     expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
     expect(documentFiles[0].exists).toBe(false);
     expect(screen.getByText("Home")).toBeOnTheScreen();
+  },
+);
+
+it.each([
+  { reducedMotion: false, animation: "slide" },
+  { reducedMotion: true, animation: "none" },
+])(
+  "requests the native PDF presentation animation $animation",
+  async ({ reducedMotion, animation }) => {
+    // Given: the real theme reads the controlled system accessibility setting.
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    await renderPage(<MatchScreen matchId={sportingId} />);
+
+    // When
+    await userEvent.press(
+      await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    );
+
+    // Then: Jest can verify the native host configuration; the simulator owns the transition.
+    const hosts = screen.container.queryAll((node) => node.type === "Modal");
+    expect(hosts).toHaveLength(1);
+    expect(hosts[0]).toHaveProp("animationType", animation);
   },
 );
 
