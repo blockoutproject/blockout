@@ -62,6 +62,8 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 - [x] T009 [US1] Connect explicit in-app sporting openings through `apps/mobile/src/features/sporting/navigation.ts`. Invoke the existing router or linking action directly for system notifications and external live links. Preserve access and destination failure feedback.
 
 - [ ] T010 [US1] Qualify the revised cadence, immediate navigation when unavailable, direct excluded actions and dismissal in actual iOS and Android builds with test ads. Reuse deterministic stale/double callback and entitlement cases from T005/T007.
+  - [x] Compatible clients. Qualify the [ten-opening interval](quickstart.md#interstitial-lifecycle) with Google test interstitials, including the selected destination after dismissal and an unavailable opportunity. Reuse T005/T007 for excluded actions and obsolete callbacks.
+  - [ ] Physical devices. Qualify the supplier test interstitial on iOS and Android phones, its dismissal and the return to the selected destination at the expected interval.
 
 **Checkpoint**: US1 is the controlled-behavior MVP. Production ad activation still requires US2 choices, native qualification and the release reconciliation in US6.
 
@@ -88,6 +90,8 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 
 - [x] T019 [US2] Connect the conditional “Choix publicitaires” row directly to `AdsConsent.showPrivacyOptionsForm()` in the profile, using the existing entry and feedback components. Remove the old intermediary privacy sheet.
 - [ ] T020 [US2] Qualify UMP, ATT and Google and Meta test serving on actual iOS and Android builds using Ad Inspector and the cases in `specs/004-advertising-privacy-legal/quickstart.md#scenarios-and-expected-outcomes`. Check no age step, an applicable choice action and native form return, an inapplicable action, refusal, and Pro suppression. Qualify the older-iOS Meta tracking handoff on a supporting device. Use applicable F13 UI qualification and leave real units disabled until consent and eligible serving for the actual audience are established.
+  - [x] Compatible clients. Qualify [native privacy choices](quickstart.md#native-privacy-choices), including guest entry, refusal, applicable iOS ATT, Profile form return and actual SDK entitlement changes suppressing ads. Reuse T013/T014 for controlled UMP outcomes, inapplicable choices and account changes.
+  - [ ] Physical devices. Use supplier test settings and Ad Inspector to qualify hardware-dependent UMP and Additional Consent, applicable iOS ATT, the older-iOS tracking handoff and Google/Meta mediation for the declared audience.
 
 **Checkpoint**: Native UMP and direct access are verified independently of provider and device qualification. Complete US2 only with actual device/provider evidence; choices never change the ten-action opportunity rule or certify worldwide compliance.
 
