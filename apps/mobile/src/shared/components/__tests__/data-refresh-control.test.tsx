@@ -100,10 +100,12 @@ it("shows native pull progress as soon as the explicit read starts", async () =>
   // Given: the read changes activity synchronously, before its owning screen rerenders.
   const response = Promise.withResolvers<void>();
   let fetching = false;
+
   function refresh() {
     fetching = true;
     return response.promise;
   }
+
   const view = () => (
     <ThemeProvider>
       <DataRefreshControl onRefresh={refresh} fetching={() => fetching} />
