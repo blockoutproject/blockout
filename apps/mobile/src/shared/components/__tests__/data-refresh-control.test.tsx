@@ -96,6 +96,45 @@ it("keeps native pull progress and the Android child until the explicit read com
   }
 });
 
+it("shows native pull progress as soon as the explicit read starts", async () => {
+  // Given: the read changes activity synchronously, before its owning screen rerenders.
+  const response = Promise.withResolvers<void>();
+  let fetching = false;
+  function refresh() {
+    fetching = true;
+    return response.promise;
+  }
+  const view = () => (
+    <ThemeProvider>
+      <DataRefreshControl onRefresh={refresh} fetching={() => fetching} />
+    </ThemeProvider>
+  );
+  const result = await render(view());
+
+  try {
+    // When: the operator pulls to refresh.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    const refreshControl = screen.getByLabelText("Actualiser les données");
+    expect(refreshControl).toBeBusy();
+    expect(refreshControl).toHaveProp("refreshing", true);
+
+    // When: the read is suspended with its promise still pending.
+    fetching = false;
+    await result.rerender(view());
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    expect(screen.getByLabelText("Actualiser les données")).toHaveProp(
+      "refreshing",
+      false,
+    );
+  } finally {
+    await act(() => response.resolve());
+  }
+});
+
 it("removes native pull progress while the owning read is suspended without disposing the retained field", async () => {
   // Given: the feature reports actual Query activity separately from the gesture's unresolved promise.
   const response = Promise.withResolvers<void>();

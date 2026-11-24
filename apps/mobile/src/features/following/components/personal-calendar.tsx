@@ -1,5 +1,5 @@
 import { NoAvailableFollows } from "./no-available-follows";
-import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import {
@@ -72,7 +72,7 @@ export function PersonalCalendar({
 
   return (
     <SportingCalendarView
-      traversalKey={hashKey(options.queryKey)}
+      queryKey={options.queryKey}
       calendar={calendar}
       category={category}
       active={active}

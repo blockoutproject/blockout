@@ -7,7 +7,9 @@ import {
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   hashKey,
+  useQueryClient,
   type InfiniteData,
+  type QueryKey,
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
@@ -78,7 +80,7 @@ export function SportingCalendar({
   );
   return (
     <SportingCalendarView
-      traversalKey={hashKey(queryKey)}
+      queryKey={queryKey}
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
@@ -93,7 +95,7 @@ export function SportingCalendar({
 
 /** Native calendar read state; validated DTOs and their query lifecycle remain with the caller. */
 export interface SportingCalendarViewProps {
-  traversalKey: string;
+  queryKey: QueryKey;
   calendar: Pick<
     UseInfiniteQueryResult<InfiniteData<MatchCalendarResponse>, Error>,
     | "data"
@@ -128,15 +130,21 @@ function calendarRevealKey(row: CalendarRow) {
 }
 
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
-export function SportingCalendarView({
-  traversalKey,
-  ...props
-}: Readonly<SportingCalendarViewProps>) {
+export function SportingCalendarView(
+  props: Readonly<SportingCalendarViewProps>,
+) {
   const reveal = useContentReveal();
-  return <CalendarViewport key={traversalKey} {...props} reveal={reveal} />;
+  return (
+    <CalendarViewport
+      key={hashKey(props.queryKey)}
+      {...props}
+      reveal={reveal}
+    />
+  );
 }
 
 function CalendarViewport({
+  queryKey,
   calendar,
   category,
   currentPoolId,
@@ -147,11 +155,12 @@ function CalendarViewport({
   children,
   reveal,
 }: Readonly<
-  Omit<SportingCalendarViewProps, "traversalKey"> & {
+  SportingCalendarViewProps & {
     reveal: ContentReveal;
   }
 >) {
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
   const list = useRef<LegendListRef>(null);
@@ -311,7 +320,9 @@ function CalendarViewport({
         <DataRefreshControl
           onRefresh={refresh}
           enabled={active && rows.length > 0}
-          fetching={calendar.isFetching}
+          fetching={() =>
+            queryClient.getQueryState(queryKey)?.fetchStatus === "fetching"
+          }
         />
       }
       renderItem={({ item }) => {
@@ -369,7 +380,11 @@ function CalendarViewport({
           {showRows && (
             <ListContinuation
               loading={calendar.isFetchingNextPage}
-              failed={calendar.hasNextPage && calendar.isFetchNextPageError}
+              failed={
+                !refreshing &&
+                calendar.hasNextPage &&
+                calendar.isFetchNextPageError
+              }
               disabled={!active || refreshing || calendar.isFetching}
               onRetry={() => void loadMore()}
             />
