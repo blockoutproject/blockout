@@ -17,10 +17,24 @@ import software.amazon.awssdk.services.s3.S3Client;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @Slf4j
 public class ImageObjects {
+  /** Fixed namespaces for new owned objects. Stored keys identify existing objects directly. */
+  public enum Category {
+    PROFILES("profiles"),
+    CLUBS("clubs"),
+    TEAMS("teams"),
+    DIVISIONS("divisions");
+
+    private final String segment;
+
+    Category(String segment) {
+      this.segment = segment;
+    }
+  }
+
   private final S3Client s3;
   private final ImageStorageProperties properties;
 
-  /** Returns the environment's owned bucket for private cleanup diagnostics. */
+  /** Returns the configured bucket for private cleanup diagnostics. */
   public String bucket() {
     return properties.bucket();
   }
@@ -42,13 +56,16 @@ public class ImageObjects {
   /**
    * Uploads a replacement before the caller publishes it in the current SQL transaction.
    *
+   * @param category namespace for a new owned object
    * @param previousOwnedKey current key eligible for deletion, or null for absent or legacy content
    * @param bytes accepted replacement, or null for explicit removal
    * @param mediaType detected type of a replacement, or null for removal
    * @return fresh owned key, or null when clearing the reference
    */
-  public String replace(String previousOwnedKey, byte[] bytes, String mediaType) {
-    String replacementKey = bytes == null ? null : "images/" + UUID.randomUUID();
+  public String replace(
+      Category category, String previousOwnedKey, byte[] bytes, String mediaType) {
+    String replacementKey =
+        bytes == null ? null : "v2/images/" + category.segment + "/" + UUID.randomUUID();
     if (previousOwnedKey != null || replacementKey != null) {
       // A lost response can leave an object even if putObject never returns successfully.
       cleanOnCompletion(previousOwnedKey, replacementKey);

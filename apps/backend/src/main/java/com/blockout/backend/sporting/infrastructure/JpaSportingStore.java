@@ -9,6 +9,7 @@ import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.shared.image.ImageObjects;
+import com.blockout.backend.shared.image.ImageObjects.Category;
 import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
@@ -715,7 +716,7 @@ public class JpaSportingStore implements SportingStore {
               name,
               color,
               gradient,
-              image == null ? null : replaceLogo(null, image, image.sha256()));
+              image == null ? null : replaceLogo(Category.DIVISIONS, null, image, image.sha256()));
       return mapper.toDetail(divisions.saveAndFlush(division));
     } catch (DataIntegrityViolationException failure) {
       if (failure.getCause() instanceof ConstraintViolationException constraint
@@ -1055,7 +1056,7 @@ public class JpaSportingStore implements SportingStore {
           club.setManualName(edit.manualName());
           if (logoChanged) {
             SportingLogo previousOwned = club.getLogoBucket() == null ? club.getLogo() : null;
-            club.setLogo(replaceLogo(previousOwned, next, digest));
+            club.setLogo(replaceLogo(Category.CLUBS, previousOwned, next, digest));
             club.setLogoBucket(null);
           }
           changes.submit(kind, id);
@@ -1068,7 +1069,7 @@ public class JpaSportingStore implements SportingStore {
           team.setManualName(edit.manualName());
           team.setManualShortName(edit.manualShortName());
           if (logoChanged) {
-            team.setLogo(replaceLogo(team.getLogo(), next, digest));
+            team.setLogo(replaceLogo(Category.TEAMS, team.getLogo(), next, digest));
           }
           changes.submit(kind, id);
         }
@@ -1095,10 +1096,12 @@ public class JpaSportingStore implements SportingStore {
     };
   }
 
-  private SportingLogo replaceLogo(SportingLogo previous, Image replacement, String digest) {
+  private SportingLogo replaceLogo(
+      Category category, SportingLogo previous, Image replacement, String digest) {
     String mediaType = replacement == null ? null : replacement.mediaType();
     String key =
         imageObjects.replace(
+            category,
             previous == null ? null : previous.objectKey(),
             replacement == null ? null : replacement.bytes(),
             mediaType);
@@ -1130,7 +1133,7 @@ public class JpaSportingStore implements SportingStore {
       division.setGradientMiddle(edit.gradient() == null ? null : edit.gradient().get(1));
       division.setGradientEnd(edit.gradient() == null ? null : edit.gradient().get(2));
       if (logoChanged) {
-        division.setLogo(replaceLogo(division.getLogo(), next, digest));
+        division.setLogo(replaceLogo(Category.DIVISIONS, division.getLogo(), next, digest));
       }
       changes.submit(Kind.DIVISION, id);
       try {
@@ -1243,7 +1246,7 @@ public class JpaSportingStore implements SportingStore {
     SportingLogo previous = team.getSourceLogo();
     boolean changed = previous == null || !previous.matches(image.mediaType(), digest);
     if (changed) {
-      team.setSourceLogo(replaceLogo(previous, image, digest));
+      team.setSourceLogo(replaceLogo(Category.TEAMS, previous, image, digest));
       changes.submit(Kind.TEAM, id);
     }
     team.setLogoCycleOrder(order.cycleOrder());

@@ -8,6 +8,7 @@ import com.blockout.backend.accounts.application.exception.UsernameUnavailableEx
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.shared.image.ImageObjects;
+import com.blockout.backend.shared.image.ImageObjects.Category;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -95,7 +96,8 @@ public class JpaAccountStore implements AccountStore {
       if (photoAction != null) {
         byte[] bytes = photo == null ? null : photo.bytes();
         String mediaType = photo == null ? null : photo.mediaType();
-        account.replacePhoto(images.replace(account.getPhotoKey(), bytes, mediaType), mediaType);
+        account.replacePhoto(
+            images.replace(Category.PROFILES, account.getPhotoKey(), bytes, mediaType), mediaType);
       }
       // Flush before returning so only the named username constraint becomes a business refusal.
       accounts.flush();

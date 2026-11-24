@@ -175,11 +175,11 @@ class TransitionLogoIntegrationTest {
         .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
-  @Test
-  @DisplayName("Inherits the exact read-only legacy object until a manual replacement")
-  void preservesLegacyObjectAfterReplacement() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"synthetic-legacy", "blockout-test-images"})
+  @DisplayName("Preserves the inherited legacy object on replacement in either bucket")
+  void preservesLegacyObjectAfterReplacement(String bucket) throws Exception {
     // Given
-    String bucket = "synthetic-legacy";
     String key = "club-assets/000339.png";
     Image original = new Image(SportingImageFixture.image("PNG", 0x112233), "image/png");
     images.putObject(
