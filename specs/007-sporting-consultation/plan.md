@@ -103,7 +103,7 @@ Return the next exclusive day boundary only when further eligible days exist. Th
 
 Calendar pool cards, the Match summary and detail cards, and the independent first content of sporting tab scenes follow [F13’s initial content presentation](../003-shared-quality/plan.md#first-useful-composition). A calendar group uses its existing date and pool identity across virtualized heading and match rows. The shared sporting identity above tabs has its own screen-level presentation.
 
-Use separate native press targets for the pool heading, team identities and calendar fixture action. `SportingLink` delegates the exact resource ID to `useSportingNavigation`, which preserves ordinary stack history and releases the route through F11’s existing admission and advertising owner. The current Pool or Team identity is contextual on its own calendar. Match context inside contribution forms remains informational.
+Use one native `SportingLink` for each complete calendar match card and a separate Pool link on the group heading when it leads to a different Pool. `SportingLink` delegates the exact resource ID to `useSportingNavigation`, which preserves ordinary stack history and releases the route through F11’s existing admission and advertising owner. The Match detail owns its Team and Pool links. Match context inside contribution forms remains informational.
 
 Native pool-name headings in identity and calendar/Match contexts follow FR-004’s two-line limit and trailing ellipsis with the full accessible name. Compact navigation uses the approved shared title and subtitle treatment. Participation entries wrap fully.
 

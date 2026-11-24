@@ -232,7 +232,7 @@ it.each([
   },
 );
 
-it("opens the exact teams and match independently while keeping final special notation", async () => {
+it("opens the exact match from either team, either score and the final notation", async () => {
   // Given
   const match: MatchSummaryResponse = {
     ...matchDetail().match,
@@ -249,24 +249,24 @@ it("opens the exact teams and match independently while keeping final special no
     wrapper: Providers,
   });
 
-  // When
+  const surfaces = ["Home", "Away", "3", "0", "Forfait"];
   const user = userEvent.setup();
-  await user.press(screen.getByRole("link", { name: "Ouvrir l’équipe Home" }));
-  await user.press(screen.getByRole("link", { name: "Ouvrir l’équipe Away" }));
-  await user.press(
-    screen.getByRole("link", {
-      name: /Ouvrir le match Home — Away, 3 à 0, Forfait/,
-    }),
-  );
-  await user.press(screen.getByRole("link", { name: /Score extérieur : 0/ }));
+
+  // When
+  for (const surface of surfaces) {
+    await user.press(screen.getByText(surface));
+  }
 
   // Then
-  expect(mockPush.mock.calls).toEqual([
-    [{ pathname: "/teams/[teamId]", params: { teamId: match.home.id } }],
-    [{ pathname: "/teams/[teamId]", params: { teamId: match.away.id } }],
-    [{ pathname: "/matches/[matchId]", params: { matchId: match.id } }],
-    [{ pathname: "/matches/[matchId]", params: { matchId: match.id } }],
-  ]);
+  const link = screen.getByRole("link", {
+    name: /Ouvrir le match Home — Away, 3 à 0, Forfait/,
+  });
+  expect(screen.getAllByRole("link")).toEqual([link]);
+  expect(mockPush.mock.calls).toEqual(
+    surfaces.map(() => [
+      { pathname: "/matches/[matchId]", params: { matchId: match.id } },
+    ]),
+  );
   expect(screen.getByText("Forfait")).toBeOnTheScreen();
   expect(screen.queryByText("Résultat indisponible")).not.toBeOnTheScreen();
 });
@@ -340,11 +340,10 @@ it("keeps the current Pool heading readable without linking back to the same des
 });
 
 it.each(["upcoming", "completed"] as const)(
-  "keeps the current Team contextual in its %s calendar with links for the opponent, pool and match",
+  "keeps both teams in the match link and the separate pool link in the Team %s calendar",
   async (category) => {
     // Given
     const match = calendar.days[0].pools[0].matches[0];
-    match.home.id = "00000000-0000-4000-8000-abcdefabcdef";
     calendar.category = category;
     match.category = category;
     match.pool.classification = {
@@ -360,9 +359,7 @@ it.each(["upcoming", "completed"] as const)(
     // When
     await render(
       <CalendarTab>
-        <SportingCalendar
-          selection={{ teamId: match.home.id.toUpperCase(), category }}
-        />
+        <SportingCalendar selection={{ teamId: match.home.id, category }} />
       </CalendarTab>,
       { wrapper: Providers },
     );
@@ -377,8 +374,8 @@ it.each(["upcoming", "completed"] as const)(
       screen.queryByRole("link", { name: "Ouvrir l’équipe Home" }),
     ).not.toBeOnTheScreen();
     expect(
-      screen.getByRole("link", { name: "Ouvrir l’équipe Away" }),
-    ).toBeOnTheScreen();
+      screen.queryByRole("link", { name: "Ouvrir l’équipe Away" }),
+    ).not.toBeOnTheScreen();
     expect(
       screen.getByRole("link", { name: "Pool · Prénationale Masculin" }),
     ).toBeOnTheScreen();

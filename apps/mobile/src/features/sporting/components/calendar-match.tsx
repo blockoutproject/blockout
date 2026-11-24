@@ -13,8 +13,6 @@ import { calendarStyles } from "./calendar-styles";
 export interface CalendarMatchProps {
   match: MatchSummaryResponse;
   displayTimeZone: string;
-  /** The open Team's own calendar keeps that team name contextual. */
-  currentTeamId?: string;
   /** Mounted native tabs retain their rows; only the active tab can continue an accepted opening. */
   active?: boolean;
 }
@@ -23,7 +21,6 @@ export interface CalendarMatchProps {
 export function CalendarMatch({
   match,
   displayTimeZone,
-  currentTeamId,
   active = true,
 }: Readonly<CalendarMatchProps>) {
   const { colors, context } = useTheme();
@@ -59,7 +56,11 @@ export function CalendarMatch({
   const encounter = `${match.home.name} — ${match.away.name}`;
   const matchLabel = `Ouvrir le match ${encounter}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`;
   return (
-    <View
+    <SportingLink
+      kind="match"
+      id={match.id}
+      label={matchLabel}
+      active={active}
       style={[
         calendarStyles.matchCard,
         { borderColor, backgroundColor: colors.raised },
@@ -82,9 +83,19 @@ export function CalendarMatch({
           {[
             { team: match.home, score: result?.homeSets },
             { team: match.away, score: result?.awaySets },
-          ].map(({ team, score }, index) => {
-            const identity = (
-              <>
+          ].map(({ team, score }, index) => (
+            <View
+              key={team.id}
+              style={[
+                calendarStyles.matchTeam,
+                styles.matchTeamRow,
+                index > 0 && {
+                  borderTopWidth: tokens.border.thin,
+                  borderColor,
+                },
+              ]}
+            >
+              <View style={styles.teamIdentity}>
                 <SportingLogo
                   identity={team}
                   kind="team"
@@ -93,64 +104,21 @@ export function CalendarMatch({
                 <Text style={[styles.name, { color: colors.text }]}>
                   {team.name}
                 </Text>
-              </>
-            );
-            return (
-              <View
-                key={team.id}
-                style={[
-                  calendarStyles.matchTeam,
-                  styles.matchTeamLinks,
-                  index > 0 && {
-                    borderTopWidth: tokens.border.thin,
-                    borderColor,
-                  },
-                ]}
-              >
-                {team.id.toLowerCase() === currentTeamId?.toLowerCase() ? (
-                  <View style={styles.teamIdentity}>{identity}</View>
-                ) : (
-                  <SportingLink
-                    kind="team"
-                    id={team.id}
-                    label={`Ouvrir l’équipe ${team.name}`}
-                    active={active}
-                    style={styles.teamIdentity}
-                  >
-                    {identity}
-                  </SportingLink>
-                )}
-                {hasScore && (
-                  <SportingLink
-                    kind="match"
-                    id={match.id}
-                    label={
-                      index === 0
-                        ? matchLabel
-                        : `Score extérieur : ${score}, ouvrir le match ${encounter}`
-                    }
-                    active={active}
-                    style={styles.scoreLink}
-                  >
-                    <View
-                      style={[styles.scoreCell, { backgroundColor: accent }]}
-                    >
-                      <Text style={[styles.score, { color: foreground }]}>
-                        {score}
-                      </Text>
-                    </View>
-                  </SportingLink>
-                )}
               </View>
-            );
-          })}
+              {hasScore && (
+                <View style={styles.scoreSlot}>
+                  <View style={[styles.scoreCell, { backgroundColor: accent }]}>
+                    <Text style={[styles.score, { color: foreground }]}>
+                      {score}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          ))}
         </View>
         {!hasScore && (
-          <SportingLink
-            kind="match"
-            id={match.id}
-            label={matchLabel}
-            active={active}
+          <View
             style={[
               calendarStyles.matchTime,
               {
@@ -162,7 +130,7 @@ export function CalendarMatch({
             <Text style={[styles.timeText, { color: foreground }]}>
               {match.schedule.instant ? schedule.time : "À définir"}
             </Text>
-          </SportingLink>
+          </View>
         )}
       </View>
       {result?.specialLabel && (
@@ -170,12 +138,12 @@ export function CalendarMatch({
           {result.specialLabel}
         </Text>
       )}
-    </View>
+    </SportingLink>
   );
 }
 
 const styles = StyleSheet.create({
-  matchTeamLinks: { paddingVertical: 0 },
+  matchTeamRow: { paddingVertical: 0 },
   teamIdentity: {
     flex: 1,
     minWidth: 0,
@@ -185,7 +153,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.sm,
     gap: tokens.spacing.sm,
   },
-  scoreLink: {
+  scoreSlot: {
     minWidth: tokens.touch.minimum,
     paddingVertical: tokens.spacing.sm,
     alignItems: "center",

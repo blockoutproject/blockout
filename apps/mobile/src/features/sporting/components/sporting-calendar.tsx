@@ -84,7 +84,6 @@ export function SportingCalendar({
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
-      currentTeamId={selection.teamId}
       active={active}
       onRefresh={refresh}
     >
@@ -116,8 +115,6 @@ export interface SportingCalendarViewProps {
   category: CalendarSelection["category"];
   /** The open Pool's own calendar already represents this destination. */
   currentPoolId?: string;
-  /** The open Team's own identity remains contextual in its calendar. */
-  currentTeamId?: string;
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
@@ -148,7 +145,6 @@ function CalendarViewport({
   calendar,
   category,
   currentPoolId,
-  currentTeamId,
   active = true,
   onRefresh,
   emptyState,
@@ -344,7 +340,6 @@ function CalendarViewport({
               key={item.match.id}
               match={item.match}
               displayTimeZone={displayZone}
-              currentTeamId={currentTeamId}
               active={active}
             />
           </View>
