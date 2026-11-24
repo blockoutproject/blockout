@@ -52,7 +52,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises persisted lifecycle, name uniqueness and division/classification ordering. */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
-@SpringBootTest
+@SpringBootTest(properties = "BLOCKOUT_IMAGES_WRITE_PREFIX=images")
 @DisplayName("Division lifecycle transactions")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class DivisionIntegrationTest {
@@ -161,7 +161,7 @@ class DivisionIntegrationTest {
     assertThat(
             sql.queryForObject(
                 "SELECT logo_key FROM sporting_division WHERE id=?", String.class, original.id()))
-        .startsWith("v2/images/divisions/");
+        .startsWith("images/divisions/");
   }
 
   @Test
