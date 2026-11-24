@@ -20,13 +20,13 @@ The [attachment client](https://github.com/cli/cli/blob/v2.102.0/internal/attach
 
 **Alternatives considered:** Undocumented direct Java upload calls would duplicate provider internals. Separate object storage would introduce another privacy, retention and association boundary. The official CLI available to the host-run backend adds a binary dependency but avoids both mechanisms; no extra service is needed.
 
-## Confidentiality, closure and exceptional erasure
+## Confidentiality and issue closure
 
 **Decision:** Normal processing is an email reply followed by issue closure, without deletion or periodic purge. No independent Blockout backup of support cases or images. Manual privacy requests use the existing F11 procedure.
 
 **Rationale:** [GitHub's attachment documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files) limits private-repository attachments to people with repository access and accepts PNG/JPEG within a 10 MB provider image bound; the application keeps its stricter 5 MiB bound. Repository permissions, not mobile administrative rights, control handling. PostgreSQL contains no support cases or image bytes.
 
-**Limits of evidence:** Inspect the private repository’s effective permissions, including inherited organization access, to establish who can read the attachments. Follow the original image-byte URLs and redirects as the repository owner and signed out, including successful files from partial attempts. The owner obtains the expected bytes and the signed-out request obtains none. Issue closure, removal of a Markdown link and deletion of an issue do not prove attachment erasure. The applicable provider erasure procedure requires provider action/acknowledgment and an independent authorized check of previously working URLs; failed or unavailable confidentiality/erasure evidence blocks real activation. This remains an exceptional manual privacy procedure, not an automated product workflow. Recovery depends on GitHub capabilities. [Repository backup documentation](https://docs.github.com/en/repositories/archiving-a-github-repository/backing-up-a-repository) does not turn a Git mirror into a complete restorable support archive.
+**Limits of evidence:** Inspect the private repository’s effective permissions, including inherited organization access, to establish who can read the attachments. Follow the original image-byte URLs and redirects as the repository owner and signed out, including successful files from partial attempts. The owner obtains the expected bytes and the signed-out request obtains none. Failed or unavailable confidentiality evidence blocks real activation. Recovery depends on GitHub capabilities. [Repository backup documentation](https://docs.github.com/en/repositories/archiving-a-github-repository/backing-up-a-repository) does not turn a Git mirror into a complete restorable support archive.
 
 ## Independent operator signal
 
@@ -48,7 +48,7 @@ The contract bounds titles to 200 UTF-16 code units, descriptions to 10,000, rep
 
 **Alternatives considered:** Square profile-photo cropping changes the meaning of a support screenshot. Silent image omission breaks complete acceptance. Neither is reused merely because another feature uses photos.
 
-**Qualification limits:** OpenAPI multipart array generation, Java/TypeScript compilation, native image preparation, real provider sending, private attachment access and erasure are not established by this research. The [quickstart](quickstart.md) describes these checks. No generated-output patch, template fork or custom multipart encoder is selected as a fallback.
+**Qualification limits:** OpenAPI multipart array generation, Java/TypeScript compilation, native image preparation, real provider sending and private attachment access are not established by this research. The [quickstart](quickstart.md) describes these checks. No generated-output patch, template fork or custom multipart encoder is selected as a fallback.
 
 The native preparation uses SDK 58's `ImageManipulator.manipulate` load bounds of 2560 × 2560, preserving aspect ratio and baking orientation through the native decoder. This bounds decoding before one save, keeps detailed screenshots as PNG and converts other library formats to JPEG at quality 0.9. It never enlarges small images or retries compression. The prepared `File.size` must be 1–5242880 bytes; an unsuccessful output remains an explicit selected error until replacement/removal. These implementation bounds do not qualify readability or actual native encoding; representative native observations remain in the image qualification tasks.
 
@@ -58,9 +58,9 @@ The native preparation uses SDK 58's `ImageManipulator.manipulate` load bounds o
 
 **Rationale:** Exact byte fabrication on every native platform adds no separate validation guarantee. Compatible native simulators/emulators exercise the functional media path; hardware is reserved for a named observation that cannot be reproduced there. Picker-selected access does not justify inventing a general-library permission prompt. Appearance, narrow layout, enlarged text, ordinary content order, keyboard focus and names/roles/states use representative shared compositions under F13 FR-030, without a state × appearance × font × OS matrix or dedicated VoiceOver/TalkBack campaign.
 
-**Retained actual proof:** One real provider case combines maximum accepted title, description, email and context, including supplementary Unicode, with five admissible images. Compare text/context and every reference after REST creation and CLI attachment editing. A later-upload failure and failed/unconfirmed final marking establish that partial effects are private and never false complete acceptance. T040–T042 and the [private-provider scenarios](quickstart.md#private-provider-qualification-matrix) retain these outcomes, byte/redirect access checks and exceptional erasure. Their execution needs its own authorization and private evidence; amendment or controlled tests supply no provider pass.
+**Retained actual proof:** One real provider case combines maximum accepted title, description, email and context, including supplementary Unicode, with five admissible images. Compare text/context and every reference after REST creation and CLI attachment editing. A later-upload failure and failed/unconfirmed final marking establish that partial effects are private and never false complete acceptance. T040–T042 and the [private-provider scenarios](quickstart.md#private-provider-qualification-matrix) retain these outcomes and byte/redirect access checks. Their execution needs its own authorization and private evidence; amendment or controlled tests supply no provider pass.
 
-**Alternatives considered:** Repeating all exact boundaries and form states on physical devices duplicates deterministic evidence. Replacing the maximum complete/partial provider proof with a smaller upload or mocks leaves composition, permission and erasure unqualified. Neither is retained.
+**Alternatives considered:** Repeating all exact boundaries and form states on physical devices duplicates deterministic evidence. Replacing the maximum complete/partial provider proof with a smaller upload or mocks leaves composition and permissions unqualified. Neither is retained.
 
 ## Input-boundary decisions
 

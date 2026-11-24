@@ -22,4 +22,4 @@ GitHub labels distinguish incomplete and complete intake from the ordinary open/
 
 Repository permissions govern all case and attachment access. Mobile administration is unrelated. Images use generated temporary filenames, not user-controlled paths or shell arguments. Case content is never copied to public artifacts, diagnostics, Discord or PostgreSQL.
 
-Issue closure is ordinary workflow, not erasure. [F11](../004-advertising-privacy-legal/spec.md#rights-and-information) owns exceptional rights handling. Removing a reference, deleting a business account or closing an issue is not proof of deleting the provider's image bytes. No periodic support purge or independent backup is added; recovery depends on GitHub capabilities.
+Issue closure records the end of ordinary handling. [F11](../004-advertising-privacy-legal/spec.md#rights-and-information) governs personal data requests. No periodic support purge or independent backup is added; recovery depends on GitHub capabilities.
