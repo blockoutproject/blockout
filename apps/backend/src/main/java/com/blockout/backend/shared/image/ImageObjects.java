@@ -57,7 +57,8 @@ public class ImageObjects {
    * Uploads a replacement before the caller publishes it in the current SQL transaction.
    *
    * @param category namespace for a new owned object
-   * @param previousOwnedKey current key eligible for deletion, or null for absent or legacy content
+   * @param previousOwnedKey exact key eligible for deletion, or null for an absent or read-only
+   *     association
    * @param bytes accepted replacement, or null for explicit removal
    * @param mediaType detected type of a replacement, or null for removal
    * @return fresh owned key, or null when clearing the reference

@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 public class InMemoryS3 implements S3Client {
   private final Map<String, byte[]> objects = new ConcurrentHashMap<>();
 
-  /** Seeds a valid reference for tests that prepare SQL fixtures directly. */
+  /** Seeds an owned image under an untyped key for direct SQL fixtures. */
   public String putImage(byte[] bytes, String mediaType) {
     String key = "images/" + UUID.randomUUID();
     putObject(
