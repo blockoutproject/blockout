@@ -126,7 +126,7 @@ Use provider consoles for revenue, impressions and fill. No-fill is not an appli
 
 Verify the tenth navigation with a ready ad, the tenth without an ad, a subsequent fresh cycle, and direct system notification and external live-link navigation. Check loss of eligibility, dismissal and presentation failure, and a UMP choice change. Reuse F09 coverage for entitlement derivation and account isolation. In representative native builds, confirm ordinary entry without age collection and the applicable privacy action. Qualify real consent, ATT and Google/Meta test serving at their native boundaries.
 
-Reuse existing evidence only while its source, mechanism, native dependencies, runtime and relevant configuration still apply under F13. Missing actual consent, serving, mediation, configuration and private-rights evidence remains in T010/T020/T031/T035/T038–T040/T043; legal-processing review remains T039. No removed or reused scenario supplies a new passing provider or release result.
+Reuse existing evidence only while its source, mechanism, native dependencies, runtime and relevant configuration still apply under F13. T010, T020, T031, T035, T038, T040 and T043 own qualification for consent, serving, mediation, configuration and private rights. T039 owns legal-processing review. No removed or reused scenario supplies a new passing provider or release result.
 
 Coverage: FR-001–006 shared counter/native lifecycle; FR-007–014 entitlement, advertising choices and permissions; FR-015–020 public legal pages; FR-021–027 contact restriction/minimization/restoration; FR-028–037 existing support, rights and truthful publication responsibilities. Changes do not relax private support, original-target cleanup evidence limits or legal rights handling.
 
