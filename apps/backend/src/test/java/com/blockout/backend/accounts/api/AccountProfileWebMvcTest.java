@@ -265,10 +265,9 @@ class AccountProfileWebMvcTest {
   @DisplayName("Reads private binary photos without JSON serialization")
   void readsBinary() throws Exception {
     // Given
-    Account original = new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid");
     byte[] bytes = new byte[] {1, 2, 3};
-    when(store.findById(ID)).thenReturn(Optional.of(original));
-    when(store.photo(ID)).thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png")));
+    when(store.photo(ISSUER, "auth0|one", ID))
+        .thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png")));
 
     // When
     ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));
@@ -282,32 +281,25 @@ class AccountProfileWebMvcTest {
   }
 
   @Test
-  @DisplayName("Hides another owner's photo and mutations")
+  @DisplayName("Rejects another owner's profile mutation")
   void hidesAnotherOwner() throws Exception {
     // Given
     Account other = new Account(ID, ISSUER, "auth0|other", "Other", "shared@example.invalid");
     when(store.lockById(ID)).thenReturn(Optional.of(other));
-    when(store.findById(ID)).thenReturn(Optional.of(other));
 
     // When
     ResultActions profileResponse = mvc.perform(patch("{\"username\":\"Original\"}"));
-    ResultActions photoResponse = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));
 
     // Then
     profileResponse.andExpect(status().isNotFound());
-    photoResponse.andExpect(status().isNotFound());
     verify(store, never()).changeProfile(any(), any(), any(), any());
-    verify(store, never()).photo(ID);
   }
 
   @Test
   @DisplayName("Returns 404 for an owner whose photo is absent")
   void refusesMissingPhoto() throws Exception {
     // Given
-    when(store.findById(ID))
-        .thenReturn(
-            Optional.of(
-                new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid")));
+    when(store.photo(ISSUER, "auth0|one", ID)).thenReturn(Optional.empty());
 
     // When
     ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));

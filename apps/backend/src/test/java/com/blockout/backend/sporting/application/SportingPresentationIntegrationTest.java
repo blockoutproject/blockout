@@ -28,6 +28,7 @@ import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.SetClubContactsRequest;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.MatchObservation;
@@ -112,6 +113,7 @@ class SportingPresentationIntegrationTest {
   @Autowired private MockMvc mvc;
   @Autowired private JsonMapper json;
   @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingResources resources;
   @Autowired private SportingStore sportingStore;
   @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private SportingIdentityFixture identities;
@@ -982,6 +984,9 @@ class SportingPresentationIntegrationTest {
             club,
             new Edit("First", null, LogoActionEnum.REPLACE, first));
 
+    String originalKey =
+        sql.queryForObject("SELECT logo_key FROM sporting_club WHERE id=?", String.class, club);
+
     // When
     new TransactionTemplate(transactions)
         .executeWithoutResult(
@@ -1002,14 +1007,14 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(noOp).isEqualTo(saved);
-    assertThat(reads.publicLogo(SportingProjectionChanges.Kind.CLUB, club).orElseThrow().bytes())
-        .isEqualTo(first.bytes());
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(first.bytes());
     assertThat(
             sql.queryForMap(
-                "SELECT logo_media_type,octet_length(logo) AS logo_size FROM sporting_club WHERE id=?",
+                "SELECT logo_key, logo_media_type, logo_sha256 FROM sporting_club WHERE id=?",
                 club))
+        .containsEntry("logo_key", originalKey)
         .containsEntry("logo_media_type", "image/png")
-        .containsEntry("logo_size", first.bytes().length);
+        .containsEntry("logo_sha256", first.sha256());
   }
 
   @Test
@@ -1153,14 +1158,13 @@ class SportingPresentationIntegrationTest {
         new Edit(null, null, LogoActionEnum.REPLACE, second));
 
     // Then
-    assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, team).orElseThrow().bytes())
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(second.bytes());
-    assertThat(
-            reads.publicLogo(SportingProjectionChanges.Kind.TEAM, nextTeam).orElseThrow().bytes())
+    assertThat(resources.teamLogo(nextTeam, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(second.bytes());
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo IS NOT NULL",
+                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo_key IS NOT NULL",
                 Integer.class,
                 club))
         .isZero();
@@ -1176,7 +1180,7 @@ class SportingPresentationIntegrationTest {
             team,
             new Edit("Independent team", null, LogoActionEnum.KEEP, null));
     assertThat(renamed.names().effectiveName()).isEqualTo("Independent team");
-    assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, team).orElseThrow().bytes())
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(second.bytes());
   }
 
@@ -1224,8 +1228,9 @@ class SportingPresentationIntegrationTest {
         new ValidateSportingImage().validate(SportingImageFixture.image("JPEG", 0x445566));
     Image manualImage =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x778899));
-    assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team()))
-        .isEmpty();
+    assertThatThrownBy(
+            () -> resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     presentation.set(
         account,
         SportingProjectionChanges.Kind.CLUB,
@@ -1233,11 +1238,7 @@ class SportingPresentationIntegrationTest {
         new Edit(null, null, LogoActionEnum.REPLACE, clubImage));
     // Synthetic exact technical association; ingestion never writes this optional relation.
     sql.update("UPDATE sporting_team SET club_id=? WHERE id=?", club, professional.team());
-    assertThat(
-            reads
-                .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(clubImage.bytes());
     presentation.set(
         account,
@@ -1248,22 +1249,13 @@ class SportingPresentationIntegrationTest {
     // When
     images.requireSource(professional.team(), context(professional.cycle(), 1));
     images.acceptSource(professional.team(), context(professional.cycle(), 1), lnvImage);
-    Image stillManual =
-        reads.publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team()).orElseThrow();
+    Image stillManual = resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE);
     SportingPresentation.View current =
         configurationReads.presentation(
             account, SportingProjectionChanges.Kind.TEAM, professional.team());
-    assertThat(
-            reads
-                .publicTeamLogo(professional.team(), TeamLogoSelectionEnum.AUTOMATIC)
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.AUTOMATIC).bytes())
         .isEqualTo(lnvImage.bytes());
-    assertThat(
-            reads
-                .publicTeamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE)
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(manualImage.bytes());
     SportingPresentation.View automatic =
         presentation.set(
@@ -1277,11 +1269,7 @@ class SportingPresentationIntegrationTest {
     assertThat(current.logo().automaticUrl())
         .isEqualTo("/teams/" + professional.team() + "/logo?selection=automatic");
     assertThat(automatic.logo().manualUrl()).isNull();
-    assertThat(
-            reads
-                .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(lnvImage.bytes());
     assertThat(acquisitionReads.team(professional.team()).orElseThrow().clubId()).isEqualTo(club);
     assertThat(
@@ -1289,19 +1277,11 @@ class SportingPresentationIntegrationTest {
                 .acceptSource(professional.team(), context(professional.cycle(), 1), clubImage)
                 .outcome())
         .isEqualTo(ObservationOutcomeEnum.UNCHANGED);
-    assertThat(
-            reads
-                .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(lnvImage.bytes());
     assertThatThrownBy(() -> new ValidateSportingImage().validate(new byte[] {1, 2, 3}))
         .isInstanceOf(SportingValidationException.class);
-    assertThat(
-            reads
-                .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(lnvImage.bytes());
   }
 
@@ -1333,11 +1313,7 @@ class SportingPresentationIntegrationTest {
                 account, SportingProjectionChanges.Kind.TEAM, professional.team()))
         .isEqualTo(before);
     assertThat(acquisitionReads.match(professional.match())).isPresent();
-    assertThat(
-            reads
-                .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                .orElseThrow()
-                .bytes())
+    assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(original.bytes());
   }
 
@@ -1373,11 +1349,7 @@ class SportingPresentationIntegrationTest {
       startup.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(
-              reads
-                  .publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team())
-                  .orElseThrow()
-                  .bytes())
+      assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
           .isEqualTo(image.bytes());
       assertThatThrownBy(
               () ->

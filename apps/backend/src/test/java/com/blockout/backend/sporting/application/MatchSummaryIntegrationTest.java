@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarRequest;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
@@ -13,6 +14,7 @@ import com.blockout.backend.sporting.support.MatchCalendarFixture;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Instant;
@@ -48,6 +50,7 @@ class MatchSummaryIntegrationTest {
   @Autowired private ReadSportingResources resources;
   @Autowired private ReadMatchCalendar calendars;
   @Autowired private JdbcTemplate sql;
+  @Autowired private InMemoryS3 images;
   @Autowired private EntityManagerFactory entityManagerFactory;
   private Scope scope;
   private MatchView match;
@@ -66,15 +69,19 @@ class MatchSummaryIntegrationTest {
     UUID club =
         sql.queryForObject(
             "SELECT club_id FROM sporting_team WHERE id=?", UUID.class, match.homeTeamId());
-    byte[] artwork = SportingImageFixture.image("png", 0x123456);
+    Image artwork = new Image(SportingImageFixture.image("png", 0x123456), "image/png");
     sql.update(
-        "UPDATE sporting_club SET logo=?, logo_media_type='image/png' WHERE id=?", artwork, club);
+        "UPDATE sporting_club SET logo_key=?, logo_sha256=?, logo_media_type='image/png' WHERE id=?",
+        images.putImage(artwork.bytes(), artwork.mediaType()),
+        artwork.sha256(),
+        club);
     sql.update(
         "UPDATE sporting_team SET manual_name='Current home', manual_short_name='HOME' WHERE id=?",
         match.homeTeamId());
     sql.update(
-        "UPDATE sporting_team SET manual_name='Current away', logo=?, logo_media_type='image/png' WHERE id=?",
-        artwork,
+        "UPDATE sporting_team SET manual_name='Current away', logo_key=?, logo_sha256=?, logo_media_type='image/png' WHERE id=?",
+        images.putImage(artwork.bytes(), artwork.mediaType()),
+        artwork.sha256(),
         match.awayTeamId());
     sql.update("UPDATE sporting_pool SET manual_name='Current pool' WHERE id=?", scope.pool());
     Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();

@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Minimal local account identity and provider evidence; the principal remains immutable. */
+/** Local account identity, presentation and photo reference. */
 @Entity
 @Table(name = "account")
 @Getter
@@ -47,6 +47,12 @@ public class AccountEntity {
   @Setter(AccessLevel.PACKAGE)
   private String email;
 
+  @Getter(AccessLevel.PACKAGE)
+  private String photoKey;
+
+  @Getter(AccessLevel.PACKAGE)
+  private String photoMediaType;
+
   /**
    * Creates a lifecycle from validated identity evidence; native validation runs before
    * persistence.
@@ -61,5 +67,11 @@ public class AccountEntity {
     this.subject = subject;
     this.username = TextTrimming.trim(username);
     this.email = email;
+  }
+
+  /** Changes the S3 reference and media type together under the original account row lock. */
+  void replacePhoto(String key, String mediaType) {
+    photoKey = key;
+    photoMediaType = mediaType;
   }
 }

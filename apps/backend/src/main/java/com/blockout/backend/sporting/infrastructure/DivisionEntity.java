@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.infrastructure;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -46,8 +47,7 @@ public class DivisionEntity {
   @Setter private String gradientStart;
   @Setter private String gradientMiddle;
   @Setter private String gradientEnd;
-  @Setter private byte[] logo;
-  @Setter private String logoMediaType;
+  @Embedded @Setter private SportingLogo logo;
 
   @ElementCollection
   @CollectionTable(name = "sporting_division_term", joinColumns = @JoinColumn(name = "division_id"))
@@ -60,11 +60,9 @@ public class DivisionEntity {
    * @param name nonblank unique division name
    * @param color validated primary sRGB color
    * @param gradient three validated colors, or null
-   * @param logo validated PNG/JPEG bytes, or null
-   * @param mediaType actual content type, or null
+   * @param logo accepted PNG/JPEG object reference, or null
    */
-  public DivisionEntity(
-      String name, String color, List<String> gradient, byte[] logo, String mediaType) {
+  DivisionEntity(String name, String color, List<String> gradient, SportingLogo logo) {
     this.name = name;
     this.active = true;
     this.color = color;
@@ -74,6 +72,5 @@ public class DivisionEntity {
       this.gradientEnd = gradient.get(2);
     }
     this.logo = logo;
-    this.logoMediaType = mediaType;
   }
 }

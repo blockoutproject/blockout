@@ -11,9 +11,10 @@ import java.util.UUID;
  * @param issuer exact original Auth0 issuer
  * @param subject exact original Auth0 subject
  * @param revenueCatIds known original current/historical customer IDs, never guessed aliases
+ * @param photoKey original private S3 object key, if a photo was associated
  */
 public record OriginalAccountTargets(
-    UUID accountId, String issuer, String subject, List<String> revenueCatIds) {
+    UUID accountId, String issuer, String subject, List<String> revenueCatIds, String photoKey) {
   /**
    * Copies known references so post-commit work cannot observe a changed target collection.
    *
@@ -21,6 +22,7 @@ public record OriginalAccountTargets(
    * @param issuer exact original issuer
    * @param subject exact original principal
    * @param revenueCatIds established references, possibly empty
+   * @param photoKey original private S3 object key, or null
    */
   public OriginalAccountTargets {
     revenueCatIds = List.copyOf(revenueCatIds);

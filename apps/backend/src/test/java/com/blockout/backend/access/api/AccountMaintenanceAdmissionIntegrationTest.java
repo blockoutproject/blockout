@@ -1,7 +1,9 @@
 package com.blockout.backend.access.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -15,7 +17,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.accounts.application.AccountAdmission;
+import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.PrincipalReader;
+import com.blockout.backend.accounts.application.ProfilePhoto;
+import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -45,10 +51,9 @@ import org.springframework.test.web.servlet.request.AbstractMockHttpServletReque
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
-/**
- * Real HTTP, F12 wiring and migrated PostgreSQL; only the external principal reader is controlled.
- */
+/** Real HTTP, F12 wiring and migrated PostgreSQL with controlled Auth0 and S3 boundaries. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayName("Account maintenance admission wiring")
@@ -59,8 +64,10 @@ class AccountMaintenanceAdmissionIntegrationTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000175");
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
+  @Autowired private ChangeAccountProfile profiles;
   @MockitoBean private PrincipalReader provider;
   @MockitoSpyBean private AccountAdmission admission;
+  @MockitoSpyBean private InMemoryS3 storage;
 
   /** Restores only this disposable database's account and maintenance fixtures. */
   @BeforeEach
@@ -164,13 +171,23 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "existing@example.invalid");
     // Stored bytes exercise admission and binary reading; image decoding has its own boundary.
     byte[] photo = {1, 2, 3};
-    sql.update(
-        "UPDATE account SET photo_bytes=?, photo_media_type='image/png' WHERE id=?",
-        photo,
-        ACCOUNT);
+    profiles.change(
+        ISSUER,
+        "auth0|existing",
+        ACCOUNT,
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(photo, "image/png"));
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
+    doAnswer(
+            invocation -> {
+              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+              return invocation.callRealMethod();
+            })
+        .when(storage)
+        .getObjectAsBytes(any(GetObjectRequest.class));
 
     // When
     mvc.perform(
@@ -192,6 +209,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("auth0|unknown")))
         .andExpect(status().isForbidden());
+    verify(storage).getObjectAsBytes(any(GetObjectRequest.class));
     verifyNoInteractions(provider);
   }
 
@@ -297,13 +315,19 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "existing@example.invalid");
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000999");
     sql.update(
-        "INSERT INTO account (id, issuer, subject, username, email, photo_bytes, photo_media_type) VALUES (?, ?, ?, ?, ?, ?, 'image/png')",
+        "INSERT INTO account (id, issuer, subject, username, email) VALUES (?, ?, ?, ?, ?)",
         other,
         ISSUER,
         "auth0|other",
         "Other_175",
-        "other@example.invalid",
-        new byte[] {4, 5, 6});
+        "other@example.invalid");
+    profiles.change(
+        ISSUER,
+        "auth0|other",
+        other,
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(new byte[] {4, 5, 6}, "image/png"));
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);

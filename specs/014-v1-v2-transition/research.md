@@ -56,9 +56,9 @@ Builds follow Expo's [monorepo conventions](https://docs.expo.dev/build-referenc
 
 ## Preservation with a manual freeze
 
-**Decision**: The sole administrator freezes V1 manual changes before an advance copy of club-logo references and bytes. Re-copy an affected association only if an exceptional change is made. Preserve exact FFVB identifiers, including leading zeros. Reapply only certain matches through F02.
+**Decision**: The sole administrator freezes V1 manual changes before an advance copy of club-logo references and bytes. Re-copy an affected association only if an exceptional change is made. Preserve exact FFVB identifiers, including leading zeros. Reapply only certain matches through F02. A verified existing legacy S3 object may remain at its original bucket and key under scope-limited read-only access, with the independent preservation copy still required.
 
-**Rationale**: The owner controls these writes and the inspected scraper preserves existing logos. A verified copy can therefore remain valid for several days; a final full copy or incremental synchronization is not inherently necessary. Stop or settle relevant in-flight work before the copy and verify the deployed scraper's behavior. Copying a URL alone loses protection when its object is removed.
+**Rationale**: The owner controls these writes and the inspected scraper preserves existing logos. A verified copy can therefore remain valid for several days; a final full copy or incremental synchronization is not inherently necessary. Stop or settle relevant in-flight work before the copy and verify the deployed scraper's behavior. A legacy reference lets V2 serve existing bytes without copying to its ordinary object namespace or gaining permission to modify the legacy source. The independent preservation copy protects usable data if the source object is removed.
 
 **Alternatives considered**: Change-data capture, mirrored image stores and repeated full exports add operations without a current need. Name-based matching risks incorrect ownership. Unknown associations remain privately retained; they do not justify invented clubs.
 

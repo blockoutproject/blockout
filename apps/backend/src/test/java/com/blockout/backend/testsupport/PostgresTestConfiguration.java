@@ -2,6 +2,7 @@ package com.blockout.backend.testsupport;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
@@ -12,6 +13,12 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class PostgresTestConfiguration {
+  @Bean
+  @Primary
+  InMemoryS3 testImageS3Client() {
+    return new InMemoryS3();
+  }
+
   /**
    * Declares the disposable container whose startup and shutdown Spring Boot manages.
    *

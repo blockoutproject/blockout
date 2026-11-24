@@ -9,7 +9,9 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
@@ -27,6 +29,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -50,10 +53,13 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * Rehearses manual F14 logo reassociation through real F02 owners and migrated PostgreSQL. All
- * identities, files and accounts are synthetic; no V1 source or external image host is accessed.
+ * identities, files and accounts are synthetic. The object client uses isolated fixtures.
  */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
@@ -66,11 +72,13 @@ class TransitionLogoIntegrationTest {
   @Autowired private ChangeSportingPresentation presentation;
   @Autowired private ReadSportingConfiguration configurationReads;
   @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingResources resources;
   @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
+  @Autowired private InMemoryS3 images;
   @TempDir private Path preservedFiles;
   private UUID account;
   private UUID pool;
@@ -162,10 +170,48 @@ class TransitionLogoIntegrationTest {
     assertThat(reads.club(club).orElseThrow().reference()).isEqualTo(reference);
     assertThat(saved.names()).isEqualTo(current.names());
     assertThat(saved.logo().manualUrl()).isEqualTo("/clubs/" + club + "/logo");
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original);
-    assertThat(reads.publicLogo(Kind.CLUB, similar)).isEmpty();
-    assertThat(sql.queryForObject("SELECT logo FROM sporting_club WHERE id=?", byte[].class, club))
-        .isEqualTo(original);
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(original);
+    assertThatThrownBy(() -> resources.clubLogo(similar))
+        .isInstanceOf(SportingResourceNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("Inherits the exact read-only legacy object until a manual replacement")
+  void preservesLegacyObjectAfterReplacement() throws Exception {
+    // Given
+    String bucket = "synthetic-legacy";
+    String key = "club-assets/000339.png";
+    Image original = new Image(SportingImageFixture.image("PNG", 0x112233), "image/png");
+    images.putObject(
+        PutObjectRequest.builder()
+            .bucket(bucket)
+            .key(key)
+            .contentType(original.mediaType())
+            .build(),
+        RequestBody.fromBytes(original.bytes()));
+    sql.update(
+        "UPDATE sporting_club SET logo_bucket=?, logo_key=?, logo_sha256=?, logo_media_type=? WHERE id=?",
+        bucket,
+        key,
+        original.sha256(),
+        original.mediaType(),
+        club);
+    Image replacement = new Image(SportingImageFixture.image("JPEG", 0x445566), "image/jpeg");
+
+    // When
+    Image inherited = resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE);
+    presentation.set(
+        account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, replacement));
+
+    // Then
+    assertThat(inherited.bytes()).isEqualTo(original.bytes());
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
+        .isEqualTo(replacement.bytes());
+    assertThat(
+            images
+                .getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build())
+                .asByteArray())
+        .isEqualTo(original.bytes());
   }
 
   @Test
@@ -237,7 +283,8 @@ class TransitionLogoIntegrationTest {
             })
         .isInstanceOf(NoSuchFileException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
+    assertThatThrownBy(() -> resources.clubLogo(club))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @ParameterizedTest
@@ -267,7 +314,7 @@ class TransitionLogoIntegrationTest {
             })
         .isInstanceOf(SportingValidationException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original.bytes());
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(original.bytes());
   }
 
   @Test
@@ -287,7 +334,8 @@ class TransitionLogoIntegrationTest {
                     club,
                     new Edit(null, null, LogoActionEnum.REPLACE, original)))
         .isInstanceOf(AccessDeniedException.class);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
+    assertThatThrownBy(() -> resources.clubLogo(club))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @Test
@@ -305,7 +353,7 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(saved);
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(oldCopy.bytes());
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(oldCopy.bytes());
   }
 
   @Test
@@ -369,15 +417,17 @@ class TransitionLogoIntegrationTest {
         account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, original));
 
     // Then
-    assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes()).isEqualTo(original.bytes());
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
+        .isEqualTo(original.bytes());
     assertThat(acquisitionReads.team(nextTeam).orElseThrow().clubId()).isEqualTo(club);
-    assertThat(reads.publicLogo(Kind.TEAM, nextTeam).orElseThrow().bytes())
+    assertThat(resources.teamLogo(nextTeam, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(original.bytes());
     assertThat(acquisitionReads.team(professional).orElseThrow().clubId()).isNull();
-    assertThat(reads.publicLogo(Kind.TEAM, professional)).isEmpty();
+    assertThatThrownBy(() -> resources.teamLogo(professional, TeamLogoSelectionEnum.EFFECTIVE))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE logo IS NOT NULL", Integer.class))
+                "SELECT COUNT(*) FROM sporting_team WHERE logo_key IS NOT NULL", Integer.class))
         .isZero();
   }
 }

@@ -48,8 +48,8 @@ public class ClubEntity {
 
   @Setter private String sourceName;
   @Setter private String manualName;
-  @Setter private byte[] logo;
-  @Setter private String logoMediaType;
+  @Embedded @Setter private SportingLogo logo;
+  @Setter private String logoBucket;
   @Setter private Long detailCycleOrder;
   @Setter private Long detailReadOrdinal;
   @Setter private Instant detailObservedAt;

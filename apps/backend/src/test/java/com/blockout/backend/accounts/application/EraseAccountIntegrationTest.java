@@ -28,6 +28,7 @@ import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
 import com.blockout.backend.notifications.application.ChangePushSubscriptions;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
+import com.blockout.backend.shared.image.ImageObjects;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -61,6 +62,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 /**
  * Real F05/F06/F07/F08/F12 owners on migrated PostgreSQL, with controlled provider I/O and time.
@@ -82,6 +84,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
   @Autowired private ReportContribution reports;
   @Autowired private ModerateContribution moderation;
   @Autowired private ReadAccount readsAccount;
+  @Autowired private ImageObjects images;
   @Autowired private MockMvc mvc;
   @MockitoSpyBean private ProfilePhotoProcessor photos;
   @Autowired private EstablishAccount establishment;
@@ -111,6 +114,8 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         null,
         ProfilePhotoActionEnum.REPLACE,
         new ProfilePhoto(new byte[] {1}, "image/png"));
+    String originalPhotoKey =
+        sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, FOLLOWER);
     destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
     moderator(FOLLOWER);
     sql.update(
@@ -153,6 +158,10 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     }
     assertThat(accounts.findById(FOLLOWER)).isEmpty();
     assertThat(accounts.hasPhoto(FOLLOWER)).isFalse();
+    assertThatThrownBy(() -> readsAccount.photo(ISSUER, FOLLOWER.toString(), FOLLOWER))
+        .isInstanceOf(AccountNotFoundException.class);
+    assertThatThrownBy(() -> images.read(originalPhotoKey))
+        .hasRootCauseInstanceOf(NoSuchKeyException.class);
     assertThat(accounts.findById(OTHER)).isPresent();
     verify(auth0).remove(ISSUER, FOLLOWER.toString());
     verify(revenueCat).remove(FOLLOWER.toString());
@@ -386,15 +395,15 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         photos.prepare(png(4), "image/png"));
     when(auth0.remove(any(), any())).thenReturn(AccountCleanup.Outcome.REMOVED);
     when(revenueCat.remove(any())).thenReturn(AccountCleanup.Outcome.QUEUED);
-    CompletableFuture<Void> deleted = new CompletableFuture<>();
+    CompletableFuture<Void> deleteScheduled = new CompletableFuture<>();
     CompletableFuture<Void> commit = new CompletableFuture<>();
     CompletableFuture<Integer> writerPid = new CompletableFuture<>();
     doAnswer(
             call -> {
-              call.callRealMethod();
-              deleted.complete(null);
+              Object photoKey = call.callRealMethod();
+              deleteScheduled.complete(null);
               commit.get(10, TimeUnit.SECONDS);
-              return null;
+              return photoKey;
             })
         .when(
             org.springframework.test.util.AopTestUtils.<AccountStore>getUltimateTargetObject(
@@ -403,7 +412,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       Future<?> erasing =
           workers.submit(() -> erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER));
-      deleted.get(10, TimeUnit.SECONDS);
+      deleteScheduled.get(10, TimeUnit.SECONDS);
       Future<?> writing =
           workers.submit(
               () ->

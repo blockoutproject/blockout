@@ -14,12 +14,14 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
-   * Deletes the original account and applies the database's referential actions in the caller's
-   * transaction. The caller first removes follows and redacts private report text.
+   * Flushes the original account deletion within the caller's transaction. PostgreSQL applies its
+   * referential actions before this method returns. The caller first removes follows and redacts
+   * private report text.
    *
    * @param accountId original lifecycle protected by its account row lock
+   * @return original S3 photo key for post-commit cleanup, or null when no photo was associated
    */
-  void erase(UUID accountId);
+  String erase(UUID accountId);
 
   /**
    * Reads current attribution names without loading profile/photo data per version.
@@ -64,16 +66,19 @@ public interface AccountStore {
   boolean hasPhoto(UUID id);
 
   /**
-   * Loads only the original account's accepted image bytes; callers authorize the owner first.
+   * Checks the original holder and resolves their current photo reference before fetching bytes.
    *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
    * @param id original lifecycle UUID
-   * @return accepted photo, or empty when absent
+   * @return accepted photo, or empty for an absent photo or a different holder
    */
-  Optional<ProfilePhoto> photo(UUID id);
+  Optional<ProfilePhoto> photo(String issuer, String subject, UUID id);
 
   /**
    * Applies supplied profile fields to an already locked original row and flushes uniqueness.
-   * Omitted values preserve the locked current state; replacement/removal update all photo columns.
+   * Omitted values preserve the locked current state. Replacement uploads before SQL publication,
+   * and deletion of the superseded photo follows the commit.
    *
    * @param id original UUID locked by the caller
    * @param username normalized supplied username, or null to preserve

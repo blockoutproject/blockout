@@ -40,18 +40,16 @@ public class EraseAccount {
             .execute(
                 status -> {
                   Account original = access.lockOwnedOriginal(issuer, subject, accountId);
-                  // The only established RevenueCat reference in this schema is the V2 business
-                  // UUID.
-                  OriginalAccountTargets captured =
-                      new OriginalAccountTargets(
-                          original.id(),
-                          original.issuer(),
-                          original.subject(),
-                          List.of(original.id().toString()));
                   follows.erase(accountId);
                   reports.redact(accountId);
-                  accounts.erase(accountId);
-                  return captured;
+                  String photoKey = accounts.erase(accountId);
+                  // The V2 business UUID is this schema's established RevenueCat reference.
+                  return new OriginalAccountTargets(
+                      original.id(),
+                      original.issuer(),
+                      original.subject(),
+                      List.of(original.id().toString()),
+                      photoKey);
                 });
     cleanup.clean(targets);
   }

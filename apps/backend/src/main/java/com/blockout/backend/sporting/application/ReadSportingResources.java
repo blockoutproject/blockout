@@ -4,6 +4,7 @@ import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.image.ImageObjects;
 import com.blockout.backend.shared.mapping.TemporalMapping;
 import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonRequest;
 import com.blockout.backend.sporting.application.ConsultationStore.MatchDetailInput;
@@ -13,6 +14,7 @@ import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Locality;
+import com.blockout.backend.sporting.application.model.SportingPresentation.LogoObject;
 import com.blockout.backend.sporting.application.model.SportingPresentation.View;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
@@ -36,6 +38,7 @@ import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Current public reads; F12 admits HTTP requests and F02 retains all sporting/image authority. */
@@ -50,6 +53,7 @@ public class ReadSportingResources {
   private final Clock clock;
   private final ReadPublicContribution contributions;
   private final ReadMatchDocument documents;
+  private final ImageObjects imageObjects;
 
   /**
    * Reads exact current club facts and viewable seasons.
@@ -238,16 +242,18 @@ public class ReadSportingResources {
   }
 
   /**
-   * Reads currently available club artwork from its F02 owner.
+   * Reads admitted club artwork after its SQL snapshot has ended.
    *
    * @param id stable club identity
    * @return validated immutable image bytes
    * @throws SportingResourceNotFoundException when owner or image is unavailable
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Image clubLogo(UUID id) {
-    return owners
-        .publicLogo(SportingProjectionChanges.Kind.CLUB, id)
-        .orElseThrow(SportingResourceNotFoundException::new);
+    return readLogo(
+        owners
+            .publicLogoObject(SportingProjectionChanges.Kind.CLUB, id)
+            .orElseThrow(SportingResourceNotFoundException::new));
   }
 
   /**
@@ -257,10 +263,12 @@ public class ReadSportingResources {
    * @return current immutable image
    * @throws SportingResourceNotFoundException when inactive, missing or without artwork
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Image divisionLogo(UUID id) {
-    return owners
-        .publicLogo(SportingProjectionChanges.Kind.DIVISION, id)
-        .orElseThrow(SportingResourceNotFoundException::new);
+    return readLogo(
+        owners
+            .publicLogoObject(SportingProjectionChanges.Kind.DIVISION, id)
+            .orElseThrow(SportingResourceNotFoundException::new));
   }
 
   /**
@@ -271,8 +279,20 @@ public class ReadSportingResources {
    * @return selected immutable image
    * @throws SportingResourceNotFoundException when owner or selected image is unavailable
    */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Image teamLogo(UUID id, TeamLogoSelectionEnum selection) {
-    return owners.publicTeamLogo(id, selection).orElseThrow(SportingResourceNotFoundException::new);
+    return readLogo(
+        owners
+            .publicTeamLogoObject(id, selection)
+            .orElseThrow(SportingResourceNotFoundException::new));
+  }
+
+  private Image readLogo(LogoObject object) {
+    byte[] bytes =
+        object.bucket() == null
+            ? imageObjects.read(object.objectKey())
+            : imageObjects.read(object.bucket(), object.objectKey());
+    return new Image(bytes, object.mediaType());
   }
 
   /**

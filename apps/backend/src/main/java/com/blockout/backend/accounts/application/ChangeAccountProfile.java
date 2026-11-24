@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Applies supplied profile fields to the original owner in one short local transaction. */
+/** Applies supplied profile fields under the original account row lock. */
 @Service
 @RequiredArgsConstructor
 public class ChangeAccountProfile {

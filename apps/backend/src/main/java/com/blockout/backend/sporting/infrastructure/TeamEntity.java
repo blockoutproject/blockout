@@ -3,9 +3,11 @@ package com.blockout.backend.sporting.infrastructure;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -62,10 +64,15 @@ public class TeamEntity {
   @Column(nullable = false)
   private String comparisonName;
 
-  @Setter private byte[] logo;
-  @Setter private String logoMediaType;
-  @Setter private byte[] sourceLogo;
-  @Setter private String sourceLogoMediaType;
+  @Embedded @Setter private SportingLogo logo;
+
+  @Embedded
+  @AttributeOverride(name = "objectKey", column = @Column(name = "source_logo_key"))
+  @AttributeOverride(name = "mediaType", column = @Column(name = "source_logo_media_type"))
+  @AttributeOverride(name = "sha256", column = @Column(name = "source_logo_sha256", length = 64))
+  @Setter
+  private SportingLogo sourceLogo;
+
   @Setter private Long logoCycleOrder;
   @Setter private Long logoReadOrdinal;
   @Setter private Instant logoObservedAt;

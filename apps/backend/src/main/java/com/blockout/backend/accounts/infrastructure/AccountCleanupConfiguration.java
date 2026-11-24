@@ -4,6 +4,7 @@ import com.auth0.client.mgmt.ManagementApi;
 import com.blockout.backend.accounts.application.AccountCleanup;
 import com.blockout.backend.accounts.application.OriginalTargetCleanup;
 import com.blockout.backend.config.SecurityProperties;
+import com.blockout.backend.shared.image.ImageObjects;
 import java.net.http.HttpClient;
 import java.util.Optional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -92,6 +93,7 @@ public class AccountCleanupConfiguration {
    *
    * @param auth0 bounded Auth0 adapter
    * @param revenueCat bounded RevenueCat adapter
+   * @param images environment-owned photo objects
    * @param properties explicit operation environment
    * @return independent original-target attempts with private failure diagnostics
    */
@@ -99,8 +101,12 @@ public class AccountCleanupConfiguration {
   OriginalTargetCleanup originalTargetCleanup(
       AccountCleanup.Auth0 auth0,
       AccountCleanup.RevenueCat revenueCat,
+      ImageObjects images,
       AccountCleanupProperties properties) {
     return new OriginalTargetCleanup(
-        auth0, revenueCat, properties.environment().name().toLowerCase(java.util.Locale.ROOT));
+        auth0,
+        revenueCat,
+        images,
+        properties.environment().name().toLowerCase(java.util.Locale.ROOT));
   }
 }
