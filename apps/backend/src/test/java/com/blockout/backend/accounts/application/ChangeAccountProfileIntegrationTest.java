@@ -135,7 +135,7 @@ class ChangeAccountProfileIntegrationTest {
     assertThat(loggedIn.username()).isEqualTo("Chosen_name");
     assertThat(originalKey).startsWith("images/");
     assertThat(sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, id))
-        .startsWith("v2/images/profiles/");
+        .startsWith("images/profiles/");
     assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(PHOTO.bytes());
     assertThatThrownBy(() -> images.read(originalKey))
         .hasRootCauseInstanceOf(NoSuchKeyException.class);

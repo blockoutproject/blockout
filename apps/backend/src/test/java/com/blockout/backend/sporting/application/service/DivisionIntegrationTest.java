@@ -161,7 +161,7 @@ class DivisionIntegrationTest {
     assertThat(
             sql.queryForObject(
                 "SELECT logo_key FROM sporting_division WHERE id=?", String.class, original.id()))
-        .startsWith("v2/images/divisions/");
+        .startsWith("images/divisions/");
   }
 
   @Test

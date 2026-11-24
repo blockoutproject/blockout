@@ -1007,7 +1007,7 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(noOp).isEqualTo(saved);
-    assertThat(originalKey).startsWith("v2/images/clubs/");
+    assertThat(originalKey).startsWith("images/clubs/");
     assertThat(resources.clubLogo(club).bytes()).isEqualTo(first.bytes());
     assertThat(
             sql.queryForMap(
@@ -1269,8 +1269,8 @@ class SportingPresentationIntegrationTest {
             new Edit(null, null, LogoActionEnum.AUTOMATIC, null));
 
     // Then
-    assertThat(teamKeys.get("logo_key")).asString().startsWith("v2/images/teams/");
-    assertThat(teamKeys.get("source_logo_key")).asString().startsWith("v2/images/teams/");
+    assertThat(teamKeys.get("logo_key")).asString().startsWith("images/teams/");
+    assertThat(teamKeys.get("source_logo_key")).asString().startsWith("images/teams/");
     assertThat(stillManual.bytes()).isEqualTo(manualImage.bytes());
     assertThat(current.logo().automaticUrl())
         .isEqualTo("/teams/" + professional.team() + "/logo?selection=automatic");
@@ -1497,7 +1497,7 @@ class SportingPresentationIntegrationTest {
     assertThat(
             sql.queryForObject(
                 "SELECT logo_key FROM sporting_division WHERE id=?", String.class, division))
-        .startsWith("v2/images/divisions/");
+        .startsWith("images/divisions/");
   }
 
   @Test

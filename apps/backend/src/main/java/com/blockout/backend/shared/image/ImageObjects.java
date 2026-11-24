@@ -66,7 +66,7 @@ public class ImageObjects {
   public String replace(
       Category category, String previousOwnedKey, byte[] bytes, String mediaType) {
     String replacementKey =
-        bytes == null ? null : "v2/images/" + category.segment + "/" + UUID.randomUUID();
+        bytes == null ? null : "images/" + category.segment + "/" + UUID.randomUUID();
     if (previousOwnedKey != null || replacementKey != null) {
       // A lost response can leave an object even if putObject never returns successfully.
       cleanOnCompletion(previousOwnedKey, replacementKey);
