@@ -138,7 +138,7 @@ class SportingObservationClientIntegrationTest {
     response =
         """
         {"outcomes":[
-          {"sourceReference":"accepted","outcome":"accepted","created":true},
+          {"sourceReference":"accepted","outcome":"accepted","created":true,"finalResultChanged":true},
           {"sourceReference":"rejected","outcome":"rejected","created":false}],
          "acceptedCount":1,"unchangedCount":0,"staleCount":0,"rejectedCount":1,"absenceReconciled":false}
         """;
@@ -154,6 +154,9 @@ class SportingObservationClientIntegrationTest {
     assertThat(outcome.absenceReconciled()).isFalse();
     assertThat(outcome.outcomes()).hasSize(2);
     assertThat(outcome.outcomes().getFirst().created()).isTrue();
+    assertThat(outcome.outcomes())
+        .extracting(SportingObservation.Outcome::finalResultChanged)
+        .containsExactly(true, false);
     assertThat(json.readTree(received).get("matches").size()).isEqualTo(2);
   }
 

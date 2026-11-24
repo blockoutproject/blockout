@@ -57,9 +57,8 @@ public class CollectPassage {
       throw new IllegalArgumentException("A control passage is required");
     }
     try {
-      List<CollectionBackend.Target> selected = frozenSelection(context);
-      SeasonalResources resources = new SeasonalResources(context, selected);
-      Map<UUID, Set<UUID>> reconciledPools = new LinkedHashMap<>();
+      SeasonalResources resources = new SeasonalResources(context);
+      List<CollectionBackend.Target> selected = resources.frozenSelection();
       for (CollectionBackend.Target target : selected) {
         if (target.kind() == CollectionTargetKindEnum.DISCOVERY) {
           // A shared page can submit sporting data before either catalogue phase is recorded.
@@ -67,22 +66,23 @@ public class CollectPassage {
               readAndSubmitCatalog(
                   context, target, page -> resources.consumeSharedPage(target.provider(), page));
           if (present != null) {
-            reconciledPools.put(target.sourceBindingId(), present);
+            resources.reconciledPools.put(target.sourceBindingId(), present);
           }
         }
       }
-      resources.collectRemaining(reconciledPools);
+      resources.collectRemaining();
       for (CollectionBackend.Target target : selected) {
         if (target.provider() == CollectionProviderEnum.LNV
             && target.kind() == CollectionTargetKindEnum.DETAILS
-            && remainsPresent(target, reconciledPools)) {
+            && remainsPresent(target, resources.reconciledPools)) {
           resources.enrichment.collectDetailOnce(target);
         }
       }
+      resources.collectRemainingStandings();
       for (CollectionBackend.Target target : selected) {
         if ((target.kind() == CollectionTargetKindEnum.CLUB_SHEET
                 || target.kind() == CollectionTargetKindEnum.GEOCODING)
-            && remainsPresent(target, reconciledPools)) {
+            && remainsPresent(target, resources.reconciledPools)) {
           seasonless(context, target);
         }
       }
@@ -101,43 +101,50 @@ public class CollectPassage {
     }
   }
 
-  private List<CollectionBackend.Target> frozenSelection(CollectorLifecycle.AdmittedCycle context) {
-    List<CollectionBackend.Target> selected = new ArrayList<>();
-    long page = 0;
-    CollectionBackend.TargetPage targets;
-    do {
-      targets = backend.targets(context.getCycle().id(), page++);
-      selected.addAll(targets.items());
-    } while (targets.hasNext());
-    return selected;
-  }
-
   /** Groups only frozen scopes. Discovery supplies the shared response for immediate use. */
   private final class SeasonalResources {
     private final CollectorLifecycle.AdmittedCycle context;
+    private final Map<UUID, Set<UUID>> reconciledPools = new LinkedHashMap<>();
     private final Map<URI, List<CollectionBackend.Target>> ffvbGroups = new LinkedHashMap<>();
     private final Map<URI, List<CollectionBackend.Target>> lnvGroups = new LinkedHashMap<>();
+    private final Map<UUID, CollectionBackend.Target> lnvStandings = new LinkedHashMap<>();
     private final LnvEnrichment enrichment;
 
-    private SeasonalResources(
-        CollectorLifecycle.AdmittedCycle context, List<CollectionBackend.Target> selected) {
+    private SeasonalResources(CollectorLifecycle.AdmittedCycle context) {
       this.context = context;
-      for (CollectionBackend.Target target : selected) {
-        if (target.kind() == CollectionTargetKindEnum.CALENDAR
-            || target.kind() == CollectionTargetKindEnum.STANDINGS) {
-          add(target);
-        }
-      }
       enrichment = new LnvEnrichment(context);
     }
 
-    private void add(CollectionBackend.Target target) {
-      // Choose the publisher before interpreting its resource key.
+    private List<CollectionBackend.Target> frozenSelection() {
+      List<CollectionBackend.Target> selected = new ArrayList<>();
+      long page = 0;
+      CollectionBackend.TargetPage targets;
+      do {
+        targets = backend.targets(context.getCycle().id(), page++);
+        selected.addAll(targets.items());
+        targets.items().forEach(this::addOrdinary);
+        targets
+            .afterFinalScoreStandings()
+            .forEach(target -> lnvStandings.put(target.poolId(), target));
+      } while (targets.hasNext());
+      return selected;
+    }
+
+    private void addOrdinary(CollectionBackend.Target target) {
+      if (target.kind() != CollectionTargetKindEnum.CALENDAR
+          && target.kind() != CollectionTargetKindEnum.STANDINGS) {
+        return;
+      }
       List<CollectionBackend.Target> scopes =
           switch (target.provider()) {
             case FFVB ->
-                ffvbGroups.computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>());
-            case LNV -> lnvGroups.computeIfAbsent(target.url(), ignored -> new ArrayList<>());
+                ffvbGroups.computeIfAbsent(ffvb.resourceUrl(target), key -> new ArrayList<>());
+            case LNV -> {
+              if (target.kind() == CollectionTargetKindEnum.STANDINGS) {
+                lnvStandings.put(target.poolId(), target);
+              }
+              yield lnvGroups.computeIfAbsent(target.url(), key -> new ArrayList<>());
+            }
           };
       scopes.add(target);
     }
@@ -159,6 +166,7 @@ public class CollectPassage {
         case LNV -> {
           List<CollectionBackend.Target> scopes = lnvGroups.remove(url);
           if (scopes != null) {
+            enrichment.standingsAttempted(scopes, page.ordinal());
             consumeLnv(
                 context,
                 scopes,
@@ -170,14 +178,34 @@ public class CollectPassage {
       }
     }
 
-    private void collectRemaining(Map<UUID, Set<UUID>> reconciledPools) {
-      collectRemaining(ffvbGroups, reconciledPools, this::readFfvb);
-      collectRemaining(lnvGroups, reconciledPools, this::readLnv);
+    private void collectRemaining() {
+      collectRemaining(ffvbGroups, this::readFfvb);
+      collectRemaining(
+          lnvGroups,
+          (url, scopes) -> {
+            if (scopes.stream()
+                .anyMatch(target -> target.kind() == CollectionTargetKindEnum.CALENDAR)) {
+              readLnv(url, scopes);
+            } else {
+              scopes.forEach(target -> enrichment.standingsAfter.putIfAbsent(target.poolId(), 0L));
+            }
+          });
+    }
+
+    /** Reads each remaining official page once, after all admitted match changes. */
+    private void collectRemainingStandings() {
+      Map<URI, List<CollectionBackend.Target>> groups = new LinkedHashMap<>();
+      for (UUID pool : enrichment.standingsAfter.keySet()) {
+        CollectionBackend.Target target = lnvStandings.get(pool);
+        if (target != null && remainsPresent(target, reconciledPools)) {
+          groups.computeIfAbsent(target.url(), key -> new ArrayList<>()).add(target);
+        }
+      }
+      groups.forEach(this::readLnv);
     }
 
     private void collectRemaining(
         Map<URI, List<CollectionBackend.Target>> groups,
-        Map<UUID, Set<UUID>> reconciledPools,
         BiConsumer<URI, List<CollectionBackend.Target>> read) {
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : groups.entrySet()) {
         List<CollectionBackend.Target> scopes =
@@ -204,6 +232,7 @@ public class CollectPassage {
 
     private void readLnv(URI url, List<CollectionBackend.Target> scopes) {
       long ordinal = context.nextReadOrdinal();
+      enrichment.standingsAttempted(scopes, ordinal);
       LnvAcquisition.Resource resource;
       try {
         resource = lnv.read(url);
@@ -600,11 +629,22 @@ public class CollectPassage {
     private final CollectorLifecycle.AdmittedCycle context;
     private final Set<UUID> readTeams = new LinkedHashSet<>();
     private final Set<UUID> readMatches = new LinkedHashSet<>();
+    private final Map<UUID, Long> standingsAfter = new LinkedHashMap<>();
     private final Map<UUID, Map<CollectionPhaseEnum, DetailTotal>> totals = new LinkedHashMap<>();
     private LnvAcquisition.DocumentIndexes indexes;
 
     private LnvEnrichment(CollectorLifecycle.AdmittedCycle context) {
       this.context = context;
+    }
+
+    /** A scheduled attempt can satisfy only changes that preceded the actual supplier read. */
+    private void standingsAttempted(List<CollectionBackend.Target> scopes, long ordinal) {
+      for (CollectionBackend.Target target : scopes) {
+        if (target.kind() == CollectionTargetKindEnum.STANDINGS) {
+          standingsAfter.computeIfPresent(
+              target.poolId(), (pool, after) -> ordinal > after ? null : after);
+        }
+      }
     }
 
     /**
@@ -627,6 +667,9 @@ public class CollectPassage {
           submitCalendar(context, target, ordinal, read.observation(), read.observedAt());
       if (outcome == null) {
         return;
+      }
+      if (outcome.outcomes().stream().anyMatch(SportingObservation.Outcome::finalResultChanged)) {
+        standingsAfter.put(target.poolId(), ordinal);
       }
       Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
       read.observation()
@@ -776,12 +819,14 @@ public class CollectPassage {
             read.observedAt(),
             read.complete() ? null : URI.create("urn:blockout:acquisition:structure"),
             read.complete() ? null : "Invalid independent detail fields");
-        submitDetail(target.matchId(), ordinal, read.observedAt(), read.observation(), "");
+        if (submitDetail(target.matchId(), ordinal, read.observedAt(), read.observation(), "")) {
+          standingsAfter.put(target.poolId(), ordinal);
+        }
       }
     }
 
-    /** Accumulates one detail write with its independent document or match evidence. */
-    private void submitDetail(
+    /** Records one detail write and reports whether F02 accepted a changed final score. */
+    private boolean submitDetail(
         UUID match,
         long ordinal,
         Instant observedAt,
@@ -804,6 +849,7 @@ public class CollectPassage {
             clock.instant(),
             reasonType,
             reason);
+        return outcome.finalResultChanged();
       } catch (CollectionBackendFailure failure) {
         addEvidence(
             match,
@@ -813,6 +859,7 @@ public class CollectPassage {
             clock.instant(),
             null,
             diagnosticPrefix + AcquisitionFailure.diagnostic(failure));
+        return false;
       }
     }
 
