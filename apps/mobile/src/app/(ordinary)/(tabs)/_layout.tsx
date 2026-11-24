@@ -220,7 +220,7 @@ function NavigationCapsule({
       return {};
     }
     const transition = {
-      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
+      duration: reducedMotion ? 0 : tokens.motion.compact.duration,
       easing: Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.Never,
     };
@@ -299,7 +299,7 @@ function TabButton({
   }, [isFocused, hidden, layout, onFocusedLayout]);
   const focus = useDerivedValue(() =>
     withTiming(isFocused ? 1 : 0, {
-      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
+      duration: reducedMotion ? 0 : tokens.motion.compact.duration,
       easing: Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.Never,
     }),

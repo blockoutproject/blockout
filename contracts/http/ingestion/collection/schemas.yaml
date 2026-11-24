@@ -357,7 +357,14 @@ CollectionTargetPageInternalResponse:
   properties:
     items:
       type: array
-      description: Authorized targets; no ineligible calendar reserve.
+      description: Targets selected for ordinary or explicitly requested reads.
+      items:
+        $ref: "#/CollectionTargetInternalResponse"
+    afterFinalScoreStandings:
+      type: array
+      description:
+        Additional qualified LNV standings targets on this page. Read one only after acceptance
+        of a changed final score for its pool. Both lists share the page size and continuation.
       items:
         $ref: "#/CollectionTargetInternalResponse"
     page:

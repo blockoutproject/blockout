@@ -45,9 +45,14 @@ export function MatchDocumentReader({
       onClose();
     }
   }, [current, onClose]);
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   return (
-    <Modal visible presentationStyle="fullScreen" onRequestClose={onClose}>
+    <Modal
+      visible
+      presentationStyle="fullScreen"
+      animationType={reducedMotion ? "none" : "slide"}
+      onRequestClose={onClose}
+    >
       <SafeAreaProvider>
         <Page accessibilityViewIsModal>
           <View style={styles.header}>

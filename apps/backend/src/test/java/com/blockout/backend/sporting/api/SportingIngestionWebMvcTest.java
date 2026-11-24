@@ -300,7 +300,7 @@ class SportingIngestionWebMvcTest {
             new ObservationOutcome.Calendar(
                 List.of(
                     new ObservationOutcome(
-                        "M1", ObservationOutcomeEnum.ACCEPTED, pool, null, null, null),
+                        "M1", ObservationOutcomeEnum.ACCEPTED, pool, null, null, null, false, true),
                     ObservationOutcome.refused("M2", false)),
                 1,
                 0,
@@ -326,6 +326,7 @@ class SportingIngestionWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.outcomes[0].sourceReference").value("M1"))
+        .andExpect(jsonPath("$.outcomes[0].finalResultChanged").value(true))
         .andExpect(jsonPath("$.outcomes[1].outcome").value("rejected"))
         .andExpect(jsonPath("$.acceptedCount").value(1))
         .andExpect(jsonPath("$.unchangedCount").value(0))

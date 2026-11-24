@@ -282,6 +282,7 @@ class CollectionContractWebMvcTest {
         .thenReturn(
             new CollectionState.TargetPage(
                 List.of(new CollectionState.ServedTarget(target, null, null, null, null)),
+                List.of(),
                 2,
                 hasNext));
 
@@ -326,6 +327,7 @@ class CollectionContractWebMvcTest {
                 List.of(
                     new CollectionState.ServedTarget(
                         target, "12", "Paris", "75001", "Synthetic street")),
+                List.of(),
                 0,
                 false));
 

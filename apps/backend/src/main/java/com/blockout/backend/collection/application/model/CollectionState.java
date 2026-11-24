@@ -291,7 +291,8 @@ public final class CollectionState {
       Instant fastWindowEndsAt,
       CollectionProviderEnum provider,
       String organizerReference,
-      String nativeMatchReference) {}
+      String nativeMatchReference,
+      boolean afterFinalScoreOnly) {}
 
   /**
    * One served target enriches its frozen identity with current permitted locality, when
@@ -318,16 +319,22 @@ public final class CollectionState {
   }
 
   /** Stable bounded read of the admitted snapshot, without a total-count query. */
-  public record TargetPage(List<ServedTarget> items, long page, boolean hasNext) {
+  public record TargetPage(
+      List<ServedTarget> items,
+      List<ServedTarget> afterFinalScoreStandings,
+      long page,
+      boolean hasNext) {
     /**
      * Detaches page contents from persistence.
      *
-     * @param items served targets with current permitted locality
+     * @param items ordinarily selected targets with current permitted locality
+     * @param afterFinalScoreStandings qualified targets conditional on a changed final result
      * @param page zero-based requested page
      * @param hasNext whether another snapshot page exists
      */
     public TargetPage {
       items = List.copyOf(items);
+      afterFinalScoreStandings = List.copyOf(afterFinalScoreStandings);
     }
   }
 }

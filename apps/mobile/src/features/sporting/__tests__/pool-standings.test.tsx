@@ -402,7 +402,16 @@ it("loads team participation standings lazily and preserves them through calenda
   await open(<TeamScreen teamId={sportingId} />);
   await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
-  await screen.findByRole("tab", { name: pool.pool.name });
+  expect(
+    await screen.findByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
+  await screen.findByText("Aucun match pour cette sélection");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(0);
+  await user.press(screen.getByRole("tab", { name: pool.pool.name }));
   await screen.findByText("Official Z");
   const initial = mockFetch.mock.calls.filter(([url]) =>
     new URL(url).pathname.endsWith("/standings"),
@@ -462,7 +471,7 @@ it("numbers Team cards without printed ranks, a standings refetch or team emphas
   await open(<TeamScreen teamId={sportingId} />);
   await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
-  await screen.findByRole("tab", { name: pool.pool.name });
+  await user.press(await screen.findByRole("tab", { name: pool.pool.name }));
   expect(
     await screen.findByRole("link", { name: /Official Z\. Rang 1/ }),
   ).toBeOnTheScreen();
