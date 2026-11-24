@@ -65,12 +65,14 @@ public interface AccountStore {
   boolean hasPhoto(UUID id);
 
   /**
-   * Loads only the original account's accepted image bytes; callers authorize the owner first.
+   * Checks the original holder and resolves their current photo reference before fetching bytes.
    *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
    * @param id original lifecycle UUID
-   * @return accepted photo, or empty when absent
+   * @return accepted photo, or empty for an absent photo or a different holder
    */
-  Optional<ProfilePhoto> photo(UUID id);
+  Optional<ProfilePhoto> photo(String issuer, String subject, UUID id);
 
   /**
    * Applies supplied profile fields to an already locked original row and flushes uniqueness.

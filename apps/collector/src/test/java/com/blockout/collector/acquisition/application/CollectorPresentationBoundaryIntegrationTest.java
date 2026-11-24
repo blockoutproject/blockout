@@ -65,6 +65,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.util.LinkedMultiValueMap;
@@ -363,18 +364,12 @@ class CollectorPresentationBoundaryIntegrationTest {
     assertThat(imageReads).hasValue(4);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                imageBody,
-                home))
-        .isTrue();
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                imageBody,
-                away))
-        .isTrue();
+                "SELECT COUNT(*) FROM sporting_team WHERE id IN (?,?) AND source_logo_sha256 = encode(sha256(?), 'hex')",
+                Integer.class,
+                home,
+                away,
+                imageBody))
+        .isEqualTo(2);
     assertThat(
             runtime.sql.queryForList(
                 "SELECT * FROM collection_initial_coverage WHERE scope_id=? ORDER BY stage,phase",
@@ -443,25 +438,12 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // Then
     assertThat(imageReads).hasValue(2);
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                retained,
-                home))
-        .isTrue();
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT source_logo_media_type FROM sporting_team WHERE id=?", String.class, home))
-        .isEqualTo("image/jpeg");
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                manual,
-                home))
-        .isTrue();
-    assertThat(presentation(home).at("/names/effectiveName").asString()).isEqualTo("Manual team");
+    JsonNode current = presentation(home);
+    assertThat(current.at("/names/effectiveName").asString()).isEqualTo("Manual team");
+    ResponseEntity<byte[]> automatic = readLogo(current.at("/logo/automaticUrl").asString());
+    assertThat(automatic.getBody()).isEqualTo(retained);
+    assertThat(automatic.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_JPEG);
+    assertThat(readLogo(current.at("/logo/effectiveUrl").asString()).getBody()).isEqualTo(manual);
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(4);
     assertThat(
@@ -818,17 +800,9 @@ class CollectorPresentationBoundaryIntegrationTest {
         .isInstanceOfSatisfying(
             HttpClientErrorException.class,
             failure -> assertThat(failure.getStatusCode().value()).isEqualTo(422));
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT manual_name FROM sporting_team WHERE id=?", String.class, team))
-        .isEqualTo("Manual team");
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                manual,
-                team))
-        .isTrue();
+    JsonNode current = presentation(team);
+    assertThat(current.at("/names/effectiveName").asString()).isEqualTo("Manual team");
+    assertThat(readLogo(current.at("/logo/effectiveUrl").asString()).getBody()).isEqualTo(manual);
   }
 
   @Test
@@ -849,24 +823,11 @@ class CollectorPresentationBoundaryIntegrationTest {
     JsonNode current = presentation(team);
     assertThat(current.at("/logo/manualUrl").isNull()).isTrue();
     assertThat(current.at("/logo/effectiveUrl")).isEqualTo(current.at("/logo/automaticUrl"));
-    assertThat(
-            mobile
-                .get()
-                .uri(current.at("/logo/effectiveUrl").asString())
-                .retrieve()
-                .body(byte[].class))
-        .isEqualTo(source);
+    assertThat(readLogo(current.at("/logo/effectiveUrl").asString()).getBody()).isEqualTo(source);
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT logo_key FROM sporting_team WHERE id=?", String.class, team))
         .isNull();
-    assertThat(
-            runtime.sql.queryForObject(
-                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
-                Boolean.class,
-                source,
-                team))
-        .isTrue();
   }
 
   @Test
@@ -1005,6 +966,10 @@ class CollectorPresentationBoundaryIntegrationTest {
         .body(fields)
         .retrieve()
         .toBodilessEntity();
+  }
+
+  private ResponseEntity<byte[]> readLogo(String url) {
+    return mobile.get().uri(url).retrieve().toEntity(byte[].class);
   }
 
   /**

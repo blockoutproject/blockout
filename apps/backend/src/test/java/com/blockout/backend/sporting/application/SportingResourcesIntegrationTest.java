@@ -2,6 +2,10 @@ package com.blockout.backend.sporting.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
@@ -44,7 +48,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 /** Real F02 identities/effective values and migrated PostgreSQL; no provider or native evidence. */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
@@ -54,7 +61,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class SportingResourcesIntegrationTest {
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
-  @Autowired private InMemoryS3 images;
+  @MockitoSpyBean private InMemoryS3 images;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private ReadSportingResources resources;
   @Autowired private ReadSportingAcquisition acquisitionReads;
@@ -423,6 +430,13 @@ class SportingResourcesIntegrationTest {
         images.putImage(manualImage.bytes(), manualImage.mediaType()),
         manualImage.sha256(),
         match.homeTeamId());
+    doAnswer(
+            invocation -> {
+              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+              return invocation.callRealMethod();
+            })
+        .when(images)
+        .getObjectAsBytes(any(GetObjectRequest.class));
 
     // When
     byte[] effective =
@@ -440,6 +454,7 @@ class SportingResourcesIntegrationTest {
         .isInstanceOf(SportingResourceNotFoundException.class);
     assertThatThrownBy(() -> resources.divisionLogo(SportingIngestionFixture.DIVISION))
         .isInstanceOf(SportingResourceNotFoundException.class);
+    verify(images, times(2)).getObjectAsBytes(any(GetObjectRequest.class));
   }
 
   /**

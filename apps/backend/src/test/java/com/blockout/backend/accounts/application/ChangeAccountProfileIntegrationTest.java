@@ -396,7 +396,7 @@ class ChangeAccountProfileIntegrationTest {
 
       // Then
       assertThat(accepted.hasPhoto()).isEqualTo(replaceLast);
-      assertThat(accounts.photo(id).isPresent()).isEqualTo(replaceLast);
+      assertThat(accounts.photo(ISSUER, "auth0|one", id).isPresent()).isEqualTo(replaceLast);
       assertThat(accepted.account().username()).isEqualTo("Original");
     }
   }

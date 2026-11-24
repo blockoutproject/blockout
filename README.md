@@ -145,7 +145,7 @@ and [Checkstyle package naming](https://checkstyle.org/checks/naming/packagename
 
 ### Collector-to-sporting qualification
 
-`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Use the [local S3 endpoint](#local-image-testing) for the logo cases and export its backend settings in the shell running Maven. Use only synthetic sporting supplier and identity data.
+`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Start the [local S3 endpoint](#local-image-testing) and export its fixture settings in the shell running Maven. The launched backend needs the bucket and region at startup and uses this endpoint for logo operations. Use only synthetic sporting supplier and identity data.
 
 The suites share that runtime and fixture. Their owning quickstarts define reproducible cases and expected outcomes for [F01 partial commits, contextual identities and absence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence) and [F02 generated facts through F03 public reads](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads).
 
@@ -159,7 +159,7 @@ LIQUIBASE_URL=jdbc:postgresql://127.0.0.1:5484/blockout \
 LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
 ./mvnw -B -ntp -pl apps/backend liquibase:update
 ./mvnw -B -ntp -pl apps/collector verify \
-  -Dit.test='CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest,CollectorSportingReadIntegrationTest' \
+  -Dit.test='CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest,CollectorSportingReadIntegrationTest,CollectorPresentationBoundaryIntegrationTest' \
   -Dblockout.qualify-collector-sporting=true \
   -Dqualification.backend-jar="$PWD/apps/backend/target/backend-0.0.0-SNAPSHOT.jar" \
   -Dqualification.backend-port=8184 \
@@ -215,16 +215,15 @@ docker run --rm -p 127.0.0.1:9090:9090 \
   adobe/s3mock:5.2.3
 ```
 
-Load the regular local backend environment first. Run the backend with the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#environment-variables-for-endpoints) and synthetic signing values. Use the loopback IP for path-style bucket addressing.
+Set the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#environment-variables-for-endpoints) and synthetic signing values in the shell that launches the backend or runs collector-to-sporting qualification. For a standalone backend, load its regular local environment before exporting these fixture settings. Use the loopback IP for path-style bucket addressing.
 
 ```sh
-AWS_ENDPOINT_URL_S3=http://127.0.0.1:9090 \
-BLOCKOUT_IMAGES_BUCKET=blockout-local-images AWS_REGION=us-east-1 \
-AWS_ACCESS_KEY_ID=local-fixture AWS_SECRET_ACCESS_KEY=local-fixture-only \
-npx nx run backend:serve
+export AWS_ENDPOINT_URL_S3=http://127.0.0.1:9090
+export BLOCKOUT_IMAGES_BUCKET=blockout-local-images AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=local-fixture AWS_SECRET_ACCESS_KEY=local-fixture-only AWS_SESSION_TOKEN=
 ```
 
-The mobile app uses the same local backend URL. Stop S3Mock with Ctrl+C when the test is done.
+For standalone testing, run `npx nx run backend:serve` in the configured shell. The mobile app uses that local backend URL. Stop S3Mock with Ctrl+C when the test is done.
 
 ### Local search infrastructure
 

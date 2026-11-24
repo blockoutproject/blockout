@@ -28,7 +28,6 @@ public class JpaAccountStore implements AccountStore {
   public String erase(UUID accountId) {
     AccountEntity original = accounts.findById(accountId).orElseThrow();
     accounts.delete(original);
-    accounts.flush();
     return original.getPhotoKey();
   }
 
@@ -74,10 +73,9 @@ public class JpaAccountStore implements AccountStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ProfilePhoto> photo(UUID id) {
+  public Optional<ProfilePhoto> photo(String issuer, String subject, UUID id) {
     return accounts
-        .findById(id)
-        .filter(account -> account.getPhotoKey() != null)
+        .findByIdAndIssuerAndSubjectAndPhotoKeyIsNotNull(id, issuer, subject)
         .map(
             account ->
                 new ProfilePhoto(images.read(account.getPhotoKey()), account.getPhotoMediaType()));
@@ -94,12 +92,9 @@ public class JpaAccountStore implements AccountStore {
         account.setUsername(username);
       }
       if (photoAction != null) {
-        String previous = account.getPhotoKey();
-        String replacement = photo == null ? null : images.put(photo.bytes(), photo.mediaType());
-        account.replacePhoto(replacement, photo == null ? null : photo.mediaType());
-        if (previous != null) {
-          images.deleteAfterCommit(previous);
-        }
+        byte[] bytes = photo == null ? null : photo.bytes();
+        String mediaType = photo == null ? null : photo.mediaType();
+        account.replacePhoto(images.replace(account.getPhotoKey(), bytes, mediaType), mediaType);
       }
       // Flush before returning so only the named username constraint becomes a business refusal.
       accounts.flush();

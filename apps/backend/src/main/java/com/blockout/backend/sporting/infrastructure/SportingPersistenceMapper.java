@@ -94,7 +94,7 @@ interface SportingPersistenceMapper {
       target = "gradient",
       expression =
           "java(toGradient(source.getGradientStart(), source.getGradientMiddle(), source.getGradientEnd()))")
-  @Mapping(target = "hasLogo", expression = "java(source.getLogoKey() != null)")
+  @Mapping(target = "hasLogo", expression = "java(source.getLogo() != null)")
   DivisionDetail toDetail(DivisionEntity source);
 
   /**
@@ -565,7 +565,7 @@ interface SportingPersistenceMapper {
             source.getManualName(),
             null,
             null,
-            source.getLogoKey() != null,
+            source.getLogo() != null,
             false,
             null,
             false),
@@ -588,10 +588,10 @@ interface SportingPersistenceMapper {
             source.getManualName(),
             source.getManualShortName(),
             source.getProvider(),
-            source.getLogoKey() != null,
-            source.getSourceLogoKey() != null,
+            source.getLogo() != null,
+            source.getSourceLogo() != null,
             club == null ? null : club.getId(),
-            club != null && club.getLogoKey() != null),
+            club != null && club.getLogo() != null),
         Kind.TEAM);
   }
 

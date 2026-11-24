@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** Serves the original holder's profile and reads the photo after local authorization. */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ReadAccount {
   private final AccountStore accounts;
   private final CurrentPermissions permissions;
@@ -26,6 +25,7 @@ public class ReadAccount {
    * @return current private account
    * @throws AccountNotFoundException when the local account is absent
    */
+  @Transactional(readOnly = true)
   public View current(String issuer, String subject) {
     return view(
         accounts
@@ -42,6 +42,7 @@ public class ReadAccount {
    * @return private original account
    * @throws AccountNotFoundException when absent or owned by a different principal
    */
+  @Transactional(readOnly = true)
   public View original(String issuer, String subject, UUID id) {
     return view(
         accounts
@@ -51,7 +52,7 @@ public class ReadAccount {
   }
 
   /**
-   * Reads private S3 photo bytes after the same original-owner check as profile access.
+   * Reads the private S3 photo after the original-owner reference lookup completes.
    *
    * @param issuer validated issuer
    * @param subject validated subject
@@ -60,11 +61,7 @@ public class ReadAccount {
    * @throws AccountNotFoundException when the account/photo is absent or belongs to another owner
    */
   public ProfilePhoto photo(String issuer, String subject, UUID id) {
-    accounts
-        .findById(id)
-        .filter(account -> account.belongsTo(issuer, subject))
-        .orElseThrow(AccountNotFoundException::new);
-    return accounts.photo(id).orElseThrow(AccountNotFoundException::new);
+    return accounts.photo(issuer, subject, id).orElseThrow(AccountNotFoundException::new);
   }
 
   /**

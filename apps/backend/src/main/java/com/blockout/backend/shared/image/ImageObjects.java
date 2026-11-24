@@ -40,25 +40,30 @@ public class ImageObjects {
   }
 
   /**
-   * Uploads a fresh object before its owner publishes the association. Register cleanup before the
-   * request since S3 can accept the write even when the caller loses the response.
+   * Uploads a replacement before the caller publishes it in the current SQL transaction.
+   *
+   * @param previousOwnedKey current key eligible for deletion, or null for absent or legacy content
+   * @param bytes accepted replacement, or null for explicit removal
+   * @param mediaType detected type of a replacement, or null for removal
+   * @return fresh owned key, or null when clearing the reference
    */
-  public String put(byte[] bytes, String mediaType) {
-    String key = "images/" + UUID.randomUUID();
-    cleanOnCompletion(key, TransactionSynchronization.STATUS_ROLLED_BACK);
+  public String replace(String previousOwnedKey, byte[] bytes, String mediaType) {
+    String replacementKey = bytes == null ? null : "images/" + UUID.randomUUID();
+    if (previousOwnedKey != null || replacementKey != null) {
+      // A lost response can leave an object even if putObject never returns successfully.
+      cleanOnCompletion(previousOwnedKey, replacementKey);
+    }
+    if (replacementKey == null) {
+      return null;
+    }
     try {
       s3.putObject(
-          request -> request.bucket(bucket()).key(key).contentType(mediaType),
+          request -> request.bucket(bucket()).key(replacementKey).contentType(mediaType),
           RequestBody.fromBytes(bytes));
-      return key;
+      return replacementKey;
     } catch (SdkException failure) {
       throw new DataAccessResourceFailureException("Application image upload unavailable", failure);
     }
-  }
-
-  /** Keeps the old object readable until its SQL association has been superseded. */
-  public void deleteAfterCommit(String key) {
-    cleanOnCompletion(key, TransactionSynchronization.STATUS_COMMITTED);
   }
 
   /** Deletes an owned object for an already committed operation with its own failure handling. */
@@ -66,16 +71,19 @@ public class ImageObjects {
     s3.deleteObject(request -> request.bucket(bucket()).key(key));
   }
 
-  private void cleanOnCompletion(String key, int deleteOn) {
+  private void cleanOnCompletion(String previousOwnedKey, String replacementKey) {
     TransactionSynchronizationManager.registerSynchronization(
         new TransactionSynchronization() {
           @Override
           public void afterCompletion(int status) {
             if (status == STATUS_UNKNOWN) {
               reportCleanup("transaction_outcome_unknown");
-            } else if (status == deleteOn) {
+              return;
+            }
+            String obsoleteKey = status == STATUS_COMMITTED ? previousOwnedKey : replacementKey;
+            if (obsoleteKey != null) {
               try {
-                delete(key);
+                delete(obsoleteKey);
               } catch (SdkException failure) {
                 reportCleanup("object_deletion_unconfirmed");
               }

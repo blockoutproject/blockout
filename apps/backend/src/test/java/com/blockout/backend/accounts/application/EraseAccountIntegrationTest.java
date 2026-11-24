@@ -395,13 +395,13 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         photos.prepare(png(4), "image/png"));
     when(auth0.remove(any(), any())).thenReturn(AccountCleanup.Outcome.REMOVED);
     when(revenueCat.remove(any())).thenReturn(AccountCleanup.Outcome.QUEUED);
-    CompletableFuture<Void> deleted = new CompletableFuture<>();
+    CompletableFuture<Void> deleteScheduled = new CompletableFuture<>();
     CompletableFuture<Void> commit = new CompletableFuture<>();
     CompletableFuture<Integer> writerPid = new CompletableFuture<>();
     doAnswer(
             call -> {
               Object photoKey = call.callRealMethod();
-              deleted.complete(null);
+              deleteScheduled.complete(null);
               commit.get(10, TimeUnit.SECONDS);
               return photoKey;
             })
@@ -412,7 +412,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       Future<?> erasing =
           workers.submit(() -> erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER));
-      deleted.get(10, TimeUnit.SECONDS);
+      deleteScheduled.get(10, TimeUnit.SECONDS);
       Future<?> writing =
           workers.submit(
               () ->

@@ -31,7 +31,7 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
         c.id, c.sourceName, c.manualName, NULL, NULL,
-        c.logoKey IS NOT NULL, FALSE, NULL, FALSE)
+        c.logo.objectKey IS NOT NULL, FALSE, NULL, FALSE)
       FROM ClubEntity c WHERE c.id IN :ids
       """)
   List<SportingPresentationRow> findPresentations(Set<UUID> ids);

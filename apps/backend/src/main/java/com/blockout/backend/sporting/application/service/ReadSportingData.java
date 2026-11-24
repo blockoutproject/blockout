@@ -8,6 +8,7 @@ import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
+import com.blockout.backend.sporting.application.model.SportingPresentation.LogoObject;
 import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Current sporting facts and public eligibility for dependent use cases. */
@@ -272,14 +274,14 @@ public class ReadSportingData {
   }
 
   /**
-   * Resolves immutable effective image content under current resource eligibility.
+   * Resolves current eligibility and the image reference within one public-read snapshot.
    *
    * @param kind club, team or division
    * @param id stable owner
-   * @return actual current bytes, or empty for an unavailable owner or missing image
+   * @return selected object, or empty for an unavailable owner or absent association
    */
-  public Optional<SportingPresentation.Image> publicLogo(
-      SportingProjectionChanges.Kind kind, UUID id) {
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Optional<LogoObject> publicLogoObject(SportingProjectionChanges.Kind kind, UUID id) {
     boolean visible =
         kind == SportingProjectionChanges.Kind.DIVISION
             ? store.division(id).filter(DivisionView::active).isPresent()
@@ -290,14 +292,14 @@ public class ReadSportingData {
   }
 
   /**
-   * Supplies selected current team artwork while enforcing the same current public visibility.
+   * Resolves the selected team artwork and its inherited fallback under the same snapshot.
    *
    * @param teamId seasonal team
    * @param selection effective or automatic fallback independent of the manual override
-   * @return immutable selected bytes, or empty for a hidden/unknown team or missing artwork
+   * @return selected object, or empty for a hidden/unknown team or absent association
    */
-  public Optional<SportingPresentation.Image> publicTeamLogo(
-      UUID teamId, TeamLogoSelectionEnum selection) {
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Optional<LogoObject> publicTeamLogoObject(UUID teamId, TeamLogoSelectionEnum selection) {
     return visibility(Kind.TEAM, teamId)
         .filter(SportingVisibility::viewable)
         .flatMap(ignored -> store.teamLogo(teamId, selection));

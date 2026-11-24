@@ -1,7 +1,9 @@
 package com.blockout.backend.access.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -19,6 +21,7 @@ import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -48,10 +51,9 @@ import org.springframework.test.web.servlet.request.AbstractMockHttpServletReque
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
-/**
- * Real HTTP, F12 wiring and migrated PostgreSQL; only the external principal reader is controlled.
- */
+/** Real HTTP, F12 wiring and migrated PostgreSQL with controlled Auth0 and S3 boundaries. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayName("Account maintenance admission wiring")
@@ -65,6 +67,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   @Autowired private ChangeAccountProfile profiles;
   @MockitoBean private PrincipalReader provider;
   @MockitoSpyBean private AccountAdmission admission;
+  @MockitoSpyBean private InMemoryS3 storage;
 
   /** Restores only this disposable database's account and maintenance fixtures. */
   @BeforeEach
@@ -178,6 +181,13 @@ class AccountMaintenanceAdmissionIntegrationTest {
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
+    doAnswer(
+            invocation -> {
+              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+              return invocation.callRealMethod();
+            })
+        .when(storage)
+        .getObjectAsBytes(any(GetObjectRequest.class));
 
     // When
     mvc.perform(
@@ -199,6 +209,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("auth0|unknown")))
         .andExpect(status().isForbidden());
+    verify(storage).getObjectAsBytes(any(GetObjectRequest.class));
     verifyNoInteractions(provider);
   }
 

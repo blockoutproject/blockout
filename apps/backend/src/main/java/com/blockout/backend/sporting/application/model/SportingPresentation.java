@@ -132,6 +132,9 @@ public final class SportingPresentation {
   /** Effective and candidate artwork references; the image's owner retains the actual bytes. */
   public record Logo(String effectiveUrl, String manualUrl, String automaticUrl) {}
 
+  /** Detached storage locator; only a protected legacy club logo supplies a bucket. */
+  public record LogoObject(String bucket, String objectKey, String mediaType) {}
+
   /** Detached current presentation values. */
   public record View(UUID id, Kind kind, Names names, Logo logo) {}
 

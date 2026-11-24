@@ -9,7 +9,9 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
@@ -70,6 +72,7 @@ class TransitionLogoIntegrationTest {
   @Autowired private ChangeSportingPresentation presentation;
   @Autowired private ReadSportingConfiguration configurationReads;
   @Autowired private ReadSportingData reads;
+  @Autowired private ReadSportingResources resources;
   @Autowired private ReadSportingAcquisition acquisitionReads;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private AccountStore accounts;
@@ -167,8 +170,9 @@ class TransitionLogoIntegrationTest {
     assertThat(reads.club(club).orElseThrow().reference()).isEqualTo(reference);
     assertThat(saved.names()).isEqualTo(current.names());
     assertThat(saved.logo().manualUrl()).isEqualTo("/clubs/" + club + "/logo");
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original);
-    assertThat(reads.publicLogo(Kind.CLUB, similar)).isEmpty();
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(original);
+    assertThatThrownBy(() -> resources.clubLogo(similar))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @Test
@@ -195,13 +199,13 @@ class TransitionLogoIntegrationTest {
     Image replacement = new Image(SportingImageFixture.image("JPEG", 0x445566), "image/jpeg");
 
     // When
-    Image inherited = reads.publicLogo(Kind.TEAM, team).orElseThrow();
+    Image inherited = resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE);
     presentation.set(
         account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, replacement));
 
     // Then
     assertThat(inherited.bytes()).isEqualTo(original.bytes());
-    assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes())
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(replacement.bytes());
     assertThat(
             images
@@ -279,7 +283,8 @@ class TransitionLogoIntegrationTest {
             })
         .isInstanceOf(NoSuchFileException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
+    assertThatThrownBy(() -> resources.clubLogo(club))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @ParameterizedTest
@@ -309,7 +314,7 @@ class TransitionLogoIntegrationTest {
             })
         .isInstanceOf(SportingValidationException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original.bytes());
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(original.bytes());
   }
 
   @Test
@@ -329,7 +334,8 @@ class TransitionLogoIntegrationTest {
                     club,
                     new Edit(null, null, LogoActionEnum.REPLACE, original)))
         .isInstanceOf(AccessDeniedException.class);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
+    assertThatThrownBy(() -> resources.clubLogo(club))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @Test
@@ -347,7 +353,7 @@ class TransitionLogoIntegrationTest {
 
     // Then
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(saved);
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(oldCopy.bytes());
+    assertThat(resources.clubLogo(club).bytes()).isEqualTo(oldCopy.bytes());
   }
 
   @Test
@@ -411,12 +417,14 @@ class TransitionLogoIntegrationTest {
         account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, original));
 
     // Then
-    assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes()).isEqualTo(original.bytes());
+    assertThat(resources.teamLogo(team, TeamLogoSelectionEnum.EFFECTIVE).bytes())
+        .isEqualTo(original.bytes());
     assertThat(acquisitionReads.team(nextTeam).orElseThrow().clubId()).isEqualTo(club);
-    assertThat(reads.publicLogo(Kind.TEAM, nextTeam).orElseThrow().bytes())
+    assertThat(resources.teamLogo(nextTeam, TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(original.bytes());
     assertThat(acquisitionReads.team(professional).orElseThrow().clubId()).isNull();
-    assertThat(reads.publicLogo(Kind.TEAM, professional)).isEmpty();
+    assertThatThrownBy(() -> resources.teamLogo(professional, TeamLogoSelectionEnum.EFFECTIVE))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM sporting_team WHERE logo_key IS NOT NULL", Integer.class))
