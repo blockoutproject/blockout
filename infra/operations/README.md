@@ -284,7 +284,7 @@ This is the bounded F11 [rights procedure](../../specs/004-advertising-privacy-l
 
 ### Support destination configuration
 
-Local qualification and hosted preproduction may use the same dedicated **private test repository** and private test Discord channel for fictional requests. Production uses a separate private V2 support repository and private webhook. Verify effective repository access, including inherited organization permissions, and the channel recipients for each destination. Each repository has two pre-created, case-insensitively distinct intake labels.
+Local qualification and hosted preproduction may use the same dedicated **private test repository** and private Discord channel for fictional requests. Production uses a separate private V2 support repository and its own private Discord channel and webhook. The two channels can be on the same Discord server. Verify effective repository access, including inherited organization permissions, and the channel recipients for each destination. Each repository has two pre-created, case-insensitively distinct intake labels.
 
 Set the five Spring properties under `blockout.support.destination` in the private backend launch environment for local runs. On Dokploy, set them only on the backend application for the corresponding environment. Set `BLOCKOUT_SUPPORT_DESTINATION_REPOSITORY`, `BLOCKOUT_SUPPORT_DESTINATION_INCOMPLETELABEL`, `BLOCKOUT_SUPPORT_DESTINATION_COMPLETELABEL`, `BLOCKOUT_SUPPORT_DESTINATION_GITHUBTOKEN` and `BLOCKOUT_SUPPORT_DESTINATION_DISCORDWEBHOOK` together. The fixed settings select the case destination and private Discord webhook. The request-list link derives from the repository.
 
