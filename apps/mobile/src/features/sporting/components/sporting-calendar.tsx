@@ -74,7 +74,7 @@ export function SportingCalendar({
   active = true,
   children,
 }: Readonly<SportingCalendarProps>) {
-  const { calendar, refresh, queryKey } = useSportingCalendar(
+  const { calendar, timeZone, setTimeZone, queryKey } = useSportingCalendar(
     selection,
     active,
   );
@@ -85,7 +85,8 @@ export function SportingCalendar({
       category={selection.category}
       currentPoolId={selection.poolId}
       active={active}
-      onRefresh={refresh}
+      timeZone={timeZone}
+      onTimeZoneChange={setTimeZone}
     >
       {children}
     </SportingCalendarView>
@@ -116,7 +117,8 @@ export interface SportingCalendarViewProps {
   /** The open Pool's own calendar already represents this destination. */
   currentPoolId?: string;
   active?: boolean;
-  onRefresh: (timeZone: string) => Promise<unknown>;
+  timeZone: string;
+  onTimeZoneChange: (timeZone: string) => void;
   emptyState?: ReactNode;
   /** Optional scene identity remains in the same native scroller as the calendar. */
   children?: ReactNode;
@@ -146,7 +148,8 @@ function CalendarViewport({
   category,
   currentPoolId,
   active = true,
-  onRefresh,
+  timeZone,
+  onTimeZoneChange,
   emptyState,
   children,
   reveal,
@@ -178,16 +181,20 @@ function CalendarViewport({
     return () => subscription.remove();
   }, []);
 
-  /** Explicit refresh chooses the current zone; Query owns failure and the native control owns pull progress. */
   async function refresh() {
     if (refreshing || !active || !navigation.isFocused()) {
       return;
     }
+    const nextZone = currentSportingTimeZone();
+    if (nextZone !== timeZone) {
+      onTimeZoneChange(nextZone);
+      return;
+    }
+
     setRefreshing(true);
     try {
-      await onRefresh(currentSportingTimeZone());
-    } catch {
-      // The existing Query result renders the final read failure in this pane.
+      // Refetch rereads the retained traversal and supersedes a continuation in flight.
+      await calendar.refetch();
     } finally {
       setRefreshing(false);
     }

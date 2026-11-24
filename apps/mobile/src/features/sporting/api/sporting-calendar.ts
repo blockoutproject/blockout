@@ -1,9 +1,4 @@
-import {
-  infiniteQueryOptions,
-  type InfiniteData,
-  type QueryClient,
-  type QueryKey,
-} from "@tanstack/react-query";
+import { infiniteQueryOptions, type InfiniteData } from "@tanstack/react-query";
 import type {
   ListMatchesParams,
   MatchCalendarResponse,
@@ -32,17 +27,6 @@ export function createCalendarOptions(
         .queryFn(context),
     getNextPageParam: (last: MatchCalendarResponse) => last.nextDay,
   });
-}
-
-/** Invalidates the selected native traversal; active infinite queries refetch every retained page. */
-export function refreshCalendar(
-  client: QueryClient,
-  options: { queryKey: QueryKey },
-) {
-  return client.invalidateQueries(
-    { queryKey: options.queryKey, exact: true },
-    { throwOnError: true },
-  );
 }
 
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */

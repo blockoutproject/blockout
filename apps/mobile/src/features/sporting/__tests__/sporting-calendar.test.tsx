@@ -1085,6 +1085,58 @@ it("keeps calendar rows and controls through failed continuation and retries the
   ).not.toBeOnTheScreen();
 });
 
+it("restarts the calendar when pulled during a failed continuation's Retry", async () => {
+  // Given
+  calendar = { ...calendar, nextDay: "2026-09-21" };
+  await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  const match = await screen.findByRole("link", {
+    name: /Ouvrir le match Home — Away/,
+  });
+  mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
+  await fireEvent(match, "endReached");
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  const continuation = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url: string) =>
+      new URL(url).searchParams.has("nextDay")
+        ? continuation.promise
+        : Promise.resolve(
+            Response.json({ ...calendar, days: [], nextDay: undefined }),
+          ),
+    );
+  await userEvent.press(retry);
+  await screen.findByRole("progressbar", { name: "Chargement de la suite…" });
+
+  try {
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(
+      mockFetch.mock.calls.map(([url]) =>
+        new URL(url).searchParams.get("nextDay"),
+      ),
+    ).toEqual(["2026-09-21", null]);
+    expect(
+      await screen.findByText("Aucun match pour cette sélection"),
+    ).toBeOnTheScreen();
+  } finally {
+    await act(() => continuation.resolve(Response.json(calendar)));
+  }
+  expect(
+    screen.getByText("Aucun match pour cette sélection"),
+  ).toBeOnTheScreen();
+});
+
 it("does not append from a covered or inactive calendar", async () => {
   // Given: the real calendar has accepted rows and an available continuation.
   calendar = { ...calendar, nextDay: "2026-09-21" };

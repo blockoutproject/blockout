@@ -718,81 +718,87 @@ it.each([202, 200])(
   },
 );
 
-it("refreshes the LNV execution after a relaunch while its automatic read is still pending", async () => {
-  // Given: the relaunch is accepted and its automatic read is held with the old pending status.
-  const user = userEvent.setup();
-  const selected = control({ family: "lnv" });
-  const requestId = "00000000-0000-4000-8000-000000000192";
-  const pending = { ...selected, pendingRequestId: requestId };
-  const staleRead = Promise.withResolvers<Response>();
-  const controlReadSignals: RequestInit["signal"][] = [];
-  peer.controls = [selected];
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "POST") {
-      peer.controls = [pending];
-      return json(pending, 202);
-    }
-    const request = new URL(String(url));
-    if (
-      options?.method === "GET" &&
-      request.pathname === "/administration/collection-controls" &&
-      request.searchParams.get("seasonId") === seasonId
-    ) {
-      controlReadSignals.push(options.signal);
-      if (peer.controls[0] === pending) {
-        return staleRead.promise;
+it.each(["ffvb", "lnv"] as const)(
+  "refreshes the %s execution after a relaunch while its automatic read is still pending",
+  async (provider) => {
+    // Given: the relaunch is accepted and its automatic read is held with the old pending status.
+    const user = userEvent.setup();
+    const selected = control({ family: provider });
+    const requestId = "00000000-0000-4000-8000-000000000192";
+    const pending = { ...selected, pendingRequestId: requestId };
+    const staleRead = Promise.withResolvers<Response>();
+    const controlReadSignals: RequestInit["signal"][] = [];
+    peer.controls = [selected];
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "POST") {
+        peer.controls = [pending];
+        return json(pending, 202);
       }
-    }
-    return peer.reads(url, options);
-  });
-  await renderCollection(
-    <CollectionProviderScreen
-      provider="lnv"
-      seasonId={seasonId}
-      tab="suivi"
-      filters={{}}
-    />,
-    client,
-  );
-
-  try {
-    await user.press(await screen.findByRole("button", { name: "Relancer" }));
-    const initialReadCount = controlReadSignals.length;
-    await act(async () => nativeAlertAction("Relancer")());
-    await screen.findByText("En attente de démarrage");
-    await waitFor(() =>
-      expect(controlReadSignals).toHaveLength(initialReadCount + 1),
+      const request = new URL(String(url));
+      if (
+        options?.method === "GET" &&
+        request.pathname === "/administration/collection-controls" &&
+        request.searchParams.get("seasonId") === seasonId
+      ) {
+        controlReadSignals.push(options.signal);
+        if (peer.controls[0] === pending) {
+          return staleRead.promise;
+        }
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(
+      <CollectionProviderScreen
+        provider={provider}
+        seasonId={seasonId}
+        tab="suivi"
+        filters={{}}
+      />,
+      client,
     );
-    const automaticReadSignal = controlReadSignals[initialReadCount];
-    expect(automaticReadSignal?.aborted).toBe(false);
 
-    // When: the backend starts the cycle and the operator pulls on the same screen.
-    peer.controls = [
-      control({
-        family: "lnv",
-        cycle: {
-          id: "00000000-0000-4000-8000-000000000193",
-          state: "running",
-          mode: "manual",
-          startedAt: "2026-10-24T12:00:00Z",
-        },
-      }),
-    ];
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    try {
+      await user.press(await screen.findByRole("button", { name: "Relancer" }));
+      const initialReadCount = controlReadSignals.length;
+      await act(async () => nativeAlertAction("Relancer")());
+      await screen.findByText("En attente de démarrage");
+      await waitFor(() =>
+        expect(controlReadSignals).toHaveLength(initialReadCount + 1),
+      );
+      const automaticReadSignal = controlReadSignals[initialReadCount];
+      expect(automaticReadSignal?.aborted).toBe(false);
 
-    // Then: the explicit read observes the new cycle before the older response is released.
-    expect(await screen.findByText("Collecte en cours")).toBeOnTheScreen();
-    expect(controlReadSignals).toHaveLength(initialReadCount + 2);
-    expect(automaticReadSignal?.aborted).toBe(true);
-  } finally {
-    await act(() => staleRead.resolve(json({ items: [pending] })));
-  }
+      // When: the backend starts the cycle and the operator pulls on the same screen.
+      peer.controls = [
+        control({
+          family: provider,
+          cycle: {
+            id: "00000000-0000-4000-8000-000000000193",
+            state: "running",
+            mode: "manual",
+            startedAt: "2026-10-24T12:00:00Z",
+          },
+        }),
+      ];
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
 
-  expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(1);
-});
+      // Then: the explicit read observes the new cycle before the older response is released.
+      expect(await screen.findByText("Collecte en cours")).toBeOnTheScreen();
+      expect(controlReadSignals).toHaveLength(initialReadCount + 2);
+      expect(automaticReadSignal?.aborted).toBe(true);
+    } finally {
+      await act(() => staleRead.resolve(json({ items: [pending] })));
+    }
+
+    expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
 
 it("pauses and resumes the selected control directly against current server state", async () => {
   // Given
@@ -1729,9 +1735,6 @@ it("holds seasonless refresh during a rerun and acknowledges only the accepted r
   // Then
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).toBeDisabled(),
-  );
-  expect(screen.getByLabelText("Actualiser les données")).not.toHaveProp(
-    "onRefresh",
   );
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(

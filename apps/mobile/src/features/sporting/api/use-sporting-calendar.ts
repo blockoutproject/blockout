@@ -12,10 +12,7 @@ export function useSportingCalendar(
   active = true,
 ) {
   const queries = useConsultationQueries();
-  const { timeZone, refresh } = useCalendarGrouping(
-    (zone) => createCalendarOptions(queries, { ...selection, timeZone: zone }),
-    active,
-  );
+  const { timeZone, setTimeZone } = useCalendarGrouping(active);
   const options = createCalendarOptions(queries, {
     ...selection,
     timeZone,
@@ -26,9 +23,5 @@ export function useSportingCalendar(
     staleTime: Infinity,
   });
 
-  return {
-    calendar,
-    refresh: (nextZone: string) => refresh(nextZone, calendar),
-    queryKey: options.queryKey,
-  };
+  return { calendar, timeZone, setTimeZone, queryKey: options.queryKey };
 }

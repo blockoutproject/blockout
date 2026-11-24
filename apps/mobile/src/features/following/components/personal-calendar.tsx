@@ -28,16 +28,7 @@ export function PersonalCalendar({
   active,
   bypass,
 }: Readonly<PersonalCalendarProps>) {
-  const { timeZone, refresh } = useCalendarGrouping(
-    (zone) =>
-      createPersonalCalendarOptions(
-        owner,
-        request,
-        { seasonId, category, timeZone: zone },
-        bypass,
-      ),
-    active,
-  );
+  const { timeZone, setTimeZone } = useCalendarGrouping(active);
   const options = createPersonalCalendarOptions(
     owner,
     request,
@@ -67,7 +58,8 @@ export function PersonalCalendar({
       calendar={calendar}
       category={category}
       active={active}
-      onRefresh={(nextZone) => refresh(nextZone, calendar)}
+      timeZone={timeZone}
+      onTimeZoneChange={setTimeZone}
       emptyState={
         calendar.data?.hasAvailableFollows === false ? (
           <NoAvailableFollows />
