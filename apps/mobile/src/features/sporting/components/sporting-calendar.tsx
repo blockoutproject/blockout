@@ -397,7 +397,7 @@ function CalendarDate({
       style={[
         calendarStyles.dateHeading,
         { backgroundColor },
-        stacked && calendarStyles.stackedDate,
+        stacked ? calendarStyles.stackedDate : styles.lateralDate,
       ]}
     >
       <Text style={[styles.date, { color: colors.text }]}>
@@ -562,6 +562,8 @@ const styles = StyleSheet.create({
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
+  // Keep the opaque date backing clear of the adjacent card shadow.
+  lateralDate: { alignSelf: "flex-start" },
   groupClip: {
     overflow: "hidden",
     marginHorizontal: -groupShadowGutter,
