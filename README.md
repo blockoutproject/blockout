@@ -145,7 +145,7 @@ and [Checkstyle package naming](https://checkstyle.org/checks/naming/packagename
 
 ### Collector-to-sporting qualification
 
-`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Use an isolated S3 fixture bucket and scoped backend identity for the logo cases. The launched backend inherits `BLOCKOUT_IMAGES_BUCKET`, `AWS_REGION` and the AWS SDK credential environment. Use only synthetic sporting supplier and identity data. The logo suite's direct fixture resets can leave unattached objects, so empty only the task-owned fixture prefix after the suite ends.
+`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Use the [local S3 endpoint](#local-image-testing) for the logo cases and export its backend settings in the shell running Maven. Use only synthetic sporting supplier and identity data.
 
 The suites share that runtime and fixture. Their owning quickstarts define reproducible cases and expected outcomes for [F01 partial commits, contextual identities and absence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence) and [F02 generated facts through F03 public reads](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads).
 
@@ -203,7 +203,28 @@ npx nx run backend:migrate
 
 The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the current domain creation definitions. Until mandatory data retention, the initial tables, columns, defaults, keys and indexes remain the current baseline. Use a fresh isolated PostgreSQL database to verify changes to that baseline. Hosted preproduction data persists across ordinary deployments under the [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency). Backend startup uses Hibernate validation. Liquibase runs through the migration plugin and integration tests.
 
-Set `BLOCKOUT_IMAGES_BUCKET` and `AWS_REGION` in the backend's local environment. Image operations need an isolated private bucket and credentials for an authorized IAM identity through the [AWS SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html). See the [runtime configuration](infra/operations/README.md#application-image-storage).
+Set `BLOCKOUT_IMAGES_BUCKET` and `AWS_REGION` in the backend's local environment. To call AWS from the local backend, use an isolated private bucket and an authorized IAM identity through the [AWS SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html). See the [runtime configuration](infra/operations/README.md#application-image-storage).
+
+### Local image testing
+
+The automated backend tests use an in-process S3 double. To exercise image uploads and reads through a running local backend, start [Adobe S3Mock](https://github.com/adobe/S3Mock#docker-recommended) in a separate terminal. Use a disposable local PostgreSQL database and synthetic images, since the container's objects live only until it stops.
+
+```sh
+docker run --rm -p 127.0.0.1:9090:9090 \
+  -e COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=blockout-local-images \
+  adobe/s3mock:5.2.3
+```
+
+Load the regular local backend environment first. Run the backend with the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#using-environment-variables) and synthetic signing values. Use the loopback IP for path-style bucket addressing.
+
+```sh
+AWS_ENDPOINT_URL_S3=http://127.0.0.1:9090 \
+BLOCKOUT_IMAGES_BUCKET=blockout-local-images AWS_REGION=us-east-1 \
+AWS_ACCESS_KEY_ID=local-fixture AWS_SECRET_ACCESS_KEY=local-fixture-only \
+npx nx run backend:serve
+```
+
+The mobile app uses the same local backend URL. Stop S3Mock with Ctrl+C when the test is done.
 
 ### Local search infrastructure
 
