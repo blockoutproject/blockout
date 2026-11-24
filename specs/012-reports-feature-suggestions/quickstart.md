@@ -6,7 +6,7 @@ Use the [repository verification commands](../../README.md#verification), [canon
 
 Install F13's selected Java/Expo dependencies and generate the actual clients before dependent lint, TypeScript, tests and exports. Serialize generation with Metro/lint reads while Orval cleans generated output.
 
-Controlled application checks use fictional contact, text and images with native SDK/storage/HTTP/provider-process inputs controlled at their boundaries. Real sending requires an authorized isolated private support repository, pre-created intake labels, a repository-scoped server token, CLI 2.102.0 and a private Discord webhook. Verify actual attachment permissions and authorized/unauthorized image-byte access before real support content is accepted. Qualify the applicable exceptional image-erasure procedure; issue closure is insufficient.
+Controlled application checks use fictional contact, text and images with native SDK/storage/HTTP/provider-process inputs controlled at their boundaries. Real qualification uses the [isolated private test destination](../../infra/operations/README.md#support-destination-configuration) for local and preproduction runs. It needs the pre-created intake labels, a repository-scoped server token, CLI 2.102.0 and a private Discord webhook. Verify actual attachment permissions and authorized/unauthorized image-byte access before real support content is accepted. Qualify the applicable exceptional image-erasure procedure; issue closure is insufficient.
 
 ## Essential scenarios
 
