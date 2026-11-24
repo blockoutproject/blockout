@@ -519,6 +519,7 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Current typed follow remains eligible after relation recreation")
   void readsEligibility() {
     // Given
+    UUID homeTeam = UUID.fromString("00000000-0000-4000-8000-000000000014");
     state.replace(context(TargetType.TEAM), true);
     state.replace(context(TargetType.POOL), true);
     UUID original = relationId(TargetType.TEAM);
@@ -529,11 +530,13 @@ class FollowRelationsIntegrationTest {
     // When
     state.replace(context(TargetType.TEAM), false);
     state.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.POOL), false);
 
     // Then
     assertThat(recipients).containsExactly(ACCOUNT);
     assertThat(relationId(TargetType.TEAM)).isNotEqualTo(original);
-    assertThat(eligibility.following(context(TargetType.TEAM))).isTrue();
+    assertThat(eligibility.followsMatch(ACCOUNT, homeTeam, TARGET, TARGET)).isTrue();
+    assertThat(eligibility.followsMatch(OTHER, homeTeam, TARGET, TARGET)).isFalse();
   }
 
   /**

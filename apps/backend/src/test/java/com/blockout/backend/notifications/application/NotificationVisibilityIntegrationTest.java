@@ -177,7 +177,8 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(hidden.publicLink()).isFalse();
-    assertThat(transport.text(hidden)).contains("Le lien n’est plus proposé.");
+    String inboxTitle = transport.toDto(hidden).getTitle();
+    assertThat(inboxTitle).contains("Le lien n’est plus proposé.").doesNotContain("https://");
     assertThat(sporting.match(matchId).stream()).isNull();
     assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(active.version().id());
     assertThat(hidden).usingRecursiveComparison().ignoringFields("publicLink").isEqualTo(original);
@@ -185,9 +186,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
         .send(
             org.mockito.ArgumentMatchers.argThat(
                 messages ->
-                    messages.size() == 1
-                        && messages.getFirst().text().body().contains("Le lien n’est plus proposé.")
-                        && !messages.getFirst().text().body().contains("https://")));
+                    messages.size() == 1 && messages.getFirst().text().body().equals(inboxTitle)));
 
     // When
     SubmitContribution.Outcome restored =
@@ -267,15 +266,14 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(corrected).usingRecursiveComparison().ignoringFields("match").isEqualTo(original);
-    assertThat(transport.text(corrected)).contains("1–3").doesNotContain("3–1");
+    String inboxTitle = transport.toDto(corrected).getTitle();
+    assertThat(inboxTitle).contains("1–3").doesNotContain("3–1");
     assertThat(count("notification")).isEqualTo(1);
     verify(provider)
         .send(
             org.mockito.ArgumentMatchers.argThat(
                 messages ->
-                    messages.size() == 1
-                        && messages.getFirst().text().body().contains("1–3")
-                        && !messages.getFirst().text().body().contains("3–1")));
+                    messages.size() == 1 && messages.getFirst().text().body().equals(inboxTitle)));
   }
 
   @Test

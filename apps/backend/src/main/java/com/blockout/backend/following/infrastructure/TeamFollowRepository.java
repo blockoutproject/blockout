@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-/** Native JPA queries over only team relations, with no sporting presentation copies. */
+/** Team relations and combined F06 eligibility reads, with no sporting presentation copies. */
 interface TeamFollowRepository extends JpaRepository<TeamFollowEntity, UUID> {
   /**
    * Counts retained relations for the exact target, independently of current presentation.
@@ -59,4 +59,25 @@ interface TeamFollowRepository extends JpaRepository<TeamFollowEntity, UUID> {
       FROM PoolFollowEntity p WHERE p.poolId IN :poolIds
       """)
   Set<UUID> findRecipientAccounts(Set<UUID> teamIds, Set<UUID> poolIds);
+
+  /**
+   * Checks either origin type without loading relations or materializing the audience.
+   *
+   * @param accountId original selected account
+   * @param homeTeamId admitted current home team
+   * @param awayTeamId admitted current away team
+   * @param poolId admitted current pool
+   * @return whether the selected account follows either team or the pool
+   */
+  @Query(
+      """
+      SELECT EXISTS (
+        SELECT 1 FROM TeamFollowEntity t
+        WHERE t.accountId = :accountId AND t.teamId IN (:homeTeamId, :awayTeamId)
+      ) OR EXISTS (
+        SELECT 1 FROM PoolFollowEntity p
+        WHERE p.accountId = :accountId AND p.poolId = :poolId
+      )
+      """)
+  boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId);
 }

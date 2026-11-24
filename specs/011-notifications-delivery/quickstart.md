@@ -55,10 +55,12 @@ Run the focused announcement boundaries after the ordinary contract bundle.
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
   -Dtest=ResultAnnouncementTest,LinkAnnouncementTest,NotificationMessageTest \
-  -Dit.test=AnnouncementAudienceIntegrationTest,AnnouncementTransactionIntegrationTest,LinkAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,ContributionPersistenceJpaTest
+  -Dit.test=AnnouncementAudienceIntegrationTest,AnnouncementTransactionIntegrationTest,LinkAnnouncementIntegrationTest,ContributionAnnouncementsIntegrationTest,ContributionPersistenceJpaTest,SubmitContributionIntegrationTest,ModerateContributionIntegrationTest
 ```
 
 Use the real F02/F08 producers and F06 follow owner for composition, audience and atomicity scenarios. Add a follow after the single audience selection and verify result acceptance or publication succeeds, existing selected recipients remain stable and the new follower gets no retroactive entry. Private proposals, unchanged submissions and consumed-category transitions perform no audience work. Preserve selected-account foreign-key/cascade integrity against actual erasure. A required inbox insertion failure rolls back only its match. Keep real quota, active-link uniqueness and both result/publication category orders. After-commit provider failure preserves accepted sporting facts and inbox entries.
+
+With one confirmed pool follower and no registered device, exercise direct active submission, approval of a pending version and reactivation of a historical version after a plain result. Each publication uses the active version established by its writer and creates one replay entry. Verify the revision, version identity or lineage, and rollback of the writer's effects on required inbox failure. On a non-final match, use a controlled clock around the reliable start to verify that submission uses its eligibility instant and that approval and reactivation use their later announcement instant. The first eligible final result without a link and the minute pass for an advance publication both read current F08 presence.
 
 Run the minute pass against migrated PostgreSQL. Verify that repeated passes skip match transactions for consumed live categories, including those consumed with an empty audience. Exercise a correction to H, a newly confirmed start and a return to visibility with a live category still available. Withdraw a selected link before the match lock and race a publication with processing. The checks under the lock prevent allocation for the withdrawn link and preserve a single live allocation in the race. Traverse more than one full candidate page, advancing a match in the final page to its reliable start and checking that it allocates during the next pass.
 
@@ -101,7 +103,11 @@ Verify committed inbox entries and match facts in both configurations and rollba
 
 To compare SQL counts, use the same recipients and installations with push enabled and disabled on disposable PostgreSQL. Count the producer's installation reads before releasing the worker. Expect one capture read for the selected accounts when enabled and zero when disabled.
 
+For the worker, count its statements and transactions separately from capture and receipt processing. Use two accounts with two devices each, one following both teams and the pool and the other following only the pool. Expect one F06 read per device that reaches current-follow eligibility and one send of four messages. With two devices on one account, commit removal of its last follow on another connection before checking the second device. Expect one message and one retained inbox entry.
+
 Exercise the push and destination rows above. Expect no handoff before commit, current F12 admission before each batch, current account/destination association, unexpired visible entry, a current qualifying follow and current live-link conditions before handoff. A selected recipient with no current qualifying follow is excluded; a selected recipient who unfollows/re-follows remains eligible for the prepared push. No later follower is added and no captured follow UUID is required. Exact destination-row/revision/address invalidation remains only for `DeviceNotRegistered`, with one ordinary send and one delayed receipt observation. Refusal, timeout, restart or maintenance must create no resend/catch-up work. The [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits) owns activation inputs, bounds and safe diagnostics.
+
+Use the real F02/F08 commands to compare the HTTP inbox `title` and the eligible push body after link withdrawal. Exercise a numeric correction, an accepted special result and a partial score observation that leaves the prior confirmed score in place. Take both reads at the same sporting state and check the distinct short push title. Exercise preparation failure, exceptions from sending and from observing receipts, and partial adapter evidence. Check stage, outcome and affected count against the [operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits).
 
 ## Physical push preparation
 

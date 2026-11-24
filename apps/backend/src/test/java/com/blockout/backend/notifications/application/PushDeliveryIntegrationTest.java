@@ -247,21 +247,6 @@ class PushDeliveryIntegrationTest {
   }
 
   @Test
-  @DisplayName("Current corrected sporting facts and link absence supply safe text")
-  void usesCurrentContent() {
-    // Given
-    sql.update("UPDATE sporting_match SET home_sets=1,away_sets=3 WHERE id=?", notification);
-
-    // When
-    Message result = eligibility.current(created, target).orElseThrow();
-
-    // Then
-    assertThat(result.text().body())
-        .contains("1–3", "Le lien n’est plus proposé.")
-        .doesNotContain("3–1");
-  }
-
-  @Test
   @DisplayName("A current pool follow still permits a send after the team follow is removed")
   void retainsSurvivingOrigin() {
     // Given
