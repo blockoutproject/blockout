@@ -1,6 +1,6 @@
 # Canonical Java tests
 
-Adapt these excerpts to the actual application and its existing suffix/build discovery. The example service already uses a `ReservationStore` that owns persistence translation; this is not a requirement to add a port. DTOs, entities, views and commands are real values, never Mockito mocks.
+Adapt these excerpts to the actual application and its existing suffix/build discovery. These examples assume a module using JUnit Jupiter, AssertJ and Mockito, with a `ReservationStore` that owns persistence translation. DTOs, entities, views and commands are real values, never Mockito mocks.
 
 ## An owned rejection
 
@@ -64,7 +64,7 @@ If the upper boundary is the changed behavior, also prove that 8 is accepted thr
 
 ## Database integration
 
-Mirror the infrastructure package and use an `IntegrationTest` suffix discovered by Failsafe. The module's existing test configuration supplies the real supported database, runs the accepted migrations and wires the real `ReservationStore`. No new container superclass is needed. The schema guarantees uniqueness of `externalReference`; a service check alone cannot establish it.
+The example module runs `*IntegrationTest` with Failsafe. Place the test where the target module's integration task discovers it. The module's existing test configuration supplies the real supported database, runs the accepted migrations and wires the real `ReservationStore`. No new container superclass is needed. The schema guarantees uniqueness of `externalReference`; a service check alone cannot establish it.
 
 ```java
 @SpringBootTest

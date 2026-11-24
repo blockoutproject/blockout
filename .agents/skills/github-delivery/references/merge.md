@@ -9,4 +9,4 @@
 7. Resolve the exact merged branch, confirm remote deletion or delete it when safe, and remove that local branch only when not checked out elsewhere. Never broaden cleanup or discard changes.
 8. Report merged commit, issue state, cleanup, synchronized checkout and limitations. Do not claim the next issue.
 
-For applications with `develop`/`main`, promotion is a separate release PR from develop to main with its own explicit merge request and checks. For a skills repository delivering directly to main, a tag/release is optional, not part of the copying procedure.
+If the repository uses a separate release PR, promotion requires its own explicit merge request and checks.

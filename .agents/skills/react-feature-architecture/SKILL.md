@@ -5,7 +5,7 @@ description: "Structure React features and their state, forms, effects, queries 
 
 # React feature architecture
 
-Use feature-first ownership for both React web and React Native. Read the accepted behavior, repository paths, pinned libraries and existing generators before editing. The stack below is the target convention for new work; installing this skill does not authorize migrating existing forms, clients or state libraries. Keep such migrations explicit and scoped.
+Use feature-first ownership for both React web and React Native. Read the requested behavior and nearby features to find who owns rendering, editing and data access. Start new features with React state where it meets the need.
 
 ## Feature responsibilities
 
@@ -36,12 +36,12 @@ An exported contract or public boundary can be justified with one consumer. Do n
 
 | Kind                                               | Owner                                           |
 | -------------------------------------------------- | ----------------------------------------------- |
-| Client-managed remote data and request lifecycle   | TanStack Query                                  |
+| Client-managed remote data and request lifecycle   | Feature data access or the existing data cache  |
 | Server-rendered data reads                         | Owning framework server mechanisms              |
 | Navigation and navigable URL state                 | Framework router                                |
-| Form values, errors, touched and submission state  | React Hook Form with Zod                        |
+| Form values, errors, touched and submission state  | Component or hook owning the editable draft     |
 | Local interaction                                  | Closest component or coherent hook              |
-| Identified transversal client state                | Zustand, only when that need exists             |
+| State coordinated across components                | Closest shared owner                            |
 | Scoped dependencies or coordinated component parts | Context                                         |
 | Derived data                                       | Calculation during rendering or a pure function |
 
@@ -49,23 +49,23 @@ Do not mirror server cache in a store or copy props into state merely to synchro
 
 ## Queries and mutations
 
-TanStack Query owns remote data managed by client interactions, not every read performed by a server-rendering framework. Use the platform’s supported preloading/hydration when that client lifecycle needs initial server data; do not create two independently refreshed owners for the same displayed value.
+Let the server-rendering framework own server-only reads. When the client refreshes a value after the initial render, give that value one owner for subsequent reads and updates.
 
-Reuse generated client functions and query-key factories when the configured generator provides them. Otherwise use one feature-owned key definition containing every input that affects the response, including applicable actor/tenant scope. Preserve cancellation, timeouts and safe error translation at the transport boundary. Do not introduce a second generic client wrapper.
+Reuse the project's data-access functions. If a feature caches requests, reuse its key definitions and include every input that affects the response, including the relevant actor or tenant. Preserve cancellation, timeouts and safe error translation at the transport boundary.
 
 Choose freshness and retention per resource, not universal cache durations. Invalidate the narrowest owner-controlled data. Clear or separate private cache across identity changes.
 
 Server-confirmed mutations are the default. Optimistic updates require a defined snapshot, cancellation, rollback and reconciliation strategy. Do not retry mutations without a proven idempotency contract. Keep user input and useful field errors after a failed submission; branch on stable machine codes, not message strings.
 
-Offline behavior defaults to reading existing in-memory cache with honest stale/error state. Persistent storage, queued writes and background sync need an explicit design; they are not incidental Query configuration.
+If the feature displays cached data offline, communicate when it is stale. Persistent storage, queued writes and background sync require an accepted offline need.
 
 ## Forms, contracts and mapping
 
-Use React Hook Form and Zod for new interactive forms. Form schemas express editing and immediate usability; generated transport schemas express the API. Reuse only if semantics match. Map parsing, defaults and composition once at submission and keep server authorization/persistence rules authoritative.
+Use the form controls already selected for the project. A simple form can own its draft and validation in component state. Editing may need intermediate strings or defaults that the API would reject. Convert the draft once at submission and keep authorization and persistence rules on the server.
 
-Generated clients/types and response schemas come from the contract pipeline. Validate consumed JSON responses once before admitting them as successful data to Query; do not cast invalid data into the cache or validate again in every component. Accept additive response properties while validating known fields, required values, types and nullability; do not infer extensible enum values. Keep existing compatibility until a change is authorized. An error response remains an error.
+Apply the API's response contract at the data-access boundary before exposing a successful result. Preserve its rules for required fields, unknown properties, nulls and enums. Reuse any checks the client already performs.
 
-Generated enums may be used in frontend code when the contract owns the exact concept. Reuse an identical generated type rather than creating a renamed mirror. For different presentation/editing semantics, map at the feature API boundary into a feature model; do not spread provider objects or generated client machinery across feature logic.
+Reuse an existing API type, including a generated enum, when it expresses the same concept. Give distinct presentation or editing values their own feature type and map at the boundary.
 
 ## Effects and components
 
@@ -77,6 +77,6 @@ Prefer explicit named contracts for public props, stable interfaces, mappings an
 
 ## Evidence
 
-Test meaningful interaction, dirty-form preservation, rejected responses, scoped invalidation and failure recovery when changed. Run the owning typecheck and tests; include generation when contracts or adaptation change, and the platform build/smoke for framework boundaries. Inspect accessibility and supported states for UI changes. Report omitted checks rather than equating a unit test with native or visual proof.
+Test meaningful interaction, dirty-form preservation, rejected responses, scoped invalidation and failure recovery when changed. Run the owning checks. If a contract change affects a generated client, regenerate it and check its consumers. Exercise the platform for framework behavior and inspect accessibility and supported states for UI changes.
 
-Mechanics: [React effects](https://react.dev/learn/you-might-not-need-an-effect). The folder roles and selected state/form stack are personal conventions, not React requirements.
+The folder roles are a personal convention. For effect dependencies and synchronization, see [React effects](https://react.dev/learn/you-might-not-need-an-effect).

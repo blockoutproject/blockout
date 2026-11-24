@@ -5,11 +5,11 @@ description: "Plan and evolve contract-first OpenAPI APIs across features and se
 
 # OpenAPI contracts and generation
 
-Read accepted requirements, current interface owners, source contracts, the selected OpenAPI version, generation configuration and consumers. An installed skill selects no application stack, service topology or generator. Existing contracts keep their compatibility. New fields and query parameters use camelCase; do not rename existing wire fields incidentally.
+Read accepted requirements, current interface owners, source contracts, the selected OpenAPI version, generation configuration and consumers. Existing contracts keep their compatibility. New fields and query parameters use camelCase; do not rename existing wire fields incidentally.
 
 For technical planning, a new API or a change shared by several features, read [contract ownership and planning](references/planning.md). Plan scopes do not partition API ownership: several plans can evolve the same authoritative contract. Settle the affected interaction before either side implements assumptions about it.
 
-Edit the owning source first, generate next, then adapt handwritten code. A new schema is not permission to expose new behavior. Generate only active boundaries. Never edit or commit generated output, patch its templates as a shortcut, or add recursive case-conversion/compatibility aliases without an accepted migration.
+Edit the owning source first, generate next, then adapt handwritten code. A new schema is not permission to expose new behavior. Generate only active boundaries. Include regenerated sources in the patch when the repository versions them. Leave ignored build outputs untracked. Never hand-edit generated files, patch their templates as a shortcut, or add recursive case-conversion/compatibility aliases without an accepted migration.
 
 ## Schema contracts
 
@@ -19,9 +19,9 @@ Edit the owning source first, generate next, then adapt handwritten code. A new 
 - Name DTOs by role: `CreateResourceRequest`, `ResourceDetailResponse`; internal service shapes use `ResourceInternalResponse` or `CreateResourceInternalRequest`, with `Internal` immediately before the shape suffix. Name nested model shapes at their semantic owner when anonymous generation obscures their meaning; intentional maps remain maps.
 - Use `Upsert` only for true upsert semantics. Choose collection names and fields for their actual shape, not a universal pagination vocabulary.
 - Define stable finite wire concepts as named reusable `*Enum` components and reference them. Shared contract-owned enums have one owner; provider vocabularies stay local to their boundary. Preserve serialized values.
-- Reuse a generated object or enum where it expresses the exact application concept and fits the owning language/project pattern. Create a distinct application representation for different meaning, ownership, presence/null semantics or lifecycle, not merely to rename identical fields. Pure domain code stays independent of generated transport types; JPA entities and raw provider records stay at their adapters. Frontend editing models remain separate when defaults, intermediate strings or presentation semantics differ.
+- Reuse a generated object or enum where it expresses the exact application concept and fits the owning language/project pattern. Create a distinct application representation for different meaning, ownership, presence/null semantics or lifecycle, not merely to rename identical fields. Keep pure domain code independent of generated transport types. Frontend editing models remain separate when defaults, intermediate strings or presentation semantics differ.
 - Additive response properties do not relax the contract's required fields, types, nullability or enums. Extra properties may be ignored; unknown enum values remain invalid unless their evolution policy explicitly permits them. Select and verify consumer enforcement separately under [generator and validation boundaries](references/generation.md); decoding is not necessarily exhaustive schema validation.
-- Share a non-enum schema only for a genuine cross-boundary technical primitive. Never expose JPA entities or raw provider records.
+- Share a non-enum schema only for a genuine cross-boundary technical primitive. Keep persistence models and raw provider records out of the wire contract.
 
 Use named `oneOf` components, an explicit discriminator property and mapping, and required discriminator values on the relevant shapes. Prove supported generation and serialization in every affected language before accepting combined `oneOf`/`allOf` inheritance.
 
@@ -46,10 +46,10 @@ Choose page/offset/cursor per use case and compatibility. Define maximum bounds,
 
 ## Language generation
 
-Read [generator and validation boundaries](references/generation.md) when selecting or changing client or server generation. Select generators and the application stack together against the required outputs when undecided; otherwise preserve the approved choices. Pin selected versions and configuration in the repository. OpenAPI Generator and Orval are candidates when their targets fit; their presence in this skill is not a selection. Installation alone does not authorize replacing an existing pipeline. Do not change framework versions to satisfy a policy-only task.
+Read [generator and validation boundaries](references/generation.md) when selecting or changing client or server generation. Start from the existing pipeline and the consumers it serves. When generator selection is in scope, qualify it against the required outputs and record the chosen version and configuration.
 
 Replace handwritten transport mirrors only after the accepted shapes and owner/consumer behavior are characterized. Then remove the obsolete mirrors as part of the same scoped adoption. Do not disguise a route, model or business redesign as code generation.
 
 ## Evidence
 
-Run source bundling and mapping synchronization in the configured order, generation, affected language builds/imports/typechecks, and active consumer tests. Enum, union, nullability and field changes require all affected consumers, not just the producer. Verify deterministic clean regeneration and ignored generated artifacts. Exercise handwritten serialization/error/validation behavior where meaningful; do not test generated source spelling. Report unsupported generation or missing consumer evidence as unresolved.
+Run the repository's configured generation steps and the affected consumer builds and tests. Enum, union, nullability and field changes require all affected consumers, not just the producer. Verify a clean generation reproduces the expected outputs, including any versioned sources. Exercise handwritten serialization/error/validation behavior where meaningful; do not test generated source spelling. Report unsupported generation or missing consumer evidence as unresolved.

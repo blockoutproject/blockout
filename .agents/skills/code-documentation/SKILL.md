@@ -26,7 +26,7 @@ idempotency, resource ownership and provider rules where they actually apply, ev
   to that contract; add only relevant implementation guarantees. Add `@param`, `@return` and `@throws` when
   they explain constraints or supported outcomes that the signature does not convey. Do not enumerate
   hypothetical library exceptions or describe straightforward dependency injection.
-- **Generated HTTP interfaces:** improve an incomplete endpoint contract in its OpenAPI source and regenerate.
+- **Generated HTTP interfaces:** improve an incomplete endpoint contract in the source used by the project's generator and regenerate.
   Handwritten overrides need only documentation of additional behavior; do not copy the generated contract.
 - **Python:** follow PEP 257 for docstrings that explain module/public contracts and meaningful private rules.
   Keep types in annotations. Explain provider constraints, effects and failure outcomes without exposing
@@ -47,7 +47,5 @@ helper documents, comment-count checks or a source-scanning framework to enforce
 
 ## Verification
 
-Check that changed code and its documentation agree, comments explain a real reader need and no unsupported
-guarantee is claimed. Run affected source checks proportionately when source changed. For policy-only edits,
-validate skill structure, routing/reference consistency, applicable formatting and diff hygiene. Report actual
-coverage; changing this policy does not establish compliance of existing code.
+Check that changed code and its documentation agree and that comments describe the guarantees the code actually provides.
+Run the project's affected source or documentation checks.
