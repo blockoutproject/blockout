@@ -53,9 +53,8 @@ function TeamPage({
 }: Readonly<TeamScreenProps>) {
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
-  const [selected, setSelected] = useState<string>();
+  const [selected, setSelected] = useState("upcoming");
   const data = team.data;
-  const firstParticipation = data?.participations[0]?.pool.id;
   const divisionColor = data?.team.classification.division?.color;
   const tabs = [
     { id: "upcoming", label: "À venir" },
@@ -65,9 +64,7 @@ function TeamPage({
       label: poolLabel(pool),
     })),
   ];
-  const tab = tabs.some((item) => item.id === selected)
-    ? selected
-    : (firstParticipation ?? "upcoming");
+  const tab = tabs.some((item) => item.id === selected) ? selected : "upcoming";
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -93,11 +90,11 @@ function TeamPage({
           }
         />
       }
-      loading={<SportingTeamLoading calendar={!!data && tab === "upcoming"} />}
+      loading={<SportingTeamLoading calendar={tab === "upcoming"} />}
     >
       {data && (
         <PagedTabs
-          selected={tab ?? "upcoming"}
+          selected={tab}
           onSelect={setSelected}
           contextColor={divisionColor}
           header={
