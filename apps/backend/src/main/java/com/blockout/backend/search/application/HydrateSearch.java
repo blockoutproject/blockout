@@ -1,8 +1,7 @@
 package com.blockout.backend.search.application;
 
 import com.blockout.backend.sporting.application.ReadSportingResources;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
-import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.HashMap;
 import java.util.List;
@@ -37,26 +36,18 @@ public class HydrateSearch {
     for (SearchEngine.Candidate candidate : candidates) {
       cities.put(candidate.position().id(), candidate.city());
     }
-    List<SportingPublicInput> admitted =
-        owners
-            .publicInputs(
-                switch (context.resource()) {
-                  case CLUB -> Kind.CLUB;
-                  case TEAM -> Kind.TEAM;
-                  case POOL -> Kind.POOL;
-                },
-                cities.keySet())
-            .stream()
+    Set<UUID> admittedIds =
+        owners.searchEligibility(context.resource().getSportingKind(), cities.keySet()).stream()
             .filter(
                 input ->
                     Objects.equals(cities.get(input.id()), input.city()) && matches(context, input))
-            .toList();
-    Set<UUID> ids = admitted.stream().map(SportingPublicInput::id).collect(Collectors.toSet());
+            .map(SportingSearchEligibility::id)
+            .collect(Collectors.toSet());
     Map<UUID, SearchPage.Summary> result = new HashMap<>();
     switch (context.resource()) {
       case CLUB ->
           resources
-              .clubIdentities(ids)
+              .clubIdentities(admittedIds)
               .forEach(
                   (id, club) ->
                       result.put(
@@ -65,11 +56,11 @@ public class HydrateSearch {
                               new SearchPage.Club(club, cities.get(id)), null, null)));
       case TEAM ->
           resources
-              .teamSummaries(ids)
+              .teamSummaries(admittedIds)
               .forEach((id, team) -> result.put(id, new SearchPage.Summary(null, team, null)));
       case POOL ->
           resources
-              .poolSummaries(ids)
+              .poolSummaries(admittedIds)
               .forEach((id, pool) -> result.put(id, new SearchPage.Summary(null, null, pool)));
     }
     return Map.copyOf(result);
@@ -82,7 +73,7 @@ public class HydrateSearch {
    * @param input current eligible owner values; unknown classification cannot satisfy a filter
    * @return whether every selected filter still matches
    */
-  private boolean matches(SearchContext context, SportingPublicInput input) {
+  private boolean matches(SearchContext context, SportingSearchEligibility input) {
     return (context.seasonId() == null || context.seasonId().equals(input.seasonId()))
         && (context.divisionId() == null
             || input.classification() != null

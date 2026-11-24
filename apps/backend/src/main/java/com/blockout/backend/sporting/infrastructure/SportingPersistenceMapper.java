@@ -16,8 +16,9 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -29,14 +30,12 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolClassif
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
-import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.domain.MatchFacts;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
@@ -449,26 +448,14 @@ interface SportingPersistenceMapper {
    * @return the same matching facts without persistence ownership
    */
   @Mapping(target = "name", source = "comparisonName")
-  SportingPublicInput.Alias toView(SportingAliasRow source);
+  SportingIndexInput.Alias toView(SportingAliasRow source);
 
-  /**
-   * Combines scalar query values with already batched owner associations.
-   *
-   * @param source current permitted scalar projection
-   * @param kind owning resource kind
-   * @param aliases qualified aliases for this resource
-   * @param divisionTerms current terms for its division
-   * @param visiblePoolIds already authorized current memberships
-   * @return detached permitted search input with no additional reads
-   */
   @Mapping(target = "classification", source = "source")
-  @Mapping(target = "poolIds", source = "visiblePoolIds")
-  SportingPublicInput toPublicInput(
-      SportingSearchRow source,
-      SportingVisibility.Kind kind,
-      Set<SportingPublicInput.Alias> aliases,
-      Set<String> divisionTerms,
-      List<UUID> visiblePoolIds);
+  SportingSearchEligibility toSearchEligibility(SportingSearchRow source);
+
+  @Mapping(target = "classification", source = "source")
+  SportingIndexInput toIndexInput(
+      SportingSearchRow source, Set<SportingIndexInput.Alias> aliases, Set<String> divisionTerms);
 
   /**
    * Retains unknown classification instead of constructing an empty setting.

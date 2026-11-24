@@ -167,31 +167,20 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
           + " ORDER BY s.startYear DESC, s.id")
   List<SeasonEntity> findVisibleSeasons();
 
-  /**
-   * Selects visible search roots before bounded hydration.
-   *
-   * @param page bounded projection request
-   * @return eligible identities in stable order
-   */
-  @Query("SELECT p.id FROM PoolEntity p WHERE " + VISIBLE + " ORDER BY p.id")
-  List<UUID> findProjectionIds(Pageable page);
-
-  /**
-   * Projects public search facts without image payloads or lazy collection reads.
-   *
-   * @param ids bounded candidate identities
-   * @return currently visible inputs in identity order
-   */
-  @Query(
+  String SEARCH_SELECT =
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
         p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
-        NULL, NULL, NULL)
-      FROM PoolEntity p WHERE p.id IN :ids AND
+        NULL, NULL)
+      FROM PoolEntity p WHERE
       """
-          + VISIBLE
-          + " ORDER BY p.id")
+          + VISIBLE;
+
+  @Query(SEARCH_SELECT + " AND p.id IN :ids ORDER BY p.id")
   List<SportingSearchRow> findSearchInputs(Set<UUID> ids);
+
+  @Query(SEARCH_SELECT + " ORDER BY p.id")
+  List<SportingSearchRow> findSearchInputs(Pageable page);
 
   /**
    * Reads qualified aliases for selected pools.

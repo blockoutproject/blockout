@@ -179,14 +179,11 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   @Query("SELECT t.season.id FROM TeamEntity t WHERE t.id = :id")
   Optional<UUID> findSeasonId(UUID id);
 
-  /**
-   * Reads classification activity without loading team presentation.
-   *
-   * @param id exact team identity
-   * @return current activity, or empty for an unknown team
-   */
-  @Query("SELECT t.division.active FROM TeamEntity t WHERE t.id = :id")
-  Optional<Boolean> findDivisionActivity(UUID id);
+  @Query(
+      "SELECT NEW com.blockout.backend.sporting.infrastructure.TeamVisibilityRow(t.division.active, "
+          + VISIBLE
+          + ") FROM TeamEntity t WHERE t.id = :id")
+  Optional<TeamVisibilityRow> findVisibility(UUID id);
 
   /**
    * Selects the distinct seasons containing currently visible club teams.
@@ -225,32 +222,21 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
           + " ORDER BY s.startYear DESC, s.id")
   List<SeasonEntity> findVisibleSeasons();
 
-  /**
-   * Selects eligible search identities before bounded hydration.
-   *
-   * @param page bounded projection request
-   * @return visible identities in stable order
-   */
-  @Query("SELECT t.id FROM TeamEntity t WHERE " + VISIBLE + " ORDER BY t.id")
-  List<UUID> findProjectionIds(Pageable page);
-
-  /**
-   * Projects public search facts with optional club context and no image payloads.
-   *
-   * @param ids bounded candidate identities
-   * @return currently visible search facts in identity order
-   */
-  @Query(
+  String SEARCH_SELECT =
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
         t.id, t.season.id, t.sourceName, COALESCE(t.manualName, t.sourceName), COALESCE(t.manualShortName, t.sourceName), t.division.id, t.division.name, t.format, t.gender,
-        c.id, COALESCE(c.manualName, c.sourceName),
-        CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
-      FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids AND
+        COALESCE(c.manualName, c.sourceName),
       """
-          + VISIBLE
-          + " ORDER BY t.id")
+          + ClubRepository.EFFECTIVE_CITY
+          + ") FROM TeamEntity t LEFT JOIN t.club c WHERE "
+          + VISIBLE;
+
+  @Query(SEARCH_SELECT + " AND t.id IN :ids ORDER BY t.id")
   List<SportingSearchRow> findSearchInputs(Set<UUID> ids);
+
+  @Query(SEARCH_SELECT + " ORDER BY t.id")
+  List<SportingSearchRow> findSearchInputs(Pageable page);
 
   /**
    * Reads qualified aliases for selected teams without initializing collections.

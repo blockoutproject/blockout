@@ -5,9 +5,10 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingModelMapper;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
@@ -120,17 +121,27 @@ public class ReadSportingData {
   }
 
   /**
-   * Hydrates bounded current authorized public values; hidden identities are omitted.
+   * Returns current city and filter facts for visible candidates in the caller's search snapshot.
    *
    * @param kind club, team or pool
-   * @param ids at most 200 stable identities
-   * @return immutable current inputs, never stale engine documents
+   * @param ids at most 200 native candidate identities
+   * @return visible sporting identities with their authorized city and classification
    */
-  public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
+  public List<SportingSearchEligibility> searchEligibility(Kind kind, Set<UUID> ids) {
+    requireSearchBatch(ids);
+    return publicReads.searchEligibility(kind, ids);
+  }
+
+  /** Reads the public matching vocabulary and filters for a targeted index update. */
+  public List<SportingIndexInput> indexInputs(Kind kind, Set<UUID> ids) {
+    requireSearchBatch(ids);
+    return publicReads.indexInputs(kind, ids);
+  }
+
+  private void requireSearchBatch(Set<UUID> ids) {
     if (ids.size() > 200) {
       throw new IllegalArgumentException("At most 200 identities per read");
     }
-    return publicReads.publicInputs(kind, ids);
   }
 
   /**
@@ -141,11 +152,11 @@ public class ReadSportingData {
    * @param size from 1 through 200
    * @return eligible current inputs; an empty page ends traversal
    */
-  public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
+  public List<SportingIndexInput> indexInputs(Kind kind, int page, int size) {
     if (page < 0 || size < 1 || size > 200) {
       throw new IllegalArgumentException("Invalid page bounds");
     }
-    return publicReads.projectionInputs(kind, page, size);
+    return publicReads.indexInputs(kind, page, size);
   }
 
   /**

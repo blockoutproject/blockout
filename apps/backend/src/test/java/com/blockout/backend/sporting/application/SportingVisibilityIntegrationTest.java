@@ -150,6 +150,16 @@ class SportingVisibilityIntegrationTest {
   }
 
   @Test
+  @DisplayName("An unknown team has no visibility decision")
+  void omitsUnknownTeam() {
+    // Given
+    UUID unknown = UUID.fromString("00000000-0000-4000-8000-000000000098");
+
+    // When / Then
+    assertThat(reads.visibility(Kind.TEAM, unknown)).isEmpty();
+  }
+
+  @Test
   @DisplayName("An unclassified retained match keeps every independent hiding reason")
   void retainsUnclassifiedMatchReasons() {
     // Given
@@ -272,14 +282,16 @@ class SportingVisibilityIntegrationTest {
     assertThat(returned.homeTeamId()).isEqualTo(first.homeTeamId());
     assertThat(reads.visibility(Kind.POOL, pool).orElseThrow().reasons())
         .containsExactly(Reason.DIVISION_INACTIVE);
+    assertThat(reads.visibility(Kind.TEAM, first.homeTeamId()).orElseThrow().reasons())
+        .containsExactlyInAnyOrder(Reason.DIVISION_INACTIVE, Reason.NO_VISIBLE_PARTICIPATION);
     assertThat(reads.publicMatch(first.resourceId())).isEmpty();
     assertThat(reads.club(acquisitionReads.team(first.homeTeamId()).orElseThrow().clubId()))
         .isPresent();
   }
 
   @Test
-  @DisplayName("A second visible participation keeps the retained team usable")
-  void preservesOtherParticipation() {
+  @DisplayName("A retained team's visibility and pool links follow its remaining participation")
+  void exposesOnlyRemainingParticipation() {
     // Given
     UUID other =
         identities
@@ -297,19 +309,21 @@ class SportingVisibilityIntegrationTest {
             .getFirst();
     identities.identifyMatch(
         other, "M2", candidate("M2", "Home", null).home(), candidate("M2", "Home", null).away());
+    UUID team = first.homeTeamId();
+    calendars.accept(pool, calendar(2, List.of()));
+    assertThat(reads.visibility(Kind.TEAM, team).orElseThrow().viewable()).isTrue();
+    assertThat(reads.publicTeamPoolIds(team)).containsExactly(other);
 
     // When
-    calendars.accept(pool, calendar(2, List.of()));
+    sql.update("UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", other);
 
     // Then
-    assertThat(reads.visibility(Kind.TEAM, first.homeTeamId()).orElseThrow().viewable()).isTrue();
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst().poolIds())
-        .containsExactly(other);
+    assertThat(reads.visibility(Kind.TEAM, team).orElseThrow().reasons())
+        .containsExactly(Reason.NO_VISIBLE_PARTICIPATION);
+    assertThat(reads.publicTeamPoolIds(team)).isEmpty();
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_participation WHERE team_id=?",
-                Integer.class,
-                first.homeTeamId()))
+                "SELECT COUNT(*) FROM sporting_participation WHERE team_id=?", Integer.class, team))
         .isEqualTo(2);
   }
 
@@ -328,10 +342,10 @@ class SportingVisibilityIntegrationTest {
     calendars.accept(pool, calendar(2, List.of()));
 
     // Then
-    assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
+    assertThat(reads.searchEligibility(Kind.CLUB, Set.of(club)))
         .extracting(input -> input.id())
         .containsExactly(club);
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId()))).isEmpty();
+    assertThat(reads.searchEligibility(Kind.TEAM, Set.of(first.homeTeamId()))).isEmpty();
   }
 
   @Test

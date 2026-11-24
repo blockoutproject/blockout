@@ -11,7 +11,7 @@ import com.blockout.backend.search.application.SearchEngine;
 import com.blockout.backend.search.infrastructure.OpenSearchEngine;
 import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
@@ -114,7 +114,7 @@ class DiscoveryExamplesIntegrationTest {
     for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
       String index = PREFIX + "-" + kind.name().toLowerCase() + "s";
       nativeEngine.createIndex(index);
-      for (SportingPublicInput input : owners.publicInputs(kind, Set.copyOf(ids()))) {
+      for (SportingIndexInput input : owners.indexInputs(kind, Set.copyOf(ids()))) {
         nativeEngine.client.index(
             r -> r.index(index).id(input.id().toString()).document(SearchDocuments.from(input)));
       }

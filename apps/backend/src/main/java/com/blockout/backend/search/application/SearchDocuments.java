@@ -1,6 +1,6 @@
 package com.blockout.backend.search.application;
 
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -38,7 +38,7 @@ public record SearchDocuments(
    * @param input current bounded owner input, with aliases already scoped by F02
    * @return one native matching document; presentation remains with F03
    */
-  public static SearchDocuments from(SportingPublicInput input) {
+  public static SearchDocuments from(SportingIndexInput input) {
     List<String> names = new ArrayList<>();
     add(names, input.sourceName());
     add(names, input.effectiveName());

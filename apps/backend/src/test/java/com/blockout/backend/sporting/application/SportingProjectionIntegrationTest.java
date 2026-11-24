@@ -21,7 +21,8 @@ import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
@@ -36,6 +37,7 @@ import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -62,7 +64,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
 @RecordApplicationEvents
-@DisplayName("Current public inputs and after-commit projection handoff")
+@DisplayName("Current search index inputs and after-commit projection handoff")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SportingProjectionIntegrationTest {
   @Autowired private PostgreSQLContainer database;
@@ -217,16 +219,18 @@ class SportingProjectionIntegrationTest {
         DIVISION,
         DIVISION);
     sql.update(
-        "INSERT INTO sporting_team_alias(team_id,season_id,organizer_reference,competition_reference,comparison_name) VALUES (?,?,'SYNTHETIC','COMP','home alias')",
+        "INSERT INTO sporting_team_alias(team_id,season_id,organizer_reference,competition_reference,comparison_name) VALUES (?,?,'SYNTHETIC','COMP','home alias'), (?,?,'SYNTHETIC','CUP','home alias')",
+        first.homeTeamId(),
+        season,
         first.homeTeamId(),
         season);
-    SportingPublicInput previous =
-        reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
+    SportingIndexInput previous =
+        reads.indexInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
 
     // When
     sql.update("UPDATE sporting_club SET municipality_restricted=TRUE WHERE id=?", club);
-    SportingPublicInput current =
-        reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
+    SportingIndexInput current =
+        reads.indexInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
 
     // Then
     assertThat(previous.city()).isEqualTo("Synthetic city");
@@ -235,54 +239,97 @@ class SportingProjectionIntegrationTest {
     assertThat(current.seasonId()).isEqualTo(season);
     assertThat(current.sourceName()).isEqualTo("Home");
     assertThat(current.effectiveName()).isEqualTo("Home");
-    assertThat(current.clubId()).isEqualTo(club);
     assertThat(current.classification().divisionId()).isEqualTo(DIVISION);
     assertThat(current.divisionName()).isEqualTo("Synthetic");
     assertThat(current.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
-    SportingPublicInput poolInput = reads.publicInputs(Kind.POOL, Set.of(pool)).getFirst();
+    SportingIndexInput poolInput = reads.indexInputs(Kind.POOL, Set.of(pool)).getFirst();
     assertThat(poolInput.classification()).isEqualTo(current.classification());
     assertThat(poolInput.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
-    assertThat(current.aliases()).extracting(alias -> alias.name()).containsExactly("home alias");
+    assertThat(current.aliases())
+        .containsExactlyInAnyOrder(
+            new SportingIndexInput.Alias(season, "SYNTHETIC", "COMP", "home alias"),
+            new SportingIndexInput.Alias(season, "SYNTHETIC", "CUP", "home alias"));
     assertThat(
             reads.projectionDependents(
                 Set.of(new Scope(SportingProjectionChanges.Kind.CLUB, club))))
         .contains(
             new Scope(SportingProjectionChanges.Kind.TEAM, first.homeTeamId()),
             new Scope(SportingProjectionChanges.Kind.POOL, pool));
-    assertThat(reads.projectionInputs(Kind.TEAM, 0, 1)).hasSize(1);
   }
 
   @Test
-  @DisplayName("Professional projection keeps absent club context null")
-  void projectsUnattachedProfessionalTeam() {
+  @DisplayName("Rebuild pages retain UUID order and stop after the last eligible team")
+  void pagesEligibleTeamsInUuidOrder() {
     // Given
-    UUID professional =
-        identities
-            .createPool(
-                new PoolKey(
-                    CollectionProviderEnum.LNV, season, "LNV", "CHAMP", null, null, "PHASE"),
-                "LNV_PACK",
-                "Professional phase",
-                new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
-            .id();
-    UUID team =
-        identities
-            .identifyMatch(
-                professional,
-                "NATIVE",
-                new TeamCandidate("HOME", "Professional home", null, null),
-                new TeamCandidate("AWAY", "Professional away", null, null))
-            .homeTeamId();
+    ObservationOutcome match =
+        calendars
+            .accept(pool, calendar(1, List.of(candidate("M1", "Home", null))))
+            .outcomes()
+            .getFirst();
+    List<UUID> expected =
+        List.of(match.homeTeamId(), match.awayTeamId()).stream()
+            .sorted(Comparator.comparing(UUID::toString))
+            .toList();
 
     // When
-    SportingPublicInput input = reads.publicInputs(Kind.TEAM, Set.of(team)).getFirst();
+    List<SportingIndexInput> first = reads.indexInputs(Kind.TEAM, 0, 1);
+    List<SportingIndexInput> second = reads.indexInputs(Kind.TEAM, 1, 1);
+    List<SportingIndexInput> end = reads.indexInputs(Kind.TEAM, 2, 1);
 
     // Then
+    assertThat(first).extracting(SportingIndexInput::id).containsExactly(expected.getFirst());
+    assertThat(second).extracting(SportingIndexInput::id).containsExactly(expected.getLast());
+    assertThat(end).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "A clubless professional team stays searchable and indexable until its last visible phase disappears")
+  void preservesUnattachedTeamWhileAPhaseIsVisible() {
+    // Given
+    UUID firstPhase = createProfessionalPhase("REGULAR");
+    UUID secondPhase = createProfessionalPhase("FINAL");
+    TeamCandidate home = new TeamCandidate("HOME", "Professional home", null, null);
+    TeamCandidate away = new TeamCandidate("AWAY", "Professional away", null, null);
+    UUID team = identities.identifyMatch(firstPhase, "M1", home, away).homeTeamId();
+    identities.identifyMatch(secondPhase, "M2", home, away);
+    Set<UUID> ids = Set.of(team);
+    SportingIndexInput input = reads.indexInputs(Kind.TEAM, ids).getFirst();
+    assertThat(input.id()).isEqualTo(team);
     assertThat(input.sourceName()).isEqualTo("Professional home");
-    assertThat(input.clubId()).isNull();
     assertThat(input.clubName()).isNull();
     assertThat(input.city()).isNull();
-    assertThat(input.poolIds()).containsExactly(professional);
+    assertThat(reads.publicTeamPoolIds(team)).containsExactlyInAnyOrder(firstPhase, secondPhase);
+    assertThat(reads.searchEligibility(Kind.TEAM, ids))
+        .extracting(SportingSearchEligibility::id)
+        .containsExactly(team);
+
+    // When / Then
+    sql.update("UPDATE sporting_pool SET calendar_empty = TRUE WHERE id = ?", firstPhase);
+    assertThat(reads.searchEligibility(Kind.TEAM, ids))
+        .extracting(SportingSearchEligibility::id)
+        .containsExactly(team);
+    assertThat(reads.indexInputs(Kind.TEAM, ids)).containsExactly(input);
+
+    sql.update("UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", secondPhase);
+    assertThat(reads.searchEligibility(Kind.TEAM, ids)).isEmpty();
+    assertThat(reads.indexInputs(Kind.TEAM, ids)).isEmpty();
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM sporting_participation WHERE team_id = ?",
+                Integer.class,
+                team))
+        .isEqualTo(2);
+  }
+
+  private UUID createProfessionalPhase(String reference) {
+    return identities
+        .createPool(
+            new PoolKey(CollectionProviderEnum.LNV, season, "LNV", "CHAMP", null, null, reference),
+            "LNV_PACK",
+            reference,
+            new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
+        .id();
   }
 
   /**

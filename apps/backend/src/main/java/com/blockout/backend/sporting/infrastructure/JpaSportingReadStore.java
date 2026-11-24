@@ -5,8 +5,9 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope
 import com.blockout.backend.sporting.application.SportingSeasonSelection;
 import com.blockout.backend.sporting.application.SportingSeasonSelection.Season;
 import com.blockout.backend.sporting.application.SportingTargetSelection;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
-import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput.Alias;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,14 +71,14 @@ public class JpaSportingReadStore
                 pool.divisionActive()));
       }
       case TEAM -> {
-        Boolean active = teams.findDivisionActivity(id).orElse(null);
-        if (active == null) {
+        TeamVisibilityRow team = teams.findVisibility(id).orElse(null);
+        if (team == null) {
           return Optional.empty();
         }
-        if (!active) {
+        if (!team.divisionActive()) {
           reasons.add(Reason.DIVISION_INACTIVE);
         }
-        if (visiblePoolIds(Set.of(id)).isEmpty()) {
+        if (!team.hasViewableParticipation()) {
           reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
         }
       }
@@ -240,44 +240,57 @@ public class JpaSportingReadStore
 
   /** {@inheritDoc} */
   @Override
-  public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
+  public List<SportingIndexInput> indexInputs(Kind kind, int page, int size) {
     PageRequest request = PageRequest.of(page, size);
-    List<UUID> ids =
+    List<SportingSearchRow> rows =
         switch (kind) {
-          case CLUB -> clubs.findProjectionIds(request);
-          case TEAM -> teams.findProjectionIds(request);
-          case POOL -> pools.findProjectionIds(request);
+          case CLUB -> clubs.findSearchInputs(request);
+          case TEAM -> teams.findSearchInputs(request);
+          case POOL -> pools.findSearchInputs(request);
           case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
         };
-    return publicInputs(kind, new LinkedHashSet<>(ids));
+    return enrichIndexInputs(kind, rows);
   }
 
   /** {@inheritDoc} */
   @Override
-  public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
-    if (ids.isEmpty()) {
+  public List<SportingSearchEligibility> searchEligibility(Kind kind, Set<UUID> ids) {
+    return visibleSearchRows(kind, ids).stream().map(mapper::toSearchEligibility).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<SportingIndexInput> indexInputs(Kind kind, Set<UUID> ids) {
+    return enrichIndexInputs(kind, visibleSearchRows(kind, ids));
+  }
+
+  private List<SportingIndexInput> enrichIndexInputs(Kind kind, List<SportingSearchRow> rows) {
+    if (rows.isEmpty()) {
       return List.of();
     }
-    List<SportingSearchRow> rows =
-        switch (kind) {
-          case CLUB -> clubs.findSearchInputs(ids);
-          case POOL -> pools.findSearchInputs(ids);
-          case TEAM -> teams.findSearchInputs(ids);
-          case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
-        };
-    Map<UUID, Set<Alias>> aliases = aliases(kind, ids);
+    Set<UUID> visibleIds = rows.stream().map(SportingSearchRow::id).collect(Collectors.toSet());
+    Map<UUID, Set<Alias>> aliases = aliases(kind, visibleIds);
     Map<UUID, Set<String>> terms = divisionTerms(rows);
-    Map<UUID, List<UUID>> memberships = kind == Kind.TEAM ? visiblePoolIds(ids) : Map.of();
     return rows.stream()
         .map(
             row ->
-                mapper.toPublicInput(
+                mapper.toIndexInput(
                     row,
-                    kind,
                     aliases.getOrDefault(row.id(), Set.of()),
-                    terms.getOrDefault(row.divisionId(), Set.of()),
-                    memberships.getOrDefault(row.id(), List.of())))
+                    terms.getOrDefault(row.divisionId(), Set.of())))
         .toList();
+  }
+
+  private List<SportingSearchRow> visibleSearchRows(Kind kind, Set<UUID> ids) {
+    if (ids.isEmpty()) {
+      return List.of();
+    }
+    return switch (kind) {
+      case CLUB -> clubs.findSearchInputs(ids);
+      case TEAM -> teams.findSearchInputs(ids);
+      case POOL -> pools.findSearchInputs(ids);
+      case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
+    };
   }
 
   /**

@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
-import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
-import java.util.List;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -27,24 +25,21 @@ class SearchDocumentsTest {
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000002");
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000003");
-    SportingPublicInput input =
-        new SportingPublicInput(
+    SportingIndexInput input =
+        new SportingIndexInput(
             id,
-            Kind.TEAM,
             season,
             "Source Eagles",
             "Public Eagles",
             "Eagles",
             Set.of(
-                new SportingPublicInput.Alias(
+                new SportingIndexInput.Alias(
                     season, "qualified-organizer", "qualified-competition", "verified eagles")),
             new SportingClassification(division, SportFormatEnum._6X6, gender),
             "Nationale Deux",
             Set.of("N2"),
             null,
-            null,
-            null,
-            List.of());
+            null);
 
     // When
     SearchDocuments document = SearchDocuments.from(input);

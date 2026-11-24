@@ -1,7 +1,8 @@
 package com.blockout.backend.search.application;
 
+import com.blockout.backend.search.application.SearchContext.Resource;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.LinkedHashSet;
@@ -37,19 +38,17 @@ public class ProjectSearch {
    */
   public void update(Set<Scope> scopes) {
     Set<Scope> dependents = sporting.projectionDependents(scopes);
-    for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
-      List<UUID> ids =
-          dependents.stream()
-              .filter(scope -> scope.kind().name().equals(kind.name()))
-              .map(Scope::id)
-              .toList();
-      ids.stream()
+    for (Resource resource : Resource.values()) {
+      Kind kind = resource.getSportingKind();
+      dependents.stream()
+          .filter(scope -> scope.kind() == resource.getProjectionScope())
+          .map(Scope::id)
           .gather(Gatherers.windowFixed(200))
           .forEach(
               window -> {
                 Set<UUID> batch = new LinkedHashSet<>(window);
                 List<SearchDocuments> documents =
-                    sporting.publicInputs(kind, batch).stream().map(SearchDocuments::from).toList();
+                    sporting.indexInputs(kind, batch).stream().map(SearchDocuments::from).toList();
                 writer.update(kind, batch, documents);
               });
     }
@@ -62,9 +61,10 @@ public class ProjectSearch {
    */
   public void rebuild() {
     Map<Kind, String> generation = writer.createGeneration();
-    for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
+    for (Resource resource : Resource.values()) {
+      Kind kind = resource.getSportingKind();
       for (int page = 0; ; page++) {
-        List<SportingPublicInput> batch = sporting.projectionInputs(kind, page, 200);
+        List<SportingIndexInput> batch = sporting.indexInputs(kind, page, 200);
         if (batch.isEmpty()) {
           break;
         }

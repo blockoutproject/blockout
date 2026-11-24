@@ -1,7 +1,8 @@
 package com.blockout.backend.sporting.application.port;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
@@ -72,14 +73,14 @@ public interface SportingReadStore {
    */
   List<UUID> viewableTeamPoolIds(UUID teamId);
 
+  /** Reads the authorized city and exact filter values of currently visible candidates. */
+  List<SportingSearchEligibility> searchEligibility(Kind kind, Set<UUID> ids);
+
   /**
-   * Hydrates only currently eligible club/team/pool inputs from canonical data.
-   *
-   * @param kind requested indexable kind; MATCH has no search inputs
-   * @param ids bounded identities to recheck, at most 200
-   * @return immutable current inputs, omitting hidden or unknown identities
+   * Reads currently visible identities with their qualified aliases and division terms for
+   * indexing.
    */
-  List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids);
+  List<SportingIndexInput> indexInputs(Kind kind, Set<UUID> ids);
 
   /**
    * Pages current eligible identities for a consumer-owned rebuild.
@@ -89,7 +90,7 @@ public interface SportingReadStore {
    * @param size page size from 1 through 200
    * @return bounded current inputs; an empty page ends traversal
    */
-  List<SportingPublicInput> projectionInputs(Kind kind, int page, int size);
+  List<SportingIndexInput> indexInputs(Kind kind, int page, int size);
 
   /**
    * Expands owner scopes in batches, including hidden retained identities needing index removal.

@@ -189,7 +189,7 @@ class SportingPresentationIntegrationTest {
         .andExpect(status().isOk());
 
     // Then
-    assertThat(reads.publicInputs(Kind.POOL, Set.of(pool)))
+    assertThat(reads.indexInputs(Kind.POOL, Set.of(pool)))
         .singleElement()
         .satisfies(
             value -> {
@@ -228,7 +228,7 @@ class SportingPresentationIntegrationTest {
     assertThat(refreshed.names().effectiveName()).isEqualTo("Manual full");
     assertThat(restored.names().effectiveName()).isEqualTo("HOME");
     assertThat(restored.names().effectiveShortName()).isEqualTo("Manual short");
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(team)))
+    assertThat(reads.indexInputs(Kind.TEAM, Set.of(team)))
         .singleElement()
         .satisfies(
             input -> {
@@ -1102,7 +1102,7 @@ class SportingPresentationIntegrationTest {
           .containsOnlyNulls();
       assertThat(reads.publicClubContacts(club).values()).containsOnlyNulls();
       assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
-      assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
+      assertThat(reads.indexInputs(Kind.CLUB, Set.of(club)))
           .singleElement()
           .satisfies(value -> assertThat(value.effectiveName()).isEqualTo("Retained club"));
     }
@@ -1422,7 +1422,7 @@ class SportingPresentationIntegrationTest {
         .contains(
             new SportingProjectionChanges.Scope(SportingProjectionChanges.Kind.TEAM, team),
             new SportingProjectionChanges.Scope(SportingProjectionChanges.Kind.POOL, scope.pool()));
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(team)))
+    assertThat(reads.indexInputs(Kind.TEAM, Set.of(team)))
         .singleElement()
         .satisfies(
             input -> {
