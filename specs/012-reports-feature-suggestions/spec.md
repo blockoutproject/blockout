@@ -75,7 +75,7 @@ Staff have a complete, private case in GitHub, subject to the limits of their ro
 
 **Independent Test**: Examine the recipients of the case, files and alerts, as well as requests concerning moderation, accounts and Pro.
 
-Actual provider qualification retains one complete maximum-content/five-image receipt, a later-upload failure and failed/unconfirmed final marking. Compare the original text/context and every attachment reference after REST creation and CLI editing; partial effects never establish complete acceptance. Check original image-byte URLs and redirects for authorized, unauthorized signed-in and signed-out readers, including partial files, and qualify exceptional erasure independently of closure or unlinking. Missing or failed confidentiality/erasure evidence blocks real activation; controlled tests and native observations cannot supply it.
+Actual provider qualification retains one complete maximum-content/five-image receipt, a later-upload failure and failed/unconfirmed final marking. Compare the original text/context and every attachment reference after REST creation and CLI editing; partial effects never establish complete acceptance. Inspect effective access to the private repository, including inherited organization permissions. Check original image-byte URLs and redirects as the repository owner and signed out, including files from partial attempts. Qualify exceptional erasure independently of closure or unlinking. Missing or failed confidentiality/erasure evidence blocks real activation; controlled tests and native observations cannot supply it.
 
 **Acceptance Scenarios**:
 
