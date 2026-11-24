@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.blockout.backend.shared.image.ImageObjects.Category;
 import com.blockout.backend.testsupport.InMemoryS3;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class ImageObjectsTest {
     String replacementKey;
     try {
       // When
-      replacementKey = images.replace(previousKey, replacement, "image/png");
+      replacementKey = images.replace(Category.PROFILES, previousKey, replacement, "image/png");
       TransactionSynchronizationUtils.triggerAfterCompletion(
           TransactionSynchronization.STATUS_UNKNOWN);
     } finally {

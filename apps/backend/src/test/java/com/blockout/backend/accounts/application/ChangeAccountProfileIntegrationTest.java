@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.application.MaintenanceAdmission;
@@ -54,6 +56,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -99,19 +102,25 @@ class ChangeAccountProfileIntegrationTest {
             status -> accounts.create(ISSUER, "auth0|one", "Original", "one@example.invalid").id());
   }
 
+  private RequestPostProcessor asOriginalAccount() {
+    return jwt()
+        .jwt(token -> token.issuer(ISSUER).subject("auth0|one").claim("azp", "mobile-test"))
+        .authorities(new SimpleGrantedAuthority("SCOPE_openid"));
+  }
+
   @Test
-  @DisplayName("Saves normalized username and photo together and preserves them on provider login")
-  void savesProfileAtomically() {
+  @DisplayName("Saves the profile while replacing a photo from the previous key layout")
+  void savesProfileAtomically() throws Exception {
     // Given
-    changes.change(
-        ISSUER,
-        "auth0|one",
-        id,
-        null,
-        ProfilePhotoActionEnum.REPLACE,
-        new ProfilePhoto(new byte[] {4, 5}, "image/jpeg"));
-    String originalKey =
-        sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, id);
+    byte[] original = {4, 5};
+    String originalKey = storage.putImage(original, "image/jpeg");
+    sql.update(
+        "UPDATE account SET photo_key = ?, photo_media_type = 'image/jpeg' WHERE id = ?",
+        originalKey,
+        id);
+    mvc.perform(get("/accounts/{id}/photo", id).with(asOriginalAccount()))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(original));
     when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("updated@example.invalid");
 
     // When
@@ -124,6 +133,9 @@ class ChangeAccountProfileIntegrationTest {
     assertThat(saved.account().username()).isEqualTo("Chosen_name");
     assertThat(saved.hasPhoto()).isTrue();
     assertThat(loggedIn.username()).isEqualTo("Chosen_name");
+    assertThat(originalKey).startsWith("images/");
+    assertThat(sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, id))
+        .startsWith("v2/images/profiles/");
     assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(PHOTO.bytes());
     assertThatThrownBy(() -> images.read(originalKey))
         .hasRootCauseInstanceOf(NoSuchKeyException.class);
@@ -336,15 +348,7 @@ class ChangeAccountProfileIntegrationTest {
     mvc.perform(
             multipart(HttpMethod.PATCH, "/accounts/" + id)
                 .part(metadata, image)
-                .with(
-                    jwt()
-                        .jwt(
-                            token ->
-                                token
-                                    .issuer(ISSUER)
-                                    .subject("auth0|one")
-                                    .claim("azp", "mobile-test"))
-                        .authorities(new SimpleGrantedAuthority("SCOPE_openid"))))
+                .with(asOriginalAccount()))
         .andExpect(status().isOk());
 
     // Then

@@ -56,9 +56,9 @@ The simpler alternative of one surrounding transaction is rejected for calendar 
 
 ## Authoritative images
 
-**Decision**: Private AWS S3 stores the accepted application image files. PostgreSQL retains the owning associations and metadata. Use the synchronous SDK for Java 2.x and its default credentials chain.
+**Decision**: Private AWS S3 namespaces store the accepted application image files. PostgreSQL retains the owning associations and exact keys. Use the synchronous SDK for Java 2.x and its default credentials chain. Use the dedicated preproduction bucket and an isolated production prefix in the existing shared asset bucket under the [hosted plan](plan.md#hosted-packaging-and-delivery).
 
-**Rationale**: Application PNG/JPEG uploads are at most 5 MiB, within the ordinary synchronous client's documented size use case. Unique V2 object keys preserve the previous file through publication and avoid overwriting unrelated uploads. S3 provides strong read-after-write consistency. The SQL commit still determines which key is current. Spring transaction completion supplies the definitive outcome for retiring new or superseded V2 objects. An uncertain commit requires a current association check. F05 owns cleanup of the original photo on account deletion.
+**Rationale**: Application PNG/JPEG uploads are at most 5 MiB, within the ordinary synchronous client's documented size use case. Opaque V2 object keys preserve the previous file through publication. The common typed prefix groups owned objects for scoped IAM and inventory checks. Saving the full key keeps existing references usable after a verified bucket copy. S3 provides strong read-after-write consistency. The SQL commit still determines which key is current. Spring transaction completion supplies the definitive outcome for retiring new or superseded V2 objects. An uncertain commit requires a current association check. F05 owns cleanup of the original photo on account deletion.
 
 **Alternatives and tradeoffs**: A staging service, distributed transaction, persistent write mirror or scheduled cleanup would add mechanisms beyond the accepted case. The existing binary routes preserve current authorization and keep object keys and AWS credentials server-side. Maintenance artwork and F10 attachments keep their own storage authorities.
 

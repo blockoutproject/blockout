@@ -158,6 +158,10 @@ class DivisionIntegrationTest {
     assertThat(configurationReads.divisions(account, true)).containsExactly(original);
     assertThat(original.hasLogo()).isTrue();
     assertThat(resources.divisionLogo(original.id()).bytes()).isEqualTo(image);
+    assertThat(
+            sql.queryForObject(
+                "SELECT logo_key FROM sporting_division WHERE id=?", String.class, original.id()))
+        .startsWith("v2/images/divisions/");
   }
 
   @Test

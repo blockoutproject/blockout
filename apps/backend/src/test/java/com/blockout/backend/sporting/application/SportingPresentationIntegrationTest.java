@@ -1007,6 +1007,7 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(noOp).isEqualTo(saved);
+    assertThat(originalKey).startsWith("v2/images/clubs/");
     assertThat(resources.clubLogo(club).bytes()).isEqualTo(first.bytes());
     assertThat(
             sql.queryForMap(
@@ -1257,6 +1258,9 @@ class SportingPresentationIntegrationTest {
         .isEqualTo(lnvImage.bytes());
     assertThat(resources.teamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE).bytes())
         .isEqualTo(manualImage.bytes());
+    Map<String, Object> teamKeys =
+        sql.queryForMap(
+            "SELECT logo_key, source_logo_key FROM sporting_team WHERE id=?", professional.team());
     SportingPresentation.View automatic =
         presentation.set(
             account,
@@ -1265,6 +1269,8 @@ class SportingPresentationIntegrationTest {
             new Edit(null, null, LogoActionEnum.AUTOMATIC, null));
 
     // Then
+    assertThat(teamKeys.get("logo_key")).asString().startsWith("v2/images/teams/");
+    assertThat(teamKeys.get("source_logo_key")).asString().startsWith("v2/images/teams/");
     assertThat(stillManual.bytes()).isEqualTo(manualImage.bytes());
     assertThat(current.logo().automaticUrl())
         .isEqualTo("/teams/" + professional.team() + "/logo?selection=automatic");
@@ -1464,15 +1470,16 @@ class SportingPresentationIntegrationTest {
 
   @Test
   @DisplayName("Division presentation preserves explicit inactivity and accepts matching no-ops")
-  void preservesInactiveDivisionPresentation() {
+  void preservesInactiveDivisionPresentation() throws Exception {
     // Given
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000195");
     sql.update(
         "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Inactive',FALSE,'#112233')",
         division);
+    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     SportingPresentation.DivisionEdit edit =
         new SportingPresentation.DivisionEdit(
-            "Renamed", "#445566", null, LogoActionEnum.KEEP, null);
+            "Renamed", "#445566", null, LogoActionEnum.REPLACE, image);
 
     // When
     DivisionDetail changed = presentation.setDivision(account, division, edit);
@@ -1487,6 +1494,10 @@ class SportingPresentationIntegrationTest {
     assertThat(changed.active()).isFalse();
     assertThat(changed.name()).isEqualTo("Renamed");
     assertThat(noOp).isEqualTo(changed);
+    assertThat(
+            sql.queryForObject(
+                "SELECT logo_key FROM sporting_division WHERE id=?", String.class, division))
+        .startsWith("v2/images/divisions/");
   }
 
   @Test
