@@ -2,10 +2,13 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.ServedTarget;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
@@ -29,47 +32,50 @@ public class ReadClubAcquisition {
   private final ReadSportingAcquisition acquisitionReads;
   private final CollectionStore store;
   private final CollectionWorkMapper mapper;
+  private final CollectionStageMapper stages;
 
   /**
    * Reads current unresolved identities and lets a newer technical acquisition failure retry after
    * an older normal no-result. F02 remains the authority for permitted locality and valid points.
    * The returned keyset boundary includes suppressed rows so they cannot hide later eligible needs.
    *
-   * @param controlId independent family's current evidence owner
-   * @param geocoding club-location needs rather than club-sheet identities
+   * @param control independent family and current evidence owner
    * @param manual whether this explicit passage may repeat unchanged ordinary no-results
    * @param afterId exclusive last visited club, absent for the first batch
-   * @return filtered nonpersonal identities and the last scanned identity; caller applies cadence
+   * @return filtered nonpersonal targets with their actual attempts and the last scanned identity
    */
-  public TargetBatch targets(UUID controlId, boolean geocoding, boolean manual, UUID afterId) {
+  public TargetBatch targets(Control control, boolean manual, UUID afterId) {
+    boolean geocoding = control.family() == CollectionFamilyEnum.GEOCODING;
     List<ClubAcquisitionReference> references =
         acquisitionReads.acquisitionClubs(geocoding, afterId);
     if (references.isEmpty()) {
       return new TargetBatch(List.of(), null);
     }
-    Map<UUID, CollectionAttempt> attempts =
-        geocoding && !manual
-            ? store
-                .attempts(
-                    controlId, references.stream().map(ClubAcquisitionReference::clubId).toList())
-                .stream()
-                .filter(attempt -> attempt.stage() == CollectionStageEnum.GEOCODING)
-                .collect(Collectors.toMap(CollectionAttempt::scopeId, Function.identity()))
-            : Map.of();
-    List<Target> targets =
+    CollectionTargetKindEnum kind =
+        geocoding ? CollectionTargetKindEnum.GEOCODING : CollectionTargetKindEnum.CLUB_SHEET;
+    CollectionStageEnum stage = stages.toStage(kind);
+    List<ClubAcquisitionReference> selected =
         references.stream()
+            .filter(
+                reference ->
+                    control.scopeIds().isEmpty() || control.scopeIds().contains(reference.clubId()))
+            .toList();
+    // Eligibility and cadence use the same acquisition evidence from this admitted control.
+    Map<UUID, CollectionAttempt> attempts =
+        store
+            .attempts(
+                control.id(), selected.stream().map(ClubAcquisitionReference::clubId).toList())
+            .stream()
+            .filter(attempt -> attempt.stage() == stage)
+            .collect(Collectors.toMap(CollectionAttempt::scopeId, Function.identity()));
+    List<Target> targets =
+        selected.stream()
             .filter(
                 reference ->
                     !geocoding
                         || manual
                         || needsGeocoding(reference, attempts.get(reference.clubId())))
-            .map(
-                reference ->
-                    mapper.toTarget(
-                        reference,
-                        geocoding
-                            ? CollectionTargetKindEnum.GEOCODING
-                            : CollectionTargetKindEnum.CLUB_SHEET))
+            .map(reference -> mapper.toTarget(reference, kind, attempts.get(reference.clubId())))
             .toList();
     return new TargetBatch(targets, references.getLast().clubId());
   }

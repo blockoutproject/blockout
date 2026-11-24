@@ -65,15 +65,11 @@ public class FreezeCollectionTargets {
       UUID afterClub = null;
       while (true) {
         ReadClubAcquisition.TargetBatch references =
-            clubs.targets(
-                control.id(),
-                control.family() == CollectionFamilyEnum.GEOCODING,
-                cycle.mode() != CollectionModeEnum.PERIODIC,
-                afterClub);
+            clubs.targets(control, cycle.mode() != CollectionModeEnum.PERIODIC, afterClub);
         if (references.lastClubId() == null) {
           break;
         }
-        retainScheduled(cycle, withAttempts(control, references.items()));
+        retainScheduled(cycle, references.items());
         afterClub = references.lastClubId();
       }
       return;

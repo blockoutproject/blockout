@@ -366,6 +366,7 @@ class CollectPassageTest {
     private final CollectionBackend.Target calendar =
         target(CollectionTargetKindEnum.CALENDAR).toBuilder()
             .provider(CollectionProviderEnum.LNV)
+            .groupReference("A")
             .url(
                 URI.create(
                     "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902"))
@@ -412,6 +413,32 @@ class CollectPassageTest {
       order.verify(sporting).standings(eq(POOL), any(), eq(standings));
       verify(lnv).read(table.url());
       verify(tablePage, never()).standings(otherPool);
+    }
+
+    @Test
+    @DisplayName("One LNV page serves the due and triggered standings of distinct pools")
+    void sharesDueAndTriggeredStandings() {
+      // Given
+      CollectionBackend.Target dueTable =
+          table.toBuilder().poolId(CONTROL).scopeId(CONTROL).groupReference("B").build();
+      CollectorLifecycle.AdmittedCycle cycle =
+          admit(List.of(calendar, detail, dueTable), List.of(table));
+      provideScores(true, true);
+      when(lnv.read(table.url())).thenReturn(tablePage);
+      provideTable(tablePage, table);
+      provideTable(tablePage, dueTable);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv);
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      order.verify(lnv).read(table.url());
+      verify(lnv).read(table.url());
+      verify(sporting).standings(eq(POOL), any(), eq(standings));
+      verify(sporting).standings(eq(CONTROL), any(), eq(standings));
     }
 
     @ParameterizedTest
@@ -580,10 +607,10 @@ class CollectPassageTest {
 
     private void provideTable(LnvAcquisition.Resource resource, CollectionBackend.Target target) {
       when(resource.standings(target)).thenReturn(new ProviderObservation<>(standings, NOW));
-      when(sporting.standings(eq(POOL), any(), eq(standings)))
+      when(sporting.standings(eq(target.poolId()), any(), eq(standings)))
           .thenReturn(
               new SportingObservation.Outcome(
-                  null, ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null));
+                  null, ObservationOutcomeEnum.UNCHANGED, target.poolId(), null, null, null));
     }
   }
 

@@ -72,6 +72,7 @@ public interface CollectionWorkMapper {
    *
    * @param source non-null current club reference
    * @param kind already selected club-sheet or geocoding purpose
+   * @param attempt latest acquisition evidence for the selected role, absent before its first read
    * @return nonpersonal club target without seasonal fields or copied locality
    */
   @Mapping(target = "scopeId", source = "source.clubId")
@@ -89,12 +90,13 @@ public interface CollectionWorkMapper {
   @Mapping(target = "format", ignore = true)
   @Mapping(target = "gender", ignore = true)
   @Mapping(target = "afterFinalScoreOnly", ignore = true)
-  @Mapping(target = "lastAttemptAt", ignore = true)
-  @Mapping(target = "lastSuccessAt", ignore = true)
+  @Mapping(target = "lastAttemptAt", source = "attempt.lastAttemptAt")
+  @Mapping(target = "lastSuccessAt", source = "attempt.lastSuccessAt")
   @Mapping(target = "fastWindowEndsAt", ignore = true)
   @Mapping(target = "organizerReference", ignore = true)
   @Mapping(target = "nativeMatchReference", ignore = true)
-  Target toTarget(ClubAcquisitionReference source, CollectionTargetKindEnum kind);
+  Target toTarget(
+      ClubAcquisitionReference source, CollectionTargetKindEnum kind, CollectionAttempt attempt);
 
   /**
    * Projects an already qualified discovery root before child selection.

@@ -11,6 +11,7 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -180,42 +181,47 @@ public class CollectPassage {
 
     private void collectRemaining() {
       collectRemaining(ffvbGroups, this::readFfvb);
-      collectRemaining(
-          lnvGroups,
-          (url, scopes) -> {
-            if (scopes.stream()
-                .anyMatch(target -> target.kind() == CollectionTargetKindEnum.CALENDAR)) {
-              readLnv(url, scopes);
-            } else {
-              scopes.forEach(target -> enrichment.standingsAfter.putIfAbsent(target.poolId(), 0L));
-            }
-          });
+      Iterator<Map.Entry<URI, List<CollectionBackend.Target>>> pending =
+          lnvGroups.entrySet().iterator();
+      while (pending.hasNext()) {
+        Map.Entry<URI, List<CollectionBackend.Target>> group = pending.next();
+        List<CollectionBackend.Target> scopes = stillPresent(group.getValue());
+        if (scopes.stream()
+            .anyMatch(target -> target.kind() == CollectionTargetKindEnum.CALENDAR)) {
+          pending.remove();
+          readLnv(group.getKey(), scopes);
+        }
+      }
     }
 
     /** Reads each remaining official page once, after all admitted match changes. */
     private void collectRemainingStandings() {
-      Map<URI, List<CollectionBackend.Target>> groups = new LinkedHashMap<>();
       for (UUID pool : enrichment.standingsAfter.keySet()) {
         CollectionBackend.Target target = lnvStandings.get(pool);
-        if (target != null && remainsPresent(target, reconciledPools)) {
-          groups.computeIfAbsent(target.url(), key -> new ArrayList<>()).add(target);
+        if (target != null) {
+          List<CollectionBackend.Target> scopes =
+              lnvGroups.computeIfAbsent(target.url(), key -> new ArrayList<>());
+          if (!scopes.contains(target)) {
+            scopes.add(target);
+          }
         }
       }
-      groups.forEach(this::readLnv);
+      collectRemaining(lnvGroups, this::readLnv);
     }
 
     private void collectRemaining(
         Map<URI, List<CollectionBackend.Target>> groups,
         BiConsumer<URI, List<CollectionBackend.Target>> read) {
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : groups.entrySet()) {
-        List<CollectionBackend.Target> scopes =
-            entry.getValue().stream()
-                .filter(target -> remainsPresent(target, reconciledPools))
-                .toList();
+        List<CollectionBackend.Target> scopes = stillPresent(entry.getValue());
         if (!scopes.isEmpty()) {
           read.accept(entry.getKey(), scopes);
         }
       }
+    }
+
+    private List<CollectionBackend.Target> stillPresent(List<CollectionBackend.Target> scopes) {
+      return scopes.stream().filter(target -> remainsPresent(target, reconciledPools)).toList();
     }
 
     private void readFfvb(URI url, List<CollectionBackend.Target> scopes) {
