@@ -81,7 +81,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   /**
    * Translates known storage acquisition outages once for every MVC entrypoint.
    *
-   * @param failure database resource or transaction acquisition failure, logged through the safe
+   * @param failure storage resource or transaction acquisition failure, logged through the safe
    *     encoder
    * @return opaque unavailable response; integrity and programming failures remain unexpected
    */

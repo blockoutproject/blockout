@@ -229,10 +229,10 @@ class EstablishAccountIntegrationTest {
         transaction.execute(
             status ->
                 accounts.create(ISSUER, "auth0|photo", "Photo_owner", "known@example.invalid"));
-    // Synthetic storage bytes exercise presence only; actual image validation belongs to US2.
+    // The key alone exercises presence; actual image validation belongs to US2.
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
-        new byte[] {1, 2, 3},
+        "UPDATE account SET photo_key = ?, photo_media_type = 'image/png' WHERE id = ?",
+        "images/00000000-0000-4000-8000-000000000001",
         original.id());
 
     // When
@@ -254,8 +254,8 @@ class EstablishAccountIntegrationTest {
         transaction.execute(
             status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
-        new byte[] {1, 2, 3},
+        "UPDATE account SET photo_key = ?, photo_media_type = 'image/png' WHERE id = ?",
+        "images/00000000-0000-4000-8000-000000000001",
         original.id());
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.manage')",

@@ -1,6 +1,8 @@
 package com.blockout.backend.accounts.application;
 
 import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
+import com.blockout.backend.shared.image.ImageObjects;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -15,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OriginalTargetCleanup {
   private final AccountCleanup.Auth0 auth0;
   private final AccountCleanup.RevenueCat revenueCat;
+  private final ImageObjects images;
   private final String environment;
 
   /**
@@ -24,22 +27,37 @@ public class OriginalTargetCleanup {
    * @param targets immutable references captured for the deleted lifecycle
    */
   public void clean(OriginalAccountTargets targets) {
+    if (targets.photoKey() != null) {
+      Outcome result =
+          attempt(
+              () -> {
+                images.delete(targets.photoKey());
+                return Outcome.REMOVED;
+              });
+      if (result.needsAttention()) {
+        diagnostic(
+            targets,
+            "s3",
+            Map.of("s3_bucket", images.bucket(), "s3_object_key", targets.photoKey()),
+            result);
+      }
+    }
     if (targets.subject() == null || targets.subject().isBlank()) {
-      diagnostic(targets, "auth0", null, Outcome.MISSING_TARGET);
+      diagnostic(targets, "auth0", Map.of(), Outcome.MISSING_TARGET);
     } else {
       Outcome result = attempt(() -> auth0.remove(targets.issuer(), targets.subject()));
       if (result.needsAttention()) {
-        diagnostic(targets, "auth0", targets.subject(), result);
+        diagnostic(targets, "auth0", Map.of("auth0_subject", targets.subject()), result);
       }
     }
     if (targets.revenueCatIds().isEmpty()) {
-      diagnostic(targets, "revenuecat", null, Outcome.MISSING_TARGET);
+      diagnostic(targets, "revenuecat", Map.of(), Outcome.MISSING_TARGET);
     }
     for (String target : new LinkedHashSet<>(targets.revenueCatIds())) {
       Outcome result =
           target.isBlank() ? Outcome.MISSING_TARGET : attempt(() -> revenueCat.remove(target));
       if (result.needsAttention()) {
-        diagnostic(targets, "revenuecat", target, result);
+        diagnostic(targets, "revenuecat", Map.of("revenuecat_app_user_id", target), result);
       }
     }
   }
@@ -63,16 +81,16 @@ public class OriginalTargetCleanup {
    *
    * @param targets original lifecycle references without profile/credential content
    * @param provider fixed provider family
-   * @param target original provider reference, absent when unknown
+   * @param target original provider reference fields, empty when unknown
    * @param outcome safe finite failure category
    */
   private void diagnostic(
-      OriginalAccountTargets targets, String provider, String target, Outcome outcome) {
-    Map<String, String> reference = new java.util.LinkedHashMap<>();
+      OriginalAccountTargets targets,
+      String provider,
+      Map<String, String> target,
+      Outcome outcome) {
+    Map<String, String> reference = new LinkedHashMap<>(target);
     reference.put("original_account_id", targets.accountId().toString());
-    if (target != null) {
-      reference.put(provider.equals("auth0") ? "auth0_subject" : "revenuecat_app_user_id", target);
-    }
     log.atWarn()
         .addKeyValue("operation", "account_cleanup")
         .addKeyValue("scope", environment)

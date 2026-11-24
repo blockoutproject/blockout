@@ -8,6 +8,7 @@ import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
@@ -59,6 +60,7 @@ class DivisionIntegrationTest {
   @Autowired private com.blockout.backend.access.application.CurrentPermissions permissions;
   @Autowired private ChangeDivisionLifecycle divisions;
   @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private ReadSportingResources resources;
   @Autowired private ChangeSportingClassification classifications;
 
   @Autowired private SportingIdentityFixture identities;
@@ -155,10 +157,7 @@ class DivisionIntegrationTest {
         .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.divisions(account, true)).containsExactly(original);
     assertThat(original.hasLogo()).isTrue();
-    assertThat(
-            sql.queryForObject(
-                "SELECT logo FROM sporting_division WHERE id = ?", byte[].class, original.id()))
-        .isEqualTo(image);
+    assertThat(resources.divisionLogo(original.id()).bytes()).isEqualTo(image);
   }
 
   @Test

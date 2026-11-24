@@ -7,6 +7,7 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
+import com.blockout.backend.shared.image.ImageObjects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -24,9 +25,11 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public void erase(UUID accountId) {
-    accounts.deleteById(accountId);
+  public String erase(UUID accountId) {
+    AccountEntity original = accounts.findById(accountId).orElseThrow();
+    accounts.delete(original);
     accounts.flush();
+    return original.getPhotoKey();
   }
 
   /** {@inheritDoc} */
@@ -42,7 +45,7 @@ public class JpaAccountStore implements AccountStore {
   }
 
   private final AccountRepository accounts;
-  private final AccountPhotoRepository photos;
+  private final ImageObjects images;
   private final AccountPersistenceMapper mapper;
 
   /** {@inheritDoc} */
@@ -66,13 +69,17 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   public boolean hasPhoto(UUID id) {
-    return photos.existsByIdAndBytesIsNotNull(id);
+    return accounts.findById(id).map(AccountEntity::getPhotoKey).isPresent();
   }
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ProfilePhoto> photo(UUID id) {
-    return photos.findById(id).map(AccountPhotoEntity::photo);
+  public Optional<ProfilePhoto> photo(String issuer, String subject, UUID id) {
+    return accounts
+        .findByIdAndIssuerAndSubjectAndPhotoKeyIsNotNull(id, issuer, subject)
+        .map(
+            account ->
+                new ProfilePhoto(images.read(account.getPhotoKey()), account.getPhotoMediaType()));
   }
 
   /** {@inheritDoc} */
@@ -81,11 +88,14 @@ public class JpaAccountStore implements AccountStore {
   public void changeProfile(
       UUID id, String username, ProfilePhotoActionEnum photoAction, ProfilePhoto photo) {
     try {
+      AccountEntity account = accounts.findById(id).orElseThrow();
       if (username != null) {
-        accounts.findById(id).orElseThrow().setUsername(username);
+        account.setUsername(username);
       }
       if (photoAction != null) {
-        photos.findById(id).orElseThrow().replace(photo);
+        byte[] bytes = photo == null ? null : photo.bytes();
+        String mediaType = photo == null ? null : photo.mediaType();
+        account.replacePhoto(images.replace(account.getPhotoKey(), bytes, mediaType), mediaType);
       }
       // Flush before returning so only the named username constraint becomes a business refusal.
       accounts.flush();

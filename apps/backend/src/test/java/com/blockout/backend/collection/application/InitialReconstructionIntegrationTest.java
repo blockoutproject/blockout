@@ -46,6 +46,7 @@ import com.blockout.backend.search.application.SearchDocuments;
 import com.blockout.backend.search.infrastructure.OpenSearchProjectionWriter;
 import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
+import com.blockout.backend.shared.image.ImageObjects;
 import com.blockout.backend.sporting.api.SportingObservationMapper;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
@@ -136,6 +137,7 @@ class InitialReconstructionIntegrationTest {
   @Autowired private AcceptCalendar calendars;
   @Autowired private AcceptStandings standings;
   @Autowired private AcceptSourceImage sourceImages;
+  @Autowired private ImageObjects imageObjects;
   @Autowired private AcceptMatchObservation matches;
   @Autowired private SportingObservationMapper mapper;
   @Autowired private ReadSportingData sportingReads;
@@ -546,12 +548,16 @@ class InitialReconstructionIntegrationTest {
                         context(retry, 4), true, List.of(), List.of(), List.of())))
         .isInstanceOf(CollectionConflictException.class);
     assertThat(
-            sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, team))
+            imageObjects.read(
+                sql.queryForObject(
+                    "SELECT source_logo_key FROM sporting_team WHERE id=?", String.class, team)))
         .isEqualTo(image.bytes());
     assertThat(
-            sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
+            imageObjects.read(
+                sql.queryForObject(
+                    "SELECT source_logo_key FROM sporting_team WHERE id=?",
+                    String.class,
+                    neighbor)))
         .isEqualTo(image.bytes());
     assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
         .filteredOn(row -> row.scopeId().equals(unselected))
@@ -1490,6 +1496,8 @@ class InitialReconstructionIntegrationTest {
                 "--blockout.security.mobile-client-id=mobile-test",
                 "--blockout.security.ingestion-audience=ingestion-test",
                 "--blockout.security.ingestion-client-id=collector-test",
+                "--blockout.images.bucket=blockout-test-images",
+                "--blockout.images.region=eu-west-3",
                 "--blockout.reconstruction.operator=" + OPERATOR,
                 "--blockout.reconstruction.action=prepare",
                 "--blockout.reconstruction.start-year=" + year,

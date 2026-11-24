@@ -468,13 +468,12 @@ public interface SportingStore {
    * @param name nonblank unique display name
    * @param color validated primary sRGB color
    * @param gradient three validated colors, or null
-   * @param image validated PNG/JPEG bytes, or null
-   * @param mediaType actual image type, or null with no image
+   * @param image validated PNG/JPEG content, or null
    * @return committed-to-context identity
    * @throws SportingConflictException if the name already exists ignoring case
    */
   DivisionDetail createDivision(
-      String name, String color, List<String> gradient, byte[] image, String mediaType);
+      String name, String color, List<String> gradient, SportingPresentation.Image image);
 
   /**
    * Changes activity only.
@@ -737,7 +736,7 @@ public interface SportingStore {
   ObservationOrder sourceLogoOrder(UUID id);
 
   /**
-   * Commits valid source bytes, association and metadata together without changing manual artwork.
+   * Publishes the uploaded source reference and metadata without changing manual artwork.
    *
    * @param id established team under its season lock
    * @param image validated actual PNG/JPEG content
@@ -752,20 +751,20 @@ public interface SportingStore {
       MatchObservation.Context context);
 
   /**
-   * Resolves current original bytes through resource-specific inheritance.
+   * Resolves the current object through resource-specific inheritance.
    *
    * @param kind club, team or division
    * @param id stable owner; caller enforces current public eligibility when needed
-   * @return detached effective artwork, or empty when absent
+   * @return detached effective artwork reference, or empty when absent
    */
-  Optional<SportingPresentation.Image> effectiveLogo(Kind kind, UUID id);
+  Optional<SportingPresentation.LogoObject> effectiveLogo(Kind kind, UUID id);
 
   /**
-   * Resolves effective or automatic team artwork without copying its bytes into another owner.
+   * Resolves effective or automatic team artwork without duplicating an inherited reference.
    *
    * @param id stable seasonal team
    * @param selection effective includes the manual override; automatic ignores it
-   * @return detached current selected bytes, or empty when absent
+   * @return detached selected artwork reference, or empty when absent
    */
-  Optional<SportingPresentation.Image> teamLogo(UUID id, TeamLogoSelectionEnum selection);
+  Optional<SportingPresentation.LogoObject> teamLogo(UUID id, TeamLogoSelectionEnum selection);
 }

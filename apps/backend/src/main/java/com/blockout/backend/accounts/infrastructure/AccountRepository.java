@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Native Spring Data queries for exact account identities and original-row locking. */
 interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
@@ -43,6 +44,10 @@ interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
    * @return currently established account
    */
   Optional<AccountEntity> findByIssuerAndSubject(String issuer, String subject);
+
+  @Transactional(readOnly = true)
+  Optional<AccountEntity> findByIdAndIssuerAndSubjectAndPhotoKeyIsNotNull(
+      UUID id, String issuer, String subject);
 
   /**
    * Acquires the original row's write lock in the active transaction.

@@ -10,7 +10,9 @@ import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
 import com.blockout.backend.sporting.application.ReadSportingResources;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
@@ -48,10 +50,12 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import(PostgresTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SearchCurrentDataIntegrationTest {
+  private static final Image ARTWORK = new Image(new byte[] {1}, "image/png");
   @Autowired private PostgreSQLContainer database;
   @Autowired JdbcTemplate sql;
   @Autowired HydrateSearch hydration;
   @Autowired EntityManagerFactory entityManagerFactory;
+  @Autowired InMemoryS3 images;
   @MockitoSpyBean ReadSportingData owners;
   @MockitoSpyBean ReadSportingResources consultation;
 
@@ -107,10 +111,11 @@ class SearchCurrentDataIntegrationTest {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
     sql.update(
-        "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, municipality, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Old source', 'Current Eagles', 'Lyon', ?, 'image/png')",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, municipality, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Old source', 'Current Eagles', 'Lyon', ?, ?, 'image/png')",
         id,
         id.toString(),
-        new byte[] {1});
+        images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+        ARTWORK.sha256());
     SearchContext context =
         new SearchContext(SearchContext.Resource.CLUB, "old", null, null, null, null, false);
 
@@ -315,10 +320,11 @@ class SearchCurrentDataIntegrationTest {
       }
       if (resource == SearchContext.Resource.CLUB) {
         sql.update(
-            "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, 'image/png')",
+            "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, ?, 'image/png')",
             id,
             id.toString(),
-            new byte[] {1});
+            images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+            ARTWORK.sha256());
       } else {
         UUID season = UUID.fromString("20000000-0000-4000-8000-" + suffix);
         UUID division = UUID.fromString("30000000-0000-4000-8000-" + suffix);
@@ -353,21 +359,23 @@ class SearchCurrentDataIntegrationTest {
           UUID club = number == 20 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
           if (club != null) {
             sql.update(
-                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, 'image/png')",
+                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, ?, 'image/png')",
                 club,
                 club.toString(),
                 "Current club " + number,
-                new byte[] {1});
+                images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+                ARTWORK.sha256());
           }
           sql.update(
-              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, club_id, division_id, format, gender, source_logo, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, ?, '_6X6', 'FEMALE', ?, 'image/png')",
+              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, club_id, division_id, format, gender, source_logo_key, source_logo_sha256, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, ?, '_6X6', 'FEMALE', ?, ?, 'image/png')",
               id,
               season,
               id.toString(),
               id.toString(),
               club,
               division,
-              new byte[] {1});
+              images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+              ARTWORK.sha256());
           sql.update(
               "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
               id,

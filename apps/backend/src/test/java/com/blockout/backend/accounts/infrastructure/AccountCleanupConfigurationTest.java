@@ -1,12 +1,14 @@
 package com.blockout.backend.accounts.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.auth0.client.mgmt.ManagementApi;
 import com.blockout.backend.accounts.application.AccountCleanup;
 import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.config.SecurityProperties;
+import com.blockout.backend.shared.image.ImageObjects;
 import java.net.URI;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -131,6 +133,7 @@ class AccountCleanupConfigurationTest {
     return context
         .withUserConfiguration(Auth0Configuration.class, AccountCleanupConfiguration.class)
         .withBean(RestClient.Builder.class, RestClient::builder)
+        .withBean(ImageObjects.class, () -> mock(ImageObjects.class))
         .withBean(LocalValidatorFactoryBean.class, LocalValidatorFactoryBean::new)
         .withBean(
             SecurityProperties.class,

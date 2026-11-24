@@ -407,7 +407,7 @@ class CurrentPresentationIntegrationTest {
     }
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo IS NOT NULL",
+                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo_key IS NOT NULL",
                 Long.class,
                 club))
         .isEqualTo(1L);

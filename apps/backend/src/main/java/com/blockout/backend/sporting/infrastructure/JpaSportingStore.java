@@ -8,6 +8,7 @@ import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateE
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.image.ImageObjects;
 import com.blockout.backend.shared.pagination.OffsetPage;
 import com.blockout.backend.shared.pagination.PageOffset;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
@@ -32,6 +33,8 @@ import com.blockout.backend.sporting.application.model.SportingMapping.MappingPa
 import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
 import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import com.blockout.backend.sporting.application.model.SportingPresentation.LogoObject;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.CataloguePack;
 import com.blockout.backend.sporting.application.model.SportingViews.CataloguePhase;
@@ -94,6 +97,7 @@ public class JpaSportingStore implements SportingStore {
   private final MatchRepository matches;
   private final SportingPersistenceMapper mapper;
   private final SportingProjectionChanges changes;
+  private final ImageObjects imageObjects;
 
   /** {@inheritDoc} */
   @Override
@@ -704,10 +708,15 @@ public class JpaSportingStore implements SportingStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public DivisionDetail createDivision(
-      String name, String color, List<String> gradient, byte[] image, String mediaType) {
+      String name, String color, List<String> gradient, Image image) {
     try {
-      return mapper.toDetail(
-          divisions.saveAndFlush(new DivisionEntity(name, color, gradient, image, mediaType)));
+      DivisionEntity division =
+          new DivisionEntity(
+              name,
+              color,
+              gradient,
+              image == null ? null : replaceLogo(null, image, image.sha256()));
+      return mapper.toDetail(divisions.saveAndFlush(division));
     } catch (DataIntegrityViolationException failure) {
       if (failure.getCause() instanceof ConstraintViolationException constraint
           && "uk_division_name".equals(constraint.getConstraintName())) {
@@ -1036,36 +1045,30 @@ public class JpaSportingStore implements SportingStore {
     boolean nameChanged =
         !Objects.equals(before.names().manualName(), edit.manualName())
             || !Objects.equals(before.names().manualShortName(), edit.manualShortName());
+    Image next = edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+    String digest = next == null ? null : next.sha256();
     switch (kind) {
       case CLUB -> {
         ClubEntity club = clubs.findById(id).orElseThrow();
-        boolean logoChanged =
-            changesManualImage(
-                edit.logoAction(), edit.image(), club.getLogo(), club.getLogoMediaType());
+        boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, club.getLogo());
         if (nameChanged || logoChanged) {
           club.setManualName(edit.manualName());
           if (logoChanged) {
-            SportingPresentation.Image next =
-                edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
-            club.setLogo(next == null ? null : next.bytes());
-            club.setLogoMediaType(next == null ? null : next.mediaType());
+            SportingLogo previousOwned = club.getLogoBucket() == null ? club.getLogo() : null;
+            club.setLogo(replaceLogo(previousOwned, next, digest));
+            club.setLogoBucket(null);
           }
           changes.submit(kind, id);
         }
       }
       case TEAM -> {
         TeamEntity team = teams.findById(id).orElseThrow();
-        boolean logoChanged =
-            changesManualImage(
-                edit.logoAction(), edit.image(), team.getLogo(), team.getLogoMediaType());
+        boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, team.getLogo());
         if (nameChanged || logoChanged) {
           team.setManualName(edit.manualName());
           team.setManualShortName(edit.manualShortName());
           if (logoChanged) {
-            SportingPresentation.Image next =
-                edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
-            team.setLogo(next == null ? null : next.bytes());
-            team.setLogoMediaType(next == null ? null : next.mediaType());
+            team.setLogo(replaceLogo(team.getLogo(), next, digest));
           }
           changes.submit(kind, id);
         }
@@ -1083,36 +1086,23 @@ public class JpaSportingStore implements SportingStore {
     return presentation(kind, id).orElseThrow();
   }
 
-  /**
-   * Detects a manual-image change without copying the current stored payload.
-   *
-   * @param action validated explicit image instruction
-   * @param replacement validated replacement, present only for REPLACE
-   * @param previous current manual bytes, possibly absent
-   * @param mediaType stored actual content type
-   * @return whether the instruction changes the current manual association
-   */
-  private boolean changesManualImage(
-      LogoActionEnum action,
-      SportingPresentation.Image replacement,
-      byte[] previous,
-      String mediaType) {
+  private static boolean changesManualLogo(
+      LogoActionEnum action, Image replacement, String digest, SportingLogo previous) {
     return switch (action) {
       case KEEP -> false;
       case AUTOMATIC -> previous != null;
-      case REPLACE -> !replacement.sameContent(previous, mediaType);
+      case REPLACE -> previous == null || !previous.matches(replacement.mediaType(), digest);
     };
   }
 
-  /**
-   * Detaches stored bytes only when an association exists.
-   *
-   * @param bytes current bytes, or null
-   * @param type stored actual content type
-   * @return immutable original content, or null
-   */
-  private SportingPresentation.Image image(byte[] bytes, String type) {
-    return bytes == null ? null : new SportingPresentation.Image(bytes, type);
+  private SportingLogo replaceLogo(SportingLogo previous, Image replacement, String digest) {
+    String mediaType = replacement == null ? null : replacement.mediaType();
+    String key =
+        imageObjects.replace(
+            previous == null ? null : previous.objectKey(),
+            replacement == null ? null : replacement.bytes(),
+            mediaType);
+    return key == null ? null : new SportingLogo(key, mediaType, digest);
   }
 
   /** {@inheritDoc} */
@@ -1120,9 +1110,9 @@ public class JpaSportingStore implements SportingStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public DivisionDetail saveDivisionPresentation(UUID id, SportingPresentation.DivisionEdit edit) {
     DivisionEntity division = divisions.findById(id).orElseThrow();
-    boolean logoChanged =
-        changesManualImage(
-            edit.logoAction(), edit.image(), division.getLogo(), division.getLogoMediaType());
+    Image next = edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+    String digest = next == null ? null : next.sha256();
+    boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, division.getLogo());
     boolean changed =
         !Objects.equals(division.getName(), edit.name())
             || !Objects.equals(division.getColor(), edit.color())
@@ -1140,10 +1130,7 @@ public class JpaSportingStore implements SportingStore {
       division.setGradientMiddle(edit.gradient() == null ? null : edit.gradient().get(1));
       division.setGradientEnd(edit.gradient() == null ? null : edit.gradient().get(2));
       if (logoChanged) {
-        SportingPresentation.Image next =
-            edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
-        division.setLogo(next == null ? null : next.bytes());
-        division.setLogoMediaType(next == null ? null : next.mediaType());
+        division.setLogo(replaceLogo(division.getLogo(), next, digest));
       }
       changes.submit(Kind.DIVISION, id);
       try {
@@ -1252,10 +1239,11 @@ public class JpaSportingStore implements SportingStore {
       ObservationOrder order,
       MatchObservation.Context context) {
     TeamEntity team = teams.findById(id).orElseThrow();
-    boolean changed = !image.sameContent(team.getSourceLogo(), team.getSourceLogoMediaType());
+    String digest = image.sha256();
+    SportingLogo previous = team.getSourceLogo();
+    boolean changed = previous == null || !previous.matches(image.mediaType(), digest);
     if (changed) {
-      team.setSourceLogo(image.bytes());
-      team.setSourceLogoMediaType(image.mediaType());
+      team.setSourceLogo(replaceLogo(previous, image, digest));
       changes.submit(Kind.TEAM, id);
     }
     team.setLogoCycleOrder(order.cycleOrder());
@@ -1267,13 +1255,10 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<SportingPresentation.Image> effectiveLogo(Kind kind, UUID id) {
+  public Optional<LogoObject> effectiveLogo(Kind kind, UUID id) {
     return switch (kind) {
-      case CLUB -> clubs.findById(id).map(club -> image(club.getLogo(), club.getLogoMediaType()));
-      case DIVISION ->
-          divisions
-              .findById(id)
-              .map(division -> image(division.getLogo(), division.getLogoMediaType()));
+      case CLUB -> clubs.findById(id).map(club -> logoObject(club.getLogo(), club.getLogoBucket()));
+      case DIVISION -> divisions.findById(id).map(division -> logoObject(division.getLogo(), null));
       case TEAM -> teamLogo(id, TeamLogoSelectionEnum.EFFECTIVE);
       default -> Optional.empty();
     };
@@ -1281,21 +1266,25 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<SportingPresentation.Image> teamLogo(UUID id, TeamLogoSelectionEnum selection) {
+  public Optional<LogoObject> teamLogo(UUID id, TeamLogoSelectionEnum selection) {
     return teams
         .findById(id)
         .flatMap(
             team -> {
               if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null) {
-                return Optional.of(image(team.getLogo(), team.getLogoMediaType()));
+                return Optional.of(logoObject(team.getLogo(), null));
               }
               if (team.getProvider() == CollectionProviderEnum.LNV
                   && team.getSourceLogo() != null) {
-                return Optional.of(image(team.getSourceLogo(), team.getSourceLogoMediaType()));
+                return Optional.of(logoObject(team.getSourceLogo(), null));
               }
               return team.getClub() == null
                   ? Optional.empty()
                   : effectiveLogo(Kind.CLUB, team.getClub().getId());
             });
+  }
+
+  private static LogoObject logoObject(SportingLogo logo, String legacyBucket) {
+    return logo == null ? null : new LogoObject(legacyBucket, logo.objectKey(), logo.mediaType());
   }
 }

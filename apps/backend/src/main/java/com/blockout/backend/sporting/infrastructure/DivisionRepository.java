@@ -17,7 +17,7 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
       SELECT d.id AS id, d.name AS name, d.color AS color,
           d.gradientStart AS gradientStart, d.gradientMiddle AS gradientMiddle,
           d.gradientEnd AS gradientEnd,
-          CASE WHEN d.logo IS NOT NULL THEN TRUE ELSE FALSE END AS hasLogo, d.active AS active
+          CASE WHEN d.logo.objectKey IS NOT NULL THEN TRUE ELSE FALSE END AS hasLogo, d.active AS active
       FROM DivisionEntity d
       """;
 

@@ -3,6 +3,7 @@ package com.blockout.backend.accounts.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -16,6 +17,8 @@ import com.blockout.backend.accounts.application.exception.UsernameUnavailableEx
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
+import com.blockout.backend.shared.image.ImageObjects;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
@@ -29,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,6 +57,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * Real PostgreSQL locks/constraints and transaction commits, with synthetic identity/provider data.
@@ -68,6 +77,8 @@ class ChangeAccountProfileIntegrationTest {
   @Autowired private ChangeAccountProfile changes;
   @Autowired private AccountStore accounts;
   @Autowired private ReadAccount reads;
+  @Autowired private ImageObjects images;
+  @MockitoSpyBean private InMemoryS3 storage;
   @Autowired private EstablishAccount establishment;
   @MockitoBean private PrincipalReader provider;
   @Autowired private JdbcTemplate sql;
@@ -92,6 +103,15 @@ class ChangeAccountProfileIntegrationTest {
   @DisplayName("Saves normalized username and photo together and preserves them on provider login")
   void savesProfileAtomically() {
     // Given
+    changes.change(
+        ISSUER,
+        "auth0|one",
+        id,
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(new byte[] {4, 5}, "image/jpeg"));
+    String originalKey =
+        sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, id);
     when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("updated@example.invalid");
 
     // When
@@ -104,8 +124,9 @@ class ChangeAccountProfileIntegrationTest {
     assertThat(saved.account().username()).isEqualTo("Chosen_name");
     assertThat(saved.hasPhoto()).isTrue();
     assertThat(loggedIn.username()).isEqualTo("Chosen_name");
-    assertThat(sql.queryForObject("SELECT photo_bytes FROM account WHERE id = ?", byte[].class, id))
-        .isEqualTo(PHOTO.bytes());
+    assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(PHOTO.bytes());
+    assertThatThrownBy(() -> images.read(originalKey))
+        .hasRootCauseInstanceOf(NoSuchKeyException.class);
   }
 
   @Test
@@ -124,8 +145,45 @@ class ChangeAccountProfileIntegrationTest {
                     ISSUER, "auth0|one", id, "taken", ProfilePhotoActionEnum.REPLACE, replacement))
         .isInstanceOf(UsernameUnavailableException.class);
     assertThat(accounts.findById(id).orElseThrow().username()).isEqualTo("Original");
-    assertThat(sql.queryForObject("SELECT photo_bytes FROM account WHERE id = ?", byte[].class, id))
-        .isEqualTo(PHOTO.bytes());
+    assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(PHOTO.bytes());
+  }
+
+  @Test
+  @DisplayName("Preserves the previous profile after a lost upload acknowledgment")
+  void rollsBackWhenUploadResponseIsLost() {
+    // Given
+    changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
+    ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg");
+    AtomicReference<PutObjectRequest> uploaded = new AtomicReference<>();
+    doAnswer(
+            invocation -> {
+              invocation.callRealMethod();
+              uploaded.set(invocation.getArgument(0));
+              throw SdkClientException.create("synthetic lost upload response");
+            })
+        .when(storage)
+        .putObject(
+            argThat(
+                (PutObjectRequest request) ->
+                    replacement.mediaType().equals(request.contentType())),
+            any(RequestBody.class));
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                changes.change(
+                    ISSUER,
+                    "auth0|one",
+                    id,
+                    "Replacement",
+                    ProfilePhotoActionEnum.REPLACE,
+                    replacement))
+        .isInstanceOf(DataAccessResourceFailureException.class);
+    assertThat(reads.original(ISSUER, "auth0|one", id).account().username()).isEqualTo("Original");
+    assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(PHOTO.bytes());
+    assertThat(uploaded.get()).isNotNull();
+    assertThatThrownBy(() -> images.read(uploaded.get().key()))
+        .hasRootCauseInstanceOf(NoSuchKeyException.class);
   }
 
   @Test
@@ -143,20 +201,24 @@ class ChangeAccountProfileIntegrationTest {
   }
 
   @Test
-  @DisplayName("Removes all photo columns only on explicit removal")
+  @DisplayName("Removes the photo association only on explicit removal")
   void removesPhotoExplicitly() {
     // Given
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
+    String originalKey =
+        sql.queryForObject("SELECT photo_key FROM account WHERE id = ?", String.class, id);
 
     // When
     changes.change(ISSUER, "auth0|one", id, "Original", ProfilePhotoActionEnum.REMOVE, null);
 
     // Then
     assertThat(
-            sql.queryForMap("SELECT photo_bytes, photo_media_type FROM account WHERE id = ?", id)
+            sql.queryForMap("SELECT photo_key, photo_media_type FROM account WHERE id = ?", id)
                 .values())
         .containsOnlyNulls();
     assertThat(reads.original(ISSUER, "auth0|one", id).hasPhoto()).isFalse();
+    assertThatThrownBy(() -> images.read(originalKey))
+        .hasRootCauseInstanceOf(NoSuchKeyException.class);
   }
 
   @ParameterizedTest
@@ -334,7 +396,7 @@ class ChangeAccountProfileIntegrationTest {
 
       // Then
       assertThat(accepted.hasPhoto()).isEqualTo(replaceLast);
-      assertThat(accounts.photo(id).isPresent()).isEqualTo(replaceLast);
+      assertThat(accounts.photo(ISSUER, "auth0|one", id).isPresent()).isEqualTo(replaceLast);
       assertThat(accepted.account().username()).isEqualTo("Original");
     }
   }
@@ -384,12 +446,12 @@ class ChangeAccountProfileIntegrationTest {
       assertThat(winners).isEqualTo(1);
       assertThat(
               sql.queryForObject(
-                  "SELECT COUNT(*) FROM account WHERE LOWER(username) = 'shared' AND photo_bytes IS NOT NULL",
+                  "SELECT COUNT(*) FROM account WHERE LOWER(username) = 'shared' AND photo_key IS NOT NULL",
                   Long.class))
           .isEqualTo(1L);
       assertThat(
               sql.queryForObject(
-                  "SELECT COUNT(*) FROM account WHERE LOWER(username) <> 'shared' AND photo_bytes IS NULL",
+                  "SELECT COUNT(*) FROM account WHERE LOWER(username) <> 'shared' AND photo_key IS NULL",
                   Long.class))
           .isEqualTo(1L);
     }

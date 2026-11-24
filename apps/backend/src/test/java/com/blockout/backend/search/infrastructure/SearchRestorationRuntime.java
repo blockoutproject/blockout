@@ -172,6 +172,8 @@ final class SearchRestorationRuntime implements AutoCloseable {
     environment.put("BLOCKOUT_SECURITY_MOBILE_CLIENT_ID", "local-mobile");
     environment.put("BLOCKOUT_SECURITY_INGESTION_AUDIENCE", "local-ingestion");
     environment.put("BLOCKOUT_SECURITY_INGESTION_CLIENT_ID", "local-collector");
+    environment.put("BLOCKOUT_IMAGES_BUCKET", "blockout-test-images");
+    environment.put("AWS_REGION", "eu-west-3");
     environment.put("BLOCKOUT_SEARCH_ENABLED", "true");
     environment.put("BLOCKOUT_SEARCH_INDEX_PREFIX", indexPrefix);
     environment.put("BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY", delay);

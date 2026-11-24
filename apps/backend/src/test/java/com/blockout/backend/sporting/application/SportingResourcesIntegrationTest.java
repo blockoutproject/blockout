@@ -2,6 +2,10 @@ package com.blockout.backend.sporting.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
@@ -14,6 +18,7 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.ChangeClubContacts;
@@ -24,6 +29,7 @@ import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
@@ -42,7 +48,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 /** Real F02 identities/effective values and migrated PostgreSQL; no provider or native evidence. */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
@@ -52,6 +61,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class SportingResourcesIntegrationTest {
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
+  @MockitoSpyBean private InMemoryS3 images;
   @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private ReadSportingResources resources;
   @Autowired private ReadSportingAcquisition acquisitionReads;
@@ -408,14 +418,25 @@ class SportingResourcesIntegrationTest {
   @DisplayName("Selects effective or automatic team artwork under current visibility")
   void selectsCurrentLogos() throws Exception {
     // Given
-    byte[] clubImage = SportingImageFixture.image("PNG", 0x112233);
-    byte[] manualImage = SportingImageFixture.image("JPEG", 0x334455);
+    Image clubImage = new Image(SportingImageFixture.image("PNG", 0x112233), "image/png");
+    Image manualImage = new Image(SportingImageFixture.image("JPEG", 0x334455), "image/jpeg");
     sql.update(
-        "UPDATE sporting_club SET logo=?,logo_media_type='image/png' WHERE id=?", clubImage, club);
+        "UPDATE sporting_club SET logo_key=?, logo_sha256=?, logo_media_type='image/png' WHERE id=?",
+        images.putImage(clubImage.bytes(), clubImage.mediaType()),
+        clubImage.sha256(),
+        club);
     sql.update(
-        "UPDATE sporting_team SET logo=?,logo_media_type='image/jpeg' WHERE id=?",
-        manualImage,
+        "UPDATE sporting_team SET logo_key=?, logo_sha256=?, logo_media_type='image/jpeg' WHERE id=?",
+        images.putImage(manualImage.bytes(), manualImage.mediaType()),
+        manualImage.sha256(),
         match.homeTeamId());
+    doAnswer(
+            invocation -> {
+              assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+              return invocation.callRealMethod();
+            })
+        .when(images)
+        .getObjectAsBytes(any(GetObjectRequest.class));
 
     // When
     byte[] effective =
@@ -424,8 +445,8 @@ class SportingResourcesIntegrationTest {
         resources.teamLogo(match.homeTeamId(), TeamLogoSelectionEnum.AUTOMATIC).bytes();
 
     // Then
-    assertThat(effective).isEqualTo(manualImage);
-    assertThat(automatic).isEqualTo(clubImage);
+    assertThat(effective).isEqualTo(manualImage.bytes());
+    assertThat(automatic).isEqualTo(clubImage.bytes());
     sql.update(
         "UPDATE sporting_division SET active=FALSE WHERE id=?", SportingIngestionFixture.DIVISION);
     assertThatThrownBy(
@@ -433,6 +454,7 @@ class SportingResourcesIntegrationTest {
         .isInstanceOf(SportingResourceNotFoundException.class);
     assertThatThrownBy(() -> resources.divisionLogo(SportingIngestionFixture.DIVISION))
         .isInstanceOf(SportingResourceNotFoundException.class);
+    verify(images, times(2)).getObjectAsBytes(any(GetObjectRequest.class));
   }
 
   /**

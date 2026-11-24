@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +52,7 @@ class TransitionIdentityIntegrationTest {
   private static final String SUBJECT = "google-oauth2|retained";
   private static final UUID OLD = UUID.fromString("00000000-0000-4000-8000-000000000338");
   @Autowired private EstablishAccount establishment;
+  @Autowired private ChangeAccountProfile profiles;
   @Autowired private ReadAccount accounts;
   @Autowired private EraseAccount erasure;
   @Autowired private JdbcTemplate sql;
@@ -111,10 +113,13 @@ class TransitionIdentityIntegrationTest {
     Account first = establishment.establish(ISSUER, SUBJECT).view().account();
     // Stored synthetic bytes make private-read refusal distinguishable from a missing photo.
     byte[] photo = new byte[] {1, 2, 3};
-    sql.update(
-        "UPDATE account SET photo_bytes=?, photo_media_type='image/png' WHERE id=?",
-        photo,
-        first.id());
+    profiles.change(
+        ISSUER,
+        SUBJECT,
+        first.id(),
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(photo, "image/png"));
 
     // When
     Account second = establishment.establish(ISSUER, other).view().account();
