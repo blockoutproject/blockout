@@ -3,6 +3,7 @@ package com.blockout.backend.search.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
@@ -69,7 +70,7 @@ class SearchCurrentDataIntegrationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"corrected", "absent", "restricted"})
-  @DisplayName("Omits a stale city even when the resource name matches")
+  @DisplayName("Skips presentation when the only candidate has a stale city")
   void omitsStaleCity(String change) {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
@@ -97,6 +98,7 @@ class SearchCurrentDataIntegrationTest {
 
     // Then
     assertThat(current).isEmpty();
+    verifyNoInteractions(consultation);
   }
 
   @Test

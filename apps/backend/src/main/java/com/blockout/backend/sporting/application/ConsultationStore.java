@@ -103,17 +103,17 @@ public interface ConsultationStore {
    * Reads accepted teams as scalar values without repeating parent or image loads per summary.
    *
    * @param ids current identities already admitted within this transaction
-   * @return existing immutable teams keyed by original identity
+   * @return detached team facts for the existing identities
    */
-  Map<UUID, TeamView> teams(Set<UUID> ids);
+  List<TeamView> teams(Set<UUID> ids);
 
   /**
    * Reads accepted contextual pools without their acquisition or image graph.
    *
    * @param ids current identities already admitted within this transaction
-   * @return existing immutable pools keyed by original identity
+   * @return detached pool facts for the existing identities
    */
-  Map<UUID, PoolView> pools(Set<UUID> ids);
+  List<PoolView> pools(Set<UUID> ids);
 
   /**
    * Reads canonical season identities for the current summary selection.
@@ -132,7 +132,7 @@ public interface ConsultationStore {
    * @return detached sporting inputs; this operation does not authorize the selection or require
    *     public viewability
    */
-  Map<UUID, MatchInput> matches(Set<UUID> ids);
+  List<MatchInput> matches(Set<UUID> ids);
 
   /** Detail-only facts and the pool's qualified calendar, which may be absent. */
   record MatchDetailInput(

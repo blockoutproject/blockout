@@ -45,6 +45,9 @@ public class HydrateSearch {
                     Objects.equals(cities.get(input.id()), input.city()) && matches(context, input))
             .map(SportingSearchEligibility::id)
             .collect(Collectors.toSet());
+    if (admittedIds.isEmpty()) {
+      return Map.of();
+    }
     Set<UUID> summaryIds =
         candidates.stream()
             .map(candidate -> candidate.position().id())

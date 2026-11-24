@@ -303,22 +303,14 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
 
   /** {@inheritDoc} */
   @Override
-  public Map<UUID, TeamView> teams(Set<UUID> ids) {
-    if (ids.isEmpty()) {
-      return Map.of();
-    }
-    return teams.findViews(ids).stream()
-        .collect(Collectors.toUnmodifiableMap(TeamView::id, value -> value));
+  public List<TeamView> teams(Set<UUID> ids) {
+    return ids.isEmpty() ? List.of() : teams.findViews(ids);
   }
 
   /** {@inheritDoc} */
   @Override
-  public Map<UUID, PoolView> pools(Set<UUID> ids) {
-    if (ids.isEmpty()) {
-      return Map.of();
-    }
-    return pools.findViews(ids).stream()
-        .collect(Collectors.toUnmodifiableMap(PoolView::id, value -> value));
+  public List<PoolView> pools(Set<UUID> ids) {
+    return ids.isEmpty() ? List.of() : pools.findViews(ids);
   }
 
   /** {@inheritDoc} */
@@ -334,11 +326,10 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
 
   /** {@inheritDoc} */
   @Override
-  public Map<UUID, MatchInput> matches(Set<UUID> ids) {
+  public List<MatchInput> matches(Set<UUID> ids) {
     if (ids.isEmpty()) {
-      return Map.of();
+      return List.of();
     }
-    return matches.findPresentationByIdIn(ids).stream()
-        .collect(Collectors.toUnmodifiableMap(MatchEntity::getId, mapper::toMatchInput));
+    return matches.findPresentationByIdIn(ids).stream().map(mapper::toMatchInput).toList();
   }
 }

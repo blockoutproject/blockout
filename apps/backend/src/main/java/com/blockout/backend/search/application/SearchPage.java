@@ -9,7 +9,8 @@ public record SearchPage(List<Summary> items, SearchEngine.Position next) {
    * Detaches the currently authorized page.
    *
    * @param items up to twenty current summaries
-   * @param next consumed boundary, absent only at established exhaustion
+   * @param next last consumed position for a textual continuation, absent for examples or at proven
+   *     exhaustion
    */
   public SearchPage {
     items = List.copyOf(items);
