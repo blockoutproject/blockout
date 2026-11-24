@@ -37,7 +37,7 @@ Accepted product/design decisions and V1/V2 continuity remain applicable. Withdr
 
 ## Verification
 
-Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.9.16; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:
+Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.10.2; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:
 
 ```sh
 npm ci --no-audit --no-fund
