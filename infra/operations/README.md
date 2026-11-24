@@ -28,7 +28,7 @@ For [match PDF delivery](../../specs/007-sporting-consultation/quickstart.md#mat
 BLOCKOUT_CONSULTATION_DOCUMENTS_ALLOWEDORIGINS=https://www.ffvbbeach.org,https://dataprojectstoragewe.blob.core.windows.net
 ```
 
-Verify DNS and the certificate before binding the unused preproduction host. Configure its native Dokploy domain with HTTPS/Let's Encrypt and backend port 8080. Keep the future production host unbound until a separately authorized cutover.
+Verify DNS and the certificate before binding the unused preproduction host. Configure its native Dokploy domain with HTTPS/Let's Encrypt and backend port 8080. Keep the production V2 host unbound until the separately authorized first production startup. The existing V1 host and path switch at the later F14 cutover.
 
 Preproduction collector uses the existing `BLOCKOUT_INGESTION_TIMEOUT=60s` for finite backend exchanges during calendar integration. A timeout can leave independently accepted facts with an unconfirmed passage outcome; inspect that outcome before another explicit collection. Preserve the local and prepared production values until their own qualification.
 
@@ -55,11 +55,13 @@ Open the [Deploy workflow](../../.github/workflows/deploy.yml) in GitHub Actions
 
 ### First startup and explicit migration
 
-1. Start only the intended preproduction PostgreSQL resource; verify initialization and role separation privately.
+Use the steps below for the selected V2 environment. For production, receive the preproduction qualification evidence and separate owner authorization before startup. Use the verified production revision and environment-owned resources. Verify and bind the V2 production API for the controlled candidate and reviewer checks under [F14](../../specs/014-v1-v2-transition/plan.md#cutover-and-recovery), while preserving the existing V1 service and routes.
+
+1. Start only the selected environment’s PostgreSQL resource and verify initialization and role separation privately.
 2. Set the migrations Application to the intended SHA image. Supply `LIQUIBASE_URL`, `LIQUIBASE_USERNAME` and `LIQUIBASE_PASSWORD` for the migration owner only. Deploy it once and inspect the actual task exit code: require 0 before proceeding. The image runs the existing `./mvnw -B -ntp -pl apps/backend liquibase:update` command.
 3. Start OpenSearch and verify native security/TLS privately.
 4. Deploy backend and verify anonymous HTTPS `GET /health` returns 200. Confirm the actual running SHA and private database/search connectivity; a deployment queue entry proves neither.
-5. Deploy collector, verify its one registration and scheduler, and use the existing F01 administration/qualification mechanisms for real current-season collection. Do not import V1 data or reconstruct full history.
+5. Deploy collector, verify its one registration and scheduler, and use the existing F01 administration/qualification mechanisms at the authorized scope. Keep preproduction to real current-season collection. Production reconstruction and the V1 transition use their separate F14 operations.
 
 For fresh initialization and compatible incremental changes, run the matching Liquibase revision explicitly. Backend remains Hibernate validation-only. Keep preproduction data across ordinary image updates and rollbacks. The current initial Liquibase definitions create a fresh compatible database under [F13's schema lifecycle](../../specs/003-shared-quality/plan.md#runtime-data-and-consistency). When preproduction uses an earlier schema, defer image qualification until the owner decides how to prepare a compatible database and retain the data they need.
 
