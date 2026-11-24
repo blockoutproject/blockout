@@ -38,7 +38,6 @@ blockout:
   images:
     bucket: ${BLOCKOUT_IMAGES_BUCKET:}
     region: ${AWS_REGION:}
-    write-prefix: ${BLOCKOUT_IMAGES_WRITE_PREFIX:v2/images}
   notifications:
     push:
       # Opt-in only after isolated credentials and project ownership are qualified.

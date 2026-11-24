@@ -52,7 +52,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Exercises persisted lifecycle, name uniqueness and division/classification ordering. */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
-@SpringBootTest(properties = "BLOCKOUT_IMAGES_WRITE_PREFIX=images")
+@SpringBootTest
 @DisplayName("Division lifecycle transactions")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class DivisionIntegrationTest {

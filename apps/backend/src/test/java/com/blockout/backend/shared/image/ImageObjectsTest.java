@@ -22,8 +22,7 @@ class ImageObjectsTest {
     // Given
     InMemoryS3 s3 = new InMemoryS3();
     ImageObjects images =
-        new ImageObjects(
-            s3, new ImageStorageProperties("blockout-test-images", "eu-west-3", "v2/images"));
+        new ImageObjects(s3, new ImageStorageProperties("blockout-test-images", "eu-west-3"));
     byte[] original = {1};
     byte[] replacement = {2};
     String previousKey = s3.putImage(original, "image/png");
