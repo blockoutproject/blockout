@@ -191,6 +191,7 @@ export const membershipColors = {
 
 /** Semantic spacing roles reuse these core values rather than introducing parallel numbers. */
 const spacing = {
+  none: 0,
   xs: 4,
   tight: 6,
   sm: 8,

@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   centeredIdentity: { justifyContent: "center" },
-  copy: { flexShrink: 1, minWidth: 0, gap: tokens.spacing.optical },
+  copy: { flexShrink: 1, minWidth: 0, gap: tokens.spacing.none },
   title: tokens.typography.navigation,
   subtitle: tokens.typography.metadata,
   centeredText: { textAlign: "center" },
