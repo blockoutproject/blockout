@@ -323,7 +323,6 @@ export const tokens = {
     informationLabelWidth: 76,
     // Product Design Club Information 4538:32500; the basemap remains native and dynamic.
     clubMapHeight: 210,
-    setLogo: 44,
     setTeamBottom: 18,
     coverSize: 574,
     coverBlur: 20,
@@ -397,9 +396,7 @@ export const tokens = {
       lineHeight: 16,
       letterSpacing: 0.24,
     },
-    // Pattern / Set Scores uses its own text-scale roles, separate from Heading/L.
-    setTeam: { fontFamily: "Outfit-SemiBold", fontSize: 12, lineHeight: 15.6 },
-    setLabel: { fontFamily: "Outfit-Regular", fontSize: 10, lineHeight: 13 },
+    // Pattern / Set Scores uses dedicated set-number and point typography.
     setNumber: {
       fontFamily: "Outfit-Medium",
       fontSize: 10,

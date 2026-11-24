@@ -126,7 +126,7 @@ function MatchScoreTeam({
       <MatchLogo
         identity={identity}
         kind="team"
-        size={tokens.sporting.setLogo}
+        size={tokens.size.media.entity}
         haloTestID={`match-score-atmosphere-${identity.id}`}
       />
       <Text
@@ -158,12 +158,12 @@ const styles = StyleSheet.create({
     paddingBottom: tokens.sporting.setTeamBottom,
   },
   name: {
-    ...tokens.typography.setTeam,
+    ...tokens.typography.strong,
     textAlign: "center",
     alignSelf: "stretch",
     flexGrow: 1,
   },
-  side: { ...tokens.typography.setLabel, textAlign: "center" },
+  side: { ...tokens.typography.metadata, textAlign: "center" },
   set: {
     flexDirection: "row",
     alignItems: "center",
