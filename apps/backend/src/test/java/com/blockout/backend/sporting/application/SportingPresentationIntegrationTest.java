@@ -982,6 +982,9 @@ class SportingPresentationIntegrationTest {
             club,
             new Edit("First", null, LogoActionEnum.REPLACE, first));
 
+    String originalKey =
+        sql.queryForObject("SELECT logo_key FROM sporting_club WHERE id=?", String.class, club);
+
     // When
     new TransactionTemplate(transactions)
         .executeWithoutResult(
@@ -1006,10 +1009,11 @@ class SportingPresentationIntegrationTest {
         .isEqualTo(first.bytes());
     assertThat(
             sql.queryForMap(
-                "SELECT logo_media_type,octet_length(logo) AS logo_size FROM sporting_club WHERE id=?",
+                "SELECT logo_key, logo_media_type, logo_sha256 FROM sporting_club WHERE id=?",
                 club))
+        .containsEntry("logo_key", originalKey)
         .containsEntry("logo_media_type", "image/png")
-        .containsEntry("logo_size", first.bytes().length);
+        .containsEntry("logo_sha256", first.sha256());
   }
 
   @Test
@@ -1160,7 +1164,7 @@ class SportingPresentationIntegrationTest {
         .isEqualTo(second.bytes());
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo IS NOT NULL",
+                "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo_key IS NOT NULL",
                 Integer.class,
                 club))
         .isZero();

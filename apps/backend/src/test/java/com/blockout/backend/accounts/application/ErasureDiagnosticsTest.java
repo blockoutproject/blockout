@@ -1,11 +1,13 @@
 package com.blockout.backend.accounts.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
+import com.blockout.backend.shared.image.ImageObjects;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,7 @@ class ErasureDiagnosticsTest {
                   "email@example.invalid token-secret raw-payload photo-bytes");
             },
             customer -> Outcome.QUEUED,
+            mock(ImageObjects.class),
             "preproduction");
     try {
       // When
@@ -39,7 +42,8 @@ class ErasureDiagnosticsTest {
               original,
               "https://identity.example.invalid/",
               "auth0|synthetic",
-              List.of(original.toString())));
+              List.of(original.toString()),
+              null));
 
       // Then
       assertThat(events.list).hasSize(1);

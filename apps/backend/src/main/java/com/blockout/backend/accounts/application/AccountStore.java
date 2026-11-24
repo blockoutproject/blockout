@@ -18,8 +18,9 @@ public interface AccountStore {
    * transaction. The caller first removes follows and redacts private report text.
    *
    * @param accountId original lifecycle protected by its account row lock
+   * @return original S3 photo key for post-commit cleanup, or null when no photo was associated
    */
-  void erase(UUID accountId);
+  String erase(UUID accountId);
 
   /**
    * Reads current attribution names without loading profile/photo data per version.
@@ -73,7 +74,8 @@ public interface AccountStore {
 
   /**
    * Applies supplied profile fields to an already locked original row and flushes uniqueness.
-   * Omitted values preserve the locked current state; replacement/removal update all photo columns.
+   * Omitted values preserve the locked current state. Replacement uploads before SQL publication,
+   * and deletion of the superseded photo follows the commit.
    *
    * @param id original UUID locked by the caller
    * @param username normalized supplied username, or null to preserve

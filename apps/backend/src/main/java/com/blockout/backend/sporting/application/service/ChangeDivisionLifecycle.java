@@ -37,11 +37,7 @@ public class ChangeDivisionLifecycle {
   public DivisionDetail create(UUID accountId, DivisionDefinition definition, Image image) {
     authorization.require(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
     return store.createDivision(
-        definition.name(),
-        definition.color(),
-        definition.gradient(),
-        image == null ? null : image.bytes(),
-        image == null ? null : image.mediaType());
+        definition.name(), definition.color(), definition.gradient(), image);
   }
 
   /**

@@ -8,6 +8,7 @@ import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.shared.image.ImageObjects;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
@@ -35,6 +36,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
@@ -61,6 +63,7 @@ class AccountEstablishmentJpaTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private JdbcTemplate sql;
   @Autowired private AccountStore accounts;
+  @MockitoBean private ImageObjects images;
   @Autowired private AccountAccess access;
   @Autowired private PlatformTransactionManager transactions;
   private TransactionTemplate transaction;
@@ -343,17 +346,16 @@ class AccountEstablishmentJpaTest {
   }
 
   @Test
-  @DisplayName("Stores photo bytes with the account and rolls them back atomically")
-  void rollsBackPhotoStorage() {
+  @DisplayName("Rolls back the photo reference and media type together")
+  void rollsBackPhotoReference() {
     // Given
     Account original =
         transaction.execute(
             state -> accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid"));
-    // Synthetic bytes qualify storage only; actual image decoding belongs to profile validation.
-    byte[] originalBytes = {1, 2, 3};
+    String originalKey = "images/00000000-0000-4000-8000-000000000001";
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
-        originalBytes,
+        "UPDATE account SET photo_key = ?, photo_media_type = 'image/png' WHERE id = ?",
+        originalKey,
         original.id());
 
     // When
@@ -361,8 +363,8 @@ class AccountEstablishmentJpaTest {
         state -> {
           access.lock(original.id());
           sql.update(
-              "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/jpeg' WHERE id = ?",
-              new byte[] {4, 5},
+              "UPDATE account SET photo_key = ?, photo_media_type = 'image/jpeg' WHERE id = ?",
+              "images/00000000-0000-4000-8000-000000000002",
               original.id());
           state.setRollbackOnly();
         });
@@ -370,8 +372,8 @@ class AccountEstablishmentJpaTest {
     // Then
     assertThat(
             sql.queryForObject(
-                "SELECT photo_bytes FROM account WHERE id = ?", byte[].class, original.id()))
-        .isEqualTo(originalBytes);
+                "SELECT photo_key FROM account WHERE id = ?", String.class, original.id()))
+        .isEqualTo(originalKey);
     assertThat(
             sql.queryForObject(
                 "SELECT photo_media_type FROM account WHERE id = ?", String.class, original.id()))
@@ -379,9 +381,13 @@ class AccountEstablishmentJpaTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"image/png, 5242881", "image/gif, 1", "image/png, 0"})
-  @DisplayName("Rejects photo storage outside its media and byte limits")
-  void rejectsInvalidPhotoStorage(String mediaType, int length) {
+  @CsvSource({
+    ", image/png",
+    "images/00000000-0000-4000-8000-000000000001, image/gif",
+    "images/00000000-0000-4000-8000-000000000001,"
+  })
+  @DisplayName("Rejects incomplete or unsupported photo metadata")
+  void rejectsInvalidPhotoReference(String key, String mediaType) {
     // Given
     Account original =
         transaction.execute(
@@ -391,15 +397,15 @@ class AccountEstablishmentJpaTest {
     assertThatThrownBy(
             () ->
                 sql.update(
-                    "UPDATE account SET photo_bytes = ?, photo_media_type = ? WHERE id = ?",
-                    new byte[length],
+                    "UPDATE account SET photo_key = ?, photo_media_type = ? WHERE id = ?",
+                    key,
                     mediaType,
                     original.id()))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_account_photo");
     assertThat(
             sql.queryForObject(
-                "SELECT photo_bytes FROM account WHERE id = ?", byte[].class, original.id()))
+                "SELECT photo_key FROM account WHERE id = ?", String.class, original.id()))
         .isNull();
   }
 

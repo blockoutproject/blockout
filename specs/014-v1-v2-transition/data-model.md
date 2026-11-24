@@ -24,15 +24,15 @@ The owner reports no V1 gifted entitlement. Confirm this before retirement; if t
 
 ## Protected club-logo association
 
-The private preservation copy contains the exact FFVB club identifier string, original logo reference and its usable bytes. Verify association completeness and decoded file usability before destroying the source. Do not convert identifiers to numbers, trim meaningful leading zeros or infer identity from club names.
+The private preservation copy contains the exact FFVB club identifier string, original logo reference and its usable bytes. Preserve the original bucket and key exactly when referencing an existing S3 object. Verify association completeness and decoded file usability before destroying the source. Do not convert identifiers to numbers, trim meaningful leading zeros or infer identity from club names.
 
 The sole administrator's freeze makes a verified copy stable while manual edits remain stopped and relevant in-flight writes are settled. The deployed collector must preserve these fields. An exceptional edit refreshes the affected copy; no synchronized counter, change feed or scheduled recopy is required.
 
-| Outcome                                         | Handling                                                                                                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Exact single rebuilt club match and usable file | Apply through F02's existing protected manual-image association and PostgreSQL image storage.                  |
-| No rebuilt club or ambiguous match              | Retain association and file privately for manual resolution; create no guessed club or professional-team link. |
-| Missing/unusable file or association            | Preservation is incomplete; block the destructive action affecting that source.                                |
+| Outcome                                         | Handling                                                                                                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exact single rebuilt club match and usable file | Apply F02’s protected manual club-logo association. Reused legacy S3 objects retain their exact verified bucket and key with read-only access. |
+| No rebuilt club or ambiguous match              | Retain association and file privately for manual resolution; create no guessed club or professional-team link.                                 |
+| Missing/unusable file or association            | Preservation is incomplete; block the destructive action affecting that source.                                                                |
 
 These are verification outcomes, not a new persisted application status enum. Other V1 presentation customizations are outside the preserved scope.
 

@@ -48,7 +48,9 @@ public class ClubEntity {
 
   @Setter private String sourceName;
   @Setter private String manualName;
-  @Setter private byte[] logo;
+  @Setter private String logoKey;
+  @Setter private String logoBucket;
+  @Setter private String logoSha256;
   @Setter private String logoMediaType;
   @Setter private Long detailCycleOrder;
   @Setter private Long detailReadOrdinal;

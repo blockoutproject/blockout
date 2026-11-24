@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Local owner-only account reads; provider access and establishment are not dependencies. */
+/** Serves the original holder's profile and reads the photo after local authorization. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -51,7 +51,7 @@ public class ReadAccount {
   }
 
   /**
-   * Reads private photo bytes after the same original-owner check as profile access.
+   * Reads private S3 photo bytes after the same original-owner check as profile access.
    *
    * @param issuer validated issuer
    * @param subject validated subject

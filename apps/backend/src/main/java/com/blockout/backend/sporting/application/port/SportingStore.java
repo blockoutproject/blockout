@@ -468,13 +468,12 @@ public interface SportingStore {
    * @param name nonblank unique display name
    * @param color validated primary sRGB color
    * @param gradient three validated colors, or null
-   * @param image validated PNG/JPEG bytes, or null
-   * @param mediaType actual image type, or null with no image
+   * @param image validated PNG/JPEG content, or null
    * @return committed-to-context identity
    * @throws SportingConflictException if the name already exists ignoring case
    */
   DivisionDetail createDivision(
-      String name, String color, List<String> gradient, byte[] image, String mediaType);
+      String name, String color, List<String> gradient, SportingPresentation.Image image);
 
   /**
    * Changes activity only.

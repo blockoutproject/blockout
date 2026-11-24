@@ -20,7 +20,7 @@ The decisions below define the shared application stack, responsibilities and re
 
 - **Managed persistence dependencies**: the Boot 4.1.1 dependency table currently lists Hibernate ORM **7.4.5.Final**, PostgreSQL JDBC **42.7.13**, Liquibase **5.0.3**. These selected dependencies are managed by the Boot BOM; the build and lockfiles own their resolved graph. [Managed coordinates](https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html).
 
-- **PostgreSQL 18.6** is an official release dated August 13, 2026; its notes mention security-related configuration/data cleanup considerations for upgrades. The predeployment V2 baseline follows the disposable-database schema lifecycle below. The release's existence does not prove the driver or mappings used by this application. [Release notes](https://www.postgresql.org/docs/release/18.6/).
+- **PostgreSQL 18.6** is an official release dated August 13, 2026; its notes mention security-related configuration/data cleanup considerations for upgrades. The V2 database follows the schema lifecycle below for fresh and retained environments. The release's existence does not prove the driver or mappings used by this application. [Release notes](https://www.postgresql.org/docs/release/18.6/).
 
 [Nx ordinary targets](https://nx.dev/docs/kb/executors-and-configurations) can run shell commands with `nx:run-commands`, supporting the accepted orchestration of npm/Maven without new platform plugins. The [Nx 23.3.0 release](https://github.com/nrwl/nx/releases/tag/23.3.0) is published (2026-10-07); the [official Node compatibility matrix](https://nx.dev/docs/technologies/node/introduction) lists Node 24 for Nx 23. This establishes release availability and supported major pairing, not a qualified Blockout workspace.
 
@@ -56,17 +56,19 @@ The simpler alternative of one surrounding transaction is rejected for calendar 
 
 ## Authoritative images
 
-**Decision**: PostgreSQL stores accepted image bytes and associations together.
+**Decision**: Private AWS S3 stores the accepted application image files. PostgreSQL retains the owning associations and metadata. Use the synchronous SDK for Java 2.x and its default credentials chain.
 
-**Rationale**: A database transaction preserves bytes and their association together. PNG/JPEG and 5 MiB limits bound individual accepted uploads.
+**Rationale**: Application PNG/JPEG uploads are at most 5 MiB, within the ordinary synchronous client's documented size use case. Unique V2 object keys preserve the previous file through publication and avoid overwriting unrelated uploads. S3 provides strong read-after-write consistency. The SQL commit still determines which key is current. Spring transaction completion supplies the definitive outcome for retiring new or superseded V2 objects. An uncertain commit requires a current association check. F05 owns cleanup of the original photo on account deletion.
 
-**Alternatives and tradeoffs**: External image storage requires additional consistency and deletion coordination. Keeping bytes in PostgreSQL increases database size; no speculative capacity programme is required. Private F10 GitHub attachments retain their own authority.
+**Alternatives and tradeoffs**: A staging service, distributed transaction, persistent write mirror or scheduled cleanup would add mechanisms beyond the accepted case. The existing binary routes preserve current authorization and keep object keys and AWS credentials server-side. Maintenance artwork and F10 attachments keep their own storage authorities.
+
+**Evidence and limits**: The [S3 client options](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/examples-s3.html), [default credentials chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html), [S3 consistency model](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html#ConsistencyModel) and [Spring transaction completion contract](https://docs.spring.io/spring-framework/docs/7.0.9/javadoc-api/org/springframework/transaction/support/TransactionSynchronization.html) define the selected behavior. Hosted access, cleanup and retained data still require the [preproduction cases](quickstart.md#preproduction-application-images).
 
 ## Schema lifecycle
 
-**Decision**: The current initial Liquibase XML schema supplies fresh database creation. Until mandatory retention, maintain that initial schema for disposable V2 databases while preserving preproduction data between ordinary deployments; exceptional reset requires an explicit owner decision. Freeze applied history before data retention becomes mandatory and use explicit compatible incremental migrations afterward. Execute Liquibase through the existing Maven target with separate credentials; the application validates its schema at startup.
+**Decision**: Maintain the current initial Liquibase XML definitions for disposable V2 databases until retention becomes mandatory. Define application image references in the existing account and sporting creation definitions. Ordinary preproduction deliveries retain data. An exceptional reset requires an explicit owner decision. Freeze applied history before mandatory retention and use compatible incremental migrations afterward. Execute Liquibase through the existing Maven target with separate credentials; the application validates its schema at startup.
 
-**Rationale**: Fresh creation expresses the actual persistence model directly. Even disposable preproduction retains its data ordinarily; changing an applied baseline invalidates checksums instead of upgrading that data and grants no reset authority. Mandatory retention makes frozen history and incremental compatibility required. Explicit migration preserves schema ownership without putting DDL authority in the serving API.
+**Rationale**: Fresh creation expresses the current persistence model directly. The owner separately decides how to establish compatibility when a retained preproduction database predates the current creation definitions. Freezing the applied history before mandatory retention supports reproducible upgrades with stored data. Explicit migration preserves schema ownership without putting DDL authority in the serving API.
 
 **Alternatives and tradeoffs**: Hibernate schema updates surrender explicit schema ownership. Editing a baseline supplies no upgrade for an existing database. Fresh disposable schemas remain useful for tests; reset of owned preproduction is exceptional and explicitly decided. No startup reset, checksum clearing or automatic repair runs. Code rollback cannot reverse schema/data; compatibility remains governed by the [plan](plan.md#runtime-data-and-consistency).
 

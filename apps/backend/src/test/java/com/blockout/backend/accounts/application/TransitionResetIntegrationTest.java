@@ -93,12 +93,12 @@ class TransitionResetIntegrationTest {
   @DisplayName("Establishes a neutral fresh profile without another owner's personal state")
   void establishesFreshPersonalState() throws Exception {
     // Given
-    // These synthetic bytes exercise another owner's stored-photo presence, not image validation.
+    // This synthetic key exercises another owner's existing photo association.
     sql.update(
-        "UPDATE account SET username='Former_profile', email=?, photo_bytes=?,"
+        "UPDATE account SET username='Former_profile', email=?, photo_key=?,"
             + " photo_media_type='image/png' WHERE id=?",
         EMAIL,
-        new byte[] {1, 2, 3},
+        "images/00000000-0000-4000-8000-000000000001",
         ACCOUNT);
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?,'maintenance.manage')",

@@ -43,7 +43,7 @@ public class AcceptSourceImage {
   }
 
   /**
-   * Commits valid source bytes and metadata together while holding the F01 fence through commit.
+   * Publishes the uploaded source object with its metadata while holding the F01 fence.
    *
    * @param teamId already established LNV team
    * @param context exact admitted observation context
@@ -80,7 +80,7 @@ public class AcceptSourceImage {
 
   /**
    * Obtains the runtime/season/cycle fence before loading mutable team facts; no later root follows
-   * an account lock, and no provider call takes place under this capability.
+   * an account lock. Supplier acquisition and image validation precede this write fence.
    *
    * @param teamId existing seasonal team
    * @param context supplied cycle identity

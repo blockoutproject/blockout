@@ -1,18 +1,18 @@
 # Data model: accounts and erasure
 
-**Authority**: [spec](spec.md), [plan](plan.md). These are logical persistence and lifecycle decisions; initial Liquibase definitions and JPA mappings follow F13's predeployment baseline posture.
+**Authority**: [spec](spec.md), [plan](plan.md). These logical persistence and lifecycle decisions follow the [F13 schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency).
 
 ## Active account
 
-| Field / relationship           | Meaning and constraint                                                                                                                                                                                               |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `accountId`                    | Generated business UUID; stable for this account lifecycle, never reused after voluntary erasure. RevenueCat's V2 App User ID is its string representation.                                                          |
-| `issuer`, `subject`            | Exact validated Auth0 principal. Unique pair for concurrent bootstrap; no mapping by email or secondary purchase reference.                                                                                          |
-| `username`                     | Outer whitespace trimmed; 3–32 ASCII letters, digits, dot, hyphen or underscore. Case-insensitive unique constraint; generated neutral candidate uses the same rules.                                                |
-| `email`                        | Usable provider value required at creation; not unique and not editable through profile PATCH. Missing later data does not clear it.                                                                                 |
-| Optional photo                 | Accepted native-delivered PNG/JPEG bytes with media type and byte length, at most 5 MiB. No square-dimension constraint, cropping or re-encoding. Bytes and association share the profile transaction in PostgreSQL. |
-| Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables.                     |
-| Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                                         |
+| Field / relationship           | Meaning and constraint                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accountId`                    | Generated business UUID; stable for this account lifecycle, never reused after voluntary erasure. RevenueCat's V2 App User ID is its string representation.                                                 |
+| `issuer`, `subject`            | Exact validated Auth0 principal. Unique pair for concurrent bootstrap; no mapping by email or secondary purchase reference.                                                                                 |
+| `username`                     | Outer whitespace trimmed; 3–32 ASCII letters, digits, dot, hyphen or underscore. Case-insensitive unique constraint; generated neutral candidate uses the same rules.                                       |
+| `email`                        | Usable provider value required at creation; not unique and not editable through profile PATCH. Missing later data does not clear it.                                                                        |
+| Optional photo                 | Optional S3 object key and accepted media type in PostgreSQL. The private object holds the accepted original PNG/JPEG bytes, at most 5 MiB. The profile transaction publishes the association after upload. |
+| Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables.            |
+| Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                                |
 
 The unique username constraint handles competing accounts. Profile mutation and validation follow the [plan](plan.md#profile-photo-and-concurrent-changes).
 
@@ -22,12 +22,12 @@ No independent entitlement state, account-session table, global revision column 
 
 No pending account or deletion-request entity is stored. The original account row lock coordinates short personal-write transactions: a writer commits before deletion removes its result, or finds the original account absent. Provider synchronization captured for an existing UUID cannot update a replacement UUID. External calls take place after the transaction; private failure logs are operational evidence, not an exhaustive or durable workflow record.
 
-| Transition          | Guard and effects                                                                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absent → active     | Explicit establishment, validated principal and usable provider email; unique principal and username constraints settle concurrent creation. |
-| Active → active     | Authorized login synchronization or profile save; omitted or temporarily unavailable fields preserve known data.                             |
-| Active → absent     | Owner confirmation and atomic local removal; preserve unowned content/moderation, then attempt external cleanup without rollback.            |
-| Absent → new active | Explicit registration with a new business UUID; no old profile, follows, grants, gifts or attribution.                                       |
+| Transition          | Guard and effects                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Absent → active     | Explicit establishment, validated principal and usable provider email; unique principal and username constraints settle concurrent creation.                                               |
+| Active → active     | Authorized login synchronization or profile save; omitted or temporarily unavailable fields preserve known data.                                                                           |
+| Active → absent     | Owner confirmation and atomic local removal of profile and photo access. Preserve unowned content/moderation, then attempt cleanup of the original photo and other known external targets. |
+| Absent → new active | Explicit registration with a new business UUID; no old profile, follows, grants, gifts or attribution.                                                                                     |
 
 A repeated DELETE for the original absent UUID causes no provider effects. Re-registration does not wait for a cleanup row or provider-completion proof. Original target references appear only in the scoped private diagnostics/support handling in the [plan](plan.md#erasure-and-manual-resolution). No SQL retry record or per-step state is added.
 

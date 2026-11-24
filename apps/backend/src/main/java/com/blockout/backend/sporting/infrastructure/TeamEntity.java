@@ -62,9 +62,11 @@ public class TeamEntity {
   @Column(nullable = false)
   private String comparisonName;
 
-  @Setter private byte[] logo;
+  @Setter private String logoKey;
+  @Setter private String logoSha256;
   @Setter private String logoMediaType;
-  @Setter private byte[] sourceLogo;
+  @Setter private String sourceLogoKey;
+  @Setter private String sourceLogoSha256;
   @Setter private String sourceLogoMediaType;
   @Setter private Long logoCycleOrder;
   @Setter private Long logoReadOrdinal;

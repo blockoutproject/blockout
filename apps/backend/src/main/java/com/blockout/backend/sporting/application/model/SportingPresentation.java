@@ -5,8 +5,10 @@ import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -224,14 +226,16 @@ public final class SportingPresentation {
     }
 
     /**
-     * Compares accepted content rather than array identity for no-op replacements.
+     * Identifies repeat content without fetching the previous object.
      *
-     * @param otherBytes current stored bytes, possibly absent
-     * @param otherMediaType current stored content type
-     * @return whether both type and content are identical
+     * @return lower-case SHA-256 digest of the accepted original bytes
      */
-    public boolean sameContent(byte[] otherBytes, String otherMediaType) {
-      return mediaType.equals(otherMediaType) && Arrays.equals(bytes, otherBytes);
+    public String sha256() {
+      try {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+      } catch (NoSuchAlgorithmException failure) {
+        throw new IllegalStateException(failure);
+      }
     }
   }
 

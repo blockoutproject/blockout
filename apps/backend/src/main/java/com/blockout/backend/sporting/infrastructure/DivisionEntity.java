@@ -46,7 +46,8 @@ public class DivisionEntity {
   @Setter private String gradientStart;
   @Setter private String gradientMiddle;
   @Setter private String gradientEnd;
-  @Setter private byte[] logo;
+  @Setter private String logoKey;
+  @Setter private String logoSha256;
   @Setter private String logoMediaType;
 
   @ElementCollection
@@ -60,11 +61,17 @@ public class DivisionEntity {
    * @param name nonblank unique division name
    * @param color validated primary sRGB color
    * @param gradient three validated colors, or null
-   * @param logo validated PNG/JPEG bytes, or null
+   * @param logoKey stored PNG/JPEG object key, or null
    * @param mediaType actual content type, or null
+   * @param logoSha256 digest of the accepted bytes, or null
    */
   public DivisionEntity(
-      String name, String color, List<String> gradient, byte[] logo, String mediaType) {
+      String name,
+      String color,
+      List<String> gradient,
+      String logoKey,
+      String mediaType,
+      String logoSha256) {
     this.name = name;
     this.active = true;
     this.color = color;
@@ -73,7 +80,8 @@ public class DivisionEntity {
       this.gradientMiddle = gradient.get(1);
       this.gradientEnd = gradient.get(2);
     }
-    this.logo = logo;
+    this.logoKey = logoKey;
+    this.logoSha256 = logoSha256;
     this.logoMediaType = mediaType;
   }
 }

@@ -27,6 +27,7 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.sporting.support.SportingImageFixture;
+import com.blockout.backend.testsupport.InMemoryS3;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -50,10 +51,13 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * Rehearses manual F14 logo reassociation through real F02 owners and migrated PostgreSQL. All
- * identities, files and accounts are synthetic; no V1 source or external image host is accessed.
+ * identities, files and accounts are synthetic. The object client uses isolated fixtures.
  */
 @Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
 @SpringBootTest
@@ -71,6 +75,7 @@ class TransitionLogoIntegrationTest {
   @Autowired private AccountStore accounts;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
+  @Autowired private InMemoryS3 images;
   @TempDir private Path preservedFiles;
   private UUID account;
   private UUID pool;
@@ -164,8 +169,45 @@ class TransitionLogoIntegrationTest {
     assertThat(saved.logo().manualUrl()).isEqualTo("/clubs/" + club + "/logo");
     assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original);
     assertThat(reads.publicLogo(Kind.CLUB, similar)).isEmpty();
-    assertThat(sql.queryForObject("SELECT logo FROM sporting_club WHERE id=?", byte[].class, club))
-        .isEqualTo(original);
+  }
+
+  @Test
+  @DisplayName("Inherits the exact read-only legacy object until a manual replacement")
+  void preservesLegacyObjectAfterReplacement() throws Exception {
+    // Given
+    String bucket = "synthetic-legacy";
+    String key = "club-assets/000339.png";
+    Image original = new Image(SportingImageFixture.image("PNG", 0x112233), "image/png");
+    images.putObject(
+        PutObjectRequest.builder()
+            .bucket(bucket)
+            .key(key)
+            .contentType(original.mediaType())
+            .build(),
+        RequestBody.fromBytes(original.bytes()));
+    sql.update(
+        "UPDATE sporting_club SET logo_bucket=?, logo_key=?, logo_sha256=?, logo_media_type=? WHERE id=?",
+        bucket,
+        key,
+        original.sha256(),
+        original.mediaType(),
+        club);
+    Image replacement = new Image(SportingImageFixture.image("JPEG", 0x445566), "image/jpeg");
+
+    // When
+    Image inherited = reads.publicLogo(Kind.TEAM, team).orElseThrow();
+    presentation.set(
+        account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, replacement));
+
+    // Then
+    assertThat(inherited.bytes()).isEqualTo(original.bytes());
+    assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes())
+        .isEqualTo(replacement.bytes());
+    assertThat(
+            images
+                .getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(key).build())
+                .asByteArray())
+        .isEqualTo(original.bytes());
   }
 
   @Test
@@ -377,7 +419,7 @@ class TransitionLogoIntegrationTest {
     assertThat(reads.publicLogo(Kind.TEAM, professional)).isEmpty();
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE logo IS NOT NULL", Integer.class))
+                "SELECT COUNT(*) FROM sporting_team WHERE logo_key IS NOT NULL", Integer.class))
         .isZero();
   }
 }

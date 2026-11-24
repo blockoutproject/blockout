@@ -273,7 +273,7 @@ class CollectorPresentationBoundaryIntegrationTest {
         .isEqualTo(4);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_team WHERE source_logo IS NOT NULL AND source_logo_media_type='image/png'",
+                "SELECT COUNT(*) FROM sporting_team WHERE source_logo_key IS NOT NULL AND source_logo_media_type='image/png'",
                 Integer.class))
         .isEqualTo(2);
     assertThat(
@@ -363,12 +363,18 @@ class CollectorPresentationBoundaryIntegrationTest {
     assertThat(imageReads).hasValue(4);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, home))
-        .isEqualTo(imageBody);
+                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                imageBody,
+                home))
+        .isTrue();
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, away))
-        .isEqualTo(imageBody);
+                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                imageBody,
+                away))
+        .isTrue();
     assertThat(
             runtime.sql.queryForList(
                 "SELECT * FROM collection_initial_coverage WHERE scope_id=? ORDER BY stage,phase",
@@ -439,16 +445,22 @@ class CollectorPresentationBoundaryIntegrationTest {
     assertThat(imageReads).hasValue(2);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, home))
-        .isEqualTo(retained);
+                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                retained,
+                home))
+        .isTrue();
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT source_logo_media_type FROM sporting_team WHERE id=?", String.class, home))
         .isEqualTo("image/jpeg");
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT logo FROM sporting_team WHERE id=?", byte[].class, home))
-        .isEqualTo(manual);
+                "SELECT logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                manual,
+                home))
+        .isTrue();
     assertThat(presentation(home).at("/names/effectiveName").asString()).isEqualTo("Manual team");
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(4);
@@ -812,8 +824,11 @@ class CollectorPresentationBoundaryIntegrationTest {
         .isEqualTo("Manual team");
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT logo FROM sporting_team WHERE id=?", byte[].class, team))
-        .isEqualTo(manual);
+                "SELECT logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                manual,
+                team))
+        .isTrue();
   }
 
   @Test
@@ -843,12 +858,15 @@ class CollectorPresentationBoundaryIntegrationTest {
         .isEqualTo(source);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT logo FROM sporting_team WHERE id=?", byte[].class, team))
+                "SELECT logo_key FROM sporting_team WHERE id=?", String.class, team))
         .isNull();
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, team))
-        .isEqualTo(source);
+                "SELECT source_logo_sha256 = encode(sha256(?), 'hex') FROM sporting_team WHERE id=?",
+                Boolean.class,
+                source,
+                team))
+        .isTrue();
   }
 
   @Test

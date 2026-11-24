@@ -1,10 +1,15 @@
 package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
 import com.blockout.backend.accounts.application.OriginalAccountTargets;
 import com.blockout.backend.accounts.application.OriginalTargetCleanup;
+import com.blockout.backend.shared.image.ImageObjects;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -141,11 +146,22 @@ class LoggingIntegrationTest {
   }
 
   @ParameterizedTest(name = "Encodes the original {0} target without provider content")
-  @ValueSource(strings = {"auth0", "revenuecat"})
+  @ValueSource(strings = {"auth0", "revenuecat", "s3"})
   @DisplayName("Encodes actual cleanup failures with only the necessary original target")
   void encodesOriginalTargetCleanup(String provider, CapturedOutput output) {
     // Given: provider boundaries are controlled; the cleanup owner and ECS encoder are real.
     UUID original = UUID.fromString("00000000-0000-4000-8000-000000000280");
+    String photoKey = "images/00000000-0000-4000-8000-000000000001";
+    String bucket = "blockout-test-images";
+    ImageObjects images = mock(ImageObjects.class);
+    if (provider.equals("s3")) {
+      when(images.bucket()).thenReturn(bucket);
+      doThrow(
+              new IllegalStateException(
+                  "synthetic-private-photo synthetic-token synthetic-payload"))
+          .when(images)
+          .delete(photoKey);
+    }
     OriginalTargetCleanup cleanup =
         new OriginalTargetCleanup(
             (issuer, subject) -> {
@@ -162,6 +178,7 @@ class LoggingIntegrationTest {
               }
               return Outcome.QUEUED;
             },
+            images,
             "preproduction");
 
     // When
@@ -170,7 +187,8 @@ class LoggingIntegrationTest {
             original,
             "https://synthetic-private-issuer.example.invalid/",
             "auth0|synthetic-original",
-            List.of("synthetic-original-customer")));
+            List.of("synthetic-original-customer"),
+            photoKey));
 
     // Then: the object emitted by production keeps its provider-specific private exception.
     JsonMapper mapper = JsonMapper.builder().build();
@@ -180,16 +198,18 @@ class LoggingIntegrationTest {
     assertThat(event.path("provider").asText()).isEqualTo(provider);
     assertThat(event.path("outcome").asText()).isEqualTo("manual_attention");
     assertThat(event.path("reason").asText()).isEqualTo("unavailable_or_uncertain");
-    assertThat(event.path("account_cleanup"))
-        .isEqualTo(
-            mapper.valueToTree(
-                Map.of(
-                    "original_account_id",
-                    original.toString(),
-                    provider.equals("auth0") ? "auth0_subject" : "revenuecat_app_user_id",
-                    provider.equals("auth0")
-                        ? "auth0|synthetic-original"
-                        : "synthetic-original-customer")));
+    Map<String, String> reference = new LinkedHashMap<>();
+    reference.put("original_account_id", original.toString());
+    switch (provider) {
+      case "auth0" -> reference.put("auth0_subject", "auth0|synthetic-original");
+      case "revenuecat" -> reference.put("revenuecat_app_user_id", "synthetic-original-customer");
+      case "s3" -> {
+        reference.put("s3_bucket", bucket);
+        reference.put("s3_object_key", photoKey);
+      }
+      default -> throw new AssertionError(provider);
+    }
+    assertThat(event.path("account_cleanup")).isEqualTo(mapper.valueToTree(reference));
     assertThat(output.getAll())
         .doesNotContain("synthetic-private-", "synthetic-token", "synthetic-payload");
   }

@@ -35,6 +35,9 @@ server:
     max-swallow-size: 27MB
 
 blockout:
+  images:
+    bucket: ${BLOCKOUT_IMAGES_BUCKET:}
+    region: ${AWS_REGION:}
   notifications:
     push:
       # Opt-in only after isolated credentials and project ownership are qualified.
@@ -151,6 +154,8 @@ logging:
         - account_cleanup.original_account_id
         - account_cleanup.auth0_subject
         - account_cleanup.revenuecat_app_user_id
+        - account_cleanup.s3_bucket
+        - account_cleanup.s3_object_key
 
 ---
 spring:

@@ -20,7 +20,8 @@
       <column name="gradient_start" type="VARCHAR(7)"/>
       <column name="gradient_middle" type="VARCHAR(7)"/>
       <column name="gradient_end" type="VARCHAR(7)"/>
-      <column name="logo" type="BYTEA"/>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
       <column name="logo_media_type" type="VARCHAR(255)"/>
     </createTable>
     <createTable tableName="sporting_club">
@@ -34,7 +35,9 @@
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
       <column name="source_name" type="TEXT"><constraints nullable="true"/></column>
       <column name="manual_name" type="TEXT"></column>
-      <column name="logo" type="BYTEA"></column>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
+      <column name="logo_bucket" type="TEXT"/>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
       <column name="latitude" type="DOUBLE PRECISION"></column>
       <column name="longitude" type="DOUBLE PRECISION"></column>
@@ -123,9 +126,11 @@
       <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="manual_name" type="TEXT"></column>
       <column name="manual_short_name" type="TEXT"></column>
-      <column name="logo" type="BYTEA"></column>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
-      <column name="source_logo" type="BYTEA"></column>
+      <column name="source_logo_key" type="TEXT"/>
+      <column name="source_logo_sha256" type="VARCHAR(64)"/>
       <column name="source_logo_media_type" type="VARCHAR(255)"></column>
       <column name="logo_cycle_order" type="BIGINT"></column>
       <column name="logo_read_ordinal" type="BIGINT"></column>

@@ -15,7 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.accounts.application.AccountAdmission;
+import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.PrincipalReader;
+import com.blockout.backend.accounts.application.ProfilePhoto;
+import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -59,6 +62,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000175");
   @Autowired private MockMvc mvc;
   @Autowired private JdbcTemplate sql;
+  @Autowired private ChangeAccountProfile profiles;
   @MockitoBean private PrincipalReader provider;
   @MockitoSpyBean private AccountAdmission admission;
 
@@ -164,10 +168,13 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "existing@example.invalid");
     // Stored bytes exercise admission and binary reading; image decoding has its own boundary.
     byte[] photo = {1, 2, 3};
-    sql.update(
-        "UPDATE account SET photo_bytes=?, photo_media_type='image/png' WHERE id=?",
-        photo,
-        ACCOUNT);
+    profiles.change(
+        ISSUER,
+        "auth0|existing",
+        ACCOUNT,
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(photo, "image/png"));
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
@@ -297,13 +304,19 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "existing@example.invalid");
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000999");
     sql.update(
-        "INSERT INTO account (id, issuer, subject, username, email, photo_bytes, photo_media_type) VALUES (?, ?, ?, ?, ?, ?, 'image/png')",
+        "INSERT INTO account (id, issuer, subject, username, email) VALUES (?, ?, ?, ?, ?)",
         other,
         ISSUER,
         "auth0|other",
         "Other_175",
-        "other@example.invalid",
-        new byte[] {4, 5, 6});
+        "other@example.invalid");
+    profiles.change(
+        ISSUER,
+        "auth0|other",
+        other,
+        null,
+        ProfilePhotoActionEnum.REPLACE,
+        new ProfilePhoto(new byte[] {4, 5, 6}, "image/png"));
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
