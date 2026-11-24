@@ -13,6 +13,14 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting club owner. */
 interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
+  /** Effective municipality for the club alias c, including its durable privacy restriction. */
+  String EFFECTIVE_CITY =
+      """
+      CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL
+           WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue
+           ELSE c.city.sourceValue END
+      """;
+
   /**
    * Projects names and image presence for current summaries and editor snapshots.
    *
@@ -50,11 +58,10 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
       """
       SELECT c FROM ClubEntity c WHERE c.provider = CollectionProviderEnum.FFVB
       AND (:afterId IS NULL OR c.id > :afterId)
-      AND (:geocoding = FALSE OR (c.latitude IS NULL AND c.city.restricted = FALSE
-        AND c.city.mode <> ContactModeEnum.HIDDEN
-        AND (CASE WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END) IS NOT NULL))
-      ORDER BY c.id
-      """)
+      AND (:geocoding = FALSE OR (c.latitude IS NULL AND
+      """
+          + EFFECTIVE_CITY
+          + " IS NOT NULL)) ORDER BY c.id")
   List<ClubEntity> acquisitionClubs(boolean geocoding, UUID afterId, Pageable page);
 
   /**
@@ -77,29 +84,19 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   @Query("SELECT c FROM ClubEntity c WHERE c.id = :id")
   Optional<ClubEntity> findByIdForUpdate(UUID id);
 
-  /**
-   * Selects bounded search roots in stable identity order.
-   *
-   * @param page bounded projection request
-   * @return the next club identities
-   */
-  @Query("SELECT c.id FROM ClubEntity c ORDER BY c.id")
-  List<UUID> findProjectionIds(Pageable page);
-
-  /**
-   * Projects current names and permitted locality without loading image bytes.
-   *
-   * @param ids bounded club identities
-   * @return public search inputs ordered by identity
-   */
-  @Query(
+  String SEARCH_SELECT =
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
         c.id, NULL, c.sourceName, COALESCE(c.manualName, c.sourceName), NULL, NULL, NULL, NULL, NULL, NULL,
-        CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
-      FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id
-      """)
+      """
+          + EFFECTIVE_CITY
+          + ") FROM ClubEntity c";
+
+  @Query(SEARCH_SELECT + " WHERE c.id IN :ids ORDER BY c.id")
   List<SportingSearchRow> findSearchInputs(Set<UUID> ids);
+
+  @Query(SEARCH_SELECT + " ORDER BY c.id")
+  List<SportingSearchRow> findSearchInputs(Pageable page);
 
   /**
    * Reads qualified aliases for a bounded owner selection.

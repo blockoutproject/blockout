@@ -5,8 +5,8 @@ import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import java.util.UUID;
 
 /**
- * Scalar JPQL projection for search hydration. Selecting fields instead of managed owners excludes
- * image bytes and other unused entity state; absent club/classification context remains null.
+ * Current facts shared by candidate checks and index preparation. Scalar selection excludes image
+ * bytes and preserves absent club or classification context.
  */
 record SportingSearchRow(
     UUID id,

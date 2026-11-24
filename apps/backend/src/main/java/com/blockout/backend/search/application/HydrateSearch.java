@@ -2,7 +2,6 @@ package com.blockout.backend.search.application;
 
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
-import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.HashMap;
 import java.util.List;
@@ -38,15 +37,7 @@ public class HydrateSearch {
       cities.put(candidate.position().id(), candidate.city());
     }
     Set<UUID> admittedIds =
-        owners
-            .searchEligibility(
-                switch (context.resource()) {
-                  case CLUB -> Kind.CLUB;
-                  case TEAM -> Kind.TEAM;
-                  case POOL -> Kind.POOL;
-                },
-                cities.keySet())
-            .stream()
+        owners.searchEligibility(context.resource().getSportingKind(), cities.keySet()).stream()
             .filter(
                 input ->
                     Objects.equals(cities.get(input.id()), input.city()) && matches(context, input))

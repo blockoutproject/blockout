@@ -1,6 +1,6 @@
 package com.blockout.backend.search.infrastructure;
 
-import com.blockout.backend.search.application.SearchContext;
+import com.blockout.backend.search.application.SearchContext.Resource;
 import com.blockout.backend.search.application.SearchDocuments;
 import com.blockout.backend.search.application.SearchProjectionBulkException;
 import com.blockout.backend.search.application.SearchProjectionWriter;
@@ -59,7 +59,8 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
           definition.get("settings").deserialize(IndexSettings._DESERIALIZER, mapper);
       TypeMapping mapping =
           definition.get("mappings").deserialize(TypeMapping._DESERIALIZER, mapper);
-      for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
+      for (Resource resource : Resource.values()) {
+        Kind kind = resource.getSportingKind();
         String index = indexes.alias(kind) + suffix;
         if (!client
             .indices()
@@ -186,7 +187,8 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
   public void cleanup() {
     try {
       String aliases =
-          Arrays.stream(SearchContext.Resource.values())
+          Arrays.stream(Resource.values())
+              .map(Resource::getSportingKind)
               .map(indexes::alias)
               .map(Pattern::quote)
               .collect(Collectors.joining("|"));

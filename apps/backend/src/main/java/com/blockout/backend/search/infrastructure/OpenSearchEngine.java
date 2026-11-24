@@ -52,7 +52,7 @@ public class OpenSearchEngine implements SearchEngine {
     try {
       SearchRequest.Builder request =
           new SearchRequest.Builder()
-              .index(indexes.alias(context.resource()))
+              .index(indexes.alias(context.resource().getSportingKind()))
               .size(size)
               .allowPartialSearchResults(false)
               .trackTotalHits(track -> track.enabled(false))

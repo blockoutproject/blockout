@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,14 +71,14 @@ public class JpaSportingReadStore
                 pool.divisionActive()));
       }
       case TEAM -> {
-        Boolean active = teams.findDivisionActivity(id).orElse(null);
-        if (active == null) {
+        TeamVisibilityRow team = teams.findVisibility(id).orElse(null);
+        if (team == null) {
           return Optional.empty();
         }
-        if (!active) {
+        if (!team.divisionActive()) {
           reasons.add(Reason.DIVISION_INACTIVE);
         }
-        if (visiblePoolIds(Set.of(id)).isEmpty()) {
+        if (!team.hasViewableParticipation()) {
           reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
         }
       }
@@ -243,14 +242,14 @@ public class JpaSportingReadStore
   @Override
   public List<SportingIndexInput> indexInputs(Kind kind, int page, int size) {
     PageRequest request = PageRequest.of(page, size);
-    List<UUID> ids =
+    List<SportingSearchRow> rows =
         switch (kind) {
-          case CLUB -> clubs.findProjectionIds(request);
-          case TEAM -> teams.findProjectionIds(request);
-          case POOL -> pools.findProjectionIds(request);
+          case CLUB -> clubs.findSearchInputs(request);
+          case TEAM -> teams.findSearchInputs(request);
+          case POOL -> pools.findSearchInputs(request);
           case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
         };
-    return indexInputs(kind, new LinkedHashSet<>(ids));
+    return enrichIndexInputs(kind, rows);
   }
 
   /** {@inheritDoc} */
@@ -262,7 +261,10 @@ public class JpaSportingReadStore
   /** {@inheritDoc} */
   @Override
   public List<SportingIndexInput> indexInputs(Kind kind, Set<UUID> ids) {
-    List<SportingSearchRow> rows = visibleSearchRows(kind, ids);
+    return enrichIndexInputs(kind, visibleSearchRows(kind, ids));
+  }
+
+  private List<SportingIndexInput> enrichIndexInputs(Kind kind, List<SportingSearchRow> rows) {
     if (rows.isEmpty()) {
       return List.of();
     }

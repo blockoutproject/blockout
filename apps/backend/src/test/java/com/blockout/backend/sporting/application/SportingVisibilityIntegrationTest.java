@@ -150,6 +150,16 @@ class SportingVisibilityIntegrationTest {
   }
 
   @Test
+  @DisplayName("An unknown team has no visibility decision")
+  void omitsUnknownTeam() {
+    // Given
+    UUID unknown = UUID.fromString("00000000-0000-4000-8000-000000000098");
+
+    // When / Then
+    assertThat(reads.visibility(Kind.TEAM, unknown)).isEmpty();
+  }
+
+  @Test
   @DisplayName("An unclassified retained match keeps every independent hiding reason")
   void retainsUnclassifiedMatchReasons() {
     // Given
@@ -272,14 +282,16 @@ class SportingVisibilityIntegrationTest {
     assertThat(returned.homeTeamId()).isEqualTo(first.homeTeamId());
     assertThat(reads.visibility(Kind.POOL, pool).orElseThrow().reasons())
         .containsExactly(Reason.DIVISION_INACTIVE);
+    assertThat(reads.visibility(Kind.TEAM, first.homeTeamId()).orElseThrow().reasons())
+        .containsExactlyInAnyOrder(Reason.DIVISION_INACTIVE, Reason.NO_VISIBLE_PARTICIPATION);
     assertThat(reads.publicMatch(first.resourceId())).isEmpty();
     assertThat(reads.club(acquisitionReads.team(first.homeTeamId()).orElseThrow().clubId()))
         .isPresent();
   }
 
   @Test
-  @DisplayName("A team remains searchable and indexable while any participation is visible")
-  void preservesTeamWhileAnyParticipationIsVisible() {
+  @DisplayName("A retained team's visibility and pool links follow its remaining participation")
+  void exposesOnlyRemainingParticipation() {
     // Given
     UUID other =
         identities
@@ -298,23 +310,17 @@ class SportingVisibilityIntegrationTest {
     identities.identifyMatch(
         other, "M2", candidate("M2", "Home", null).home(), candidate("M2", "Home", null).away());
     UUID team = first.homeTeamId();
-    Set<UUID> teamIds = Set.of(team);
     calendars.accept(pool, calendar(2, List.of()));
     assertThat(reads.visibility(Kind.TEAM, team).orElseThrow().viewable()).isTrue();
     assertThat(reads.publicTeamPoolIds(team)).containsExactly(other);
-    assertThat(reads.searchEligibility(Kind.TEAM, teamIds))
-        .extracting(input -> input.id())
-        .containsExactly(team);
-    assertThat(reads.indexInputs(Kind.TEAM, teamIds))
-        .extracting(input -> input.id())
-        .containsExactly(team);
 
     // When
     sql.update("UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", other);
 
     // Then
-    assertThat(reads.searchEligibility(Kind.TEAM, teamIds)).isEmpty();
-    assertThat(reads.indexInputs(Kind.TEAM, teamIds)).isEmpty();
+    assertThat(reads.visibility(Kind.TEAM, team).orElseThrow().reasons())
+        .containsExactly(Reason.NO_VISIBLE_PARTICIPATION);
+    assertThat(reads.publicTeamPoolIds(team)).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM sporting_participation WHERE team_id=?", Integer.class, team))

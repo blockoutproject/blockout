@@ -2,9 +2,13 @@ package com.blockout.backend.search.application;
 
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Immutable read selection. Empty normalized text selects examples; nonempty text selects
@@ -27,11 +31,16 @@ public record SearchContext(
     SportFormatEnum format,
     SportGenderEnum gender,
     boolean maintenanceBypass) {
-  /** The three discovery collections; sporting options retain their narrower generated enum. */
+  /** Each discovery collection has a sporting read kind and an after-commit projection scope. */
+  @Getter
+  @RequiredArgsConstructor
   public enum Resource {
-    CLUB,
-    TEAM,
-    POOL
+    CLUB(Kind.CLUB, SportingProjectionChanges.Kind.CLUB),
+    TEAM(Kind.TEAM, SportingProjectionChanges.Kind.TEAM),
+    POOL(Kind.POOL, SportingProjectionChanges.Kind.POOL);
+
+    private final Kind sportingKind;
+    private final SportingProjectionChanges.Kind projectionScope;
   }
 
   /**
