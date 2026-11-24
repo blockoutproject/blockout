@@ -23,15 +23,17 @@ public class HydrateSearch {
   private final ReadSportingResources resources;
 
   /**
-   * Rechecks current visibility, exact filters and indexed/current city before public summaries.
+   * Rechecks the whole batch and composes the first admitted identities in engine order within the
+   * same snapshot.
    *
    * @param context current selection
    * @param candidates at most 200 native identities with indexed city
-   * @return current summaries by identity, omitting stale or forbidden candidates
+   * @param summaryLimit remaining page slots, including the textual lookahead when applicable
+   * @return current summaries by identity for the selected prefix of admitted candidates
    */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<UUID, SearchPage.Summary> current(
-      SearchContext context, List<SearchEngine.Candidate> candidates) {
+      SearchContext context, List<SearchEngine.Candidate> candidates, int summaryLimit) {
     Map<UUID, String> cities = new HashMap<>();
     for (SearchEngine.Candidate candidate : candidates) {
       cities.put(candidate.position().id(), candidate.city());
@@ -43,11 +45,17 @@ public class HydrateSearch {
                     Objects.equals(cities.get(input.id()), input.city()) && matches(context, input))
             .map(SportingSearchEligibility::id)
             .collect(Collectors.toSet());
+    Set<UUID> summaryIds =
+        candidates.stream()
+            .map(candidate -> candidate.position().id())
+            .filter(admittedIds::contains)
+            .limit(summaryLimit)
+            .collect(Collectors.toSet());
     Map<UUID, SearchPage.Summary> result = new HashMap<>();
     switch (context.resource()) {
       case CLUB ->
           resources
-              .clubIdentities(admittedIds)
+              .clubIdentities(summaryIds)
               .forEach(
                   (id, club) ->
                       result.put(
@@ -56,11 +64,11 @@ public class HydrateSearch {
                               new SearchPage.Club(club, cities.get(id)), null, null)));
       case TEAM ->
           resources
-              .teamSummaries(admittedIds)
+              .teamSummaries(summaryIds)
               .forEach((id, team) -> result.put(id, new SearchPage.Summary(null, team, null)));
       case POOL ->
           resources
-              .poolSummaries(admittedIds)
+              .poolSummaries(summaryIds)
               .forEach((id, pool) -> result.put(id, new SearchPage.Summary(null, null, pool)));
     }
     return Map.copyOf(result);
