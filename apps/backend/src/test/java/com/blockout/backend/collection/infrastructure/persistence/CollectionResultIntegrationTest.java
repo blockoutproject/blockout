@@ -637,6 +637,46 @@ class CollectionResultIntegrationTest {
     assertThat(control().lastSuccessAt()).isNull();
   }
 
+  @ParameterizedTest
+  @CsvSource({"0,SUCCESS,true", "1,SUCCESS,false", "2,SUCCESS,true", "1,FAILED,false"})
+  @DisplayName("Conditional standings affect passage success only when attempted")
+  void completesConditionalStandings(
+      int phases, CollectionOutcomeEnum outcome, boolean successful) {
+    // Given
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000156");
+    sql.update(
+        "INSERT INTO collection_target(cycle_id, scope_id, kind) VALUES (?, ?, 'STANDINGS_AFTER_FINAL_SCORE')",
+        cycle.id(),
+        pool);
+    for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+      results.record(cycle.id(), evidence(1, phase, CollectionOutcomeEnum.SUCCESS));
+    }
+    for (CollectionPhaseEnum phase :
+        List.of(CollectionPhaseEnum.ACQUISITION, CollectionPhaseEnum.INTEGRATION)
+            .subList(0, phases)) {
+      results.record(
+          cycle.id(),
+          new RecordCollectionResult(
+              pool,
+              CollectionStageEnum.STANDINGS,
+              phase,
+              2,
+              OBSERVED.plusSeconds(2),
+              outcome,
+              null,
+              null,
+              null,
+              null));
+    }
+
+    // When
+    Instant completed = OBSERVED.plusSeconds(3);
+    results.complete(cycle.id(), completed);
+
+    // Then
+    assertThat(control().lastSuccessAt()).isEqualTo(successful ? completed : null);
+  }
+
   @Test
   @DisplayName("A successful role cannot cover a different selected role for the same scope")
   void refusesMissingRole() {

@@ -28,6 +28,7 @@ import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
@@ -316,6 +317,76 @@ class CollectionAdmissionIntegrationTest {
         .isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Long.class))
         .isEqualTo(2);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"true,false,1", "false,true,1", "false,false,0"})
+  @DisplayName("Off-cadence LNV standings are available only for pools with an admitted score read")
+  void selectsStandingsForAdmittedScoreRead(boolean calendarDue, boolean detailDue, int expected) {
+    // Given
+    sql.update("UPDATE collection_control SET family='LNV' WHERE id=?", CONTROL);
+    sql.update(
+        "UPDATE collection_source_binding SET provider='LNV', organizer_reference='LM', accepted_url='https://lnv.example.invalid/source' WHERE id=?",
+        SOURCE);
+    sql.update(
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic division',TRUE,'#112233')",
+        DIVISION);
+    UUID pool =
+        identities
+            .createPool(
+                new PoolKey(CollectionProviderEnum.LNV, season, "LM", "LM", null, "7", "A"),
+                "LM",
+                "Synthetic group",
+                new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
+            .id();
+    UUID match =
+        identities
+            .identifyMatch(
+                pool,
+                "M1",
+                new TeamCandidate("H", "Home", null, null),
+                new TeamCandidate("A", "Away", null, null))
+            .id();
+    sql.update(
+        "UPDATE sporting_pool SET setting_division_id=?, setting_format='_6X6', setting_gender='MALE', calendar_url='https://lnv.example.invalid/calendar', standings_url='https://lnv.example.invalid/standings' WHERE id=?",
+        DIVISION,
+        pool);
+    sql.update(
+        "UPDATE sporting_match SET detail_url='https://lnv.example.invalid/match' WHERE id=?",
+        match);
+    previousAttempt(pool, CollectionStageEnum.STANDINGS);
+    if (!calendarDue) {
+      previousAttempt(pool, CollectionStageEnum.CALENDAR);
+    }
+    if (!detailDue) {
+      previousAttempt(match, CollectionStageEnum.DETAILS);
+    }
+
+    // When
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    CollectionState.TargetPage page = collectionWork.targets(CYCLE, 0, 50);
+
+    // Then
+    assertThat(page.items())
+        .noneMatch(item -> item.target().kind() == CollectionTargetKindEnum.STANDINGS);
+    assertThat(page.afterFinalScoreStandings())
+        .hasSize(expected)
+        .allSatisfy(
+            item -> {
+              assertThat(item.target().kind()).isEqualTo(CollectionTargetKindEnum.STANDINGS);
+              assertThat(item.target().poolId()).isEqualTo(pool);
+              assertThat(item.target().url()).isEqualTo("https://lnv.example.invalid/standings");
+            });
+  }
+
+  /** Records an actual attempt in the current slot so this role is outside its next cadence. */
+  private void previousAttempt(UUID scope, CollectionStageEnum stage) {
+    sql.update(
+        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,?,'ACQUISITION',?,1,1,'SUCCESS')",
+        CONTROL,
+        scope,
+        stage.name(),
+        Timestamp.from(NOW));
   }
 
   @ParameterizedTest(name = "Completion {0}, skipped poll {1}, next opportunity {2}")

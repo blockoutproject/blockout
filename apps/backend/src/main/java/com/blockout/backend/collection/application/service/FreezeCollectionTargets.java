@@ -21,8 +21,10 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -71,7 +73,7 @@ public class FreezeCollectionTargets {
         if (references.lastClubId() == null) {
           break;
         }
-        retainDue(cycle, control, references.items());
+        retainScheduled(cycle, withAttempts(control, references.items()));
         afterClub = references.lastClubId();
       }
       return;
@@ -103,7 +105,8 @@ public class FreezeCollectionTargets {
       } else {
         source = candidate;
       }
-      retainDue(cycle, control, List.of(mapper.toDiscoveryTarget(source, season)));
+      retainScheduled(
+          cycle, withAttempts(control, List.of(mapper.toDiscoveryTarget(source, season))));
       if (!initialImport && !CollectionLifecycle.activeOrSeasonless(season)) {
         continue;
       }
@@ -120,13 +123,19 @@ public class FreezeCollectionTargets {
         if (references.isEmpty()) {
           break;
         }
-        retainDue(
-            cycle,
-            control,
-            references.stream()
-                .map(reference -> mapper.toTarget(reference, source, season))
-                .toList());
+        List<Target> pools =
+            withAttempts(
+                control,
+                references.stream()
+                    .map(reference -> mapper.toTarget(reference, source, season))
+                    .toList());
+        List<Target> scheduled = retainScheduled(cycle, pools);
         if (provider == CollectionProviderEnum.LNV) {
+          Set<UUID> scorePools = new HashSet<>();
+          scheduled.stream()
+              .filter(target -> target.kind() == CollectionTargetKindEnum.CALENDAR)
+              .map(Target::poolId)
+              .forEach(scorePools::add);
           for (UUID poolId :
               references.stream().map(AcquisitionReference::poolId).distinct().toList()) {
             for (int detailPage = 0; ; detailPage++) {
@@ -135,13 +144,27 @@ public class FreezeCollectionTargets {
               if (details.isEmpty()) {
                 break;
               }
-              retainDue(
-                  cycle,
-                  control,
-                  details.stream()
-                      .map(reference -> mapper.toTarget(reference, source, season))
-                      .toList());
+              List<Target> detailTargets =
+                  withAttempts(
+                      control,
+                      details.stream()
+                          .map(reference -> mapper.toTarget(reference, source, season))
+                          .toList());
+              if (!retainScheduled(cycle, detailTargets).isEmpty()) {
+                scorePools.add(poolId);
+              }
             }
+          }
+          if (cycle.mode() == CollectionModeEnum.PERIODIC) {
+            store.addTargets(
+                cycle.id(),
+                pools.stream()
+                    .filter(target -> target.kind() == CollectionTargetKindEnum.STANDINGS)
+                    .filter(
+                        target ->
+                            scorePools.contains(target.poolId()) && !due(target, cycle.startedAt()))
+                    .map(target -> target.toBuilder().afterFinalScoreOnly(true).build())
+                    .toList());
           }
         }
         afterPool = references.getLast().poolId();
@@ -149,14 +172,8 @@ public class FreezeCollectionTargets {
     }
   }
 
-  /**
-   * Retains explicit or due targets with their actual evidence.
-   *
-   * @param cycle admitted purpose and logical time
-   * @param control exact authorized selection
-   * @param targets one bounded batch of eligible references
-   */
-  private void retainDue(Cycle cycle, Control control, List<Target> targets) {
+  /** Applies the control's exact selection and attaches evidence used for scheduling. */
+  private List<Target> withAttempts(Control control, List<Target> targets) {
     Map<AttemptKey, CollectionAttempt> attempts =
         store
             .attempts(control.id(), targets.stream().map(Target::scopeId).distinct().toList())
@@ -165,22 +182,27 @@ public class FreezeCollectionTargets {
                 Collectors.toMap(
                     attempt -> new AttemptKey(attempt.scopeId(), attempt.stage()),
                     Function.identity()));
+    return targets.stream()
+        .filter(
+            target -> control.scopeIds().isEmpty() || control.scopeIds().contains(target.scopeId()))
+        .map(
+            target -> {
+              CollectionAttempt attempt =
+                  attempts.get(new AttemptKey(target.scopeId(), stages.toStage(target.kind())));
+              return attempt == null
+                  ? target
+                  : target.toBuilder()
+                      .lastAttemptAt(attempt.lastAttemptAt())
+                      .lastSuccessAt(attempt.lastSuccessAt())
+                      .build();
+            })
+        .toList();
+  }
+
+  /** Persists the ordinarily selected work and its initial-import coverage. */
+  private List<Target> retainScheduled(Cycle cycle, List<Target> targets) {
     List<Target> selected =
         targets.stream()
-            .filter(
-                target ->
-                    control.scopeIds().isEmpty() || control.scopeIds().contains(target.scopeId()))
-            .map(
-                target -> {
-                  CollectionAttempt attempt =
-                      attempts.get(new AttemptKey(target.scopeId(), stages.toStage(target.kind())));
-                  return attempt == null
-                      ? target
-                      : target.toBuilder()
-                          .lastAttemptAt(attempt.lastAttemptAt())
-                          .lastSuccessAt(attempt.lastSuccessAt())
-                          .build();
-                })
             .filter(
                 target ->
                     cycle.mode() != CollectionModeEnum.PERIODIC || due(target, cycle.startedAt()))
@@ -204,6 +226,7 @@ public class FreezeCollectionTargets {
         }
       }
     }
+    return selected;
   }
 
   /**

@@ -19,6 +19,10 @@ interface CollectionTargetRepository
    */
   Slice<CollectionTargetEntity> findByCycleIdOrderByKindAscScopeIdAsc(UUID cycleId, Pageable page);
 
+  /** Scheduled and conditional standings grant the same exact pool role. */
+  Optional<CollectionTargetEntity> findByCycleIdAndScopeIdAndKindIn(
+      UUID cycleId, UUID scopeId, List<CollectionTargetEntity.Kind> kinds);
+
   /**
    * Resolves one admitted parent across all candidate identities without per-pool queries.
    *

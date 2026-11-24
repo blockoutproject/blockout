@@ -518,6 +518,9 @@ class JpaCollectionStore implements CollectionStore {
     for (CollectionState.Target value : values) {
       CollectionTargetEntity row = mapper.toEntity(value);
       row.setCycleId(cycleId);
+      if (value.afterFinalScoreOnly()) {
+        row.setKind(CollectionTargetEntity.Kind.STANDINGS_AFTER_FINAL_SCORE);
+      }
       // Admission creates new snapshot keys; merge would read each assigned key unnecessarily.
       entityManager.persist(row);
     }
@@ -536,6 +539,16 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public Optional<CollectionState.Target> target(
       UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
+    if (kind == CollectionTargetKindEnum.STANDINGS) {
+      return targets
+          .findByCycleIdAndScopeIdAndKindIn(
+              cycleId,
+              scopeId,
+              List.of(
+                  CollectionTargetEntity.Kind.STANDINGS,
+                  CollectionTargetEntity.Kind.STANDINGS_AFTER_FINAL_SCORE))
+          .map(mapper::toView);
+    }
     return targets
         .findById(new CollectionTargetEntity.Key(cycleId, scopeId, mapper.persistedKind(kind)))
         .map(mapper::toView);

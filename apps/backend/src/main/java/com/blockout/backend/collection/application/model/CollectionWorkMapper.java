@@ -62,6 +62,7 @@ public interface CollectionWorkMapper {
   @Mapping(target = "gender", source = "reference.classification.gender")
   @Mapping(target = "clubId", ignore = true)
   @Mapping(target = "clubReference", ignore = true)
+  @Mapping(target = "afterFinalScoreOnly", ignore = true)
   @Mapping(target = "lastAttemptAt", ignore = true)
   @Mapping(target = "lastSuccessAt", ignore = true)
   Target toTarget(AcquisitionReference reference, Source source, CollectionSeasonView season);
@@ -87,6 +88,7 @@ public interface CollectionWorkMapper {
   @Mapping(target = "divisionId", ignore = true)
   @Mapping(target = "format", ignore = true)
   @Mapping(target = "gender", ignore = true)
+  @Mapping(target = "afterFinalScoreOnly", ignore = true)
   @Mapping(target = "lastAttemptAt", ignore = true)
   @Mapping(target = "lastSuccessAt", ignore = true)
   @Mapping(target = "fastWindowEndsAt", ignore = true)
@@ -118,6 +120,7 @@ public interface CollectionWorkMapper {
   @Mapping(target = "divisionId", ignore = true)
   @Mapping(target = "format", ignore = true)
   @Mapping(target = "gender", ignore = true)
+  @Mapping(target = "afterFinalScoreOnly", ignore = true)
   @Mapping(target = "lastAttemptAt", ignore = true)
   @Mapping(target = "lastSuccessAt", ignore = true)
   @Mapping(target = "fastWindowEndsAt", ignore = true)
