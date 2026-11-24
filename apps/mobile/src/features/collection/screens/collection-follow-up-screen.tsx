@@ -82,9 +82,10 @@ export function CollectionFollowUp({
           fetching={fetching}
           enabled={active && !commandPending}
           onRefresh={async () => {
-            if (active && !commandPending && !fetching) {
+            if (active && !commandPending) {
               await Promise.all([
-                query.refetch({ cancelRefetch: false }),
+                // The automatic status read can predate this explicit refresh.
+                query.refetch(),
                 results.refetch({ cancelRefetch: false }),
                 seasonQuery?.refetch({ cancelRefetch: false }),
               ]);
