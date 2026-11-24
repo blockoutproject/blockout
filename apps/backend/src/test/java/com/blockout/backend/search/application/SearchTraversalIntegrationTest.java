@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.search.infrastructure.OpenSearchEngine;
 import com.blockout.backend.search.infrastructure.SearchIndexProperties;
 import com.blockout.backend.search.infrastructure.SearchTestEngine;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
@@ -98,7 +99,7 @@ class SearchTraversalIntegrationTest {
       List<UUID> ids = expected.subList(offset, Math.min(expected.size(), offset + 200));
       BulkRequest.Builder bulk = new BulkRequest.Builder();
       owners
-          .publicInputs(Kind.CLUB, new HashSet<>(ids))
+          .indexInputs(Kind.CLUB, new HashSet<>(ids))
           .forEach(
               input ->
                   bulk.operations(
@@ -160,8 +161,7 @@ class SearchTraversalIntegrationTest {
           id.toString(),
           term);
     }
-    for (com.blockout.backend.sporting.application.model.SportingPublicInput input :
-        owners.publicInputs(Kind.CLUB, Set.of(first, second))) {
+    for (SportingIndexInput input : owners.indexInputs(Kind.CLUB, Set.of(first, second))) {
       nativeEngine.client.index(
           r ->
               r.index(PREFIX + "-clubs")
@@ -177,8 +177,7 @@ class SearchTraversalIntegrationTest {
                 .value(2));
     sql.update("DELETE FROM sporting_club WHERE id = ?", first);
     nativeEngine.createIndex(PREFIX + "-clubs-v2");
-    com.blockout.backend.sporting.application.model.SportingPublicInput remaining =
-        owners.publicInputs(Kind.CLUB, Set.of(second)).getFirst();
+    SportingIndexInput remaining = owners.indexInputs(Kind.CLUB, Set.of(second)).getFirst();
     nativeEngine.client.index(
         r ->
             r.index(PREFIX + "-clubs-v2")
@@ -234,7 +233,7 @@ class SearchTraversalIntegrationTest {
     for (int offset = 0; offset < ids.size(); offset += 200) {
       BulkRequest.Builder bulk = new BulkRequest.Builder();
       owners
-          .publicInputs(
+          .indexInputs(
               Kind.CLUB, new HashSet<>(ids.subList(offset, Math.min(offset + 200, ids.size()))))
           .forEach(
               input ->

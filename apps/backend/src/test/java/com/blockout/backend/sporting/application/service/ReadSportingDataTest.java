@@ -92,7 +92,7 @@ class ReadSportingDataTest {
             current);
 
     // When / Then
-    assertThatThrownBy(() -> reads.projectionInputs(Kind.TEAM, page, size))
+    assertThatThrownBy(() -> reads.indexInputs(Kind.TEAM, page, size))
         .isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(store, current);
   }

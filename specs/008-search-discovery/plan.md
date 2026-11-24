@@ -68,7 +68,7 @@ apps/mobile/                     # Existing discovery queries and visit state
 
 ## Matching and current data
 
-Search hydrates accepted candidate sets through F03's batched current summaries, keeping the same repeatable-read boundary and F02 visibility. Shared season/division/presentation inputs use set-based scalar projections, including logo presence without loading image bytes. The [common composition qualification](../003-shared-quality/quickstart.md#shared-backend-reads-images-and-authority) compares one and twenty candidates and retains current-city and visibility regressions; no application cache is introduced.
+F03's batched summaries load shared seasons, divisions and presentation through scalar projections, including logo presence without loading image bytes. The [common composition qualification](../003-shared-quality/quickstart.md#shared-backend-reads-images-and-authority) compares one and twenty candidates and retains current-city and visibility regressions; no application cache is introduced.
 
 The backend indexes the [data model](data-model.md): current public/source full and short names, verified owner-scoped aliases and the permitted context for each resource. Teams and pools also index their format/gender labels and relevant division abbreviations. Abbreviations belong to the identified division; they are not global text substitutions or a reason to merge identities. Professional teams without a club have no invented club or city.
 
@@ -78,7 +78,7 @@ Configure prefix/token bounds to cover every accepted 200-character query after 
 
 All meaningful terms must match, possibly across fields. `eag ly` can match Eagles/Lyon through prefixes; `Volly Lyon` can use typo tolerance. Arbitrary combinations such as `Volly ly` are not guaranteed. Exact season/division/format/gender filters remain outside those text branches. Nonempty input that produces no searchable terms returns no textual matches, not examples or all documents.
 
-OpenSearch supplies candidate identities, sort values and the indexed city needed for the internal current-value check. Before returning a page, load current public representations and recheck F02 visibility and exact filters. Compare the candidate's indexed city to the current authorized city; reject a stale candidate until it is reindexed, including when the query would also match its name. This simple conservative check may temporarily omit a result, but cannot grant a match using a replaced/restricted city. It neither hides the business identity nor starts a separate correction process. Return current SQL-owned presentation, never raw index documents or obsolete contacts.
+OpenSearch supplies candidate identities, sort values and the indexed city needed for the internal current-value check. For each batch, F02 returns the visible identities with their authorized city, season and classification. F04 checks the selected filters and compares the indexed city with the authorized city, including absence. A city mismatch omits even a name match until reindexing catches up. F03 composes current summaries for the admitted identities in the same repeatable-read transaction.
 
 ## Reads, pagination and examples
 

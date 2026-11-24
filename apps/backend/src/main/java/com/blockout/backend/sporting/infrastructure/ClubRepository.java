@@ -95,7 +95,7 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   @Query(
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-        c.id, NULL, c.sourceName, COALESCE(c.manualName, c.sourceName), NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        c.id, NULL, c.sourceName, COALESCE(c.manualName, c.sourceName), NULL, NULL, NULL, NULL, NULL, NULL,
         CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
       FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id
       """)

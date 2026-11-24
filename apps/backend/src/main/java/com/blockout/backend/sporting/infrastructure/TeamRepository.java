@@ -244,7 +244,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
         t.id, t.season.id, t.sourceName, COALESCE(t.manualName, t.sourceName), COALESCE(t.manualShortName, t.sourceName), t.division.id, t.division.name, t.format, t.gender,
-        c.id, COALESCE(c.manualName, c.sourceName),
+        COALESCE(c.manualName, c.sourceName),
         CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
       FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids AND
       """

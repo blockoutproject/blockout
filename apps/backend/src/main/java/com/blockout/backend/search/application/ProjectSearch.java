@@ -1,7 +1,7 @@
 package com.blockout.backend.search.application;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.LinkedHashSet;
@@ -49,7 +49,7 @@ public class ProjectSearch {
               window -> {
                 Set<UUID> batch = new LinkedHashSet<>(window);
                 List<SearchDocuments> documents =
-                    sporting.publicInputs(kind, batch).stream().map(SearchDocuments::from).toList();
+                    sporting.indexInputs(kind, batch).stream().map(SearchDocuments::from).toList();
                 writer.update(kind, batch, documents);
               });
     }
@@ -64,7 +64,7 @@ public class ProjectSearch {
     Map<Kind, String> generation = writer.createGeneration();
     for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
       for (int page = 0; ; page++) {
-        List<SportingPublicInput> batch = sporting.projectionInputs(kind, page, 200);
+        List<SportingIndexInput> batch = sporting.indexInputs(kind, page, 200);
         if (batch.isEmpty()) {
           break;
         }

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -282,10 +282,11 @@ class SearchCurrentDataIntegrationTest {
   }
 
   @ParameterizedTest
-  @EnumSource(SearchContext.Resource.class)
+  @CsvSource({"CLUB, 2", "TEAM, 6", "POOL, 5"})
   @DisplayName(
       "Hydrates a full native candidate batch with distinct parents without per-candidate SQL reads")
-  void readsSummariesInBatches(SearchContext.Resource resource, TestReporter reporter) {
+  void readsSummariesInBatches(
+      SearchContext.Resource resource, int maxStatements, TestReporter reporter) {
     // Given: distinct parents prevent the persistence context from hiding per-parent reads.
     List<Candidate> candidates = new ArrayList<>();
     for (int number = 1; number <= 200; number++) {
@@ -376,7 +377,7 @@ class SearchCurrentDataIntegrationTest {
 
       // Then
       assertThat(current).hasSize(200);
-      assertThat(batchReads).isEqualTo(singleReads);
+      assertThat(batchReads).isEqualTo(singleReads).isLessThanOrEqualTo(maxStatements);
       SearchPage.Summary first = current.get(candidates.getFirst().position().id());
       switch (resource) {
         case CLUB -> {

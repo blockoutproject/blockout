@@ -278,8 +278,8 @@ class SportingVisibilityIntegrationTest {
   }
 
   @Test
-  @DisplayName("A second visible participation keeps the retained team usable")
-  void preservesOtherParticipation() {
+  @DisplayName("A team remains searchable and indexable while any participation is visible")
+  void preservesTeamWhileAnyParticipationIsVisible() {
     // Given
     UUID other =
         identities
@@ -297,19 +297,27 @@ class SportingVisibilityIntegrationTest {
             .getFirst();
     identities.identifyMatch(
         other, "M2", candidate("M2", "Home", null).home(), candidate("M2", "Home", null).away());
+    UUID team = first.homeTeamId();
+    Set<UUID> teamIds = Set.of(team);
+    calendars.accept(pool, calendar(2, List.of()));
+    assertThat(reads.visibility(Kind.TEAM, team).orElseThrow().viewable()).isTrue();
+    assertThat(reads.publicTeamPoolIds(team)).containsExactly(other);
+    assertThat(reads.searchEligibility(Kind.TEAM, teamIds))
+        .extracting(input -> input.id())
+        .containsExactly(team);
+    assertThat(reads.indexInputs(Kind.TEAM, teamIds))
+        .extracting(input -> input.id())
+        .containsExactly(team);
 
     // When
-    calendars.accept(pool, calendar(2, List.of()));
+    sql.update("UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", other);
 
     // Then
-    assertThat(reads.visibility(Kind.TEAM, first.homeTeamId()).orElseThrow().viewable()).isTrue();
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst().poolIds())
-        .containsExactly(other);
+    assertThat(reads.searchEligibility(Kind.TEAM, teamIds)).isEmpty();
+    assertThat(reads.indexInputs(Kind.TEAM, teamIds)).isEmpty();
     assertThat(
             sql.queryForObject(
-                "SELECT COUNT(*) FROM sporting_participation WHERE team_id=?",
-                Integer.class,
-                first.homeTeamId()))
+                "SELECT COUNT(*) FROM sporting_participation WHERE team_id=?", Integer.class, team))
         .isEqualTo(2);
   }
 
@@ -328,10 +336,10 @@ class SportingVisibilityIntegrationTest {
     calendars.accept(pool, calendar(2, List.of()));
 
     // Then
-    assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
+    assertThat(reads.searchEligibility(Kind.CLUB, Set.of(club)))
         .extracting(input -> input.id())
         .containsExactly(club);
-    assertThat(reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId()))).isEmpty();
+    assertThat(reads.searchEligibility(Kind.TEAM, Set.of(first.homeTeamId()))).isEmpty();
   }
 
   @Test

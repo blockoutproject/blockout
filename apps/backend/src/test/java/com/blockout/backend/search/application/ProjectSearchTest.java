@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import java.util.List;
@@ -40,7 +40,7 @@ class ProjectSearchTest {
             Set.of(
                 new Scope(SportingProjectionChanges.Kind.CLUB, club),
                 new Scope(SportingProjectionChanges.Kind.TEAM, hidden)));
-    when(sporting.publicInputs(Kind.CLUB, Set.of(club)))
+    when(sporting.indexInputs(Kind.CLUB, Set.of(club)))
         .thenReturn(List.of(club(club, "Current name")));
 
     // When
@@ -71,12 +71,12 @@ class ProjectSearchTest {
     Map<Kind, String> generation =
         Map.of(Kind.CLUB, "clubs-new", Kind.TEAM, "teams-new", Kind.POOL, "pools-new");
     when(writer.createGeneration()).thenReturn(generation);
-    List<SportingPublicInput> clubs =
+    List<SportingIndexInput> clubs =
         java.util.stream.IntStream.rangeClosed(1, 201)
             .mapToObj(position -> club(new UUID(0, position), "Club " + position))
             .toList();
-    when(sporting.projectionInputs(Kind.CLUB, 0, 200)).thenReturn(clubs.subList(0, 200));
-    when(sporting.projectionInputs(Kind.CLUB, 1, 200)).thenReturn(clubs.subList(200, 201));
+    when(sporting.indexInputs(Kind.CLUB, 0, 200)).thenReturn(clubs.subList(0, 200));
+    when(sporting.indexInputs(Kind.CLUB, 1, 200)).thenReturn(clubs.subList(200, 201));
 
     // When
     projection.rebuild();
@@ -87,7 +87,7 @@ class ProjectSearchTest {
         .write(org.mockito.ArgumentMatchers.eq("clubs-new"), batches.capture());
     assertThat(batches.getAllValues()).extracting(List::size).containsExactly(200, 1);
     assertThat(batches.getAllValues().stream().flatMap(List::stream).map(SearchDocuments::id))
-        .containsExactlyElementsOf(clubs.stream().map(SportingPublicInput::id).toList());
+        .containsExactlyElementsOf(clubs.stream().map(SportingIndexInput::id).toList());
     verify(writer).publish(generation);
     verify(writer).cleanup();
   }
@@ -100,7 +100,7 @@ class ProjectSearchTest {
         Map.of(Kind.CLUB, "clubs-new", Kind.TEAM, "teams-new", Kind.POOL, "pools-new");
     when(writer.createGeneration()).thenReturn(generation);
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
-    when(sporting.projectionInputs(Kind.CLUB, 0, 200)).thenReturn(List.of(club(id, "Club")));
+    when(sporting.indexInputs(Kind.CLUB, 0, 200)).thenReturn(List.of(club(id, "Club")));
     doThrow(new SearchUnavailableException()).when(writer).write(any(), any());
 
     // When / Then
@@ -116,9 +116,8 @@ class ProjectSearchTest {
    * @param name current public label
    * @return eligible club input
    */
-  private SportingPublicInput club(UUID id, String name) {
-    return new SportingPublicInput(
-        id, Kind.CLUB, null, name, name, null, Set.of(), null, null, Set.of(), null, null, null,
-        List.of());
+  private SportingIndexInput club(UUID id, String name) {
+    return new SportingIndexInput(
+        id, null, name, name, null, Set.of(), null, null, Set.of(), null, null);
   }
 }

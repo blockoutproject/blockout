@@ -21,7 +21,7 @@ import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
@@ -217,16 +217,18 @@ class SportingProjectionIntegrationTest {
         DIVISION,
         DIVISION);
     sql.update(
-        "INSERT INTO sporting_team_alias(team_id,season_id,organizer_reference,competition_reference,comparison_name) VALUES (?,?,'SYNTHETIC','COMP','home alias')",
+        "INSERT INTO sporting_team_alias(team_id,season_id,organizer_reference,competition_reference,comparison_name) VALUES (?,?,'SYNTHETIC','COMP','home alias'), (?,?,'SYNTHETIC','CUP','cup alias')",
+        first.homeTeamId(),
+        season,
         first.homeTeamId(),
         season);
-    SportingPublicInput previous =
-        reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
+    SportingIndexInput previous =
+        reads.indexInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
 
     // When
     sql.update("UPDATE sporting_club SET municipality_restricted=TRUE WHERE id=?", club);
-    SportingPublicInput current =
-        reads.publicInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
+    SportingIndexInput current =
+        reads.indexInputs(Kind.TEAM, Set.of(first.homeTeamId())).getFirst();
 
     // Then
     assertThat(previous.city()).isEqualTo("Synthetic city");
@@ -235,21 +237,23 @@ class SportingProjectionIntegrationTest {
     assertThat(current.seasonId()).isEqualTo(season);
     assertThat(current.sourceName()).isEqualTo("Home");
     assertThat(current.effectiveName()).isEqualTo("Home");
-    assertThat(current.clubId()).isEqualTo(club);
     assertThat(current.classification().divisionId()).isEqualTo(DIVISION);
     assertThat(current.divisionName()).isEqualTo("Synthetic");
     assertThat(current.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
-    SportingPublicInput poolInput = reads.publicInputs(Kind.POOL, Set.of(pool)).getFirst();
+    SportingIndexInput poolInput = reads.indexInputs(Kind.POOL, Set.of(pool)).getFirst();
     assertThat(poolInput.classification()).isEqualTo(current.classification());
     assertThat(poolInput.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
-    assertThat(current.aliases()).extracting(alias -> alias.name()).containsExactly("home alias");
+    assertThat(current.aliases())
+        .containsExactlyInAnyOrder(
+            new SportingIndexInput.Alias(season, "SYNTHETIC", "COMP", "home alias"),
+            new SportingIndexInput.Alias(season, "SYNTHETIC", "CUP", "cup alias"));
     assertThat(
             reads.projectionDependents(
                 Set.of(new Scope(SportingProjectionChanges.Kind.CLUB, club))))
         .contains(
             new Scope(SportingProjectionChanges.Kind.TEAM, first.homeTeamId()),
             new Scope(SportingProjectionChanges.Kind.POOL, pool));
-    assertThat(reads.projectionInputs(Kind.TEAM, 0, 1)).hasSize(1);
+    assertThat(reads.indexInputs(Kind.TEAM, 0, 1)).hasSize(1);
   }
 
   @Test
@@ -275,14 +279,12 @@ class SportingProjectionIntegrationTest {
             .homeTeamId();
 
     // When
-    SportingPublicInput input = reads.publicInputs(Kind.TEAM, Set.of(team)).getFirst();
+    SportingIndexInput input = reads.indexInputs(Kind.TEAM, Set.of(team)).getFirst();
 
     // Then
     assertThat(input.sourceName()).isEqualTo("Professional home");
-    assertThat(input.clubId()).isNull();
     assertThat(input.clubName()).isNull();
     assertThat(input.city()).isNull();
-    assertThat(input.poolIds()).containsExactly(professional);
   }
 
   /**

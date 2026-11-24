@@ -4,7 +4,7 @@
 
 ## Authoritative inputs
 
-F02 owns stable resource UUIDs, effective public/source full and short names, scoped verified aliases, seasons, classification, relationships and current viewability. It supplies public current projection inputs through its application API. F04 never writes those facts or uses text similarity as identity.
+F02 owns stable resource UUIDs, effective public/source full and short names, scoped verified aliases, seasons, classification, relationships and current viewability. Its application API supplies the visible UUID, authorized city, season and classification for current candidate checks. Index preparation also receives the names, verified aliases and division terms used for matching. F04 never writes those facts or uses text similarity as identity.
 
 Verified aliases refer to one known owner in its applicable provider/season/competition context. Division search terms refer to a known division; accepted examples are `N2`, `N3`, `prenat`, `prereg`, `reg` and `dep` only where that division meaning applies. Maintenance is a controlled technical data correction, without a new admin process or endpoint. Neither category is a global alias dictionary or a history of previous names.
 

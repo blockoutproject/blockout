@@ -186,7 +186,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
         p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
-        NULL, NULL, NULL)
+        NULL, NULL)
       FROM PoolEntity p WHERE p.id IN :ids AND
       """
           + VISIBLE

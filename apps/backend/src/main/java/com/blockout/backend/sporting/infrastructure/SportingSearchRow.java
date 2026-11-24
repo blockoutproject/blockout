@@ -18,6 +18,5 @@ record SportingSearchRow(
     String divisionName,
     SportFormatEnum format,
     SportGenderEnum gender,
-    UUID clubId,
     String clubName,
     String city) {}
