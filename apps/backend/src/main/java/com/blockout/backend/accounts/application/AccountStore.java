@@ -14,8 +14,9 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
-   * Deletes the original account and applies the database's referential actions in the caller's
-   * transaction. The caller first removes follows and redacts private report text.
+   * Flushes the original account deletion within the caller's transaction. PostgreSQL applies its
+   * referential actions before this method returns. The caller first removes follows and redacts
+   * private report text.
    *
    * @param accountId original lifecycle protected by its account row lock
    * @return original S3 photo key for post-commit cleanup, or null when no photo was associated

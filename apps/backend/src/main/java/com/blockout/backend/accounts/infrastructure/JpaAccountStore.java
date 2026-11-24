@@ -28,6 +28,7 @@ public class JpaAccountStore implements AccountStore {
   public String erase(UUID accountId) {
     AccountEntity original = accounts.findById(accountId).orElseThrow();
     accounts.delete(original);
+    accounts.flush();
     return original.getPhotoKey();
   }
 
