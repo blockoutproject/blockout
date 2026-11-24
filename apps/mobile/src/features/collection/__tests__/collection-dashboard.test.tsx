@@ -725,7 +725,7 @@ it("refreshes the LNV execution after a relaunch while its automatic read is sti
   const requestId = "00000000-0000-4000-8000-000000000192";
   const pending = { ...selected, pendingRequestId: requestId };
   const staleRead = Promise.withResolvers<Response>();
-  let automaticReadStarted = false;
+  const controlReadSignals: RequestInit["signal"][] = [];
   peer.controls = [selected];
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "POST") {
@@ -734,13 +734,14 @@ it("refreshes the LNV execution after a relaunch while its automatic read is sti
     }
     const request = new URL(String(url));
     if (
+      options?.method === "GET" &&
       request.pathname === "/administration/collection-controls" &&
-      request.searchParams.get("seasonId") === seasonId &&
-      peer.controls[0] === pending &&
-      !automaticReadStarted
+      request.searchParams.get("seasonId") === seasonId
     ) {
-      automaticReadStarted = true;
-      return staleRead.promise;
+      controlReadSignals.push(options.signal);
+      if (peer.controls[0] === pending) {
+        return staleRead.promise;
+      }
     }
     return peer.reads(url, options);
   });
@@ -756,9 +757,14 @@ it("refreshes the LNV execution after a relaunch while its automatic read is sti
 
   try {
     await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    const initialReadCount = controlReadSignals.length;
     await act(async () => nativeAlertAction("Relancer")());
     await screen.findByText("En attente de démarrage");
-    await waitFor(() => expect(automaticReadStarted).toBe(true));
+    await waitFor(() =>
+      expect(controlReadSignals).toHaveLength(initialReadCount + 1),
+    );
+    const automaticReadSignal = controlReadSignals[initialReadCount];
+    expect(automaticReadSignal?.aborted).toBe(false);
 
     // When: the backend starts the cycle and the operator pulls on the same screen.
     peer.controls = [
@@ -776,6 +782,8 @@ it("refreshes the LNV execution after a relaunch while its automatic read is sti
 
     // Then: the explicit read observes the new cycle before the older response is released.
     expect(await screen.findByText("Collecte en cours")).toBeOnTheScreen();
+    expect(controlReadSignals).toHaveLength(initialReadCount + 2);
+    expect(automaticReadSignal?.aborted).toBe(true);
   } finally {
     await act(() => staleRead.resolve(json({ items: [pending] })));
   }
@@ -1722,19 +1730,15 @@ it("holds seasonless refresh during a rerun and acknowledges only the accepted r
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).toBeDisabled(),
   );
+  expect(screen.getByLabelText("Actualiser les données")).not.toHaveProp(
+    "onRefresh",
+  );
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls
       .filter(([, options]) => options?.method === "POST")
       .map(([url]) => new URL(String(url)).pathname),
   ).toEqual([`/administration/collection-controls/${selected.id}/requests`]);
-  mockFetch.mockClear();
-
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-
-  // Then
-  expect(mockFetch).not.toHaveBeenCalled();
 
   // When
   const accepted = {

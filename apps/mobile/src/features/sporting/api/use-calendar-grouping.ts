@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { useQueryClient, type QueryKey } from "@tanstack/react-query";
+import {
+  useQueryClient,
+  type QueryKey,
+  type UseInfiniteQueryResult,
+} from "@tanstack/react-query";
 import { currentSportingTimeZone } from "../model/sporting-time";
 import { refreshCalendar } from "./sporting-calendar";
 
 /**
  * The first active attempt retains its loading zone, even when the read fails or becomes inactive.
  * Deferred mounts use the current zone without retaining it. An explicit changed-zone refresh
- * selects a normal new key; refreshing the retained zone invalidates its complete traversal.
+ * selects a normal new key; refreshing the retained zone rereads its complete traversal.
  */
 export function useCalendarGrouping(
   create: (timeZone: string) => { queryKey: QueryKey },
@@ -20,12 +24,18 @@ export function useCalendarGrouping(
   }
 
   /** Changes the visible query key, or explicitly refreshes the current active traversal. */
-  async function refresh(nextZone: string) {
+  async function refresh(
+    nextZone: string,
+    calendar: Pick<UseInfiniteQueryResult, "isFetchNextPageError" | "refetch">,
+  ) {
     if (!active) {
       return;
     }
     if (nextZone !== timeZone) {
       setTimeZone(nextZone);
+    } else if (calendar.isFetchNextPageError) {
+      // Invalidation skips the disabled observer after a failed continuation.
+      await calendar.refetch({ cancelRefetch: false, throwOnError: true });
     } else {
       await refreshCalendar(client, create(timeZone));
     }

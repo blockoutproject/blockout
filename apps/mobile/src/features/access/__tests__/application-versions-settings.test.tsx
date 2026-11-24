@@ -5,7 +5,7 @@ import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { Alert, Linking } from "react-native";
+import { AccessibilityInfo, Alert, Linking } from "react-native";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -831,6 +831,32 @@ it("previews absent optional copy with the same fallback and preserves the draft
     false,
   );
 });
+
+it.each([
+  { reducedMotion: false, animation: "slide" },
+  { reducedMotion: true, animation: "none" },
+])(
+  "requests the native version preview animation $animation",
+  async ({ reducedMotion, animation }) => {
+    // Given
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+
+    // When
+    await userEvent.press(screen.getByRole("button", { name: "Aperçu" }));
+
+    // Then: the native host owns the transition.
+    expect(
+      await screen.findByRole("header", { name: "Mets Blockout à jour." }),
+    ).toBeOnTheScreen();
+    const previews = screen.container.queryAll((node) => node.type === "Modal");
+    expect(previews).toHaveLength(1);
+    expect(previews[0]).toHaveProp("animationType", animation);
+  },
+);
 
 it("hands the validated current-platform preview link to the existing native store action without saving", async () => {
   // Given

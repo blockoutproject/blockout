@@ -5,7 +5,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { divisionTextColor } from "../presentation";
 import { SportingLink } from "../link";
-import { formatSportingSchedule } from "../model/sporting-time";
+import { formatSportingTime } from "../model/sporting-time";
 import { SportingLogo } from "./sporting-identity";
 import { calendarStyles } from "./calendar-styles";
 
@@ -31,10 +31,17 @@ export function CalendarMatch({
     ? `${accent}${colors.contextBorderAlpha}`
     : colors.border;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
-  const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   const result = match.result;
   const hasScore =
     result?.homeSets !== undefined && result.awaySets !== undefined;
+  const instant = match.schedule.instant;
+  const time =
+    !hasScore && instant
+      ? formatSportingTime(instant, displayTimeZone)
+      : undefined;
+  const scoreOrTime = hasScore
+    ? `${result.homeSets} à ${result.awaySets}`
+    : (time ?? "Heure à définir");
   const unavailable =
     match.category === "completed" && result?.state !== "final";
   let status;
@@ -54,7 +61,7 @@ export function CalendarMatch({
     status = undefined;
   }
   const encounter = `${match.home.name} — ${match.away.name}`;
-  const matchLabel = `Ouvrir le match ${encounter}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`;
+  const matchLabel = `Ouvrir le match ${encounter}, ${scoreOrTime}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`;
   return (
     <SportingLink
       kind="match"
@@ -128,7 +135,7 @@ export function CalendarMatch({
             ]}
           >
             <Text style={[styles.timeText, { color: foreground }]}>
-              {match.schedule.instant ? schedule.time : "À définir"}
+              {time ?? "À définir"}
             </Text>
           </View>
         )}

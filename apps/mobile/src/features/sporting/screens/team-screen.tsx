@@ -25,6 +25,11 @@ import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingIdentity } from "../components/sporting-identity";
 import { poolLabel } from "../model/resource-sections";
 
+const calendarTabs = [
+  { id: "upcoming", label: "À venir" },
+  { id: "completed", label: "Terminés" },
+] as const;
+
 /** Route-owned F06 composition receives the current public identity and season. */
 export interface TeamScreenProps {
   teamId: string;
@@ -53,18 +58,18 @@ function TeamPage({
 }: Readonly<TeamScreenProps>) {
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
-  const [selected, setSelected] = useState("upcoming");
+  const [selected, setSelected] = useState<string>(calendarTabs[0].id);
   const data = team.data;
   const divisionColor = data?.team.classification.division?.color;
   const tabs = [
-    { id: "upcoming", label: "À venir" },
-    { id: "completed", label: "Terminés" },
-    ...(data?.participations ?? []).map((pool) => ({
-      id: pool.pool.id,
-      label: poolLabel(pool),
+    ...calendarTabs,
+    ...(data?.participations ?? []).map((participation) => ({
+      id: participation.pool.id,
+      label: poolLabel(participation),
+      participation,
     })),
   ];
-  const tab = tabs.some((item) => item.id === selected) ? selected : "upcoming";
+  const tab = tabs.find((item) => item.id === selected) ?? calendarTabs[0];
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -90,11 +95,11 @@ function TeamPage({
           }
         />
       }
-      loading={<SportingTeamLoading calendar={tab === "upcoming"} />}
+      loading={<SportingTeamLoading calendar={tab.id === "upcoming"} />}
     >
       {data && (
         <PagedTabs
-          selected={tab}
+          selected={tab.id}
           onSelect={setSelected}
           contextColor={divisionColor}
           header={
@@ -114,41 +119,35 @@ function TeamPage({
           collapsibleHeader={<PageContent>{identity}</PageContent>}
           collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map((item) => {
-            const participation = data.participations.find(
-              (pool) => pool.pool.id === item.id,
-            );
-            const category =
-              item.id === "upcoming" || item.id === "completed"
-                ? item.id
-                : undefined;
-            const content = category ? (
-              <SportingCalendar
-                selection={{ teamId, category }}
-                active={tab === item.id}
-              />
-            ) : participation ? (
-              <PoolStandings
-                poolId={participation.pool.id}
-                divisionColor={divisionColor}
-                highlightTeamId={teamId}
-                active={tab === item.id}
-              >
-                <PoolParticipationLink
-                  pool={participation}
-                  active={tab === item.id}
-                />
-              </PoolStandings>
-            ) : null;
+            const active = tab.id === item.id;
+            const isParticipation = "participation" in item;
             return {
               id: item.id,
               label: item.label,
-              content,
+              content: isParticipation ? (
+                <PoolStandings
+                  poolId={item.id}
+                  divisionColor={divisionColor}
+                  highlightTeamId={teamId}
+                  active={active}
+                >
+                  <PoolParticipationLink
+                    pool={item.participation}
+                    active={active}
+                  />
+                </PoolStandings>
+              ) : (
+                <SportingCalendar
+                  selection={{ teamId, category: item.id }}
+                  active={active}
+                />
+              ),
               preview: (
                 <PageContent>
-                  {category ? (
-                    <CalendarLoading category={category} />
-                  ) : (
+                  {isParticipation ? (
                     <StandingsLoading />
+                  ) : (
+                    <CalendarLoading category={item.id} />
                   )}
                 </PageContent>
               ),

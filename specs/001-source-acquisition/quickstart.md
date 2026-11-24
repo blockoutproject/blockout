@@ -190,6 +190,8 @@ Seed enough mixed current results to require continuation, including successful,
 
 Open Suivi for a provider without a control in the selected season. Press Actualiser and verify that the button tracks the explicit read of the same season's controls. Fail that read and use Réessayer on the common card. Verify that Retry keeps the card with active progress and rereads only those controls. Return a control for the selected provider and verify that Suivi displays it. Both actions are read-only.
 
+On a loaded Suivi, hold the automatic control-list response after an accepted relaunch. Change the fixture from pending to running and pull to refresh on the same screen. Verify that one new read of the same season's controls displays the running cycle before the held response returns. Release the held response and verify that the running cycle remains visible and the relaunch was submitted once. The independent summary and season reads may finish their existing requests.
+
 Compare competition and seasonless Bilan with Rechercher. The contextual header, field and filter stay sharp above the continuous material as results scroll underneath. Verify the normal content gap for loaded rows, Empty and Error. Bilan has no tab rail.
 
 Fail the Suivi summary alone and use its Retry while Pause remains usable. Confirm that Bilan Empty uses its card to reload the active criteria. Fail the first and full Bilan reads and verify the scoped card, retained header and results-only Retry. Fail a next-page read after loading admitted rows and verify the compact footer, retained position and Retry of the same page. Restore the page and confirm the new rows append in server order.
