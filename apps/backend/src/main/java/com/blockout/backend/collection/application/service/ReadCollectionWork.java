@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,11 +65,14 @@ public class ReadCollectionWork {
   public TargetPage targets(UUID cycleId, long page, int size) {
     cycleAccess.requireRunningControl(cycleId);
     if (page > PageOffset.maxPage(size)) {
-      return new TargetPage(List.of(), page, false);
+      return new TargetPage(List.of(), List.of(), page, false);
     }
     SnapshotPage snapshot = store.targets(cycleId, (int) page, size);
     List<ServedTarget> targets = clubs.serve(snapshot.items());
-    return new TargetPage(targets, page, snapshot.hasNext());
+    Map<Boolean, List<ServedTarget>> selection =
+        targets.stream()
+            .collect(Collectors.partitioningBy(item -> item.target().afterFinalScoreOnly()));
+    return new TargetPage(selection.get(false), selection.get(true), page, snapshot.hasNext());
   }
 
   /**

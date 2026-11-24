@@ -182,7 +182,8 @@ public final class SportingObservation {
       URI reasonType,
       UUID homeTeamId,
       UUID awayTeamId,
-      Boolean created) {
+      Boolean created,
+      boolean finalResultChanged) {
     /**
      * Represents outcomes without a calendar-creation assertion.
      *
@@ -200,7 +201,7 @@ public final class SportingObservation {
         URI reasonType,
         UUID homeTeamId,
         UUID awayTeamId) {
-      this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null);
+      this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null, false);
     }
   }
 

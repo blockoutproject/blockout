@@ -9,7 +9,10 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
-import { formatSportingSchedule } from "../model/sporting-time";
+import {
+  formatSportingSchedule,
+  formatSportingTime,
+} from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { MatchLogo, SportingArtwork, SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
@@ -48,7 +51,9 @@ export function MatchSummary({
   const result = match.result;
   const contextual = presentation === "context";
   const DivisionLogo = contextual ? SportingLogo : MatchLogo;
-  const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
+  const schedule = contextual
+    ? undefined
+    : formatSportingSchedule(match.schedule, displayTimeZone);
   const poolContent = (
     <>
       {contextual && division && <DivisionPaint division={division} />}
@@ -73,7 +78,7 @@ export function MatchSummary({
       </Text>
       {contextual && (
         <Text style={[styles.metadataText, { color: onAccent }]}>
-          {schedule.time}
+          {formatSportingTime(match.schedule.instant, displayTimeZone)}
         </Text>
       )}
     </>
@@ -105,7 +110,7 @@ export function MatchSummary({
           />
         </SportingLink>
       )}
-      {!contextual && (
+      {schedule && (
         <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
           <View style={styles.status}>
             <View

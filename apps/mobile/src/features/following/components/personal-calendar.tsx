@@ -1,5 +1,5 @@
 import { NoAvailableFollows } from "./no-available-follows";
-import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import {
@@ -28,16 +28,7 @@ export function PersonalCalendar({
   active,
   bypass,
 }: Readonly<PersonalCalendarProps>) {
-  const { timeZone, refresh } = useCalendarGrouping(
-    (zone) =>
-      createPersonalCalendarOptions(
-        owner,
-        request,
-        { seasonId, category, timeZone: zone },
-        bypass,
-      ),
-    active,
-  );
+  const { timeZone, setTimeZone } = useCalendarGrouping(active);
   const options = createPersonalCalendarOptions(
     owner,
     request,
@@ -61,22 +52,14 @@ export function PersonalCalendar({
     },
   });
 
-  async function refreshCalendar(nextZone: string) {
-    if (nextZone === timeZone && calendar.isFetchNextPageError) {
-      // An errored observer is disabled for automatic reads; the pull still rereads its complete traversal.
-      await calendar.refetch({ cancelRefetch: false, throwOnError: true });
-    } else {
-      await refresh(nextZone);
-    }
-  }
-
   return (
     <SportingCalendarView
-      traversalKey={hashKey(options.queryKey)}
+      queryKey={options.queryKey}
       calendar={calendar}
       category={category}
       active={active}
-      onRefresh={refreshCalendar}
+      timeZone={timeZone}
+      onTimeZoneChange={setTimeZone}
       emptyState={
         calendar.data?.hasAvailableFollows === false ? (
           <NoAvailableFollows />

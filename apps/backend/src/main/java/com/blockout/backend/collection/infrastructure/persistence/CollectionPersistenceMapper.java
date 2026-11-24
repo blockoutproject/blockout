@@ -132,6 +132,7 @@ interface CollectionPersistenceMapper {
    * @param source retained snapshot role
    * @return matching active role
    */
+  @ValueMapping(source = "STANDINGS_AFTER_FINAL_SCORE", target = "STANDINGS")
   @ValueMapping(source = "LOGO", target = MappingConstants.THROW_EXCEPTION)
   CollectionTargetKindEnum activeKind(CollectionTargetEntity.Kind source);
 

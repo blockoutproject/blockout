@@ -78,6 +78,12 @@ ObservationOutcomeInternalResponse:
         True only when this calendar item created the resolved match. Allows its first detail
         read within the admitted calendar passage. Absent or false does not authorize an extra
         detail read outside the frozen selection.
+    finalResultChanged:
+      type: boolean
+      description: >-
+        True when this match transaction committed a new or corrected final overall result.
+        Calendar items and match detail observations report the same transition. Omission or
+        false indicates no such change.
     awayTeamId:
       type: string
       description: Resolved away team for a successful calendar match.

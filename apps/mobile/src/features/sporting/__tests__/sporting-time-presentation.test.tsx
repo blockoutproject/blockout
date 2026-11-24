@@ -176,22 +176,40 @@ it("updates retained match detail to the current phone zone on foreground return
   expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
 });
 
-it("keeps the contribution context pool heading informational", async () => {
-  // Given
-  const match = matchDetail().match;
-  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+it.each([
+  { instant: "2026-09-20T00:30:00+02:00", expectedTime: "18h30" },
+  { instant: undefined, expectedTime: "Heure à définir" },
+])(
+  "keeps a contribution's match context informational at $expectedTime",
+  async ({ instant, expectedTime }) => {
+    // Given
+    const match = matchDetail().match;
+    match.schedule = {
+      localDate: "2026-09-20",
+      observedAt: "2026-09-19T12:00:00Z",
+      instant,
+    };
+    mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
 
-  // When
-  await render(<MatchSummary match={match} presentation="context" />, {
-    wrapper: Providers,
-  });
+    // When
+    await render(
+      <MatchSummary
+        match={match}
+        displayTimeZone="America/New_York"
+        presentation="context"
+      />,
+      { wrapper: Providers },
+    );
 
-  // Then
-  expect(screen.getByText(match.pool.pool.name)).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: match.pool.pool.name }),
-  ).not.toBeOnTheScreen();
-});
+    // Then
+    expect(
+      screen.getByRole("header", { name: match.pool.pool.name }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(expectedTime)).toBeOnTheScreen();
+    expect(screen.queryByRole("link")).not.toBeOnTheScreen();
+    expect(screen.queryByText(/septembre/)).not.toBeOnTheScreen();
+  },
+);
 
 it("announces both accepted scores on their team links when set detail is absent", async () => {
   // Given

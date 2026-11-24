@@ -102,7 +102,8 @@ public class AcceptMatchObservation {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), false);
     }
     if (previous != null && expected.equals(previous)) {
-      return success(store.match(poolId, candidate.nativeMatchReference()).orElseThrow(), false);
+      return success(
+          store.match(poolId, candidate.nativeMatchReference()).orElseThrow(), false, null, false);
     }
     if (store.pool(poolId).orElseThrow().classification() == null) {
       store.correctClassification(
@@ -131,25 +132,15 @@ public class AcceptMatchObservation {
       schedule = store.lockMatchSchedule(match.id());
     }
     boolean restored = store.restoreCalendarPresence(match.id());
-    boolean changed =
-        acceptSchedule(
-            match,
-            schedule,
-            expected,
-            context,
-            candidate.facts(),
-            candidate.detailUrl(),
-            created,
-            admission.cycle().mode());
-    ObservationOutcome result = success(match, created || namesChanged || changed || restored);
-    return new ObservationOutcome(
-        result.sourceReference(),
-        result.outcome(),
-        result.resourceId(),
-        result.reasonType(),
-        result.homeTeamId(),
-        result.awayTeamId(),
-        created);
+    boolean scheduleChanged =
+        acceptSchedule(schedule, expected, context, candidate.facts(), candidate.detailUrl());
+    return acceptDetails(
+        match,
+        context,
+        candidate.facts(),
+        created,
+        admission.cycle().mode(),
+        created || namesChanged || restored || scheduleChanged);
   }
 
   /**
@@ -192,40 +183,39 @@ public class AcceptMatchObservation {
    *
    * @param match accepted identity
    * @param changed whether owned state changed
+   * @param created whether calendar identification created the match, absent for detail or replay
+   * @param finalResultChanged whether this transaction accepted a new or corrected final result
    * @return successful contract-shaped application outcome
    */
-  private ObservationOutcome success(SportingViews.MatchView match, boolean changed) {
+  private ObservationOutcome success(
+      SportingViews.MatchView match, boolean changed, Boolean created, boolean finalResultChanged) {
     return new ObservationOutcome(
         match.reference(),
         changed ? ObservationOutcomeEnum.ACCEPTED : ObservationOutcomeEnum.UNCHANGED,
         match.id(),
         null,
         match.homeTeamId(),
-        match.awayTeamId());
+        match.awayTeamId(),
+        created,
+        finalResultChanged);
   }
 
   /**
    * Applies only supplied schedule/reference groups; retained groups retain their old attribution.
    *
-   * @param match established encounter identity for any final-result effects
    * @param previous current schedule obtained under the retained match lock
    * @param order authoritative token
    * @param context actual source timestamps
    * @param facts independent submitted proposals
-   * @param firstObservation whether this transaction identified the encounter
    * @param detailUrl qualified reference, null preserves
-   * @param mode admitted cycle mode controlling result announcements
    * @return whether sporting schedule/reference values changed
    */
   private boolean acceptSchedule(
-      SportingViews.MatchView match,
       MatchSchedule previous,
       ObservationOrder order,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
-      URI detailUrl,
-      boolean firstObservation,
-      CollectionModeEnum mode) {
+      URI detailUrl) {
     MatchSchedule.MatchScheduleBuilder next =
         previous.toBuilder()
             .acceptedCycleOrder(order.cycleOrder())
@@ -257,7 +247,7 @@ public class AcceptMatchObservation {
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
-    return acceptDetails(match, context, facts, firstObservation, mode) || changed;
+    return changed;
   }
 
   /**
@@ -288,20 +278,23 @@ public class AcceptMatchObservation {
       return ObservationOutcome.refused(match.reference(), false);
     }
     if (expected.equals(previous)) {
-      return success(match, false);
+      return success(match, false, null, false);
     }
     contributionContext.lockDivisionForPool(match.poolId());
-    return success(
-        match,
+    boolean scheduleChanged =
         acceptSchedule(
-            match,
             store.lockMatchSchedule(match.id()),
             expected,
             observation.context(),
             observation.facts(),
-            null,
-            false,
-            admission.cycle().mode()));
+            null);
+    return acceptDetails(
+        match,
+        observation.context(),
+        observation.facts(),
+        null,
+        admission.cycle().mode(),
+        scheduleChanged);
   }
 
   /**
@@ -310,32 +303,35 @@ public class AcceptMatchObservation {
    *
    * @param match encounter already locked by the enclosing transaction
    * @param context source attribution, never precedence
-   * @param firstObservation trusted encounter-discovery context
+   * @param created whether this calendar item identified the encounter, absent on a detail read
    * @param facts supplied proposals with native presence semantics
    * @param mode admitted cycle mode controlling result announcements
-   * @return whether accepted values changed, independently of refreshed provenance
+   * @param changed whether identity, calendar presence or schedule already changed
+   * @return the accepted match outcome, independently of refreshed provenance
    */
-  private boolean acceptDetails(
+  private ObservationOutcome acceptDetails(
       SportingViews.MatchView match,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
-      boolean firstObservation,
-      CollectionModeEnum mode) {
+      Boolean created,
+      CollectionModeEnum mode,
+      boolean changed) {
     UUID matchId = match.id();
     MatchDetails previous = store.matchDetails(matchId);
     MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
     Instant observed = context.observedAt();
     Instant published = context.providerPublishedAt();
     Result result = previous.result();
-    boolean changed = false;
+    boolean finalResultChanged = false;
     if (facts.result().isPresent()) {
       Result proposal = facts.result().get();
       if (proposal == null
           || MatchFacts.usableResult(
               proposal.homeSets(), proposal.awaySets(), proposal.specialLabel())) {
         result = proposal;
-        changed =
-            !Objects.equals(previous.result(), result) || previous.uninterpretedResult() != null;
+        boolean resultChanged = !Objects.equals(previous.result(), result);
+        finalResultChanged = resultChanged && Result.isFinal(result);
+        changed |= resultChanged || previous.uninterpretedResult() != null;
         next.result(result)
             .uninterpretedResult(null)
             .resultObservedAt(observed)
@@ -443,11 +439,11 @@ public class AcceptMatchObservation {
                   match,
                   previous.result(),
                   result,
-                  firstObservation,
+                  Boolean.TRUE.equals(created),
                   mode == CollectionModeEnum.INITIAL_IMPORT,
                   clock.instant())));
     }
-    return changed;
+    return success(match, changed, created, finalResultChanged);
   }
 
   /**

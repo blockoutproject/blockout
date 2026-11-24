@@ -9,8 +9,8 @@ export type DataRefreshControlProps = Pick<
 > & {
   /** Completes the explicit read; the feature retains its data, errors and recovery behavior. */
   onRefresh: () => Promise<unknown>;
-  /** Whether any read awaited by onRefresh is actively fetching. */
-  fetching: boolean;
+  /** Actual read activity. A getter can read it before the owning observer rerenders. */
+  fetching: boolean | (() => boolean);
 };
 
 /**
@@ -25,7 +25,11 @@ export function DataRefreshControl({
   ...nativeContent
 }: Readonly<DataRefreshControlProps>) {
   const { colors, context } = useTheme();
-  const { requested, progressing, read } = useExplicitRead(onRefresh, fetching);
+  const fetchingNow = typeof fetching === "function" ? fetching() : fetching;
+  const { requested, progressing, read } = useExplicitRead(
+    onRefresh,
+    fetchingNow,
+  );
 
   return (
     <RefreshControl

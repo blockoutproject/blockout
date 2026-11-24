@@ -11,13 +11,16 @@ export function currentSportingTimeZone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-/** Formats an established instant with its date-specific offset, without reconstructing a source clock. */
+/** Formats an accepted instant with its date-specific offset, or the label for unknown time. */
 export function formatSportingTime(
-  instant: string,
-  displayTimeZone = currentSportingTimeZone(),
+  instant: string | undefined,
+  displayTimeZone?: string,
 ): string {
+  if (instant === undefined) {
+    return "Heure à définir";
+  }
   return new Intl.DateTimeFormat("fr-FR", {
-    timeZone: displayTimeZone,
+    timeZone: displayTimeZone ?? currentSportingTimeZone(),
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
@@ -80,8 +83,6 @@ export function formatSportingSchedule(
 ): SportingTimePresentation {
   return {
     date: formatSportingDay(sportingDay(schedule, displayTimeZone)),
-    time: schedule.instant
-      ? formatSportingTime(schedule.instant, displayTimeZone)
-      : "Heure à définir",
+    time: formatSportingTime(schedule.instant, displayTimeZone),
   };
 }

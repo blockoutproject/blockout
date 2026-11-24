@@ -13,7 +13,8 @@ public record ObservationOutcome(
     URI reasonType,
     UUID homeTeamId,
     UUID awayTeamId,
-    Boolean created) {
+    Boolean created,
+    Boolean finalResultChanged) {
   /**
    * Carries an outcome without asserting creation outside calendar identification.
    *
@@ -31,7 +32,7 @@ public record ObservationOutcome(
       URI reasonType,
       UUID homeTeamId,
       UUID awayTeamId) {
-    this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null);
+    this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null, null);
   }
 
   /**

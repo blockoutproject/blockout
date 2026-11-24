@@ -66,6 +66,11 @@ class CollectionTargetEntity {
   @Setter private String nativeMatchReference;
   @Setter private String nativeTeamReference;
 
+  /** Conditional standings keep the same public role and scope as scheduled standings. */
+  public boolean isAfterFinalScoreOnly() {
+    return kind == Kind.STANDINGS_AFTER_FINAL_SCORE;
+  }
+
   /** Natural snapshot membership; no separate per-cycle scope identity is generated. */
   public record Key(UUID cycleId, UUID scopeId, Kind kind) implements Serializable {}
 
@@ -77,6 +82,7 @@ class CollectionTargetEntity {
     DISCOVERY,
     CALENDAR,
     STANDINGS,
+    STANDINGS_AFTER_FINAL_SCORE,
     DETAILS,
     LOGO,
     CLUB_SHEET,

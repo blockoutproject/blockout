@@ -31,6 +31,7 @@ import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -357,6 +358,262 @@ class CollectPassageTest {
     }
   }
 
+  @Nested
+  @DisplayName("Official LNV standings after committed final scores")
+  class ResultStandings {
+    private final UUID calendarMatch = UUID.fromString("00000000-0000-4000-8000-000000000201");
+    private final UUID detailMatch = UUID.fromString("00000000-0000-4000-8000-000000000202");
+    private final CollectionBackend.Target calendar =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder()
+            .provider(CollectionProviderEnum.LNV)
+            .groupReference("A")
+            .url(
+                URI.create(
+                    "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902"))
+            .build();
+    private final CollectionBackend.Target detail =
+        calendar.toBuilder()
+            .kind(CollectionTargetKindEnum.DETAILS)
+            .scopeId(detailMatch)
+            .matchId(detailMatch)
+            .url(calendar.url().resolve("MatchStatistics.aspx?ID=901&mID=2"))
+            .build();
+    private final CollectionBackend.Target table =
+        calendar.toBuilder()
+            .kind(CollectionTargetKindEnum.STANDINGS)
+            .url(calendar.url().resolve("CompetitionStandings.aspx?ID=901&PID=902"))
+            .build();
+    private final LnvAcquisition.Resource calendarPage = mock(LnvAcquisition.Resource.class);
+    private final LnvAcquisition.Resource tablePage = mock(LnvAcquisition.Resource.class);
+    private final SportingObservation.Standings standings =
+        new SportingObservation.Standings(
+            StandingsPublicationStateEnum.PUBLISHED, List.of(), List.of());
+
+    @ParameterizedTest
+    @CsvSource({"true,false", "false,true", "true,true"})
+    @DisplayName("One conditional table read follows the last changed match in the exact pool")
+    void groupsCalendarAndDetailChanges(boolean calendarChanged, boolean detailChanged) {
+      // Given
+      CollectionBackend.Target otherPool =
+          table.toBuilder().poolId(CONTROL).scopeId(CONTROL).build();
+      CollectorLifecycle.AdmittedCycle cycle =
+          admit(List.of(calendar, detail), List.of(otherPool, table));
+      provideScores(calendarChanged, detailChanged);
+      when(lnv.read(table.url())).thenReturn(tablePage);
+      provideTable(tablePage, table);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv);
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      order.verify(lnv).read(table.url());
+      order.verify(sporting).standings(eq(POOL), any(), eq(standings));
+      verify(lnv).read(table.url());
+      verify(tablePage, never()).standings(otherPool);
+    }
+
+    @Test
+    @DisplayName("One LNV page serves the due and triggered standings of distinct pools")
+    void sharesDueAndTriggeredStandings() {
+      // Given
+      CollectionBackend.Target dueTable =
+          table.toBuilder().poolId(CONTROL).scopeId(CONTROL).groupReference("B").build();
+      CollectorLifecycle.AdmittedCycle cycle =
+          admit(List.of(calendar, detail, dueTable), List.of(table));
+      provideScores(true, true);
+      when(lnv.read(table.url())).thenReturn(tablePage);
+      provideTable(tablePage, table);
+      provideTable(tablePage, dueTable);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv);
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      order.verify(lnv).read(table.url());
+      verify(lnv).read(table.url());
+      verify(sporting).standings(eq(POOL), any(), eq(standings));
+      verify(sporting).standings(eq(CONTROL), any(), eq(standings));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false, true", "true, false"})
+    @DisplayName("Both a changed score and a qualified table are required for an extra read")
+    void skipsWithoutChangeOrQualifiedTable(boolean changed, boolean qualified) {
+      // Given
+      CollectionBackend.Target available =
+          qualified ? table : table.toBuilder().poolId(CONTROL).scopeId(CONTROL).build();
+      CollectorLifecycle.AdmittedCycle cycle = admit(List.of(calendar, detail), List.of(available));
+      provideScores(changed, changed);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      verify(sporting).detail(eq(detailMatch), any(), any());
+      verify(lnv, never()).read(table.url());
+    }
+
+    @Test
+    @DisplayName("A scheduled shared table read after the last change needs no additional read")
+    void reusesLaterScheduledPage() {
+      // Given
+      CollectionBackend.Target otherCalendar =
+          calendar.toBuilder().scopeId(CONTROL).poolId(CONTROL).url(table.url()).build();
+      CollectorLifecycle.AdmittedCycle cycle =
+          admit(List.of(calendar, otherCalendar, table, detail), List.of());
+      provideScores(true, false);
+      SportingObservation.Calendar empty =
+          new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
+      when(lnv.read(table.url())).thenReturn(tablePage);
+      when(tablePage.calendar(otherCalendar))
+          .thenReturn(new LnvAcquisition.Calendar(empty, Map.of(), NOW, null));
+      when(sporting.calendar(eq(CONTROL), any(), eq(empty)))
+          .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
+      provideTable(tablePage, table);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv);
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(lnv).read(table.url());
+      order.verify(sporting).standings(eq(POOL), any(), eq(standings));
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      verify(lnv).read(table.url());
+    }
+
+    @Test
+    @DisplayName(
+        "A due standalone table waits for both scores and its failed read ends the attempt")
+    void defersDueStandingsAndCompletesAfterFailure() {
+      // Given
+      CollectorLifecycle.AdmittedCycle cycle = admit(List.of(table, calendar, detail), List.of());
+      provideScores(true, true);
+      when(lnv.read(table.url()))
+          .thenThrow(new UncheckedIOException(new IOException("Unavailable table")));
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv, backend);
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      order.verify(lnv).read(table.url());
+      order.verify(backend).complete(cycle.getCycle().id(), NOW);
+      verify(lnv).read(table.url());
+      verify(sporting, never()).standings(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName(
+        "A scheduled table sharing the calendar page requires one fresh read after both changes")
+    void rereadsAnEarlierSharedPageOnce() {
+      // Given
+      CollectionBackend.Target shared = table.toBuilder().url(calendar.url()).build();
+      CollectorLifecycle.AdmittedCycle cycle = admit(List.of(calendar, shared, detail), List.of());
+      provideScores(true, true);
+      when(lnv.read(calendar.url())).thenReturn(calendarPage, tablePage);
+      provideTable(calendarPage, shared);
+      provideTable(tablePage, shared);
+
+      // When
+      passage.execute(cycle);
+
+      // Then
+      InOrder order = inOrder(sporting, lnv);
+      order.verify(lnv).read(calendar.url());
+      order.verify(sporting).calendar(eq(POOL), any(), any());
+      order.verify(sporting).standings(eq(POOL), any(), eq(standings));
+      order.verify(sporting).detail(eq(detailMatch), any(), any());
+      order.verify(lnv).read(calendar.url());
+      order.verify(sporting).standings(eq(POOL), any(), eq(standings));
+      verify(lnv, times(2)).read(calendar.url());
+    }
+
+    private CollectorLifecycle.AdmittedCycle admit(
+        List<CollectionBackend.Target> ordinary, List<CollectionBackend.Target> conditional) {
+      when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
+      when(backend.register(0, lifecycle.getIncarnationId()))
+          .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
+      lifecycle.start();
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
+      CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+      when(backend.targets(cycle.getCycle().id(), 0))
+          .thenReturn(new CollectionBackend.TargetPage(ordinary, 0, false, conditional));
+      return cycle;
+    }
+
+    private void provideScores(boolean calendarChanged, boolean detailChanged) {
+      SportingObservation.Facts facts =
+          SportingObservation.Facts.builder()
+              .result(
+                  JsonNullable.of(
+                      new SportingObservation.Result(ResultStateEnum.FINAL, 3, 1, null)))
+              .build();
+      SportingObservation.Match match =
+          new SportingObservation.Match(
+              "1",
+              new SportingObservation.Team("Home", "A", null, null),
+              new SportingObservation.Team("Away", "B", null, null),
+              facts,
+              null);
+      SportingObservation.Calendar rows =
+          new SportingObservation.Calendar(true, List.of(match), List.of(), List.of());
+      LnvAcquisition.Resource detailPage = mock(LnvAcquisition.Resource.class);
+      when(lnv.read(calendar.url())).thenReturn(calendarPage);
+      when(lnv.read(detail.url())).thenReturn(detailPage);
+      when(lnv.documentIndexes(any())).thenReturn((target, read) -> null);
+      when(calendarPage.calendar(calendar))
+          .thenReturn(new LnvAcquisition.Calendar(rows, Map.of(), NOW, null));
+      when(detailPage.detail(detail)).thenReturn(new LnvAcquisition.Detail(facts, NOW));
+      when(sporting.calendar(eq(POOL), any(), eq(rows)))
+          .thenReturn(
+              new SportingObservation.CalendarOutcome(
+                  List.of(
+                      new SportingObservation.Outcome(
+                          "1",
+                          ObservationOutcomeEnum.ACCEPTED,
+                          calendarMatch,
+                          null,
+                          null,
+                          null,
+                          false,
+                          calendarChanged)),
+                  1,
+                  0,
+                  0,
+                  0,
+                  true));
+      when(sporting.detail(eq(detailMatch), any(), eq(facts)))
+          .thenReturn(
+              new SportingObservation.Outcome(
+                  "2",
+                  ObservationOutcomeEnum.ACCEPTED,
+                  detailMatch,
+                  null,
+                  null,
+                  null,
+                  null,
+                  detailChanged));
+    }
+
+    private void provideTable(LnvAcquisition.Resource resource, CollectionBackend.Target target) {
+      when(resource.standings(target)).thenReturn(new ProviderObservation<>(standings, NOW));
+      when(sporting.standings(eq(target.poolId()), any(), eq(standings)))
+          .thenReturn(
+              new SportingObservation.Outcome(
+                  null, ObservationOutcomeEnum.UNCHANGED, target.poolId(), null, null, null));
+    }
+  }
+
   /** Proves independent document, detail and image outcomes within admitted calendars. */
   @Nested
   @DisplayName("LNV match and image enrichment")
@@ -433,7 +690,14 @@ class CollectPassageTest {
               new SportingObservation.CalendarOutcome(
                   List.of(
                       new SportingObservation.Outcome(
-                          "M1", ObservationOutcomeEnum.ACCEPTED, match, null, home, away, false)),
+                          "M1",
+                          ObservationOutcomeEnum.ACCEPTED,
+                          match,
+                          null,
+                          home,
+                          away,
+                          false,
+                          false)),
                   1,
                   0,
                   0,
@@ -546,7 +810,14 @@ class CollectPassageTest {
               new SportingObservation.CalendarOutcome(
                   List.of(
                       new SportingObservation.Outcome(
-                          "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, home, away, true),
+                          "new",
+                          ObservationOutcomeEnum.ACCEPTED,
+                          newMatch,
+                          null,
+                          home,
+                          away,
+                          true,
+                          false),
                       new SportingObservation.Outcome(
                           "old",
                           ObservationOutcomeEnum.ACCEPTED,
@@ -554,6 +825,7 @@ class CollectPassageTest {
                           null,
                           home,
                           away,
+                          false,
                           false)),
                   2,
                   0,
@@ -848,7 +1120,14 @@ class CollectPassageTest {
               new SportingObservation.CalendarOutcome(
                   List.of(
                       new SportingObservation.Outcome(
-                          "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null, false)),
+                          "990",
+                          ObservationOutcomeEnum.ACCEPTED,
+                          match,
+                          null,
+                          null,
+                          null,
+                          false,
+                          false)),
                   1,
                   0,
                   0,

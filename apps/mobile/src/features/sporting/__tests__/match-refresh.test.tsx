@@ -371,7 +371,9 @@ it("retains an already loaded calendar across match focus/foreground reads witho
   await layoutNativeTabs();
   await screen.findByText("Équipe des Rives");
   await layoutNativeTabs();
-  await userEvent.setup().press(screen.getByRole("tab", { name: "À venir" }));
+  expect(
+    screen.getByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
   await screen.findAllByText("Home");
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const calendarReads = mockFetch.mock.calls.filter(

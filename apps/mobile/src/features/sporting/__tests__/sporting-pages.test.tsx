@@ -342,16 +342,38 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it.each(["team", "pool"] as const)(
-  "admits the %s common context independently of its first standings read",
-  async (kind) => {
+it.each([
+  {
+    kind: "team",
+    initialTab: "À venir",
+    path: "/matches",
+    loadingLabel: "Chargement des matchs",
+    emptyLabel: "Aucun match pour cette sélection",
+  },
+  {
+    kind: "pool",
+    initialTab: "Classement",
+    path: `/pools/${sportingId}/standings`,
+    loadingLabel: "Chargement du classement",
+    emptyLabel: "Aucune équipe dans ce classement",
+  },
+] as const)(
+  "admits the $kind common context while its $initialTab tab loads",
+  async ({ kind, initialTab, path, loadingLabel, emptyLabel }) => {
     // Given: the actual first scene owns its read; only its HTTP completion is held.
-    const standings = Promise.withResolvers<Response>();
+    const firstRead = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string, request?: RequestInit) =>
-      new URL(url).pathname.endsWith("/standings")
-        ? standings.promise
-        : reads(url, request),
+      new URL(url).pathname === path ? firstRead.promise : reads(url, request),
     );
+    const sceneRequests = () =>
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter(
+          ({ pathname }) =>
+            ["/matches", `/pools/${sportingId}/participants`].includes(
+              pathname,
+            ) || pathname.endsWith("/standings"),
+        );
 
     // When
     await renderPage(
@@ -362,17 +384,7 @@ it.each(["team", "pool"] as const)(
       ),
     );
     await layoutSportingPage();
-    await waitFor(() =>
-      expect(
-        mockFetch.mock.calls.filter(([url]) =>
-          new URL(url).pathname.endsWith("/standings"),
-        ),
-      ).toHaveLength(1),
-    );
-    await layoutNativeTabs();
-    await screen.findByRole("progressbar", {
-      name: "Chargement du classement",
-    });
+    await screen.findByRole("progressbar", { name: loadingLabel });
 
     // Then
     expect(
@@ -380,35 +392,36 @@ it.each(["team", "pool"] as const)(
         kind === "team" ? team.team.team.name : pool.pool.pool.name,
       ),
     ).toBeOnTheScreen();
-    expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("tab", { name: initialTab, selected: true }),
+    ).toBeOnTheScreen();
     expect(screen.getAllByRole("progressbar")).toHaveLength(1);
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    const requests = sceneRequests();
+    expect(requests.map(({ pathname }) => pathname)).toEqual([path]);
+    const [request] = requests;
+    if (kind === "team") {
+      expect(request.searchParams.get("category")).toBe("upcoming");
+    }
 
-    // When: a successful empty first table resolves the dependency.
-    await act(async () =>
-      standings.resolve(
-        Response.json({
-          poolId: sportingId,
-          availability: "available",
-          columns: [],
-          rows: [],
-        }),
-      ),
-    );
+    // When: the first tab receives a successful empty response.
+    const response =
+      kind === "team"
+        ? await reads(request.href)
+        : Response.json({
+            poolId: sportingId,
+            availability: "available",
+            columns: [],
+            rows: [],
+          });
+    await act(async () => firstRead.resolve(response));
 
     // Then
-    await screen.findByRole("tab", { name: "À venir" });
-    await layoutNativeTabs();
+    expect(await screen.findByText(emptyLabel)).toBeOnTheScreen();
     expect(
-      await screen.findByText("Aucune équipe dans ce classement"),
+      screen.getByRole("tab", { name: initialTab, selected: true }),
     ).toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        ["/matches", `/pools/${sportingId}/participants`].includes(
-          new URL(url).pathname,
-        ),
-      ),
-    ).toHaveLength(0);
+    expect(sceneRequests()).toEqual(requests);
   },
 );
 
@@ -430,15 +443,18 @@ it.each([
 ] as const)(
   "admits the first $kind $category read only after settling on that tab",
   async ({ kind, source, start, destination, category }) => {
-    // Given: controlled HTTP holds both initial reads while the real pager owns visit selection.
+    // Given: the real pager owns selection and HTTP holds the standings and destination calendar.
     const standings = Promise.withResolvers<Response>();
     const calendar = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string, request?: RequestInit) => {
-      const { pathname } = new URL(url);
+      const { pathname, searchParams } = new URL(url);
       if (pathname.endsWith("/standings")) {
         return standings.promise;
       }
-      return pathname === "/matches" ? calendar.promise : reads(url, request);
+      return pathname === "/matches" &&
+        searchParams.get("category") === category
+        ? calendar.promise
+        : reads(url, request);
     });
     const listRequests = () =>
       mockFetch.mock.calls
@@ -454,6 +470,11 @@ it.each([
       ),
     );
     await layoutSportingPage();
+    if (kind === "team") {
+      await screen.findByRole("tab", { name: "À venir", selected: true });
+      await screen.findByText("Aucun match pour cette sélection");
+      await userEvent.press(screen.getByRole("tab", { name: source }));
+    }
     await screen.findByRole("progressbar", {
       name: "Chargement du classement",
     });
@@ -465,8 +486,11 @@ it.each([
         name: "Chargement des matchs",
         includeHiddenElements: true,
       }),
-    ).toHaveLength(2);
-    expect(listRequests()).toHaveLength(0);
+    ).toHaveLength(kind === "team" ? 1 : 2);
+    const previousRequests = listRequests();
+    expect(
+      previousRequests.map(({ searchParams }) => searchParams.get("category")),
+    ).toEqual(kind === "team" ? ["upcoming"] : []);
 
     // When: the current table confirms ordinary absence, and a first swipe is canceled.
     await act(async () =>
@@ -488,7 +512,7 @@ it.each([
     ).toBeOnTheScreen();
     expect(screen.queryByRole("progressbar")).toBeNull();
     await scrollNativeTabs(start, true);
-    expect(listRequests()).toHaveLength(0);
+    expect(listRequests()).toEqual(previousRequests);
 
     // When: a subsequent gesture settles on the neighboring tab.
     await scrollNativeTabs(destination, true);
@@ -497,8 +521,9 @@ it.each([
     expect(
       await screen.findByRole("progressbar", { name: "Chargement des matchs" }),
     ).toBeOnTheScreen();
-    expect(listRequests()).toHaveLength(1);
-    const [request] = listRequests();
+    const requests = listRequests().slice(previousRequests.length);
+    expect(requests).toHaveLength(1);
+    const [request] = requests;
     expect(request.searchParams.get("category")).toBe(category);
     expect(request.searchParams.has("nextDay")).toBe(false);
     await act(async () => calendar.resolve(await reads(request.href)));
@@ -512,7 +537,7 @@ it.each([
     expect(
       screen.getByText("Aucun match pour cette sélection"),
     ).toBeOnTheScreen();
-    expect(listRequests()).toHaveLength(1);
+    expect(listRequests()).toEqual([...previousRequests, request]);
   },
 );
 
@@ -640,7 +665,7 @@ it("starts initial Retry progress only for its explicit gesture while another re
   // Given: both native Query owners are real; their controlled responses settle independently.
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const detail = Promise.withResolvers<TeamDetailResponse>();
-  const table = Promise.withResolvers<Response>();
+  const calendar = Promise.withResolvers<Response>();
   const retriedRelation = Promise.withResolvers<Response>();
   let relations = 0;
   mockFetch.mockImplementation((url: string, request?: RequestInit) => {
@@ -648,8 +673,8 @@ it("starts initial Retry progress only for its explicit gesture while another re
     if (path === `/teams/${sportingId}`) {
       return detail.promise.then((value) => Response.json(value));
     }
-    if (path.endsWith("/standings")) {
-      return table.promise;
+    if (path === "/matches") {
+      return calendar.promise;
     }
     if (path.includes("/team-follows/")) {
       relations += 1;
@@ -659,21 +684,19 @@ it("starts initial Retry progress only for its explicit gesture while another re
     }
     return reads(url, request);
   });
+  const calendarRequests = () =>
+    mockFetch.mock.calls
+      .map(([url]) => new URL(url))
+      .filter(({ pathname }) => pathname === "/matches");
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
   await waitFor(() => expect(session.accountId).toBe(account.accountId));
   await act(async () => detail.resolve(team));
   await layoutSportingPage();
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith("/standings"),
-      ),
-    ).toHaveLength(1),
-  );
+  await waitFor(() => expect(calendarRequests()).toHaveLength(1));
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
 
-  // When: no recovery gesture has happened, although the first table is still in flight.
+  // When: no recovery gesture has happened, although the calendar is still in flight.
   const retry = screen.getByRole("button", { name: "Réessayer" });
 
   // Then
@@ -683,27 +706,18 @@ it("starts initial Retry progress only for its explicit gesture while another re
   // When
   await user.press(retry);
 
-  // Then: this gesture retries the failed relation while the independent table read continues, without a write.
+  // Then: the gesture retries only the failed relation while the calendar read continues.
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
   await waitFor(() => expect(relations).toBe(2));
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      new URL(url).pathname.endsWith("/standings"),
-    ),
-  ).toHaveLength(1);
+  expect(calendarRequests()).toHaveLength(1);
   expect(
     mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
   ).toBe(false);
+  const [request] = calendarRequests();
+  const calendarResponse = await reads(request.href);
   await act(async () => {
     retriedRelation.resolve(Response.json({ following: false }));
-    table.resolve(
-      Response.json({
-        poolId: sportingId,
-        availability: "available",
-        columns: [],
-        rows: [],
-      }),
-    );
+    calendar.resolve(calendarResponse);
   });
   await screen.findByRole("button", { name: "Suivre", disabled: false });
 });
@@ -910,12 +924,15 @@ it("admits a guest with an unavailable optional count without a private relation
 it("keeps admitted identity and Follow while a newly visited calendar fails and recovers", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  let calendarFailed = true;
-  mockFetch.mockImplementation((url: string, request?: RequestInit) =>
-    new URL(url).pathname === "/matches" && calendarFailed
+  let completedFailed = true;
+  mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+    const { pathname, searchParams } = new URL(url);
+    return pathname === "/matches" &&
+      searchParams.get("category") === "completed" &&
+      completedFailed
       ? Promise.resolve(Response.json({}, { status: 503 }))
-      : reads(url, request),
-  );
+      : reads(url, request);
+  });
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
   await waitFor(() => expect(session.accountId).toBe(account.accountId));
@@ -924,18 +941,18 @@ it("keeps admitted identity and Follow while a newly visited calendar fails and 
   await layoutNativeTabs();
 
   // When
-  await user.press(screen.getByRole("tab", { name: "À venir" }));
+  await user.press(screen.getByRole("tab", { name: "Terminés" }));
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
 
   // Then
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(screen.getAllByRole("button", { name: "Suivre" })).toHaveLength(1);
   expect(
-    screen.getByRole("tab", { name: "À venir", selected: true }),
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
   ).toBeOnTheScreen();
 
   // When
-  calendarFailed = false;
+  completedFailed = false;
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
@@ -943,7 +960,7 @@ it("keeps admitted identity and Follow while a newly visited calendar fails and 
     await screen.findByText("Aucun match pour cette sélection"),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("tab", { name: "À venir", selected: true }),
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
@@ -1030,6 +1047,7 @@ it.each(["team", "pool"] as const)(
     // Given
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     const user = userEvent.setup();
+    const otherTab = kind === "team" ? "Terminés" : "À venir";
     await renderPage(kind === "team" ? <TeamRoute /> : <PoolRoute />);
     // The native layout belongs to the restored principal, not the retired guest subtree.
     await waitFor(() => expect(session.accountId).toBe(account.accountId));
@@ -1039,7 +1057,7 @@ it.each(["team", "pool"] as const)(
     await screen.findByRole("button", { name: "Suivre", disabled: false });
 
     // When
-    await user.press(screen.getByRole("tab", { name: "À venir" }));
+    await user.press(screen.getByRole("tab", { name: otherTab }));
     await user.press(screen.getByRole("button", { name: "Suivre" }));
 
     // Then
@@ -1058,7 +1076,7 @@ it.each(["team", "pool"] as const)(
       "Bearer test-access-token",
     );
     expect(
-      screen.getByRole("tab", { name: "À venir", selected: true }),
+      screen.getByRole("tab", { name: otherTab, selected: true }),
     ).toBeOnTheScreen();
   },
 );
@@ -1331,7 +1349,7 @@ it("shares the newest/selected club season between teams and both calendar entri
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await layoutSportingPage();
-  await screen.findByRole("tab", { name: "À venir" });
+  await screen.findByRole("tab", { name: "Infos", selected: true });
   await screen.findByText(club.club.name);
 
   // When

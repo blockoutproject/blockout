@@ -7,7 +7,9 @@ import {
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   hashKey,
+  useQueryClient,
   type InfiniteData,
+  type QueryKey,
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
@@ -72,19 +74,19 @@ export function SportingCalendar({
   active = true,
   children,
 }: Readonly<SportingCalendarProps>) {
-  const { calendar, refresh, queryKey } = useSportingCalendar(
+  const { calendar, timeZone, setTimeZone, queryKey } = useSportingCalendar(
     selection,
     active,
   );
   return (
     <SportingCalendarView
-      traversalKey={hashKey(queryKey)}
+      queryKey={queryKey}
       calendar={calendar}
       category={selection.category}
       currentPoolId={selection.poolId}
-      currentTeamId={selection.teamId}
       active={active}
-      onRefresh={refresh}
+      timeZone={timeZone}
+      onTimeZoneChange={setTimeZone}
     >
       {children}
     </SportingCalendarView>
@@ -93,7 +95,7 @@ export function SportingCalendar({
 
 /** Native calendar read state; validated DTOs and their query lifecycle remain with the caller. */
 export interface SportingCalendarViewProps {
-  traversalKey: string;
+  queryKey: QueryKey;
   calendar: Pick<
     UseInfiniteQueryResult<InfiniteData<MatchCalendarResponse>, Error>,
     | "data"
@@ -114,10 +116,9 @@ export interface SportingCalendarViewProps {
   category: CalendarSelection["category"];
   /** The open Pool's own calendar already represents this destination. */
   currentPoolId?: string;
-  /** The open Team's own identity remains contextual in its calendar. */
-  currentTeamId?: string;
   active?: boolean;
-  onRefresh: (timeZone: string) => Promise<unknown>;
+  timeZone: string;
+  onTimeZoneChange: (timeZone: string) => void;
   emptyState?: ReactNode;
   /** Optional scene identity remains in the same native scroller as the calendar. */
   children?: ReactNode;
@@ -128,30 +129,37 @@ function calendarRevealKey(row: CalendarRow) {
 }
 
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
-export function SportingCalendarView({
-  traversalKey,
-  ...props
-}: Readonly<SportingCalendarViewProps>) {
+export function SportingCalendarView(
+  props: Readonly<SportingCalendarViewProps>,
+) {
   const reveal = useContentReveal();
-  return <CalendarViewport key={traversalKey} {...props} reveal={reveal} />;
+  return (
+    <CalendarViewport
+      key={hashKey(props.queryKey)}
+      {...props}
+      reveal={reveal}
+    />
+  );
 }
 
 function CalendarViewport({
+  queryKey,
   calendar,
   category,
   currentPoolId,
-  currentTeamId,
   active = true,
-  onRefresh,
+  timeZone,
+  onTimeZoneChange,
   emptyState,
   children,
   reveal,
 }: Readonly<
-  Omit<SportingCalendarViewProps, "traversalKey"> & {
+  SportingCalendarViewProps & {
     reveal: ContentReveal;
   }
 >) {
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
   const list = useRef<LegendListRef>(null);
@@ -173,16 +181,20 @@ function CalendarViewport({
     return () => subscription.remove();
   }, []);
 
-  /** Explicit refresh chooses the current zone; Query owns failure and the native control owns pull progress. */
   async function refresh() {
     if (refreshing || !active || !navigation.isFocused()) {
       return;
     }
+    const nextZone = currentSportingTimeZone();
+    if (nextZone !== timeZone) {
+      onTimeZoneChange(nextZone);
+      return;
+    }
+
     setRefreshing(true);
     try {
-      await onRefresh(currentSportingTimeZone());
-    } catch {
-      // The existing Query result renders the final read failure in this pane.
+      // Refetch rereads the retained traversal and supersedes a continuation in flight.
+      await calendar.refetch();
     } finally {
       setRefreshing(false);
     }
@@ -311,7 +323,9 @@ function CalendarViewport({
         <DataRefreshControl
           onRefresh={refresh}
           enabled={active && rows.length > 0}
-          fetching={calendar.isFetching}
+          fetching={() =>
+            queryClient.getQueryState(queryKey)?.fetchStatus === "fetching"
+          }
         />
       }
       renderItem={({ item }) => {
@@ -333,7 +347,6 @@ function CalendarViewport({
               key={item.match.id}
               match={item.match}
               displayTimeZone={displayZone}
-              currentTeamId={currentTeamId}
               active={active}
             />
           </View>
@@ -369,7 +382,11 @@ function CalendarViewport({
           {showRows && (
             <ListContinuation
               loading={calendar.isFetchingNextPage}
-              failed={calendar.hasNextPage && calendar.isFetchNextPageError}
+              failed={
+                !refreshing &&
+                calendar.hasNextPage &&
+                calendar.isFetchNextPageError
+              }
               disabled={!active || refreshing || calendar.isFetching}
               onRetry={() => void loadMore()}
             />
@@ -397,7 +414,7 @@ function CalendarDate({
       style={[
         calendarStyles.dateHeading,
         { backgroundColor },
-        stacked && calendarStyles.stackedDate,
+        stacked ? calendarStyles.stackedDate : styles.lateralDate,
       ]}
     >
       <Text style={[styles.date, { color: colors.text }]}>
@@ -562,6 +579,8 @@ const styles = StyleSheet.create({
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
+  // Keep the opaque date backing clear of the adjacent card shadow.
+  lateralDate: { alignSelf: "flex-start" },
   groupClip: {
     overflow: "hidden",
     marginHorizontal: -groupShadowGutter,

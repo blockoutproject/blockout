@@ -197,7 +197,7 @@ interface CollectionResultRepository
   /**
    * Qualifies success from both phases of every selected target and any additional child results.
    * The known control keeps evidence lookups within the leading key of the current-result index.
-   * Hibernate compares target kinds and stages through their shared string enum mapping.
+   * Each role has two phases. Conditional standings may also have zero recorded phases.
    *
    * @param controlId immutable owner of the retained cycle
    * @param cycleId frozen nonempty selection
@@ -214,15 +214,14 @@ interface CollectionResultRepository
           WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
             AND r.outcome <> CollectionOutcomeEnum.SUCCESS)
         AND NOT EXISTS (
-          SELECT 1 FROM CollectionTargetEntity t WHERE t.cycleId = c.id AND (
-            NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
-              WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
-              AND r.scopeId = t.scopeId AND r.stage = t.kind
-              AND r.phase = CollectionPhaseEnum.ACQUISITION AND r.outcome = CollectionOutcomeEnum.SUCCESS)
-            OR NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
-              WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
-              AND r.scopeId = t.scopeId AND r.stage = t.kind
-              AND r.phase = CollectionPhaseEnum.INTEGRATION AND r.outcome = CollectionOutcomeEnum.SUCCESS)))
+          SELECT t.scopeId FROM CollectionTargetEntity t
+          LEFT JOIN CollectionResultEntity r ON r.controlId = :controlId AND r.cycleOrder = :cycleOrder
+            AND r.scopeId = t.scopeId AND (r.stage = t.kind
+              OR (t.kind = 'STANDINGS_AFTER_FINAL_SCORE' AND r.stage = CollectionStageEnum.STANDINGS))
+          WHERE t.cycleId = c.id
+          GROUP BY t.scopeId, t.kind
+          HAVING COUNT(r.scopeId) = 1
+            OR (COUNT(r.scopeId) = 0 AND t.kind <> 'STANDINGS_AFTER_FINAL_SCORE'))
       """)
   boolean successful(UUID controlId, UUID cycleId, long cycleOrder);
 }

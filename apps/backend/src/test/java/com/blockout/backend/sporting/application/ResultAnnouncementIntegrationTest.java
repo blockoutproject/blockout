@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +97,7 @@ class ResultAnnouncementIntegrationTest {
 
     // Then
     assertThat(outcome.acceptedCount()).isEqualTo(1);
+    assertThat(outcome.outcomes().getFirst().finalResultChanged()).isFalse();
     assertThat(outcome.absenceReconciled()).isTrue();
     assertThat(
             sql.queryForMap(
@@ -107,24 +109,70 @@ class ResultAnnouncementIntegrationTest {
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM match_announcement", Long.class)).isZero();
 
     // When the same match later receives a final result.
-    matches.detail(
-        new MatchObservation(
-            matchId,
-            context(3),
-            mapper.toFacts(
-                new MatchFactsInternalRequest()
-                    .result(
-                        new MatchResultInternalRequest(ResultStateEnum.FINAL)
-                            .homeSets(3)
-                            .awaySets(1)))));
+    ObservationOutcome finalOutcome =
+        matches.detail(
+            new MatchObservation(
+                matchId,
+                context(3),
+                mapper.toFacts(
+                    new MatchFactsInternalRequest()
+                        .result(
+                            new MatchResultInternalRequest(ResultStateEnum.FINAL)
+                                .homeSets(3)
+                                .awaySets(1)))));
 
     // Then
+    assertThat(finalOutcome.finalResultChanged()).isTrue();
     assertThat(
             sql.queryForObject(
                 "SELECT result_composition FROM match_announcement WHERE match_id=?",
                 String.class,
                 matchId))
         .isEqualTo("PLAIN_RESULT");
+  }
+
+  @Test
+  @DisplayName(
+      "Reports a newly discovered final and its correction once across calendar and detail")
+  void reportsChangedFinalResults() {
+    // Given
+    scope =
+        SportingIngestionFixture.admit(
+            sql, seasons, identities, cycles, runtimes, CollectionProviderEnum.LNV);
+    CalendarObservation.Match match =
+        scheduledMatch(CollectionProviderEnum.LNV, "M1", LocalDate.of(2026, 10, 24));
+    MatchResultInternalRequest first =
+        new MatchResultInternalRequest(ResultStateEnum.FINAL).homeSets(3).awaySets(0);
+    MatchResultInternalRequest correction =
+        new MatchResultInternalRequest(ResultStateEnum.FINAL).homeSets(3).awaySets(1);
+
+    // When
+    ObservationOutcome.Calendar discovered =
+        calendars.accept(
+            scope.pool(),
+            calendar(1, withFacts(match, new MatchFactsInternalRequest().result(first))));
+    ObservationOutcome corrected =
+        matches.detail(
+            new MatchObservation(
+                discovered.outcomes().getFirst().resourceId(),
+                context(2),
+                mapper.toFacts(new MatchFactsInternalRequest().result(correction))));
+    ObservationOutcome.Calendar reread =
+        calendars.accept(
+            scope.pool(),
+            calendar(
+                3,
+                withFacts(
+                    match,
+                    new MatchFactsInternalRequest()
+                        .result(correction)
+                        .venueName("Synthetic arena"))));
+
+    // Then
+    assertThat(discovered.outcomes().getFirst().finalResultChanged()).isTrue();
+    assertThat(corrected.finalResultChanged()).isTrue();
+    assertThat(reread.outcomes().getFirst().outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+    assertThat(reread.outcomes().getFirst().finalResultChanged()).isFalse();
   }
 
   @ParameterizedTest

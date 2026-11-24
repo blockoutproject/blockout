@@ -51,7 +51,7 @@ export function ApplicationVersionsForm({
   disabled = false,
 }: Readonly<ApplicationVersionsFormProps>) {
   const session = useAccountSession();
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   const actionFeedback = useActionFeedback();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
@@ -308,7 +308,7 @@ export function ApplicationVersionsForm({
       </Surface>
       <Modal
         visible={preview}
-        animationType="slide"
+        animationType={reducedMotion ? "none" : "slide"}
         onRequestClose={() => setPreview(false)}
       >
         <SafeAreaProvider>

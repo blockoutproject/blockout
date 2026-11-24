@@ -113,16 +113,25 @@ public interface CollectionBackend {
       String address) {}
 
   /** Bounded snapshot page, without a persistent checkpoint or total count. */
-  record TargetPage(List<Target> items, long page, boolean hasNext) {
+  record TargetPage(
+      List<Target> items, long page, boolean hasNext, List<Target> afterFinalScoreStandings) {
+    /** An ordinary page without conditional standings capabilities. */
+    public TargetPage(List<Target> items, long page, boolean hasNext) {
+      this(items, page, hasNext, List.of());
+    }
+
     /**
      * Detaches the admitted selection.
      *
      * @param items current page of admitted targets
      * @param page zero-based snapshot page
      * @param hasNext whether another snapshot page exists
+     * @param afterFinalScoreStandings eligible tables admitted only after a changed final score
      */
     public TargetPage {
       items = List.copyOf(items);
+      afterFinalScoreStandings =
+          afterFinalScoreStandings == null ? List.of() : List.copyOf(afterFinalScoreStandings);
     }
   }
 

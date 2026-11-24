@@ -12,10 +12,7 @@ export function useSportingCalendar(
   active = true,
 ) {
   const queries = useConsultationQueries();
-  const { timeZone, refresh } = useCalendarGrouping(
-    (zone) => createCalendarOptions(queries, { ...selection, timeZone: zone }),
-    active,
-  );
+  const { timeZone, setTimeZone } = useCalendarGrouping(active);
   const options = createCalendarOptions(queries, {
     ...selection,
     timeZone,
@@ -26,14 +23,5 @@ export function useSportingCalendar(
     staleTime: Infinity,
   });
 
-  async function refreshCalendar(nextZone: string) {
-    if (nextZone === timeZone && calendar.isFetchNextPageError) {
-      // An errored observer is disabled for automatic reads; the pull still rereads its complete traversal.
-      await calendar.refetch({ cancelRefetch: false, throwOnError: true });
-    } else {
-      await refresh(nextZone);
-    }
-  }
-
-  return { calendar, refresh: refreshCalendar, queryKey: options.queryKey };
+  return { calendar, timeZone, setTimeZone, queryKey: options.queryKey };
 }
