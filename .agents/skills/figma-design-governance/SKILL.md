@@ -5,24 +5,22 @@ description: "Organize and verify Figma libraries, product screens, journeys and
 
 # Figma design governance
 
-Repository instructions and the accepted issue identify the canonical design files. Resolve their actual links before acting; this portable skill owns no file IDs or product screen list.
+Identify the target Figma file or nodes from the request and the project's designated design sources.
 
 ## Design Authority
 
-- Accepted specifications own future observable product and design intent, for a whole application release or an evolution.
+- Confirm the intended change from the accepted request and any design requirements it cites.
 - Preserve the navigation, behavior and visual direction approved in the designated inputs. If a prototype is the accepted input, Figma formalizes that experience; it does not independently select a different direction.
-- The designated UI library owns approved reusable variables, styles, foundations, icons, and components.
-- The designated product design file owns approved product patterns and representative screen states composed from published designated UI library instances.
-- Repository design tokens are controlled, versioned implementation projections of approved designated UI library values. They are not a separately maintained visual authority.
+- Use the project's existing owners for reusable variables, styles and components. When a shared library is published, use its instances. Components owned by the current file can be instanced locally.
+- Keep product patterns and representative screen states in the file that owns the design. Follow the project's source of truth for token values.
 - Current source code, tests, and archived Figma files are evidence of delivered behavior or appearance, not authority for a new visual direction.
 
 ## File Rules
 
-- Keep `Cover` limited to file identity, ownership, status, and links to the accepted specification.
-- Keep reusable foundations and components in the designated UI library with deterministic names, Auto Layout, published variables and styles, and meaningful variant contracts. Add annotations only for requirements not already clear from the component.
-- Keep approved reusable product compositions in the Product Design `Patterns` page and representative journey evidence in its design pages.
-- Keep unresolved visual directions and experiments in `Explorations`. They do not become authoritative until explicitly approved.
-- Use live published instances for reusable UI. Never detach an instance or redraw a foundation or component already owned by the designated UI library.
+- Where the file has a cover, keep it limited to identity, ownership, status and source links.
+- Keep reusable foundations and components at their established owner. Use consistent names, Auto Layout, shared variables and styles, and meaningful variant contracts.
+- Follow the file's organization for reusable patterns and journeys. Keep unresolved explorations separate from approved work.
+- Keep instances linked to their main components. Reuse existing foundations and components.
 - Keep documentation-only canvas helpers private, generic, and visually separate from product components.
 
 ## Product Screen Organization
@@ -84,10 +82,9 @@ Do not create screen variants merely to catalogue every screen.
 
 ### Compose and promote deliberately
 
-Product screens must be composed from live published designated UI library instances
-and approved Pattern instances where they fit. Never detach instances.
+Compose screens from instances of the existing components and approved patterns where they fit.
 
-Promote a composition from a product screen to `Patterns` only when it has a
+Promote a screen composition to a shared pattern only when it has a
 clear reusable contract and serves, or is expected to serve, multiple independent
 journeys. Keep domain-specific copy, data, and navigation in the product screen.
 
@@ -111,12 +108,12 @@ Before creating a page, section, screen, or pattern:
 1. Inspect the existing product boundary and naming conventions.
 2. Reuse or extend the existing destination when it fits.
 3. Create a new destination only when the boundary is genuinely new.
-4. Move approved work out of `Explorations` rather than duplicating it.
+4. Move approved explorations to their durable destination and preserve links.
 5. Preserve links between journey screens, approved patterns, and their sources.
 
 ## Evidence Rules
 
-- Cite the exact accepted or clarified specification snapshot and relevant acceptance criteria.
+- Identify the accepted input and criteria for the work under review. Link its revision when one exists.
 - Group specifications only when they form one coherent journey or shared pattern.
 - Record exact Figma node links and screenshots for downstream planning.
 - Verify the changed compositions and applicable requested themes, widths and interactions. Shared tokens and components carry unchanged combinations; do not redraw a qualification matrix in the product file.
@@ -125,10 +122,8 @@ Before creating a page, section, screen, or pattern:
 
 ## Scope and review
 
-Read the project's constitution and accepted request for prerequisites, design authorities and approval scope. In a Spec Kit project, its official procedures own specification and technical planning; this skill introduces no additional phase or gate.
+Confirm the requested scope, target nodes and applicable review criteria before editing. When translating an approved prototype, preserve its interactions and visual direction. If a component cannot express a required state, raise that specific gap with its owner.
 
-Identify the target files, relevant specification, journeys/components and evidence before editing. Reuse the designated library before composing Product Design with its published instances. Preserve accepted prototype interactions and visual direction when translating them. Raise a conflict with accepted intent or a missing library capability instead of detaching instances or silently redesigning the product.
-
-Stop when the requested distinct compositions precisely express the accepted intent through shared tokens and live instances. Preserve the project's separate prototype, Figma and native approval requirements where applicable; this skill adds no new approval for unchanged scope.
+Stop when the requested compositions express the accepted intent and meet the project's review criteria.
 
 Only certify the platforms, themes and states requested and actually reviewed. Record exact nodes, revision information where available, scope and remaining limitations in the existing review record. A file's existence, a passing test or approval of another scope does not approve the current result. Limited file maintenance does not require unrelated design exploration.

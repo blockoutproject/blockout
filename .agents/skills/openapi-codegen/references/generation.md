@@ -1,22 +1,22 @@
 # Generator and validation boundaries
 
-Apply only the sections matching the approved stack. Generator/framework names below describe candidate integrations and their obligations, not mandatory technology selections. Use the project's selected tools and versions; verify their documented capabilities and actual output before relying on them.
+Apply the sections matching the actual generation targets. Verify the installed generator's capabilities against its output.
 
 Keep semantic model names in the authored contract and use supported generator naming options when composition would lose them. Preserve native generated names when consumers depend on them; do not add handwritten aliases or post-processing solely to hide a name.
 
 ## Java
 
-Generate server interfaces and DTOs into the configured build output. Implement interfaces in API adapters. Keep generated clients and their runtime lifecycle in infrastructure adapters. A generated DTO or enum may serve an application boundary when its contract owns that exact concept and this follows the project pattern. Map where semantics or lifetime differ; pure domain code remains independent of generated transport types.
+Generate the selected artifacts in the project's configured source or build directory. For a server target, implement its generated interfaces in API adapters. For a client target, keep the client and its runtime lifecycle in the consuming adapter. A generated DTO or enum may serve an application boundary when its contract owns that exact concept and this follows the project pattern. Map where semantics or lifetime differ; pure domain code remains independent of generated transport types.
 
 Keep shared generated model packages limited to genuinely shared enums and technical primitives. Compile through the owning build so annotation processing and generated imports are exercised. Prove unions, enum serialization and null handling with actual generated output where configuration changes their behavior.
 
 ## Python
 
-When the project selects OpenAPI Generator with asynchronous HTTPX, use its pinned version and a declarative configuration for each adopted contract. Respect the owning internal/public boundary; language does not change service ownership. Keep generated clients inside the infrastructure API adapter. Reuse an exact contract-owned generated value only where the owning Python policy and project pattern permit it; otherwise map to the needed typed application value with an explicit function. Create no additional model family beyond that semantic boundary. Pure domain values remain independent. Validate imports and actual request/response behavior against controlled transport; never production data. Python language guidance owns typed application placement, explicit mapping and resource lifecycle. Keep generation/decoding guarantees here rather than copying that procedure into every adapter policy.
+Import the selected generated modules. For a server target, exercise request binding and the serialized response at its handler. For a client target, use controlled transport to check the outgoing JSON and deserialized response. With an async HTTPX client, use its supported transport seam and close it after the call. For a model-only target, exercise serialization where those models are used.
 
 ## Runtime validation boundaries
 
-Own generation and transport-validation mechanics here; language policies own placement and application adaptation. Distinguish canonical schema semantics, the native decoder's behavior and the enforcement required at the actual boundary. A generated type, annotation or validation dependency does not prove that constraints execute. Inspect the selected generator's output and invocation path, including Java server validation wiring and Python response deserialization.
+Distinguish canonical schema semantics, the native decoder's behavior and the enforcement required at the actual boundary. A generated type, annotation or validation dependency does not prove that constraints execute. Inspect the selected generator's output and invocation path, including Java server validation wiring and Python response deserialization.
 
 Choose response enforcement from the producer/consumer relationship, compatibility obligations and concrete failure consequences. Start with the generated client's supported decoding and ordinary configuration. An owned internal API can rely on that boundary with explicitly accepted limits; ownership alone neither proves correctness nor waives security or business invariants. Keep existing selected validation where it meets an actual need. Do not automatically add a schema engine, Bean Validation invocation, wrapper or handwritten field checks to close every decoder gap.
 
@@ -28,7 +28,7 @@ Test actual producer serialization and generated-client calls for the selected g
 
 Keep one contract owner: no parallel DTO family, copied schema, template patch or second routine validation at each layer. Generator adoption changes remain explicit work. Provider HTML/CSV without an API contract uses its own adapter parsing/validation, not an invented OpenAPI specification.
 
-## TypeScript; Orval and Zod when selected
+## TypeScript clients using Orval and Zod
 
 When the project selects Orval and Zod, generate client functions, transport types and response schemas from the same source contract. Reuse its generated query keys/functions where the existing mode supplies them; do not assume a fetch-only project already generates Query hooks.
 

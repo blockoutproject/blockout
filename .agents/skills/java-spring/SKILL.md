@@ -5,7 +5,7 @@ description: "Design, implement or review Java Spring Boot features, application
 
 # Java and Spring
 
-This pack chooses feature-first ownership, clean service boundaries and explicit Java types. Use the same recognizable structure for comparable needs in the project; add boundaries only for responsibilities they actually own. These are personal conventions, not requirements imposed by Spring. Inspect the accepted task, repository instructions, module build and existing runtime first. A policy update does not authorize a dependency upgrade or whole-project migration.
+This skill uses feature-first ownership, service boundaries and explicit Java types. Use the same recognizable structure for comparable needs in the project; add boundaries only for responsibilities they actually own. These are personal conventions, not requirements imposed by Spring. Inspect the accepted task, repository instructions, module build and existing runtime first. A policy update does not authorize a dependency upgrade or whole-project migration.
 
 ## Structure and dependency direction
 
@@ -25,7 +25,7 @@ Within each feature, choose flat packages or occupied subpackages according to n
 
 Before splitting a package, inspect Java visibility and actual callers: subpackages do not inherit package-private access. Weigh navigation gains against the visibility needed across packages. Preserve narrow access where practical, and do not expose unrelated types or members to make a move compile. Move corresponding tests and update imports, documented paths and framework-specific package references. Verify discovery and generated mapper compilation with the existing build; add no custom scanning or architecture framework solely for a move.
 
-These subdivisions are personal conventions. [Spring Boot's layout guidance](https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html) imposes no fixed hierarchy; [Spring Modulith's package discussion](https://docs.spring.io/spring-modulith/reference/fundamentals.html#advanced) explains the visibility tradeoff without requiring that library.
+Feature-first organization is a personal convention. [Spring Boot layout guidance](https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html) explains how the application class's package affects discovery.
 
 - Keep controllers and adapters thin. Application code owns decisions and orchestration.
 - A short Controller → Service → Repository path is valid. A persistence port and adapter need a concrete responsibility, such as isolating a provider, translating persistence semantics or serving an independent domain boundary. Do not add them merely because an operation persists data, or remove useful existing boundaries to reduce a file count. Keep comparable consumers coherent.
@@ -44,37 +44,21 @@ An exported contract or public boundary can be justified with one consumer. Do n
 
 Use explicit Java types everywhere in handwritten code, including loops, resources and tests: no `var`. Use enums for owned known finite concepts rather than string status vocabularies. Reuse an exact contract-owned enum in application code where allowed; identifiers and extensible provider keys are not enum vocabularies. Qualify enum constants except switch case labels. Preserve serialized values and handle supported unknown provider values without accidentally granting access.
 
-Use records for needed immutable application values, and constructor injection for dependencies. Apply the focused Lombok conventions below to handwritten classes; generated contracts retain their generator-owned construction and accessors.
+Use records for needed immutable application values and constructor injection for dependencies. When working on a class in a module that uses Lombok, consult the [Lombok conventions](references/lombok.md) for constructor, accessor and equality decisions.
 
-Put mappers at the boundary they translate. Mechanical mapping defaults to MapStruct; decisions, aggregation, union dispatch and exceptional construction stay explicit. Read [mapping](references/mapping.md) when adding or changing a mapper.
+Put mappers at the boundary they translate. Use the project's mapping approach for field copies. Keep decisions, aggregation, union dispatch and exceptional construction explicit. Read [mapping](references/mapping.md) when adding or changing a mapper.
 
-Use standard Bean Validation for boundary shapes. Do not repeat generated constraints manually. Cross-field and domain decisions remain explicit. Avoid application-context lookup, field injection and custom framework extensions without an actual unmet need.
+Validate boundary shapes with the project's validation mechanism. Do not repeat generated constraints manually. Cross-field and domain decisions remain explicit. Avoid application-context lookup, field injection and custom framework extensions without an actual unmet need.
 
 ## Startup configuration
 
-Centralize application-owned external settings in cohesive typed `*Properties` classes or records using Spring Boot `@ConfigurationProperties`. Group them by responsibility and prefix, register them through native scanning or `@EnableConfigurationProperties`, and inject them through constructors or bean method parameters. Use these types instead of scattered Spring `@Value` injections or repeated `Environment` lookups. This is the pack's convention; Spring still supports those alternatives. It does not concern Lombok's unrelated `@Value` annotation.
+Centralize application-owned external settings in cohesive typed `*Properties` classes or records using Spring Boot `@ConfigurationProperties`. Group them by responsibility and prefix, register them through native scanning or `@EnableConfigurationProperties`, and inject them through constructors or bean method parameters. Use these types instead of scattered Spring `@Value` injections or repeated `Environment` lookups. This grouping is a personal convention.
 
 Keep defaults and environment aliases in the existing `application.properties` or YAML configuration, with one owner for each default. Preserve supported keys, aliases, units, profile behavior and precedence when replacing existing injections; relaxed binding does not guarantee compatibility with every historical environment-variable spelling. Keep framework-owned settings, such as datasource or OAuth client configuration, in their native namespaces and mechanisms. Do not duplicate them in an application settings registry or add a custom loader. Fixed constants and classpath resources do not become operator settings; use the appropriate native resource API.
 
-Validate required settings at startup with `@Validated` and suitable Bean Validation constraints. Preserve optional settings and legitimate defaults. Verify the changed binding boundary with actual configuration data: required values absent, blank or invalid as applicable, plus supported overrides and defaults. An unresolved placeholder can remain nonblank text under binding; `@NotBlank` alone does not prove absence is rejected. Where needed, use a native empty placeholder fallback with the relevant constraint rather than a custom placeholder scanner. Do not duplicate native validation in consuming services.
+Validate required settings at startup. In modules using Bean Validation, apply `@Validated` and suitable constraints. Preserve optional settings and legitimate defaults. Verify the changed binding boundary with actual configuration data: required values absent, blank or invalid as applicable, plus supported overrides and defaults. An unresolved placeholder can remain nonblank text under binding; `@NotBlank` alone does not prove absence is rejected. Where needed, use a native empty placeholder fallback with the relevant constraint rather than a custom placeholder scanner. Do not duplicate native validation in consuming services.
 
 Check [Spring Boot externalized configuration](https://docs.spring.io/spring-boot/reference/features/external-config.html) for the project's installed version before relying on binding, conversion or validation behavior.
-
-## Focused Lombok conventions
-
-Lombok removes mechanical code without choosing mutability, identity or business rules. These annotation choices are this pack's conventions, not Spring requirements.
-
-- Use `@Getter` for intended readable properties, at class level only when that exposure fits the class. Use field-level `@Setter` for authorized simple assignments. Preserve visibility and accessor semantics; validation, normalization and coordinated state changes remain explicit methods. Do not add accessors merely because fields exist.
-- Use `@RequiredArgsConstructor` for constructors that only assign uninitialized final dependencies. Preserve parameter annotations such as Spring qualifiers; do not assume Lombok copies them. Keep an explicit constructor when that is the simplest way to preserve injection or initialization behavior.
-- Use `@NoArgsConstructor` for an actual framework requirement or an existing private utility constructor. Choose the required access level; do not use `force = true` to bypass final-field initialization.
-- Use `@AllArgsConstructor` only when its generated parameter list exactly matches the intended creation contract. Keep a selective constructor when owner-managed fields, defaults or invariants must stay outside that contract.
-- Introduce `@Builder` only when actual construction sites benefit from named arguments, such as several easily confused values or optional inputs. Prefer annotating the intended constructor or factory when construction selects fields or validates state. A builder does not enforce required arguments at compile time; preserve required checks and defaults. Do not add production builders solely for test fixtures or automatically to every model.
-- Prefer focused annotations over blanket `@Data`, which also generates setters, equality and string representations. Prefer native records for immutable values rather than replacing them with Lombok `@Value` classes.
-- Add `@ToString` only for a concrete diagnostic need with safe fields. Use `onlyExplicitlyIncluded = true` when the class contains relationships or sensitive values. Choose equality semantics before using `@EqualsAndHashCode`; persistence-specific constraints belong in [entity contracts](references/persistence.md#entity-contracts).
-
-Keep the existing managed Lombok version and native annotation-processor configuration; follow [MapStruct integration](references/mapping.md) when both processors participate. Do not customize generated sources or add global Lombok configuration without a demonstrated need. Verify behavior and actual compiled consumers rather than testing generated boilerplate or annotation spelling.
-
-Mechanics: [accessors](https://projectlombok.org/features/GetterSetter), [constructors](https://projectlombok.org/features/constructor), [builders](https://projectlombok.org/features/Builder), [`@Data`](https://projectlombok.org/features/Data), [string representations](https://projectlombok.org/features/ToString) and [equality](https://projectlombok.org/features/EqualsAndHashCode).
 
 ## Use cases, transactions and failures
 
@@ -86,12 +70,12 @@ Use targeted application exceptions for expected rejections such as not-found, c
 
 ## Persistence and integrations
 
-Read [JPA persistence](references/persistence.md) for entities, queries, writes or transaction-sensitive changes. Spring Data JPA is the default; SQL/JDBC exceptions need a concrete unsupported operation or measured unmet requirement and prior human approval. An already explicit request for that exception counts as authorization; do not ask again.
+Use the module's selected persistence mechanism for queries and writes. In modules using JPA, read [JPA persistence](references/persistence.md) when entity mappings, queries or transaction behavior change.
 
 Each service owns its data and complete business resources. Use owner-controlled contracts across services, never shared tables or imported entities. A gateway composes client workflows without taking canonical ownership of service data. Keep downstream clients and message models in adapters, preserve configured timeouts and failure translation, and acknowledge messages only after the accepted durable outcome. Never assume exactly-once delivery.
 
-Keep generated Java under the build output directory. Add dependencies to the narrowest owning module and use existing managed versions. A size or collaborator count is a review signal, not a reason to split coherent code mechanically.
+Use the module's configured output locations for generated Java. Preserve its policy for versioned sources and build artifacts. Add dependencies to the narrowest owning module and use existing managed versions. A size or collaborator count is a review signal, not a reason to split coherent code mechanically.
 
 ## Evidence
 
-Inspect dependency direction, application enum exceptions, mapper placement, entity leakage and transaction ownership. Run the owning module's meaningful tests and build; include affected consumer modules and real database/runtime evidence for the changed boundaries. Run the full backend reactor when the impact cannot be bounded or repository checks require it. Prove database semantics against the actual engine, not repository mocks. Confirm generated files remain ignored, format the changed sources and inspect the complete diff. Report unavailable integration evidence explicitly.
+Inspect dependency direction, application enum exceptions, mapper placement, entity leakage and transaction ownership. Run the owning module's meaningful tests and build; include affected consumer modules and real database/runtime evidence for the changed boundaries. Run the full backend build when the impact cannot be bounded or the project requires it. Prove database semantics against the actual engine, not repository mocks. Format the changed handwritten sources and inspect the complete diff. Report unavailable integration evidence explicitly.

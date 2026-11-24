@@ -40,13 +40,13 @@ Convert provider strings, numbers or dates only where the declared input format 
 
 Map enums by explicit meaning, not ordinals or name similarity alone. Preserve serialized contract values. An exact contract-owned enum may be retained in application code; pure domain values stay independent. An unknown provider value is rejected or represented according to the accepted external-data policy, never silently mapped to a privileged/success state.
 
-Pydantic's Python and JSON validation paths need not accept the same inputs. For example, a strict `date` accepts an ISO date string through JSON validation, while strict Python validation expects a `date` instance. Choose and test the actual boundary path; do not replace `model_validate_json` with `model_validate(json.loads(...))` assuming identical behavior. Field-specific strictness can reject JSON quantity strings while allowing declared environment/CSV conversions. See the [documented strict-mode behavior](https://docs.pydantic.dev/latest/concepts/strict_mode/); a global switch does not decide the input contract.
+When using Pydantic, its Python and JSON validation paths can accept different inputs. For example, a strict `date` accepts an ISO date string through JSON validation, while strict Python validation expects a `date` instance. Choose and test the actual boundary path; do not replace `model_validate_json` with `model_validate(json.loads(...))` assuming identical behavior. Field-specific strictness can reject JSON quantity strings while allowing declared environment/CSV conversions. See the [documented strict-mode behavior](https://docs.pydantic.dev/latest/concepts/strict_mode/); a global switch does not decide the input contract.
 
 ## Mapping is not orchestration
 
 A mapper performs no network, storage, scheduling, logging side effect or dependency lookup. It does not decide create/update/delete, source priority, conflict policy or whether an incomplete dataset may replace an existing one. Those decisions belong to the application/domain. Do not hide them inside a convenient constructor or Pydantic field validator.
 
-Keep four operations distinct: decode the format, validate its declared shape/constraints, map representations, then apply the owned business decision. External Pydantic validation belongs to the adapter. Internal values retain their own invariants, not another copy of all transport constraints. Source generation and actual generated validation are the contract workflow's responsibility.
+Keep four operations distinct: decode the format, validate its declared shape/constraints, map representations, then apply the owned business decision. External input validation belongs to the adapter. Internal values retain their own invariants, not another copy of all transport constraints. When using generated models, verify the actual decoding path.
 
 ## Evidence
 

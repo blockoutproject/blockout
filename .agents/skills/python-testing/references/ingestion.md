@@ -59,7 +59,7 @@ Compare typed values or compact normalized traces, not log lines, object identit
 - Prefer small handwritten fakes over broad mocks. Do not mock dataclasses, enums, generated values, or pure objects.
 - Avoid large snapshots, source-spelling assertions, private-function access, arbitrary sleeps, real provider calls, production data, and universal fixture DSLs.
 - Assert logs only when the log is supported behavior; otherwise assert state, result, or adapter operation.
-- Use standard per-test Faker seeds for generated data, keeping decisive inputs explicit; control time when it influences the result.
+- If the project uses Faker for secondary data, seed it per test. Keep decisive inputs explicit and control time when it influences the result.
 - Keep async tasks owned and completed inside the test. No task may survive the test that created it.
 - Small duplication is preferable to a helper that hides the scenario.
 

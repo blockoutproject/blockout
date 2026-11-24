@@ -9,7 +9,7 @@ These are personal development and packaging conventions. Read the owning applic
 
 ## Local development
 
-Use Compose for infrastructure such as databases and brokers. Run application processes on the host for normal development and debugging, including Expo Metro and platform tools. Preserve an existing topology until an accepted task changes it. Application images remain useful for packaging and explicit container checks; do not require every developer process to run in a container.
+Use Compose for local infrastructure such as databases and brokers, with application processes on the host for development and debugging. Preserve the project's existing topology when packaging an application or checking its image.
 
 Each deployable application owns a safe versioned `.env.example` and ignored local values, conventionally `.env.local`. Never include secrets in examples. Compose owns infrastructure settings, not a repository-wide bag of application credentials. Document the actual loading mechanism: `.env.local` is not automatically read by every tool. Compose interpolation and container environment injection are different operations; select `--env-file`, `env_file` or `environment` deliberately and verify precedence without printing resolved secrets.
 
@@ -22,7 +22,7 @@ Each deployable application owns a safe versioned `.env.example` and ignored loc
 - Run as a non-root user where compatible, with deliberate writable paths. Let the application receive termination signals and shut down its resources.
 - Keep Dockerfiles with the owning application unless the repository already has a justified packaging owner. Reuse real build inputs; no new launch framework or universal Dockerfile abstraction.
 
-Schema migration jobs follow the application's accepted migration tool and lifecycle. This skill neither replaces Flyway nor changes Liquibase policy.
+When packaging an existing migration job, preserve the application's migration command and execution order.
 
 ## Verification
 

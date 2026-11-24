@@ -5,7 +5,7 @@ description: "Write and select JUnit Jupiter, Spring MVC/JPA, Testcontainers and
 
 # Java Testing Policy
 
-Read this reference before adding or changing backend Java tests. This policy selects Maven with Surefire/Failsafe for new work; use repository-pinned configuration. Installing it does not authorize a build-tool migration.
+Use the module's build and existing test tasks. Select the smallest test boundary that exercises the changed behavior.
 
 ## Goal
 
@@ -24,8 +24,7 @@ workflow. A regression fix starts with a failing reproduction whenever practical
 - `*IntegrationTest`: full Spring, real database/container, transaction, repository, or infrastructure behavior.
 - `*SmokeTest`: small startup or implemented runtime-entrypoint proof.
 
-Bind adopted suffixes explicitly to Maven Surefire or Failsafe so every suite runs in its intended phase. Use
-Failsafe for `*IntegrationTest`; a test that the build does not discover is not evidence. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases. Combine `// When / Then` when an assertion naturally executes the action; keep an intermediate value only when it clarifies the scenario.
+Use names and locations the module's test tasks discover. In a Maven module using Surefire and Failsafe, verify the includes for each phase. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases. Combine `// When / Then` when an assertion naturally executes the action; keep an intermediate value only when it clarifies the scenario.
 
 Mirror production packages under the test source root selected by the repository instructions. Use suffixes rather than
 `unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. One observable outcome may require several assertions; split unrelated scenarios, not names containing `and`. Add `@DisplayName` to changed test classes, nested groups and methods.
@@ -44,8 +43,8 @@ testing boundary.
 
 ## JUnit And Mockito
 
-- Use JUnit Jupiter and AssertJ consistently with the module.
-- Use Mockito for observable collaborator boundaries, not to reproduce implementation line by line.
+- Use JUnit Jupiter and the module's existing assertion library.
+- When the module uses Mockito, mock only collaborators whose observable behavior matters to the scenario.
 - Stub only interactions needed by the scenario. Avoid lenient global setup and reset-heavy shared mocks.
 - Verify an interaction only when it is behavior, such as a write, publication, or forbidden dependency call.
 - Use an argument captor only when the delivered value is clearer than exposed internal state.
@@ -87,8 +86,7 @@ testing boundary.
 - Do not parse migration sources in unit tests as a schema oracle. Prefer startup/repository integration and focused
   source inspection.
 - Do not add test-only production mappings or eager loading to make assertions easier.
-- Use Testcontainers with the supported engine family and a compatible version. Reuse one maintained database
-  container setup within the module; do not start a new container for each method. Do not replace supported-database
+- When using Testcontainers, reuse the module's maintained setup for the supported engine family. Do not replace supported-database
   semantics with an in-memory database.
 - Let the configured migration mechanism initialize the schema; do not hand-create a divergent test schema.
 
@@ -148,7 +146,7 @@ testing boundary.
 
 - Run the narrowest targeted test while developing.
 - Run the owning module suite before completion.
-- Run affected consumers and integration suites for changed transport, build, persistence or runtime boundaries. Run the full reactor when impact cannot be bounded or repository checks require it.
+- Run affected consumers and integration suites for changed transport, build, persistence or runtime boundaries. Run the full build when impact cannot be bounded or repository checks require it.
 - Run configured database-integration evidence when the contract depends on database behavior.
 - Run the repository formatting commands declared by the repository build configuration before the final check.
 - Report tests intentionally skipped and why, especially when Docker/Testcontainers is unavailable.
@@ -162,6 +160,6 @@ The test name, scenario-determining inputs, action and expected result must be v
 
 Keep scenario-defining values explicit and UUIDs stable when asserted or persisted. Keep simple values inline. Use targeted typed factories for rich valid objects that are actually reused, with explicit overrides for the scenario's decisive fields. Search existing factories before adding one, and share only identical meaning at the narrowest owner. A private helper may name one coherent step, and a public boundary may have one consumer; neither permits speculative test DSLs, generic object mothers or automatic reflection-based object graphs.
 
-Use Datafaker when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
+When tests already use Datafaker for secondary values, seed it per test and construct objects explicitly. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
 
-Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show meaningful decisions, cases requiring no extra unit test, a database boundary and optional reusable data. No new E2E infrastructure is introduced by this policy.
+Consult the [test examples](references/examples.md) when deciding how to prove a service rejection or exercise a uniqueness constraint at the database flush boundary. No new E2E infrastructure is introduced by this policy.

@@ -8,11 +8,11 @@ An `infrastructure/persistence` package can distinguish persistence from other a
 
 When a persistence boundary is justified, name its application-owned interface `XStore` and JPA adapter `JpaXStore`; name Spring Data interfaces `XRepository`. Determine names from actual roles, preserve coherent business groupings, and do not add interfaces or layers solely to satisfy naming. Preserve framework-owned and generated names. This naming scheme is a personal convention, not a Spring requirement.
 
-Use Spring Data repositories, normally `JpaRepository`, and Spring Boot's managed JPA setup. Migrations own tables, constraints and indexes; entities describe their mapping. Hibernate must not create or update retained schemas. Use the existing `validate` or `none` posture. Do not replace an existing migration tool to follow a preference.
+Use the module's JPA setup. When the module uses Spring Data repositories, reuse their existing base interfaces. Migrations own tables, constraints and indexes; entities describe their mapping. Hibernate must not create or update retained schemas. Use the existing `validate` or `none` posture. Do not replace an existing migration tool to follow a preference.
 
 ## Entity contracts
 
-- Use ordinary non-final entity classes and a protected no-argument constructor, commonly Lombok `@NoArgsConstructor(access = AccessLevel.PROTECTED)`.
+- Use ordinary non-final entity classes and a protected no-argument constructor.
 - Match table/column names, IDs, precision, lengths, nullability and relationships to the migration. HTTP camelCase does not choose SQL identifiers.
 - Use focused accessors; expose no setters for generated IDs or managed versions. Relationship changes must preserve the owning side and any aggregate invariants rather than opening blanket setters.
 - Keep owner-generated IDs, managed versions and initialized collections outside entity creation arguments. A no-argument persistence constructor does not replace the application's intended creation constructor; do not add class-level `@AllArgsConstructor` or `@Builder` mechanically.
@@ -32,7 +32,7 @@ Use inherited operations, then clear derived queries, then JPQL for more complex
 
 Prevent N+1 with query-specific projections, entity graphs or fetch joins. Do not paginate a collection fetch join that expands root rows; page root IDs then fetch or use a suitable projection. Define stable ordering and bounds. Do not fetch all rows to filter/page in memory.
 
-Native SQL or JDBC needs a concrete JPA/JPQL limitation or measured performance failure after an appropriate fetch plan, plus prior human approval. Convenience, assumed speed or concurrency alone does not justify it. Keep approved SQL inside infrastructure, parameterize inputs, document the limitation and test the supported engine. Prefer a focused native repository query over a second generic persistence layer. Migration SQL and controlled test setup follow their own rules.
+When introducing native SQL or JDBC as an exception to an established JPA policy, identify the unsupported operation or measured performance gap and obtain approval for the exception. Convenience, assumed speed or concurrency alone does not justify it. Keep approved SQL inside infrastructure, parameterize inputs, document the limitation and test the supported engine. Prefer a focused native repository query over a second generic persistence layer. Migration SQL and controlled test setup follow their own rules.
 
 ## Writes and transactions
 
