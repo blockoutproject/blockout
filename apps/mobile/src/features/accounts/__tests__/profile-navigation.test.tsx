@@ -528,7 +528,6 @@ it("keeps the dirty editor without main navigation when Back is refused", async 
   await openProfile("/profile/edit");
   await user.clear(await screen.findByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Retained");
-  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
 
   // When
   await act(() => router.back());
@@ -681,6 +680,7 @@ it("opens support from the editor with its safe profile origin and returns to th
   // Then
   expect(screen).toHavePathname("/profile/edit");
   expect(await screen.findByDisplayValue("Help_draft")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
   expect(Alert.alert).not.toHaveBeenCalled();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(

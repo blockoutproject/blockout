@@ -1,9 +1,5 @@
 import { useRoute } from "expo-router";
 import {
-  findFocusedRoute,
-  useNavigationState,
-} from "expo-router/react-navigation";
-import {
   createContext,
   useContext,
   useEffect,
@@ -26,15 +22,6 @@ type AccentScope = {
 export const NavigationAccentContext = createContext<AccentScope | undefined>(
   undefined,
 );
-
-/** Reads the selected tab leaf even while an outer presentation owns focus. */
-export function useSelectedTabRoute() {
-  const tabs = useRoute();
-  return useNavigationState((state) => {
-    const tab = state.routes.find((candidate) => candidate.key === tabs.key);
-    return tab?.state ? findFocusedRoute(tab.state) : tab;
-  });
-}
 
 /** An admitted screen lends its paint to the capsule only as the selected tab destination. */
 export function NavigationAccent({ color }: Readonly<{ color?: string }>) {
