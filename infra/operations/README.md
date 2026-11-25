@@ -581,7 +581,7 @@ F03 uses `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on An
 
 Before authorized Android map use, supply a separate appropriately scoped key for the intended environment. Restrict it to **Android applications**, with the exact application package and SHA-1 signing-certificate fingerprint of each authorized build. The configured packages are `com.blockout.local`, `com.blockoutproject.blockout.preproduction` and `com.blockoutproject.blockout`; release verification must use the certificate that signs the installed artifact (including Play App Signing where applicable), not an assumed local/upload certificate. Restrict the key's APIs to **Maps SDK for Android**. Keep real key values and private provider evidence outside this repository; a mobile key is embedded in its native artifact and relies on verified restrictions.
 
-This declares inputs and expected restrictions only. Real credentials, provider configuration/restriction checks and physical iOS/Android qualification remain [F03 T040](../../specs/007-sporting-consultation/tasks.md), using its [prepared map cases](../../specs/007-sporting-consultation/quickstart.md#native-map-cases). Building without a key does not qualify Android map use.
+F03 T040 owns provider configuration, verification of actual credentials and restrictions, and native observations on compatible clients. Android activation remains on owner hold. F13 tracks the remaining physical-device observations. [F03 native map cases](../../specs/007-sporting-consultation/quickstart.md#native-map-cases) · [Android hold](https://github.com/blockoutproject/blockout/issues/218) · [F13 physical-device qualification](https://github.com/blockoutproject/blockout/issues/833)
 
 ## Sporting push inputs and failure limits
 
