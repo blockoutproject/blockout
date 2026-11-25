@@ -44,7 +44,7 @@ Delete the original account and its local personal data synchronously, then atte
 
 The scoped approvals establish the unchanged journeys in the linked design evidence; [quickstart](quickstart.md) defines the distinct native runtime validation cases. Revised contextual direct sign-in and the revised continuity for eligible ordinary and presenting destinations require scoped prototype approval followed by separate explicit Figma approval under constitution III. Their dependent production approach and task reconciliation remain pending those gates. Independent shared-control, destructive-style and accepted-fidelity corrections may proceed within their existing owners. Existing Account/read/image approvals retain only their unchanged scope; launch and native observations do not establish approval of the revised interaction.
 
-The owner explicitly authorizes a local native Login athlete-shadow candidate and simulator review at T087. This changes only that decorative image, without expanding Auth0 interaction approval, general Surface/shadow styling or provider qualification. T083/T084 retain their completed composition scope; the shadow’s native appearance remains pending review. No EAS/cloud build or phone version belongs to this candidate.
+T087 owns the approved Login athlete shadow and its review on compatible native iOS and Android clients. Native tint and blur soften the existing decorative layer into a diffuse silhouette while the foreground athlete stays sharp. T083/T084 own the established Login composition. Contextual sign-in, general Surface styling and provider qualification retain their separate owners.
 
 ## Project Structure
 
