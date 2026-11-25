@@ -4,7 +4,9 @@ Native accessibility verification follows [F13 FR-030](../003-shared-quality/spe
 
 ## Prerequisites
 
-Use the [README verification commands](../../README.md#verification) for implemented boundaries. The scenarios below qualify the [F05 implementation](plan.md) as their owning tasks and native/provider prerequisites become available; passing controlled tests does not complete those scenarios.
+From the repository root, run `npm run generate` for the shared account contract, `npx nx run backend:verify` for backend and disposable PostgreSQL cases, and `npx nx run mobile:verify` for mobile compilation and the account session and profile suites. Use the README for toolchain versions and native launch commands. [Repository verification](../../README.md#verification) · [Native UI checks](../../README.md#native-ui-checks)
+
+Use the backend and mobile environment examples with the application launch guide for isolated runtime checks. The scenarios below qualify the [F05 implementation](plan.md) as their owning tasks and native/provider prerequisites become available. [Backend environment](../../apps/backend/.env.example) · [Mobile environment](../../apps/mobile/.env.example) · [Application processes](../../README.md#application-processes)
 
 Prepare synthetic principals for shared email, existing linked identities, missing email and dedicated preproduction signup. Use compatible native iOS/Android clients for functional cases; prepare physical devices and qualification purchase/gift accounts where the actual SDK/provider boundary requires them. Keep private evidence outside the repository. Destructive provider tests require authorization and must not target social or cross-connection principals from preproduction.
 
