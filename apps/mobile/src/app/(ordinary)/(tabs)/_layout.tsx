@@ -50,7 +50,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import {
   NavigationAccentContext,
-  useSelectedTabRouteKey,
+  useSelectedTabRoute,
   type NavigationAccentSelection,
 } from "@/shared/components/navigation-accent";
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
@@ -70,7 +70,9 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
-  const selectedRouteKey = useSelectedTabRouteKey();
+  const selectedTabRoute = useSelectedTabRoute();
+  const selectedRouteKey = selectedTabRoute?.key;
+  const navigationVisible = selectedTabRoute?.name !== "(forms)/edit";
   const [accent, setAccent] = useState<NavigationAccentSelection>();
   const currentAccent =
     accent?.routeKey === selectedRouteKey ? accent : undefined;
@@ -123,7 +125,7 @@ export default function TabsLayout() {
   return (
     <BottomContentInsetContext
       value={
-        navigationHeight > 0
+        navigationVisible && navigationHeight > 0
           ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
@@ -148,6 +150,8 @@ export default function TabsLayout() {
             layout={selectionLayout}
             selectedFill={animatedFill}
             style={{
+              // Keep Expo Router’s tab triggers registered while the dedicated editor is shown.
+              display: navigationVisible ? "flex" : "none",
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,

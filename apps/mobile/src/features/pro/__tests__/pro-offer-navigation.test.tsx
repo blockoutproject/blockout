@@ -375,9 +375,12 @@ it("restores the same sporting detail and tab after dismissing an outer native s
   expect(screen.getByRole("button", { name: offerName })).toBeVisible();
 });
 
-it.each(["edit", "erase"])(
-  "retains the bar and offer on the dedicated Profile %s form",
-  async (form) => {
+it.each([
+  { form: "edit", presentation: "hides", visibleCount: 0 },
+  { form: "erase", presentation: "keeps", visibleCount: 1 },
+])(
+  "$presentation the bar and offer on the dedicated Profile $form form",
+  async ({ form, visibleCount }) => {
     // Given
     await openJourney("/profile");
     await screen.findByRole("button", { name: offerName });
@@ -387,8 +390,12 @@ it.each(["edit", "erase"])(
 
     // Then
     expect(screen).toHavePathname(`/profile/${form}`);
-    expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
-    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+    expect(
+      screen.queryAllByRole("button", { name: "Rechercher" }),
+    ).toHaveLength(visibleCount);
+    expect(screen.queryAllByRole("button", { name: offerName })).toHaveLength(
+      visibleCount,
+    );
 
     // When
     await act(() => router.back());

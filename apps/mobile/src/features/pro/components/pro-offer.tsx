@@ -8,7 +8,7 @@ import { usePro } from "../pro-provider";
 import { useOpenProPaywall } from "../use-open-pro-paywall";
 
 /**
- * Existing Pro offer pattern 5116:12765, composed only with visible bottom navigation.
+ * Existing Pro offer pattern 5116:12765. The bottom navigation owns its visibility.
  * Current eligible inactive SDK state permits this voluntary entry; no offering is read here.
  */
 export function ProOffer() {
