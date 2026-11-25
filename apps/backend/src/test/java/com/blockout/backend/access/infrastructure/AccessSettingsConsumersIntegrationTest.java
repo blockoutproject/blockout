@@ -91,8 +91,7 @@ class AccessSettingsConsumersIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Exercises generated PATCH presence, response decoding and conflict problems over HTTP")
+  @DisplayName("Exercises generated PATCH presence, current-state edits and response decoding")
   void qualifiesGeneratedConsumers() throws Exception {
     // Given
     TransactionTemplate transaction = new TransactionTemplate(transactions);
