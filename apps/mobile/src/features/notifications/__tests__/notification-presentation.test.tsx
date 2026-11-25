@@ -124,7 +124,7 @@ it("presents a numeric final result once without starting a read", async () => {
   // Then
   expect(screen.queryByText(title)).toBeNull();
   expect(screen.getByRole("link", { name: /non lue$/ })).toHaveAccessibleName(
-    "Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue",
+    "Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 - non lue",
   );
   expect(screen.getByText("3")).toBeOnTheScreen();
   expect(screen.getByText("1")).toBeOnTheScreen();
@@ -208,7 +208,7 @@ it("replaces corrected names, removes a withdrawn score/link and keeps read inte
   const row = notificationResponse();
   row.family = "result-with-link";
   row.title =
-    "Petit récap : le match Nantes – Tours. Score final : 3–0. Un lien a été proposé pour ce match.";
+    "Petit récap : le match Nantes - Tours. Score final : 3-0. Un lien a été proposé pour ce match.";
   row.match.home.name = "Nantes";
   row.match.away.name = "Tours";
   row.match.result = {
@@ -238,7 +238,7 @@ it("replaces corrected names, removes a withdrawn score/link and keeps read inte
     ...row,
     read: true,
     title:
-      "Petit récap : le match Rezé – Tours. Le résultat n’est pas confirmé actuellement. Le lien n’est plus proposé.",
+      "Petit récap : le match Rezé - Tours. Le résultat n’est pas confirmé actuellement. Le lien n’est plus proposé.",
     match: {
       ...row.match,
       home: { ...row.match.home, name: "Rezé" },
@@ -251,7 +251,7 @@ it("replaces corrected names, removes a withdrawn score/link and keeps read inte
 
   // Then
   const link = screen.getByRole("link", {
-    name: /Le lien n’est plus proposé.*— lue$/,
+    name: /Le lien n’est plus proposé.*- lue$/,
   });
   expect(screen.getByText(corrected.title)).toBeOnTheScreen();
   expect(screen.getByText("Rezé")).toBeOnTheScreen();
@@ -334,7 +334,7 @@ it("exposes full names and reading state while a tap is pending", async () => {
   row.match.home.name = "Volley des Deux Rives et de la Vallée";
   row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
   row.title =
-    "Petit tour du terrain : le match Volley des Deux Rives et de la Vallée – Équipe B. Score final : 3–0.";
+    "Petit tour du terrain : le match Volley des Deux Rives et de la Vallée - Équipe B. Score final : 3-0.";
   row.match.result = {
     state: "final",
     homeSets: 3,

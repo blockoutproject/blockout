@@ -127,7 +127,7 @@ export function CollectionControl({
       return "Collecte en cours";
     }
     if (control.cycle?.state === "interrupted") {
-      return "Collecte interrompue · résultat à vérifier";
+      return "Collecte interrompue - résultat à vérifier";
     }
     if (control.cycle?.state === "completed") {
       return "Dernier cycle terminé";
@@ -225,7 +225,7 @@ export function CollectionControl({
         <Text style={metadata}>Saison à activer</Text>
       )}
       {closed && (
-        <Text style={metadata}>Saison clôturée · historique conservé</Text>
+        <Text style={metadata}>Saison clôturée - historique conservé</Text>
       )}
       <Text style={metadata}>{execution}</Text>
       {drainMessage}

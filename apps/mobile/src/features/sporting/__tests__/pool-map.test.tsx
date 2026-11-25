@@ -524,7 +524,7 @@ it.each([
     nearbyLatitude: 46.160002,
     firstCity: "Commune A",
     secondCity: "Commune B",
-    markerName: "Commune A · Commune B: Rives, Marais",
+    markerName: "Commune A - Commune B: Rives, Marais",
   },
   {
     resolution: "municipality fallback",

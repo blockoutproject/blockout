@@ -84,7 +84,7 @@ export function SeasonConfirmationForm({
       {terminal ? (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           {current.state === "closed"
-            ? "Saison clôturée · historique conservé"
+            ? "Saison clôturée - historique conservé"
             : "Saison active"}
         </Text>
       ) : (

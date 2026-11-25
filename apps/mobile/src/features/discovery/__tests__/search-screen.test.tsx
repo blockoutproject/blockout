@@ -302,7 +302,7 @@ it.each(["guest", "unresolved"])(
       await user.press(screen.getByRole("tab", { name: "Clubs" }));
       await screen.findByText("Lyon");
       await user.press(screen.getByRole("tab", { name: "Poules" }));
-      await screen.findByText("Championnat public · Phase finale");
+      await screen.findByText("Championnat public - Phase finale");
       await user.press(screen.getByRole("tab", { name: "Équipes" }));
 
       // Then
@@ -417,7 +417,7 @@ it("reads changed text only for the selected resource and preserves equivalent n
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await screen.findByText("Niort");
   await user.press(screen.getByRole("tab", { name: "Poules" }));
-  await screen.findByText("Championnat public · Phase finale");
+  await screen.findByText("Championnat public - Phase finale");
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Volley professionnel");
   const results = screen.getByLabelText("Résultats de recherche");

@@ -24,7 +24,7 @@ export function MatchPageHeader({
   const label = matchHeaderLabel(match);
   return (
     <PageHeader
-      title={`${match.home.name} · ${label} · ${match.away.name}`}
+      title={`${match.home.name} - ${label} - ${match.away.name}`}
       titleAlignment="center"
       revealOffset={offset ?? null}
       action={action}

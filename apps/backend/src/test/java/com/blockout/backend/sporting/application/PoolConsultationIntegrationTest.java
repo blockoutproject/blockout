@@ -111,7 +111,7 @@ class PoolConsultationIntegrationTest {
         second,
         scope.pool());
     sql.update(
-        "INSERT INTO sporting_standing_statistic(row_id,label,value) VALUES (?,'Ratio','∞'),(?,'Pts','18'),(?,'Ratio','—')",
+        "INSERT INTO sporting_standing_statistic(row_id,label,value) VALUES (?,'Ratio','∞'),(?,'Pts','18'),(?,'Ratio','\u2014')",
         first,
         first,
         second);
@@ -137,7 +137,7 @@ class PoolConsultationIntegrationTest {
     assertThat(result.rows().getFirst().statistics()).isEqualTo(Map.of("Ratio", "∞", "Pts", "18"));
     assertThat(result.rows().getLast().position()).isNull();
     assertThat(result.rows().getLast().team()).isNull();
-    assertThat(result.rows().getLast().statistics()).isEqualTo(Map.of("Ratio", "—"));
+    assertThat(result.rows().getLast().statistics()).isEqualTo(Map.of("Ratio", "\u2014"));
     assertThat(result.observedAt()).isEqualTo(OBSERVED);
   }
 

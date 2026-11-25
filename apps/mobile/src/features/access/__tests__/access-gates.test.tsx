@@ -321,11 +321,11 @@ it("uses the latest season, then retains another season and its criteria after o
   // Given: real admission, route sheets and generated requests; fixtures represent a preparing season.
   const latest = {
     id: "00000000-0000-4000-8000-000000000191",
-    label: "2026–2027",
+    label: "2026\u20132027",
   };
   const previous = {
     id: "00000000-0000-4000-8000-000000000192",
-    label: "2025–2026",
+    label: "2025\u20132026",
   };
   const pack = {
     id: "00000000-0000-4000-8000-000000000193",
@@ -390,12 +390,12 @@ it("uses the latest season, then retains another season and its criteria after o
     await screen.findByRole("button", { name: "Appliquer les filtres" }),
   );
   const cfa = await screen.findByRole("link", {
-    name: "CFA, Ligue Île-de-France · 2 poules, Sans défaut, 1/2 classées",
+    name: "CFA, Ligue Île-de-France - 2 poules, Sans défaut, 1/2 classées",
   });
   await user.press(cfa);
   expect(
     await screen.findByRole("header", {
-      name: /CFA, Ligue Île-de-France\s+2025–2026/,
+      name: /CFA, Ligue Île-de-France\s+2025\u20132026/,
     }),
   ).toBeOnTheScreen();
   expect(
@@ -410,7 +410,7 @@ it("uses the latest season, then retains another season and its criteria after o
     }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("header", { name: "Mapping des poules, 2025–2026" }),
+    screen.getByRole("header", { name: "Mapping des poules, 2025\u20132026" }),
   ).toBeOnTheScreen();
   expect(packSearches.at(-1)?.get("seasonId")).toBe(previous.id);
 

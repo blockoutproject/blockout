@@ -85,7 +85,7 @@ it("reads legacy result pages and preserves new search criteria and evidence", a
   const controlId = "00000000-0000-4000-8000-000000000004";
   const row: CollectionResultResponse = {
     scopeId: "00000000-0000-4000-8000-000000000002",
-    scopeLabel: "D1 masculine · Saison régulière",
+    scopeLabel: "D1 masculine \u00B7 Saison régulière",
     stage: "calendar",
     phase: "acquisition",
     outcome: "failed",

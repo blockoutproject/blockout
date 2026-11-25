@@ -295,7 +295,7 @@ function CatalogSummary({
     { color: colors.secondaryText },
   ];
   const lastRead = catalog?.observedAt
-    ? `Dernière lecture · ${formatCollectionTimestamp(catalog.observedAt, "compact")}`
+    ? `Dernière lecture - ${formatCollectionTimestamp(catalog.observedAt, "compact")}`
     : status === "not-read"
       ? "Première lecture en attente."
       : undefined;
@@ -327,7 +327,7 @@ function CatalogSummary({
             )}
             {lastComplete && (
               <Text style={metadata}>
-                Dernière lecture complète ·{" "}
+                Dernière lecture complète -{" "}
                 {formatCollectionTimestamp(lastComplete, "compact")}
               </Text>
             )}

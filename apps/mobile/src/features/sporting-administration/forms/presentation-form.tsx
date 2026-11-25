@@ -294,7 +294,7 @@ export function PresentationForm({
                     hasImage={draft.action === "replace" || hasLogo}
                     loading={logoPending}
                     disabled={busy}
-                    helper="PNG/JPEG · 5 Mio maximum"
+                    helper="PNG/JPEG - 5 Mio maximum"
                     addLabel="Ajouter un logo"
                     editLabel="Modifier le logo"
                     chooseLabel="Choisir un logo"

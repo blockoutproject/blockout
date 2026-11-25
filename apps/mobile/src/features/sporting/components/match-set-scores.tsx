@@ -120,7 +120,7 @@ function MatchScoreTeam({
     <SportingLink
       kind="team"
       id={identity.id}
-      label={`Ouvrir l’équipe ${identity.name} · ${sideLabel}`}
+      label={`Ouvrir l’équipe ${identity.name} - ${sideLabel}`}
       style={styles.team}
     >
       <MatchLogo

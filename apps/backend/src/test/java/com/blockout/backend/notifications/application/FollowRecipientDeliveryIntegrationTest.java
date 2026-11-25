@@ -363,9 +363,9 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
 
   @ParameterizedTest(name = "Current wording for {3}")
   @CsvSource({
-    "1, 3, , Score final : 1–3., false",
+    "1, 3, , Score final : 1-3., false",
     ", , F/P, Résultat particulier : F/P., false",
-    "1, , , Score final : 3–1., true"
+    "1, , , Score final : 3-1., true"
   })
   @DisplayName("Inbox and push agree after a new result observation and link withdrawal")
   void sharesCurrentWording(
@@ -384,7 +384,7 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     NotificationContext owner = new NotificationContext(FOLLOWER);
     NotificationResponse original =
         inboxTransport.toDto(inbox.page(owner, null)).getNotifications().getFirst();
-    assertThat(original.getTitle()).contains("Score final : 3–1.", "Un lien a été proposé");
+    assertThat(original.getTitle()).contains("Score final : 3-1.", "Un lien a été proposé");
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
 
     // When
@@ -413,7 +413,7 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     assertThat(current).extracting(NotificationResponse::getId).containsExactly(original.getId());
     String inboxTitle = current.getFirst().getTitle();
     assertThat(inboxTitle).contains(expectedResult, "Le lien n’est plus proposé.");
-    assertThat(inboxTitle.contains("3–1")).isEqualTo(keepsOriginalScore);
+    assertThat(inboxTitle.contains("3-1")).isEqualTo(keepsOriginalScore);
     ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
     verify(provider).send(sent.capture());
     assertThat(sent.getValue())

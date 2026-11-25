@@ -40,7 +40,7 @@ ChangeAccountProfileRequest:
     username:
       type: string
       description:
-        "Outer whitespace is trimmed before validation: 3–32 ASCII letters, digits, dot,
+        "Outer whitespace is trimmed before validation: 3-32 ASCII letters, digits, dot,
         hyphen or underscore. Case-insensitive uniqueness is checked atomically."
     photoAction:
       $ref: "#/ProfilePhotoActionEnum"

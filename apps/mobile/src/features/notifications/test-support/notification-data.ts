@@ -13,7 +13,7 @@ export function notificationResponse(): NotificationResponse {
       id,
       pool: {
         pool: { id, name: "Poule A" },
-        season: { id, label: "2026–2027", startYear: 2026 },
+        season: { id, label: "2026\u20132027", startYear: 2026 },
         classification: {},
       },
       home: { id, name: "Équipe A" },

@@ -171,12 +171,12 @@ it.each([
   {
     venue: "with a known venue",
     venueName: "Gymnase fictif",
-    accessibleName: "Lieu : Gymnase fictif · Fiche d’information (PDF)",
+    accessibleName: "Lieu : Gymnase fictif - Fiche d’information (PDF)",
   },
   {
     venue: "without a known venue",
     venueName: undefined,
-    accessibleName: "Lieu : Fiche d’information · PDF",
+    accessibleName: "Lieu : Fiche d’information - PDF",
   },
 ])(
   "opens the local-only PDF $venue and releases it when returning to the same match",

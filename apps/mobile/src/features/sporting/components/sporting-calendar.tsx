@@ -526,7 +526,7 @@ function CalendarPoolGroupStart({
             kind="pool"
             id={pool.pool.id}
             label={
-              metadata ? `${pool.pool.name} · ${metadata}` : pool.pool.name
+              metadata ? `${pool.pool.name} - ${metadata}` : pool.pool.name
             }
             active={active}
             style={calendarStyles.poolHeading}

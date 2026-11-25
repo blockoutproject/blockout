@@ -375,7 +375,7 @@ function ParticipantMap({
           const first = group.items[0];
           const labels = [
             ...new Set(group.items.map((item) => item.location?.label)),
-          ].join(" · ");
+          ].join(" - ");
           return (
             <Marker
               key={group.key}
@@ -610,7 +610,7 @@ function ParticipantSummary({
                     { color: colors.text },
                   ]}
                 >
-                  {value ?? "—"}
+                  {value ?? "-"}
                 </Text>
                 <Text
                   style={[

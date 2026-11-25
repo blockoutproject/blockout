@@ -88,7 +88,7 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
                         { color: colors.secondaryText },
                       ]}
                     >
-                      {formatLabel(classification.format)} ·{" "}
+                      {formatLabel(classification.format)} -{" "}
                       {sportingGenderLabels[classification.gender]}
                     </Text>
                   </View>
@@ -137,7 +137,7 @@ export function MappingPackScreen({ packId }: Readonly<{ packId: string }>) {
               label={pool.label}
               detail={
                 effective
-                  ? `${effective.divisionName} · ${formatLabel(effective.format)} · ${sportingGenderLabels[effective.gender]}`
+                  ? `${effective.divisionName} - ${formatLabel(effective.format)} - ${sportingGenderLabels[effective.gender]}`
                   : undefined
               }
               badges={[

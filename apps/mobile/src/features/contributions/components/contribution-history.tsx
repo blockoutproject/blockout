@@ -165,9 +165,9 @@ export function ContributionHistory({
                     { color: colors.secondaryText },
                   ]}
                 >
-                  {contributionDecisionLabels[decision.kind]} ·{" "}
+                  {contributionDecisionLabels[decision.kind]} -{" "}
                   {moderationTime(decision.at)}
-                  {decision.actorName ? ` · ${decision.actorName}` : ""}
+                  {decision.actorName ? ` - ${decision.actorName}` : ""}
                 </Text>
               ))}
             </View>

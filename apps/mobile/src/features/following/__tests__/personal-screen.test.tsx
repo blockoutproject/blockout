@@ -552,7 +552,7 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   mockFetch.mockClear();
   mockFetch.mockImplementation((url, request) =>
     /\/(team|pool)-follows\?/.test(url)
@@ -585,7 +585,7 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
 
   // Then: returning to the accepted context replays no calendar or list request.
   expect(
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
@@ -800,7 +800,7 @@ it("replaces Home's content after a technical profile failure and restores the r
   await user.press(await screen.findByRole("radio", { name: newer.label }));
   await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   mockFetch.mockImplementation((url, request) =>
     url.endsWith("/accounts/me")
       ? Promise.resolve(new Response(null, { status: 503 }))
@@ -818,7 +818,7 @@ it("replaces Home's content after a technical profile failure and restores the r
   // Then
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
@@ -833,7 +833,7 @@ it("replaces Home's content after a technical profile failure and restores the r
 
   // Then: the same confirmed selection and cached calendar return without another collection request.
   expect(
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("tab", { name: "Terminés", selected: true }),
@@ -860,7 +860,7 @@ it.each([401, 403, 404])(
       disabled: false,
     });
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
     await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
     await screen.findByRole("radio", { name: older.label, checked: true });
     mockFetch.mockImplementation((url, request) =>
@@ -880,7 +880,7 @@ it.each([401, 403, 404])(
     // Then
     await waitFor(() => expect(screen).toHavePathname("/"));
     expect(
-      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
     ).not.toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
@@ -957,7 +957,7 @@ it("removes the personal selector when its actual session signs out and uses the
     ).toHaveAccessibilityValue({ text: older.label }),
   );
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
 
   const originalClient = client;
 
@@ -970,7 +970,7 @@ it("removes the personal selector when its actual session signs out and uses the
     screen.queryByRole("button", { name: "Saison des suivis" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/sign-in-invitation",
@@ -1373,7 +1373,7 @@ it("keeps the Home season and selected page through suspended Retry, repeated co
     await screen.findByRole("radio", { name: newer.label }),
   );
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   mockFetch.mockImplementation((url, request) =>
     url.endsWith("/follow-options")
       ? Promise.resolve(new Response(null, { status: 503 }))
@@ -1462,7 +1462,7 @@ it("keeps the Home season and selected page through suspended Retry, repeated co
     );
 
     // Then
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
     expect(
       screen.getByRole("tab", { name: "Terminés", selected: true }),
     ).toBeOnTheScreen();
@@ -1589,7 +1589,7 @@ it("opens each personal encounter through the existing sporting navigation after
   });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
-    name: /Ouvrir le match Home — Away/,
+    name: /Ouvrir le match Home - Away/,
   });
 
   // When
@@ -1689,14 +1689,14 @@ it("keeps a failed personal continuation and its season across tab return until 
   });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
-    name: /Ouvrir le match Home — Away/,
+    name: /Ouvrir le match Home - Away/,
   });
 
   // When
   await fireEvent(match, "endReached");
   await screen.findByRole("button", { name: "Réessayer" });
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then: returning observes the same failed continuation without a card or automatic replay.
@@ -1704,7 +1704,7 @@ it("keeps a failed personal continuation and its season across tab return until 
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
@@ -1720,7 +1720,7 @@ it("keeps a failed personal continuation and its season across tab return until 
     await screen.findByRole("progressbar", { name: "Chargement de la suite…" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
@@ -1739,7 +1739,7 @@ it("keeps a failed personal continuation and its season across tab return until 
 
   // Then: the repeated response is deduplicated and the successful final page removes feedback.
   expect(
-    screen.getAllByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getAllByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toHaveLength(1);
   expect(
     screen.queryByRole("button", { name: "Réessayer" }),
@@ -1783,14 +1783,14 @@ it("keeps a failed personal calendar on its shared card across tab return until 
 
   // When
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByRole("button", { name: "Réessayer", busy: false });
 
   // Then
   expect(upcomingReads()).toHaveLength(1);
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
 
   // When
@@ -1799,7 +1799,7 @@ it("keeps a failed personal calendar on its shared card across tab return until 
 
   // Then
   expect(
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(upcomingReads()).toHaveLength(2);
 });
@@ -1827,7 +1827,7 @@ it.each([false, true])(
       disabled: false,
     });
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
     mockFetch.mockImplementation((url, request) =>
       new URL(url).pathname === `/accounts/${accountId}/matches`
         ? Promise.reject(new TypeError("Synthetic calendar outage"))
@@ -1835,12 +1835,12 @@ it.each([false, true])(
     );
     if (failedContinuation) {
       await fireEvent(
-        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+        screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
         "endReached",
       );
       await screen.findByRole("button", { name: "Réessayer" });
       expect(
-        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+        screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
       ).toBeOnTheScreen();
     }
     const refreshRead = Promise.withResolvers<Response>();
@@ -1859,7 +1859,7 @@ it.each([false, true])(
       expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
     );
     expect(
-      screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
     ).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Saison des suivis" }),
@@ -1876,7 +1876,7 @@ it.each([false, true])(
 
     // Then
     expect(
-      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
     ).not.toBeOnTheScreen();
     expect(
       mockFetch.mock.calls
@@ -1894,7 +1894,7 @@ it.each([false, true])(
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
     expect(
-      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
     ).not.toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Saison des suivis" }),
@@ -1910,7 +1910,7 @@ it("ignores an obsolete refresh after the shared season changes without reportin
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   const late = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, request) =>
     new URL(url).pathname === `/accounts/${accountId}/matches` &&
@@ -1929,7 +1929,7 @@ it("ignores an obsolete refresh after the shared season changes without reportin
   await act(async () => late.reject(new TypeError("Synthetic obsolete read")));
 
   // Then
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   expect(
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: newer.label });
@@ -2024,11 +2024,11 @@ it("restarts the selected completed traversal after a confirmed follow change an
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
   const first = await screen.findByRole("link", {
-    name: /Ouvrir le match First — Away/,
+    name: /Ouvrir le match First - Away/,
   });
   await fireEvent(first, "endReached");
   const second = await screen.findByRole("link", {
-    name: /Ouvrir le match Second — Away/,
+    name: /Ouvrir le match Second - Away/,
   });
   await fireEvent(second, "endReached");
   await waitFor(() =>
@@ -2045,7 +2045,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
     screen.getByRole("button", { name: "Suivre", disabled: false }),
   );
   await screen.findByRole("button", { name: "Suivi", busy: false });
-  await screen.findByRole("link", { name: /Ouvrir le match Current — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Current - Away/ });
   await act(async () =>
     late.resolve(
       calendar(
@@ -2066,7 +2066,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
   ).toHaveAccessibilityValue({ text: older.label });
   expect(
     screen.queryByRole("link", {
-      name: /Ouvrir le match (First|Second|Obsolete) — Away/,
+      name: /Ouvrir le match (First|Second|Obsolete) - Away/,
     }),
   ).not.toBeOnTheScreen();
   const reloads = mockFetch.mock.calls.filter(([url]) =>
@@ -2080,7 +2080,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
   // When: the mounted hidden category reloads only upon display.
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Current — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Current - Away/ });
 
   // Then
   const upcoming = mockFetch.mock.calls.filter(
@@ -2098,7 +2098,7 @@ it("defers a confirmed-change reload while Home is covered and fetches its first
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await act(async () => {
     mockFocus.focused = false;
     mockFocus.listeners.forEach((listener) => listener());
@@ -2125,7 +2125,7 @@ it("defers a confirmed-change reload while Home is covered and fetches its first
   });
 
   // Then
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   expect(
     mockFetch.mock.calls.filter(
       ([url]) => new URL(url).pathname === `/accounts/${accountId}/matches`,
@@ -2148,7 +2148,7 @@ it("withdraws a refused calendar after refresh and presents its card without a d
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   mockFetch.mockImplementation((url, request) =>
     new URL(url).pathname === `/accounts/${accountId}/matches`
       ? Promise.resolve(new Response(null, { status: 404 }))
@@ -2161,7 +2161,7 @@ it("withdraws a refused calendar after refresh and presents its card without a d
 
   // Then
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
 });
@@ -2190,7 +2190,7 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
   });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
-    name: /Ouvrir le match Home — Away/,
+    name: /Ouvrir le match Home - Away/,
   });
 
   // When: native continuation succeeds after the last followed origin becomes unavailable.
@@ -2201,7 +2201,7 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
     name: "Rechercher une équipe ou une poule",
   });
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
 });
 
@@ -2237,7 +2237,7 @@ it("retains its own calendar projection after an independent match-detail refusa
   });
   await layoutNativeTabs();
   const match = await screen.findByRole("link", {
-    name: /Ouvrir le match Home — Away/,
+    name: /Ouvrir le match Home - Away/,
   });
 
   // When
@@ -2247,7 +2247,7 @@ it("retains its own calendar projection after an independent match-detail refusa
 
   // Then
   expect(
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(
@@ -2264,10 +2264,10 @@ it("retains a visited public category until its own ordinary refresh", async () 
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   mockFetch.mockImplementation(async (url, request) => {
     const response = await transport(url, request);
     if (new URL(url).pathname !== `/accounts/${accountId}/matches`) {
@@ -2289,7 +2289,7 @@ it("retains a visited public category until its own ordinary refresh", async () 
 
   // Then
   expect(
-    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
   expect(mockFetch).not.toHaveBeenCalled();
 
@@ -2299,7 +2299,7 @@ it("retains a visited public category until its own ordinary refresh", async () 
   // Then
   await screen.findByText("Aucun suivi à afficher");
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).not.toBeOnTheScreen();
 });
 
@@ -2320,7 +2320,7 @@ it("captures the current loading zone when selecting a new personal season", asy
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   deviceZone = "America/New_York";
 
   // When
@@ -2329,7 +2329,7 @@ it("captures the current loading zone when selecting a new personal season", asy
   );
   await userEvent.press(screen.getByRole("radio", { name: newer.label }));
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
 
   // Then
   const reads = mockFetch.mock.calls
@@ -2363,10 +2363,10 @@ it("captures each season category zone on first activation and retains it until 
     disabled: false,
   });
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
   await userEvent.press(
@@ -2374,14 +2374,14 @@ it("captures each season category zone on first activation and retains it until 
   );
   await userEvent.press(screen.getByRole("radio", { name: newer.label }));
   await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
   deviceZone = "America/New_York";
   mockFetch.mockClear();
 
   // When: the new season's deferred category makes its first active attempt after travel.
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
 
   // Then
   const reads = mockFetch.mock.calls
@@ -2399,7 +2399,7 @@ it("captures each season category zone on first activation and retains it until 
   deviceZone = "Asia/Tokyo";
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("link", { name: /Ouvrir le match Home - Away/ });
 
   // Then: returning starts no new traversal; only explicit refresh adopts the current zone.
   expect(
@@ -2513,7 +2513,7 @@ it.each([
     await layoutNativeTabs();
     await userEvent.press(screen.getByRole("tab", { name: tab }));
     await screen.findByRole("link", {
-      name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
+      name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home - Away/,
     });
     mockFetch.mockClear();
 
@@ -2555,7 +2555,7 @@ it.each([
       await screen.findByText("Aucun suivi à afficher");
       expect(
         screen.queryByRole("link", {
-          name: /Étoile|Ouvrir le match Home — Away/,
+          name: /Étoile|Ouvrir le match Home - Away/,
         }),
       ).not.toBeOnTheScreen();
       expect(

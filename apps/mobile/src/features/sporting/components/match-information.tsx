@@ -41,7 +41,7 @@ export function MatchInformation({
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   const venue = [detail.venueName, detail.venueAddress]
     .filter(Boolean)
-    .join(" · ");
+    .join(" - ");
   return (
     <MatchSurface division={division} revealBlock="information">
       <View style={styles.heading}>
@@ -71,7 +71,7 @@ export function MatchInformation({
         supporting={
           [match.pool.competitionName, match.pool.phaseName]
             .filter(Boolean)
-            .join(" · ") || undefined
+            .join(" - ") || undefined
         }
         onPress={() => sporting.navigate("pool", match.pool.pool.id)}
       />

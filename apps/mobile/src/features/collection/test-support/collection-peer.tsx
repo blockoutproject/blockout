@@ -62,7 +62,7 @@ export function result(
 ): CollectionResultResponse {
   return {
     scopeId: "00000000-0000-4000-8000-000000000190",
-    scopeLabel: "Nationale 2 · Poule A",
+    scopeLabel: "Nationale 2 \u00B7 Poule A",
     stage: "calendar",
     phase: "integration",
     outcome: "unconfirmed",

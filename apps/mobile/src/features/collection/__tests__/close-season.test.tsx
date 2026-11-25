@@ -118,7 +118,7 @@ it("requires the exact displayed label and targets the original season once", as
 
   // Then
   expect(
-    await screen.findByText("Saison clôturée · historique conservé"),
+    await screen.findByText("Saison clôturée - historique conservé"),
   ).toBeOnTheScreen();
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "POST",
@@ -218,7 +218,7 @@ it("observes an accepted closure on a later explicit read after a lost response"
 
   // Then
   expect(
-    await screen.findByText("Saison clôturée · historique conservé"),
+    await screen.findByText("Saison clôturée - historique conservé"),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Clôturer la saison" }),
@@ -394,7 +394,7 @@ it.each([422, 409])(
 
     // Then
     expect(
-      await screen.findByText("Saison clôturée · historique conservé"),
+      await screen.findByText("Saison clôturée - historique conservé"),
     ).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls

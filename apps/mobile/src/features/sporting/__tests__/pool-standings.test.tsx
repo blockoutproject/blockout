@@ -122,7 +122,7 @@ beforeEach(() => {
         team: { id: sportingId, name: "Effective Z" },
         statistics: { "Jou.": "4", Pts: "18" },
       },
-      { sourceName: "Unmatched", statistics: { "Jou.": "—" } },
+      { sourceName: "Unmatched", statistics: { "Jou.": "\u2014" } },
       {
         sourceName: "Official A",
         position: 2,
@@ -564,7 +564,7 @@ it("loads a replacement logo without remounting its team link", async () => {
   expect(screen.getByRole("image", { name, busy: false })).toBeOnTheScreen();
 });
 
-it("keeps Pool row numbers through the 2–1–3 card layout even with irregular printed ranks", async () => {
+it("keeps Pool row numbers through the 2-1-3 card layout even with irregular printed ranks", async () => {
   // Given: two rows share a printed rank and points, and the unlinked row has the most points.
   const user = userEvent.setup();
   table.rows = [

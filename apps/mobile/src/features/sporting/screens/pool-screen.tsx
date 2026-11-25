@@ -81,7 +81,7 @@ function PoolPage({
       season={data.pool.season}
       subtitle={[data.pool.competitionName, data.pool.phaseName]
         .filter(Boolean)
-        .join(" · ")}
+        .join(" - ")}
     >
       {renderFollow?.(data.pool.pool, data.pool.season, divisionColor)}
     </SportingIdentity>

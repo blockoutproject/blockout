@@ -285,7 +285,7 @@ public class InitialReconstructionService {
    * @return current requested, obtained, rejected and unavailable evidence
    * @throws AccessDeniedException when the operator lacks the current collection read grant
    * @throws SportingResourceNotFoundException when the canonical season is unknown
-   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
+   * @throws IllegalArgumentException when the page is negative or size is outside 1-200
    */
   @Transactional(readOnly = true)
   public InitialCoverage.Page coverage(UUID operator, UUID seasonId, int page, int size) {
@@ -303,7 +303,7 @@ public class InitialReconstructionService {
    * @return current configuration and one coverage page, including missing qualification
    * @throws AccessDeniedException when the operator lacks the current collection read grant
    * @throws SportingResourceNotFoundException when the canonical season is unknown
-   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
+   * @throws IllegalArgumentException when the page is negative or size is outside 1-200
    */
   @Transactional(readOnly = true)
   public InitialReconstructionReport report(UUID operator, UUID seasonId, int page, int size) {
@@ -324,7 +324,7 @@ public class InitialReconstructionService {
    * @param size native bounded page size
    * @param sources current qualification projections
    * @return a stable current evidence page; absent or interrupted context never means success
-   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
+   * @throws IllegalArgumentException when the page is negative or size is outside 1-200
    */
   private InitialCoverage.Page readCoverage(
       UUID seasonId, int page, int size, List<Source> sources) {

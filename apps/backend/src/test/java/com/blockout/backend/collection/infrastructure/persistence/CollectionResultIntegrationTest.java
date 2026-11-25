@@ -273,7 +273,7 @@ class CollectionResultIntegrationTest {
     // Then
     assertThat(page.items())
         .extracting(ResultRow::scopeLabel)
-        .containsExactly("Équipe locale – Équipe visiteuse", "Équipe locale", "LNV / LM");
+        .containsExactly("Équipe locale - Équipe visiteuse", "Équipe locale", "LNV / LM");
     assertThat(page.items())
         .extracting(ResultRow::source)
         .containsExactly(

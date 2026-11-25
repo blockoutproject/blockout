@@ -177,7 +177,7 @@ function followedItems(
         kind: "pool",
         identity: pool,
         subtitle:
-          [competitionName, phaseName].filter(Boolean).join(" · ") || undefined,
+          [competitionName, phaseName].filter(Boolean).join(" - ") || undefined,
         season,
         classification,
       };

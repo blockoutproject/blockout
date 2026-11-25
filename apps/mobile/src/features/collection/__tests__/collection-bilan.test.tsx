@@ -103,25 +103,25 @@ it("presents the accepted outcomes and opens only established source context", a
   const reasonType = "urn:blockout:acquisition:unqualified-match-context";
   peer.results = [
     result({
-      scopeLabel: "A · Saison régulière",
+      scopeLabel: "A - Saison régulière",
       outcome: "failed",
       source,
       reason: "Le tableau est illisible.",
     }),
     result({
-      scopeLabel: "B · Saison régulière",
+      scopeLabel: "B - Saison régulière",
       outcome: "success",
       stage: "standings",
       source,
     }),
     result({
-      scopeLabel: "C · Saison régulière",
+      scopeLabel: "C - Saison régulière",
       outcome: "partial",
       phase: "acquisition",
       obtainedCount: 0,
     }),
     result({
-      scopeLabel: "D · Saison régulière",
+      scopeLabel: "D - Saison régulière",
       outcome: "unconfirmed",
       stage: "details",
       reasonType,
@@ -190,7 +190,8 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
       ? json({
           items: [
             result({
-              scopeLabel: "Nationale 2 · Poule A · seconde observation",
+              scopeLabel:
+                "Nationale 2 \u00B7 Poule A \u00B7 seconde observation",
               phase: "acquisition",
               outcome: "failed",
               source,
@@ -213,7 +214,7 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
       privateClient = cache;
     },
   );
-  await screen.findByRole("header", { name: "Nationale 2 · Poule A" });
+  await screen.findByRole("header", { name: "Nationale 2 \u00B7 Poule A" });
   expect(
     screen.getByRole("button", { name: "Filtres actifs" }),
   ).toBeOnTheScreen();
@@ -239,7 +240,7 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
   // Then: a footer is the only retry action, and later native edges do not retry it.
   const retry = await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByRole("header", { name: "Nationale 2 · Poule A" }),
+    screen.getByRole("header", { name: "Nationale 2 \u00B7 Poule A" }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   await fireEvent(list, "endReached");
@@ -255,7 +256,9 @@ it("keeps the admitted rows and only retries a failed continuation from its foot
 
   // Then
   expect(
-    await screen.findByText("Nationale 2 · Poule A · seconde observation"),
+    await screen.findByText(
+      "Nationale 2 \u00B7 Poule A \u00B7 seconde observation",
+    ),
   ).toBeOnTheScreen();
   expect(reads.map((params) => params.get("page"))).toEqual(["0", "1", "1"]);
   for (const params of reads) {
@@ -467,7 +470,7 @@ it.each(["first", "full"])(
 
     // When
     if (kind === "full") {
-      await screen.findByRole("header", { name: "Nationale 2 · Poule A" });
+      await screen.findByRole("header", { name: "Nationale 2 \u00B7 Poule A" });
       fail = true;
       await fireEvent(
         screen.getByLabelText("Actualiser les données"),
@@ -481,7 +484,9 @@ it.each(["first", "full"])(
     });
     expect(screen.getByLabelText("Rechercher dans le bilan")).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Filtres" })).toBeNull();
-    expect(screen.queryByText("Nationale 2 · Poule A")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText("Nationale 2 \u00B7 Poule A"),
+    ).not.toBeOnTheScreen();
     expect(
       screen.queryByLabelText("Actualiser les données"),
     ).not.toBeOnTheScreen();
@@ -507,7 +512,7 @@ it.each(["first", "full"])(
       );
     }
     expect(
-      await screen.findByRole("header", { name: "Nationale 2 · Poule A" }),
+      await screen.findByRole("header", { name: "Nationale 2 \u00B7 Poule A" }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Filtres" })).toBeEnabled();
   },

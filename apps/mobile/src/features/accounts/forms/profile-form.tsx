@@ -256,7 +256,7 @@ export function ProfileForm({
                 editLabel="Modifier la photo"
                 chooseLabel="Choisir une photo"
                 removeLabel="Supprimer la photo"
-                helper="PNG/JPEG · 5 Mio maximum"
+                helper="PNG/JPEG - 5 Mio maximum"
                 error={fieldState.error?.message}
                 onRemove={
                   hasPhoto

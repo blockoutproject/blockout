@@ -27,5 +27,5 @@ export function matchHeaderLabel(match: MatchSummaryResponse): string {
   ) {
     return result.specialLabel;
   }
-  return `${result.homeSets ?? "-"} – ${result.awaySets ?? "-"}`;
+  return `${result.homeSets ?? "-"} - ${result.awaySets ?? "-"}`;
 }

@@ -386,7 +386,7 @@ it("announces each namesake with its available public context", async () => {
 
   // Then
   expect(
-    await screen.findByLabelText("Poule A, Ligue publique · Finale, 2026/2027"),
+    await screen.findByLabelText("Poule A, Ligue publique - Finale, 2026/2027"),
   ).toBeOnTheScreen();
 
   // When
@@ -745,7 +745,7 @@ it.each([
   ],
   [
     "Poules",
-    "Poule A, Ligue publique · Finale, 2026/2027",
+    "Poule A, Ligue publique - Finale, 2026/2027",
     "pools",
     "Selected pool",
   ],

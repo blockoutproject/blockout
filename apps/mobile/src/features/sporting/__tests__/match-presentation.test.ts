@@ -6,10 +6,10 @@ import {
 import { matchDetail } from "../test-support/consultation-data";
 
 it.each([
-  { result: { state: "final", homeSets: 0, awaySets: 3 }, expected: "0 – 3" },
-  { result: { state: "final", homeSets: 3, awaySets: 0 }, expected: "3 – 0" },
-  { result: { state: "final", homeSets: 0 }, expected: "0 – -" },
-  { result: { state: "final", awaySets: 3 }, expected: "- – 3" },
+  { result: { state: "final", homeSets: 0, awaySets: 3 }, expected: "0 - 3" },
+  { result: { state: "final", homeSets: 3, awaySets: 0 }, expected: "3 - 0" },
+  { result: { state: "final", homeSets: 0 }, expected: "0 - -" },
+  { result: { state: "final", awaySets: 3 }, expected: "- - 3" },
   {
     result: { state: "final", specialLabel: "Forfait (F)" },
     expected: "Forfait (F)",
@@ -21,9 +21,9 @@ it.each([
       awaySets: 0,
       specialLabel: "Forfait (F)",
     },
-    expected: "3 – 0",
+    expected: "3 - 0",
   },
-  { result: { state: "final" }, expected: "- – -" },
+  { result: { state: "final" }, expected: "- - -" },
 ] satisfies {
   result: Omit<MatchResultResponse, "observedAt">;
   expected: string;

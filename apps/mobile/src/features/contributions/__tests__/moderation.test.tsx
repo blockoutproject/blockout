@@ -898,7 +898,7 @@ it("reloads an empty queue from its card and restores native refresh only when r
   // Then
   expect(
     await screen.findByRole("link", {
-      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+      name: `${detail.match.home.name} - ${detail.match.away.name}`,
     }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
@@ -917,7 +917,7 @@ it("retains literal filters on continuation and restarts native refresh at page 
   } as const;
   await mount(<ModerationScreen filters={filters} />);
   await screen.findByRole("link", {
-    name: `${detail.match.home.name} – ${detail.match.away.name}`,
+    name: `${detail.match.home.name} - ${detail.match.away.name}`,
   });
 
   // When
@@ -1197,7 +1197,7 @@ it.each(["queue", "versions"] as const)(
     if (kind === "queue") {
       expect(
         screen.getByRole("link", {
-          name: `${detail.match.home.name} – ${detail.match.away.name}`,
+          name: `${detail.match.home.name} - ${detail.match.away.name}`,
         }),
       ).toBeOnTheScreen();
     } else {
@@ -1363,7 +1363,7 @@ it.each([
     const user = userEvent.setup();
     await mount(<ModerationScreen filters={filters} />);
     await screen.findByRole("link", {
-      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+      name: `${detail.match.home.name} - ${detail.match.away.name}`,
     });
 
     // When
@@ -2079,7 +2079,7 @@ it("does not poll the mounted private queue", async () => {
     // Given
     await mount(<ModerationScreen filters={{}} />);
     await screen.findByRole("link", {
-      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+      name: `${detail.match.home.name} - ${detail.match.away.name}`,
     });
     const initialReads = mockFetch.mock.calls.filter(([url]) =>
       String(url).includes("/stream-moderation"),
@@ -2414,7 +2414,7 @@ it.each(["queue", "historical"] as const)(
     const row =
       surface === "queue"
         ? await screen.findByRole("link", {
-            name: `${detail.match.home.name} – ${detail.match.away.name}`,
+            name: `${detail.match.home.name} - ${detail.match.away.name}`,
           })
         : await screen.findByRole("button", { name: "Twitch, Refusé" });
     const queryKey =

@@ -113,7 +113,7 @@ export function MappingScreen() {
           return (
             <MappingRow
               label={pack.label}
-              detail={`${pack.sourceLabel} · ${poolCount} ${singular ? "poule" : "poules"}`}
+              detail={`${pack.sourceLabel} - ${poolCount} ${singular ? "poule" : "poules"}`}
               badges={[
                 defaultClassification
                   ? { label: "Défaut défini", tone: "info" }

@@ -86,7 +86,7 @@ class SportingClassificationWebMvcTest {
             SOURCE,
             "FFVB / Ligue",
             SEASON,
-            "2026–2027",
+            "2026-2027",
             null,
             null,
             MappingStatusEnum.SOME,
@@ -116,7 +116,7 @@ class SportingClassificationWebMvcTest {
         .andExpect(jsonPath("$.items[0].sourceId").value(SOURCE.toString()))
         .andExpect(jsonPath("$.items[0].sourceLabel").value("FFVB / Ligue"))
         .andExpect(jsonPath("$.items[0].seasonId").value(SEASON.toString()))
-        .andExpect(jsonPath("$.items[0].seasonLabel").value("2026–2027"))
+        .andExpect(jsonPath("$.items[0].seasonLabel").value("2026-2027"))
         .andExpect(jsonPath("$.items[0].status").value("some"))
         .andExpect(jsonPath("$.items[0].poolCount").value(2))
         .andExpect(jsonPath("$.items[0].classifiedPoolCount").value(1))
@@ -160,7 +160,7 @@ class SportingClassificationWebMvcTest {
             SOURCE,
             "FFVB / Ligue",
             SEASON,
-            "2026–2027",
+            "2026-2027",
             null,
             null,
             MappingStatusEnum.SOME,
@@ -205,7 +205,7 @@ class SportingClassificationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.mappingFilterOptions(ACCOUNT, MappingFilterDimensionEnum.SEASON, 0, 1))
         .thenReturn(
-            new OffsetPage<>(List.of(new MappingFilterOption(SEASON, "2026–2027")), 0, true));
+            new OffsetPage<>(List.of(new MappingFilterOption(SEASON, "2026-2027")), 0, true));
 
     // When
     ResultActions response =
@@ -220,7 +220,7 @@ class SportingClassificationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.items[0].id").value(SEASON.toString()))
-        .andExpect(jsonPath("$.items[0].label").value("2026–2027"))
+        .andExpect(jsonPath("$.items[0].label").value("2026-2027"))
         .andExpect(jsonPath("$.hasNext").value(true));
   }
 
