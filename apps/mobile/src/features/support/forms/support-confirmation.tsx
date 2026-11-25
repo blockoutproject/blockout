@@ -20,7 +20,7 @@ export function SupportConfirmation() {
         Demande reçue
       </Text>
       <Text style={[tokens.typography.body, { color: colors.text }]}>
-        Nous vous répondrons par e-mail.
+        Si nécessaire, nous vous répondrons par e-mail.
       </Text>
       <Button
         label="Terminer"
