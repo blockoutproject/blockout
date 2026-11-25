@@ -7,7 +7,11 @@ import {
   type RefObject,
 } from "react";
 import { BlurTargetView, BlurView } from "expo-blur";
-import { useRouter } from "expo-router";
+import { useRoute, useRouter } from "expo-router";
+import {
+  findFocusedRoute,
+  useNavigationState,
+} from "expo-router/react-navigation";
 import {
   Pressable,
   StyleSheet,
@@ -50,7 +54,6 @@ import { tokens } from "@/shared/theme/tokens";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import {
   NavigationAccentContext,
-  useSelectedTabRouteKey,
   type NavigationAccentSelection,
 } from "@/shared/components/navigation-accent";
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
@@ -70,7 +73,14 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
-  const selectedRouteKey = useSelectedTabRouteKey();
+  const { key: tabsRouteKey } = useRoute();
+  const selectedTabRoute = useNavigationState((state) => {
+    // A native presentation can own focus while this tab tree remains underneath.
+    const tabs = state.routes.find((route) => route.key === tabsRouteKey);
+    return tabs?.state ? findFocusedRoute(tabs.state) : tabs;
+  });
+  const selectedRouteKey = selectedTabRoute?.key;
+  const navigationVisible = selectedTabRoute?.name !== "(forms)/edit";
   const [accent, setAccent] = useState<NavigationAccentSelection>();
   const currentAccent =
     accent?.routeKey === selectedRouteKey ? accent : undefined;
@@ -123,7 +133,7 @@ export default function TabsLayout() {
   return (
     <BottomContentInsetContext
       value={
-        navigationHeight > 0
+        navigationVisible && navigationHeight > 0
           ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
@@ -148,6 +158,8 @@ export default function TabsLayout() {
             layout={selectionLayout}
             selectedFill={animatedFill}
             style={{
+              // Hide the group without unregistering Expo Router's tab triggers.
+              ...(!navigationVisible && styles.hidden),
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
