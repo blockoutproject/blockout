@@ -249,10 +249,9 @@ it.each([
     offset: { x: Dimensions.get("window").width, y: 0 },
   },
 ])(
-  "keeps the Android pager's starting offset for $label after navigation",
+  "keeps the pager's starting offset for $label after navigation",
   async ({ tab, label, offset }) => {
     // Given
-    jest.replaceProperty(Platform, "OS", "android");
     await render(<Example initialSelected={tab} />);
     expect(
       screen.getByRole("tab", { name: label, selected: true }),

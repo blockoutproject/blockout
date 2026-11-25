@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Platform,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -127,7 +126,7 @@ export function PagedTabs({
   const [initialOffset] = useState(() => {
     const x = selectedIndex * width;
     // An explicit zero can reset the Android pager when the selected scene changes.
-    return Platform.OS === "android" && x === 0 ? undefined : { x, y: 0 };
+    return x === 0 ? undefined : { x, y: 0 };
   });
   const position = useSharedValue(selectedIndex);
   const command = useSharedValue<TabCommand | null>(null);
