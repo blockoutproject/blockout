@@ -59,6 +59,8 @@ Backend exposes anonymous `GET /health` on its application port through the nati
 
 JWT checks use Spring Security's native resource server, with separate mobile/ingestion audiences and allowed Auth0 clients. Missing or invalid credentials return a safe Problem Details 401 and Bearer challenge; authenticated client/scope refusals return 403. Public contract reads, support submission, health and legal documents keep their intended access. The security suite verifies real signatures against an isolated JWKS server; contract-binding tests isolate authentication filters. Current account, resource, grant and maintenance checks remain with their owning implementations.
 
+For account lifecycle work, use the F05 guide for generated account contracts, disposable PostgreSQL transactions, and compatible native session and profile checks. [F05 verification](specs/005-accounts-identity/quickstart.md#prerequisites)
+
 Useful focused commands:
 
 ```sh

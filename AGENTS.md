@@ -34,7 +34,7 @@
 - Nx: the relevant official workspace, generation, task, linking, plugin, import or CI skill; do not enable Nx Cloud/MCP or upgrade Nx implicitly.
 - If Expo is selected: `react-native-expo` and `expo-testing`. Python: `python-development` and `python-testing`; load ingestion references only for ingestion work.
 
-Identity, session and authorization work reads its owning specifications and applicable approved plans. Concrete paths, versions and executable commands belong to this repository, not portable skills.
+Identity, session and authorization work reads its owning specifications and applicable approved plans. Concrete paths, versions and executable commands belong to this repository, not portable skills. F05 account lifecycle work uses the [owning verification and setup guide](specs/005-accounts-identity/quickstart.md#prerequisites).
 
 ## Git delivery
 
