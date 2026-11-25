@@ -123,7 +123,11 @@ export function PagedTabs({
           0,
           tabs.findIndex(({ id }) => id === selected),
         );
-  const [initialOffset] = useState(() => ({ x: selectedIndex * width, y: 0 }));
+  const [initialOffset] = useState(() => {
+    const x = selectedIndex * width;
+    // An explicit zero can reset the Android pager when the selected scene changes.
+    return x === 0 ? undefined : { x, y: 0 };
+  });
   const position = useSharedValue(selectedIndex);
   const command = useSharedValue<TabCommand | null>(null);
   const lastIndex = Math.max(0, tabs.length - 1);
