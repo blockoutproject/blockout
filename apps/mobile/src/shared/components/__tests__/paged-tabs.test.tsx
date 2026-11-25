@@ -5,7 +5,13 @@ import {
 } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useState } from "react";
-import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
+import {
+  AccessibilityInfo,
+  Dimensions,
+  Platform,
+  Text,
+  TextInput,
+} from "react-native";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "../paged-tabs";
@@ -234,6 +240,41 @@ it("keeps the selected intermediate page if an earlier animated jump ends elsewh
     screen.queryByText("Dernière scène", { includeHiddenElements: true }),
   ).toBeNull();
 });
+
+it.each([
+  { tab: "one", label: "Premier", offset: undefined },
+  {
+    tab: "two",
+    label: "Deuxième",
+    offset: { x: Dimensions.get("window").width, y: 0 },
+  },
+])(
+  "keeps the Android pager's starting offset for $label after navigation",
+  async ({ tab, label, offset }) => {
+    // Given
+    jest.replaceProperty(Platform, "OS", "android");
+    await render(<Example initialSelected={tab} />);
+    expect(
+      screen.getByRole("tab", { name: label, selected: true }),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("native-tabs-pager").props.contentOffset).toEqual(
+      offset,
+    );
+    await layoutNativeTabs();
+    const user = userEvent.setup();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Troisième" }));
+
+    // Then: navigation keeps the coordinate fixed at the native entry value.
+    expect(
+      screen.getByRole("tab", { name: "Troisième", selected: true }),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("native-tabs-pager").props.contentOffset).toEqual(
+      offset,
+    );
+  },
+);
 
 it("directly admits the controlled replacement when the active scene is removed", async () => {
   // Given
