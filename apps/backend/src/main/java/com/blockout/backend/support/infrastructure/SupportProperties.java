@@ -11,9 +11,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Server-owned private support settings. An absent destination keeps this unactivated foundation
- * unconfigured; once supplied, every destination field is required. Qualify effective repository
- * permissions and actual attachment access before accepting real requests.
+ * Server-owned private support settings. A deployment with a destination must supply all its
+ * fields. Qualify effective repository permissions and actual attachment access before accepting
+ * real requests.
  *
  * @param destination fixed private provider inputs, absent until explicitly configured
  * @param connectTimeout positive HTTP connection wait
@@ -35,7 +35,7 @@ public record SupportProperties(
    * @param repository qualified private GitHub owner/repository
    * @param incompleteLabel pre-created label for partial intake
    * @param completeLabel pre-created label for complete intake
-   * @param githubToken repository-scoped credential for the later REST/CLI adapters
+   * @param githubToken repository-scoped credential for the GitHub REST and CLI adapters
    * @param discordWebhook private Discord webhook, itself a credential
    */
   public record Destination(

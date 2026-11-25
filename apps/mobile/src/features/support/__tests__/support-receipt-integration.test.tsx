@@ -356,7 +356,7 @@ suite(`support receipt through real adapters: ${scenario}`, () => {
       { timeout: 15_000 },
     );
     expect(
-      screen.getByText("Nous vous répondrons par e-mail."),
+      screen.getByText("Si nécessaire, nous vous répondrons par e-mail."),
     ).toBeOnTheScreen();
     expect(screen.queryByLabelText("Titre")).toBeNull();
     expect(
