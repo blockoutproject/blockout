@@ -14,36 +14,44 @@ export interface SupportJourneyProps extends PropsWithChildren {
   origin: SupportOrigin;
 }
 
-/** Reads already-known contact passively and scopes the private draft to F05's mounted private lifetime. */
+/** Reads already-known contact passively and keeps each draft within its current F05 owner. */
 export function SupportJourney({
   admitted,
   origin,
   children,
 }: Readonly<SupportJourneyProps>) {
-  const session = useAccountSession();
+  const { accountId, status, subject } = useAccountSession();
   const { user } = useAuth0();
   const [navigation] = useState(() => supportContext(origin));
+  const [visit, setVisit] = useState({ accountId, key: 0 });
   const account = useQuery<AccountResponse>({
     queryKey: getGetMyAccountQueryKey(),
     queryFn: skipToken,
   });
+  // A provisional draft can take its first UUID. Losing or replacing a known owner starts a fresh visit.
+  if (visit.accountId !== accountId) {
+    setVisit({
+      accountId,
+      key: visit.accountId === null ? visit.key : visit.key + 1,
+    });
+  }
   if (!admitted) {
     return null;
   }
   const knownAccount =
-    account.data?.accountId === session.accountId ? account.data : undefined;
+    account.data?.accountId === accountId ? account.data : undefined;
   const replyEmail =
-    session.status === "authenticated"
+    status === "authenticated"
       ? (knownAccount?.email ?? user?.email ?? "")
       : "";
   const context = {
     ...supportDeviceContext(),
     ...navigation,
-    ...(session.accountId ? { accountId: session.accountId } : {}),
+    ...(accountId ? { accountId } : {}),
   };
   return (
     <SupportVisitProvider
-      key={session.subject}
+      key={`${subject ?? "guest"}:${visit.key}`}
       context={context}
       replyEmail={replyEmail}
     >

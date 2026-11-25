@@ -213,6 +213,20 @@ async function sentMetadata(): Promise<SubmitSupportRequest> {
   return JSON.parse(await (body.get("metadata") as Blob).text());
 }
 
+/** Delivers a native foreground event to the production observers registered during the test. */
+function mockForegroundEvent() {
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((event, listener) => {
+      if (event === "change") {
+        listeners.add(listener);
+      }
+      return { remove: () => listeners.delete(listener) };
+    });
+  return () => act(() => listeners.forEach((listener) => listener("active")));
+}
+
 it("closes Assistance from its header and returns to the originating profile", async () => {
   // Given
   await openRoute("/profile");
@@ -320,6 +334,98 @@ it.each(["guest", "signed-in", "profile-unavailable"])(
     );
     expect(mockAuth0.webAuth).not.toHaveBeenCalled();
     expect(mockAuth0.saveCredentials).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps the open Support draft when the signed-in account first becomes known", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const firstAccount = Promise.withResolvers<Response>();
+  accountHttp.mockReturnValueOnce(firstAccount.promise);
+  await openRoute("/support");
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Titre"), "Commencé avant la lecture");
+
+  // When
+  await act(() => firstAccount.resolve(Response.json(account)));
+
+  // Then
+  await screen.findByDisplayValue(account.email);
+  expect(screen.getByLabelText("Titre")).toHaveDisplayValue(
+    "Commencé avant la lecture",
+  );
+  expect(supportHttp).not.toHaveBeenCalled();
+});
+
+it.each(["directly", "after a confirmed absence"])(
+  "discards the old draft and ignores its late receipt when the same subject gets a replacement account %s",
+  async (replacement) => {
+    // Given: the original account has sent a request whose acknowledgement is still outstanding.
+    const foreground = mockForegroundEvent();
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    const oldReceipt = Promise.withResolvers<Response>();
+    supportHttp.mockReturnValueOnce(oldReceipt.promise);
+    await openRoute("/support");
+    await screen.findByDisplayValue(account.email);
+    const user = await fillForm();
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer la demande" }),
+    );
+    await waitFor(() => expect(supportHttp).toHaveBeenCalledTimes(1));
+    expect((await sentMetadata()).context.accountId).toBe(account.accountId);
+
+    // When: foreground refreshes only the business identity; Auth0 keeps the same subject.
+    if (replacement === "after a confirmed absence") {
+      accountHttp.mockResolvedValueOnce(
+        Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      );
+      await foreground();
+      await waitFor(() =>
+        expect(screen.getByLabelText("Titre")).toHaveDisplayValue(""),
+      );
+    }
+    account = accountResponse({
+      accountId: "00000000-0000-4000-8000-000000000002",
+      email: "replacement@example.invalid",
+    });
+    await foreground();
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByLabelText("Titre")).toHaveDisplayValue(""),
+    );
+    expect(screen.getByLabelText("Description")).toHaveDisplayValue("");
+    await waitFor(() =>
+      expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue(
+        account.email,
+      ),
+    );
+
+    // When: the old server response arrives after the new owner has started a draft.
+    await user.type(screen.getByLabelText("Titre"), "Nouvelle demande");
+    await act(async () => {
+      oldReceipt.resolve(
+        Response.json({ requestId: targetId }, { status: 201 }),
+      );
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    // Then
+    expect(screen.getByLabelText("Titre")).toHaveDisplayValue(
+      "Nouvelle demande",
+    );
+    expect(screen.queryByRole("header", { name: "Demande reçue" })).toBeNull();
+    expect(supportHttp).toHaveBeenCalledTimes(1);
   },
 );
 
@@ -643,11 +749,7 @@ it.each(["NO_CREDENTIALS", "NO_REFRESH_TOKEN"])(
 
 it("removes an already bypassed support form after foreground grant withdrawal", async () => {
   // Given
-  const listeners = new Set<(state: AppStateStatus) => void>();
-  jest.spyOn(AppState, "addEventListener").mockImplementation((_, listener) => {
-    listeners.add(listener);
-    return { remove: () => listeners.delete(listener) };
-  });
+  const foreground = mockForegroundEvent();
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   account.permissions = { bypassMaintenance: true };
   access.maintenance = {
@@ -661,7 +763,7 @@ it("removes an already bypassed support form after foreground grant withdrawal",
   account = accountResponse();
 
   // When: foreground rereads the account owner, independently of the public configuration.
-  await act(() => listeners.forEach((listener) => listener("active")));
+  await foreground();
 
   // Then
   await screen.findByRole("header", { name: "Blockout est en maintenance" });

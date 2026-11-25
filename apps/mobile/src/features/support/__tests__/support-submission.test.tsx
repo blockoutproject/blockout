@@ -396,7 +396,9 @@ it("allows one concurrent tap, locks all fields and confirms only after complete
   expect(
     await screen.findByRole("header", { name: "Demande reçue" }),
   ).toBeOnTheScreen();
-  expect(screen.getByText(/répondrons par e-mail/i)).toBeOnTheScreen();
+  expect(
+    screen.getByText("Si nécessaire, nous vous répondrons par e-mail."),
+  ).toBeOnTheScreen();
   expect(screen.queryByLabelText("Titre")).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Envoyer la demande" }),

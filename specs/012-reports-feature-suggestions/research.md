@@ -22,7 +22,7 @@ The [attachment client](https://github.com/cli/cli/blob/v2.102.0/internal/attach
 
 ## Confidentiality and issue closure
 
-**Decision:** Normal processing is an email reply followed by issue closure, without deletion or periodic purge. No independent Blockout backup of support cases or images. Manual privacy requests use the existing F11 procedure.
+**Decision:** Operators close issues after handling and use email if a reply is needed. Normal processing has no deletion, periodic purge or independent Blockout backup of support cases or images. Manual privacy requests use the existing F11 procedure.
 
 **Rationale:** [GitHub's attachment documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files) limits private-repository attachments to people with repository access and accepts PNG/JPEG within a 10 MB provider image bound; the application keeps its stricter 5 MiB bound. Repository permissions, not mobile administrative rights, control handling. PostgreSQL contains no support cases or image bytes.
 
@@ -58,7 +58,7 @@ The native preparation uses SDK 58's `ImageManipulator.manipulate` load bounds o
 
 **Rationale:** Exact byte fabrication on every native platform adds no separate validation guarantee. Compatible native simulators/emulators exercise the functional media path; hardware is reserved for a named observation that cannot be reproduced there. Picker-selected access does not justify inventing a general-library permission prompt. Appearance, narrow layout, enlarged text, ordinary content order, keyboard focus and names/roles/states use representative shared compositions under F13 FR-030, without a state × appearance × font × OS matrix or dedicated VoiceOver/TalkBack campaign.
 
-**Retained actual proof:** One real provider case combines maximum accepted title, description, email and context, including supplementary Unicode, with five admissible images. Compare text/context and every reference after REST creation and CLI attachment editing. A later-upload failure and failed/unconfirmed final marking establish that partial effects are private and never false complete acceptance. T040–T042 and the [private-provider scenarios](quickstart.md#private-provider-qualification-matrix) retain these outcomes and byte/redirect access checks. Their execution needs its own authorization and private evidence; amendment or controlled tests supply no provider pass.
+**Retained actual proof:** One real provider case combines maximum accepted title, description, email and context, including supplementary Unicode, with five admissible images. Compare text/context and every reference after REST creation and CLI attachment editing. A later-upload failure and failed/unconfirmed final marking establish that partial effects are private and never false complete acceptance. T041 and the [private-provider scenarios](quickstart.md#private-provider-qualification-matrix) retain these outcomes and byte/redirect access checks. Their execution needs its own authorization and private evidence; amendment or controlled tests supply no provider pass.
 
 **Alternatives considered:** Repeating all exact boundaries and form states on physical devices duplicates deterministic evidence. Replacing the maximum complete/partial provider proof with a smaller upload or mocks leaves composition and permissions unqualified. Neither is retained.
 

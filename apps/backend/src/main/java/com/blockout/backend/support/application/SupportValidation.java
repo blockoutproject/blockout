@@ -109,7 +109,7 @@ public final class SupportValidation {
     }
   }
 
-  /** Safe application refusals for the future HTTP adapter; no file/contact/provider payload. */
+  /** Safe reasons returned to the HTTP adapter without file, contact or provider data. */
   public enum Reason {
     INVALID_INPUT,
     CONTENT_TOO_LARGE,
