@@ -158,7 +158,7 @@ class CollectionResultsWebMvcTest {
     CollectionState.ResultSource source =
         new CollectionState.ResultSource(sourceId, "Ligue de Bretagne", packId, ID, null);
     CollectionState.ResultRow row =
-        new CollectionState.ResultRow(result, "Nationale 2 féminine · Poule B", source);
+        new CollectionState.ResultRow(result, "Nationale 2 féminine - Poule B", source);
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(configurationReads.results(
             ACCOUNT,
@@ -190,7 +190,7 @@ class CollectionResultsWebMvcTest {
     response
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.page").value(1))
-        .andExpect(jsonPath("$.items[0].scopeLabel").value("Nationale 2 féminine · Poule B"))
+        .andExpect(jsonPath("$.items[0].scopeLabel").value("Nationale 2 féminine - Poule B"))
         .andExpect(jsonPath("$.items[0].source.id").value(sourceId.toString()))
         .andExpect(jsonPath("$.items[0].source.label").value("Ligue de Bretagne"))
         .andExpect(jsonPath("$.items[0].source.packId").value(packId.toString()))

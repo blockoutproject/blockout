@@ -3,7 +3,7 @@ import { Platform, type TextStyle } from "react-native";
 /** Approved UI Library projection; common layout, size and platform roles rechecked 2026-10-26.
  * Palettes remain implementation details.
  * Sources: https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=7-3
- * Typography/layout/effects: sibling foundation pages 7:4–7:6; control nodes are linked by quickstart.
+ * Typography/layout/effects: sibling foundation pages 7:4-7:6; control nodes are linked by quickstart.
  */
 const reference = { white: "#FFFFFF", neutral900: "#171717" };
 const cardShadowBlurRadius = 12;

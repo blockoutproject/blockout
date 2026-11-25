@@ -14,9 +14,9 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const strips = [
-  ["RVC", "25–19", "NVB", "REC", "LIEN", "ASV"],
-  ["VBC", "3–1", "TLM", "SCO", "25–23", "RVC"],
-  ["NVB", "CLUB", "REC", "1–0", "ASV", "SET 4"],
+  ["RVC", "25-19", "NVB", "REC", "LIEN", "ASV"],
+  ["VBC", "3-1", "TLM", "SCO", "25-23", "RVC"],
+  ["NVB", "CLUB", "REC", "1-0", "ASV", "SET 4"],
 ];
 const tiltDegrees = -4;
 const tiltRadians = Math.abs((tiltDegrees * Math.PI) / 180);

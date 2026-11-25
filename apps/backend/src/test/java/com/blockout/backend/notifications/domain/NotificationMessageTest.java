@@ -31,7 +31,7 @@ class NotificationMessageTest {
     assertThat(messages)
         .allSatisfy(
             message -> {
-              assertThat(message.body()).contains("Nantes", "Tours");
+              assertThat(message.body()).contains("Nantes - Tours");
               assertThat(message.title() + message.body())
                   .doesNotContain("gratuit", "vérifié", "en cours", "vite", "victoire");
             });
@@ -51,7 +51,7 @@ class NotificationMessageTest {
     NotificationMessage message = NotificationMessage.render(family, variant, facts);
 
     // Then
-    assertThat(message.body()).contains("3–1");
+    assertThat(message.body()).contains("3-1");
   }
 
   @ParameterizedTest
@@ -71,7 +71,7 @@ class NotificationMessageTest {
 
     // Then
     assertThat(message.body())
-        .doesNotContain("3–1", "null", "disponible", "victoire", "en direct")
+        .doesNotContain("3-1", "null", "disponible", "victoire", "en direct")
         .contains("match");
   }
 
@@ -89,7 +89,7 @@ class NotificationMessageTest {
     // Then
     assertThat(message.body())
         .contains("Nantes", "F/P")
-        .doesNotContain("3–0", "victoire", "disponible", "null");
+        .doesNotContain("3-0", "victoire", "disponible", "null");
   }
 
   @ParameterizedTest
@@ -104,7 +104,7 @@ class NotificationMessageTest {
         NotificationMessage.render(NotificationFamily.PLAIN_RESULT, variant, unknown);
 
     // Then
-    assertThat(message.body()).contains("score indisponible").doesNotContain("null", "3–0");
+    assertThat(message.body()).contains("score indisponible").doesNotContain("null", "3-0");
   }
 
   @ParameterizedTest
@@ -123,6 +123,6 @@ class NotificationMessageTest {
 
     // Then
     assertThat(after.title()).isEqualTo(before.title());
-    assertThat(after.body()).contains("2–3").doesNotContain("3–1", "Un lien a été proposé");
+    assertThat(after.body()).contains("2-3").doesNotContain("3-1", "Un lien a été proposé");
   }
 }

@@ -85,7 +85,7 @@ public record NotificationMessage(String title, String body) {
     String home = facts.homeName() == null ? "" : facts.homeName().strip();
     String away = facts.awayName() == null ? "" : facts.awayName().strip();
     if (!home.isEmpty() && !away.isEmpty()) {
-      return "le match " + home + " – " + away;
+      return "le match " + home + " - " + away;
     }
     if (!home.isEmpty() || !away.isEmpty()) {
       return "le match de " + (home.isEmpty() ? away : home);
@@ -107,7 +107,7 @@ public record NotificationMessage(String title, String body) {
       return "Résultat particulier : " + facts.specialResult() + ".";
     }
     if (facts.homeSets() != null && facts.awaySets() != null) {
-      return "Score final : " + facts.homeSets() + "–" + facts.awaySets() + ".";
+      return "Score final : " + facts.homeSets() + "-" + facts.awaySets() + ".";
     }
     return "Résultat confirmé, score indisponible.";
   }

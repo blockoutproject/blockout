@@ -141,8 +141,8 @@ class SportingMappingIntegrationTest {
   void derivesCoverageFromCurrentSettings() {
     SeasonView season = seasons.getOrCreate(2026);
     Source source = source(season, CollectionProviderEnum.FFVB, "001");
-    PoolView inherited = discover(source, "Pack", "A", "A — Du pack");
-    PoolView custom = discover(source, "Pack", "B", "B — Personnalisée");
+    PoolView inherited = discover(source, "Pack", "A", "A - Du pack");
+    PoolView custom = discover(source, "Pack", "B", "B - Personnalisée");
     SportingClassification defaultClassification =
         division(DEFAULT_DIVISION, "Default", SportFormatEnum._6X6, SportGenderEnum.FEMALE);
     SportingClassification customClassification =
@@ -157,9 +157,9 @@ class SportingMappingIntegrationTest {
     assertThat(withDefault.pack().classifiedPoolCount()).isEqualTo(2);
     assertThat(withDefault.pools().items())
         .containsExactly(
-            new MappingPool(inherited.id(), "A — Du pack", defaultClassification, "Default", true),
+            new MappingPool(inherited.id(), "A - Du pack", defaultClassification, "Default", true),
             new MappingPool(
-                custom.id(), "B — Personnalisée", customClassification, "Custom", false));
+                custom.id(), "B - Personnalisée", customClassification, "Custom", false));
 
     writes.setPack(operator, pack, null);
 
@@ -169,9 +169,9 @@ class SportingMappingIntegrationTest {
     assertThat(withoutDefault.pack().classifiedPoolCount()).isEqualTo(1);
     assertThat(withoutDefault.pools().items())
         .containsExactly(
-            new MappingPool(inherited.id(), "A — Du pack", null, null, true),
+            new MappingPool(inherited.id(), "A - Du pack", null, null, true),
             new MappingPool(
-                custom.id(), "B — Personnalisée", customClassification, "Custom", false));
+                custom.id(), "B - Personnalisée", customClassification, "Custom", false));
     assertThat(sporting.pool(inherited.id()).orElseThrow().classification())
         .isEqualTo(defaultClassification);
 
@@ -196,11 +196,11 @@ class SportingMappingIntegrationTest {
     Source futureWest = source(preparing, CollectionProviderEnum.FFVB, "Ouest");
     Source east = source(current, CollectionProviderEnum.FFVB, "Est");
     Source lnvWest = source(current, CollectionProviderEnum.LNV, "Ouest");
-    PoolView first = discover(east, "A — Régionale", "A", "Sélection");
-    PoolView selected = discover(currentWest, "Z — Régionale", "A", "Sélection");
-    discover(currentWest, "Z — Régionale", "B", "Écrin");
-    PoolView otherSeason = discover(futureWest, "Y — Régionale", "A", "Sélection");
-    discover(futureWest, "Y — Régionale", "B", "Écrin");
+    PoolView first = discover(east, "A - Régionale", "A", "Sélection");
+    PoolView selected = discover(currentWest, "Z - Régionale", "A", "Sélection");
+    discover(currentWest, "Z - Régionale", "B", "Écrin");
+    PoolView otherSeason = discover(futureWest, "Y - Régionale", "A", "Sélection");
+    discover(futureWest, "Y - Régionale", "B", "Écrin");
     discover(lnvWest, "Ouest", "A", "Sélection");
     SportingClassification setting =
         division(CUSTOM_DIVISION, "Custom", SportFormatEnum._4X4, SportGenderEnum.MIXED);

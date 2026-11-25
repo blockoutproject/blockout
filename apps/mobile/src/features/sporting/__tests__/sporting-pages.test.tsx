@@ -1629,13 +1629,13 @@ it("keeps a clubless professional team and one follow action across distinct pha
 
   // When
   await user.press(
-    await screen.findByRole("tab", { name: "Pool · Phase finale" }),
+    await screen.findByRole("tab", { name: "Pool - Phase finale" }),
   );
   await user.press(screen.getByRole("button", { name: "Suivre" }));
 
   // Then
   expect(
-    screen.getByRole("link", { name: "Pool · Phase finale" }),
+    screen.getByRole("link", { name: "Pool - Phase finale" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByRole("button", { name: "Suivre" })).toHaveLength(1);
   expect(screen.getByLabelText("7 abonnés")).toBeOnTheScreen();
@@ -1651,9 +1651,9 @@ it("keeps a clubless professional team and one follow action across distinct pha
 it("opens exact club and long participation identities without substituting a namesake", async () => {
   // Given
   const initialTitle =
-    "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase initiale";
+    "Championnat interdépartemental de la Vallée et des Montagnes \u00B7 Poule A \u00B7 Phase initiale";
   const finalTitle =
-    "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase finale";
+    "Championnat interdépartemental de la Vallée et des Montagnes \u00B7 Poule A \u00B7 Phase finale";
   team = {
     ...team,
     team: { ...team.team, club: club.club },
@@ -1859,7 +1859,7 @@ it("keeps match identities and independent missing sections without a zero score
   // When
   await user.press(
     await screen.findByRole("link", {
-      name: "Home · Score domicile : indisponible",
+      name: "Home - Score domicile : indisponible",
     }),
   );
   await user.press(screen.getByRole("link", { name: "Pool" }));
@@ -1970,7 +1970,7 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
         screen.getByText("Résultat définitif indisponible"),
       ).toBeOnTheScreen();
       expect(
-        screen.queryByText(/ · Résultat définitif indisponible/),
+        screen.queryByText(/ - Résultat définitif indisponible/),
       ).not.toBeOnTheScreen();
     }
     expect(screen.getByText("Détail des sets indisponible")).toBeOnTheScreen();
@@ -1983,7 +1983,7 @@ it.each(["summary", "context"] as const)(
     // Given: the accepted pool has no associated division.
     match.match.pool.classification = {};
     match.match.pool.pool.name =
-      "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase initiale";
+      "Championnat interdépartemental de la Vallée et des Montagnes \u00B7 Poule A \u00B7 Phase initiale";
 
     // When
     await renderPage(
@@ -2070,8 +2070,8 @@ it.each(["provisional", "unconfirmed"] as const)(
     expect(
       screen.getByText(
         state === "provisional"
-          ? "Résultat provisoire · Résultat définitif indisponible"
-          : "Résultat non confirmé · Résultat définitif indisponible",
+          ? "Résultat provisoire - Résultat définitif indisponible"
+          : "Résultat non confirmé - Résultat définitif indisponible",
       ),
     ).toBeOnTheScreen();
     expect(screen.getByLabelText("Score domicile : 2")).toHaveTextContent("2");
@@ -2110,7 +2110,7 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
   });
   await userEvent.press(
     screen.getByRole("link", {
-      name: `Ouvrir l’équipe ${match.match.home.name} · Domicile`,
+      name: `Ouvrir l’équipe ${match.match.home.name} - Domicile`,
     }),
   );
 
@@ -2124,7 +2124,7 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
   });
   expect(
     screen.getByRole("link", {
-      name: `Ouvrir l’équipe ${match.match.away.name} · Extérieur`,
+      name: `Ouvrir l’équipe ${match.match.away.name} - Extérieur`,
     }),
   ).toBeOnTheScreen();
   expect(
@@ -2198,7 +2198,7 @@ it("retains exact published set points and separates the match venue from a club
   // When
   await user.press(
     await screen.findByRole("link", {
-      name: "Lieu : Gymnase des Rives · 12 rue des Sports, Niort",
+      name: "Lieu : Gymnase des Rives - 12 rue des Sports, Niort",
     }),
   );
 
@@ -2675,12 +2675,12 @@ it("shows the known match competition independently of a generic pool name", asy
 
   // When
   await screen.findByRole("link", {
-    name: "Poule : Pool · Championnat de démonstration · Phase 2",
+    name: "Poule : Pool - Championnat de démonstration - Phase 2",
   });
 
   // Then
   expect(
-    screen.getByText("Championnat de démonstration · Phase 2"),
+    screen.getByText("Championnat de démonstration - Phase 2"),
   ).toBeOnTheScreen();
 });
 

@@ -833,7 +833,7 @@ it("opens a club control's dedicated Bilan and applies only the available Status
   ).toBeEnabled();
   expect(await screen.findByText(evidence.scopeLabel)).toBeOnTheScreen();
   expect(screen.getByText("Une observation rejetée.")).toBeOnTheScreen();
-  expect(screen.getByText("Obtenus : 99 · Rejetés : 1")).toBeOnTheScreen();
+  expect(screen.getByText("Obtenus : 99 - Rejetés : 1")).toBeOnTheScreen();
   expect(screen.getByText(/Dernier succès/)).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: "Voir la source" }),
@@ -899,7 +899,7 @@ it("opens a source-filtered Bilan and returns from the attributed source to the 
   // Given
   const serve = responses({ manageCollection: true });
   const attributed = result({
-    scopeLabel: "D1 masculine · Phase régulière",
+    scopeLabel: "D1 masculine \u00B7 Phase régulière",
     source: { id: sourceId, label: source.label, phaseReference: "137" },
   });
   mockFetch.mockImplementation((url) =>

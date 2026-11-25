@@ -93,7 +93,7 @@ class LnvObservationsTest {
     String html =
         "<title>"
             + championship
-            + " 2026/2027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
+            + " 2026\u20132027</title><a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>";
 
     // When
     String season =

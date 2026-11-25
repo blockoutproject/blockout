@@ -36,7 +36,7 @@ final class NotificationContractFixture {
                 ID,
                 new PoolSummaryResponse(
                     new SportingIdentityResponse(ID, "Pool"),
-                    new SportingSeasonResponse(ID, "2026–2027", 2026L),
+                    new SportingSeasonResponse(ID, "2026-2027", 2026L),
                     new SportingClassificationResponse()),
                 new SportingIdentityResponse(ID, "Home"),
                 new SportingIdentityResponse(ID, "Away"),

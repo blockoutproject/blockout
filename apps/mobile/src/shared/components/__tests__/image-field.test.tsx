@@ -125,7 +125,7 @@ it("loans native image copies without imposing cropping and releases them after 
 });
 
 it("opens one native picker when selection is requested twice before a render", async () => {
-  // Given — the public selection owner must also reject duplicate native dispatch without a field rerender.
+  // Given - the public selection owner must also reject duplicate native dispatch without a field rerender.
   const picker = Promise.withResolvers<ImagePicker.ImagePickerResult>();
   launch.mockReturnValue(picker.promise);
   const onSelect = jest.fn();

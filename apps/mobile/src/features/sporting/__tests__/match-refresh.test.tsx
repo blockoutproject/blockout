@@ -140,7 +140,7 @@ it("rereads the current match when its route regains focus and applies accepted 
 
   // Then
   expect(
-    await screen.findByRole("link", { name: "Home · Score domicile : 3" }),
+    await screen.findByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
   expect(screen.getByText("Stream link")).toBeOnTheScreen();
@@ -237,7 +237,7 @@ it("rereads on foreground only while focused, then applies result withdrawal on 
 
   // Then
   expect(
-    await screen.findByRole("link", { name: "Home · Score domicile : 3" }),
+    await screen.findByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
@@ -266,7 +266,7 @@ it("rereads on foreground only while focused, then applies result withdrawal on 
   // Then
   expect(await screen.findByText("Résultat indisponible")).toBeOnTheScreen();
   expect(
-    screen.queryByRole("link", { name: "Home · Score domicile : 3" }),
+    screen.queryByRole("link", { name: "Home - Score domicile : 3" }),
   ).not.toBeOnTheScreen();
 });
 
@@ -394,7 +394,7 @@ it("retains an already loaded calendar across match focus/foreground reads witho
       <MatchScreen matchId={sportingId} focused />
     </>,
   );
-  await screen.findByRole("link", { name: "Home · Score domicile : 3" });
+  await screen.findByRole("link", { name: "Home - Score domicile : 3" });
   await act(() => listeners.forEach((listener) => listener("active")));
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
@@ -405,7 +405,7 @@ it("retains an already loaded calendar across match focus/foreground reads witho
     ),
   ).toHaveLength(calendarReads);
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    screen.getByRole("link", { name: /Ouvrir le match Home - Away/ }),
   ).toBeOnTheScreen();
 });
 

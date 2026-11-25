@@ -105,7 +105,7 @@ export function CollectionDashboardScreen() {
               accessibilityRole="header"
               style={[tokens.typography.heading, { color: colors.text }]}
             >
-              Clubs · indépendants des saisons
+              Clubs - indépendants des saisons
             </Text>
             {clubDestinations.map(({ family, icon }) => (
               <CollectionDestinationLink

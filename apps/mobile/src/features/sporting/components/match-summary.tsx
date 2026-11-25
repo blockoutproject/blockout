@@ -39,9 +39,9 @@ export function MatchSummary({
       return "Résultat définitif indisponible";
     }
     if (result?.state === "provisional") {
-      return "Résultat provisoire · Résultat définitif indisponible";
+      return "Résultat provisoire - Résultat définitif indisponible";
     }
-    return "Résultat non confirmé · Résultat définitif indisponible";
+    return "Résultat non confirmé - Résultat définitif indisponible";
   }
 
   const { colors, context } = useTheme();
@@ -196,7 +196,7 @@ export function MatchSummary({
                   kind="team"
                   id={team.id}
                   style={styles.team}
-                  label={`${team.name} · Score ${side} : ${score ?? "indisponible"}`}
+                  label={`${team.name} - Score ${side} : ${score ?? "indisponible"}`}
                 >
                   {content}
                 </SportingLink>

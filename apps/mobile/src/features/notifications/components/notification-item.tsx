@@ -60,7 +60,7 @@ export function NotificationItem({
         `${identity.name.trim() || "Nom indisponible"}${score ? `, Score ${side} : ${value}` : ""}`,
     )
     .join(". ");
-  const matchLabel = `${[event, pool.name].filter(Boolean).join(" ")}. ${teamDescription}. ${date} — ${row.read ? "lue" : "non lue"}`;
+  const matchLabel = `${[event, pool.name].filter(Boolean).join(" ")}. ${teamDescription}. ${date} - ${row.read ? "lue" : "non lue"}`;
 
   function renderCard(logo: ReactNode, atmosphere: ReactNode) {
     return (

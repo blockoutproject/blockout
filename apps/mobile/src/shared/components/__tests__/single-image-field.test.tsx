@@ -103,7 +103,7 @@ describe.each(["ios", "android"] as const)(
           appearance="photo"
           hasImage
           loading
-          helper="PNG/JPEG · 5 Mio maximum"
+          helper="PNG/JPEG - 5 Mio maximum"
           onSelect={select}
           onRemove={remove}
           removeLabel="Rétablir l’image automatique"

@@ -330,7 +330,7 @@ function ModerationQueueRow({
     >
       <Pressable
         accessibilityRole="link"
-        accessibilityLabel={`${match.home.name} – ${match.away.name}`}
+        accessibilityLabel={`${match.home.name} - ${match.away.name}`}
       >
         <ModerationMatchContext match={match} showMatchLink={false}>
           <View style={[styles.badges, { borderColor: colors.border }]}>

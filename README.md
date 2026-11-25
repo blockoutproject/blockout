@@ -85,6 +85,8 @@ Use two-space indentation, standard brace spacing (`{ id }`, `if (ready) {`, JSX
 `{label}`), and a blank line between functions and methods. Group related
 instructions and separate logical steps when that helps a reader. Keep
 documentation attached to its declaration.
+Use a plain hyphen (`-`) for app-authored text separators in labels, comments,
+and test descriptions. Preserve the punctuation in values supplied by providers.
 
 Mobile imports stay relative within the same feature or cohesive shared module.
 Use `@/` to cross module boundaries, including routes importing feature screens;

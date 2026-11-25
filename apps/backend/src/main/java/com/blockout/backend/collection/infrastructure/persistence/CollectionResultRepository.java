@@ -63,7 +63,7 @@ interface CollectionResultRepository
               r.outcome, r.last_success_at AS "lastSuccessAt", r.reason_type AS "reasonType",
               r.reason, r.obtained_count AS "obtainedCount", r.rejected_count AS "rejectedCount",
               NULLIF(CASE
-                WHEN r.stage = 'DETAILS' THEN CONCAT_WS(' – ', COALESCE(home.manual_name, home.source_name),
+                WHEN r.stage = 'DETAILS' THEN CONCAT_WS(' - ', COALESCE(home.manual_name, home.source_name),
                   COALESCE(away.manual_name, away.source_name))
                 WHEN r.stage = 'LOGO' THEN COALESCE(team.manual_name, team.source_name)
                 WHEN r.stage IN ('CLUB_SHEET', 'GEOCODING') THEN COALESCE(club.manual_name, club.source_name)

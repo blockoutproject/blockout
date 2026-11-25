@@ -158,7 +158,7 @@ function StandingRow({
               { color: colors.text },
             ]}
           >
-            {row.statistics[column] ?? "—"}
+            {row.statistics[column] ?? "-"}
           </Text>
           <Text
             style={[
@@ -182,7 +182,7 @@ function StandingRow({
           { color: colors.text },
         ]}
       >
-        {row.statistics[points] ?? "—"}
+        {row.statistics[points] ?? "-"}
       </Text>
       <Text
         style={[tokens.typography.metadata, { color: colors.secondaryText }]}

@@ -608,7 +608,7 @@ it("restores the current tab text and filters after an ordinary detail-route ret
   await openFilters();
   await choose("Genre", "Masculin");
   await applyFilters();
-  await screen.findByText("Championnat public · Phase finale");
+  await screen.findByText("Championnat public - Phase finale");
 
   // When
   await act(() => router.push("/detail"));
@@ -621,7 +621,7 @@ it("restores the current tab text and filters after an ordinary detail-route ret
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
   expect(
-    screen.getByText("Championnat public · Phase finale"),
+    screen.getByText("Championnat public - Phase finale"),
   ).toBeOnTheScreen();
   await openFilters();
   expect(

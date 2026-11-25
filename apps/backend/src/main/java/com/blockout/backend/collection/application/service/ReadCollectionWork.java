@@ -58,7 +58,7 @@ public class ReadCollectionWork {
    *
    * @param cycleId running current control
    * @param page zero-based page validated against the generated contract's safe range
-   * @param size page size validated against the generated contract's 1–200 bound
+   * @param size page size validated against the generated contract's 1-200 bound
    * @return frozen configuration with current permitted locality; no provider observation occurs
    */
   @Transactional

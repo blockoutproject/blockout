@@ -227,10 +227,10 @@ it("announces both accepted scores on their team links when set detail is absent
 
   // Then
   expect(
-    screen.getByRole("link", { name: "Home · Score domicile : 3" }),
+    screen.getByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: "Away · Score extérieur : 0" }),
+    screen.getByRole("link", { name: "Away - Score extérieur : 0" }),
   ).toBeOnTheScreen();
 });
 
@@ -250,7 +250,7 @@ it("does not introduce an empty score section on an upcoming match without accep
   // When
   await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("link", {
-    name: `${detail.match.home.name} · Score domicile : indisponible`,
+    name: `${detail.match.home.name} - Score domicile : indisponible`,
   });
 
   // Then

@@ -53,7 +53,7 @@ export function CollectionBilanResult({
       : `Rejetés : ${result.rejectedCount}`,
   ]
     .filter((count) => count !== undefined)
-    .join(" · ");
+    .join(" - ");
 
   return (
     <Surface style={styles.card}>
@@ -72,7 +72,7 @@ export function CollectionBilanResult({
                 { color: colors.secondaryText },
               ]}
             >
-              {stageLabels[result.stage]} ·{" "}
+              {stageLabels[result.stage]} -{" "}
               {result.phase === "integration" ? "Intégration" : "Acquisition"}
             </Text>
             <Text

@@ -356,7 +356,7 @@ it.each([false, true])(
 
     // Then
     expect(
-      await screen.findByRole("link", { name: /— lue$/ }),
+      await screen.findByRole("link", { name: /- lue$/ }),
     ).toBeOnTheScreen();
     expect(
       await screen.findByRole("button", { name: "Notifications" }),

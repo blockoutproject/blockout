@@ -20,7 +20,7 @@ const mappingPack: MappingPackResponse = {
   sourceId: "00000000-0000-4000-8000-000000000011",
   sourceLabel: "FFVB / Ligue",
   seasonId: "00000000-0000-4000-8000-000000000012",
-  seasonLabel: "2026–2027",
+  seasonLabel: "2026\u20132027",
   defaultClassification: null,
   status: "some",
   poolCount: 2,

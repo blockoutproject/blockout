@@ -47,9 +47,9 @@ export function CalendarMatch({
   let status;
   if (unavailable) {
     if (result?.state === "provisional") {
-      status = "Score provisoire · Résultat définitif indisponible";
+      status = "Score provisoire - Résultat définitif indisponible";
     } else if (result?.state === "unconfirmed") {
-      status = "Résultat non confirmé · Résultat définitif indisponible";
+      status = "Résultat non confirmé - Résultat définitif indisponible";
     } else {
       status = "Résultat indisponible";
     }
@@ -60,7 +60,7 @@ export function CalendarMatch({
   } else {
     status = undefined;
   }
-  const encounter = `${match.home.name} — ${match.away.name}`;
+  const encounter = `${match.home.name} - ${match.away.name}`;
   const matchLabel = `Ouvrir le match ${encounter}, ${scoreOrTime}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`;
   return (
     <SportingLink

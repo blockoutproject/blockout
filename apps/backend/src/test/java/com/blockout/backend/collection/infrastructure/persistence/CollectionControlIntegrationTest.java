@@ -632,7 +632,7 @@ class CollectionControlIntegrationTest {
   @ParameterizedTest
   @CsvSource({"-3601,false", "-3600,true", "14400,true", "14401,false"})
   @DisplayName(
-      "Real F02 match and pool windows include exactly H−1 through H+4 even after final sets")
+      "Real F02 match and pool windows include exactly H-1 through H+4 even after final sets")
   void exactFastWindows(long offset, boolean fast) {
     // Given
     UUID pool = prepareProfessionalMatch();

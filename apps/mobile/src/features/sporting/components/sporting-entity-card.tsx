@@ -222,7 +222,7 @@ export function SportingEntityCard({
             <Text
               style={[styles.relatedClubName, { color: colors.secondaryText }]}
             >
-              Club · <Text>{linkedClub.name}</Text>
+              Club - <Text>{linkedClub.name}</Text>
             </Text>
             <ChevronRight
               accessible={false}

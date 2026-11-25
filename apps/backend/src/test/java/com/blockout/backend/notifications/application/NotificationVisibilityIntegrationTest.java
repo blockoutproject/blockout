@@ -267,7 +267,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     // Then
     assertThat(corrected).usingRecursiveComparison().ignoringFields("match").isEqualTo(original);
     String inboxTitle = transport.toDto(corrected).getTitle();
-    assertThat(inboxTitle).contains("1–3").doesNotContain("3–1");
+    assertThat(inboxTitle).contains("1-3").doesNotContain("3-1");
     assertThat(count("notification")).isEqualTo(1);
     verify(provider)
         .send(

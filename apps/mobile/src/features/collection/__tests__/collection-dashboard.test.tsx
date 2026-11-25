@@ -1219,7 +1219,7 @@ it("keeps a closed season navigable with no collection command", async () => {
   });
 
   // When
-  await screen.findByText("Saison clôturée · historique conservé");
+  await screen.findByText("Saison clôturée - historique conservé");
 
   // Then
   expect(screen.queryByRole("button", { name: "Mettre en pause" })).toBeNull();

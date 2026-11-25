@@ -333,7 +333,7 @@ it.each([false, true])(
     await user.press(await screen.findByRole("link", { name: /non lue$/ }));
 
     // Then
-    await screen.findByRole("link", { name: /— lue$/ });
+    await screen.findByRole("link", { name: /- lue$/ });
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/matches/[matchId]",
       params: { matchId: row.match.id },

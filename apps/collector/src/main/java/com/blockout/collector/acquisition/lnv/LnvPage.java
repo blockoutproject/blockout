@@ -33,7 +33,8 @@ public final class LnvPage {
   static final DateTimeFormatter CALENDAR_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
   private static final String GROUP_ID_PREFIX = "Content_Main_";
-  private static final Pattern SEASON_HEADING = Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})");
+  private static final Pattern SEASON_HEADING =
+      Pattern.compile("(20[0-9]{2})[/\\u2013-](20[0-9]{2})");
   // Start at the whitespace run's boundary to avoid retrying from every space in the run.
   private static final Pattern CLOCK_SEPARATOR = Pattern.compile("(?<=\\S)\\s+-\\s+");
 
@@ -163,7 +164,7 @@ public final class LnvPage {
   }
 
   /**
-   * Checks the native rendered dates against one July–June season before converting any clock.
+   * Checks the native rendered dates against one July-to-June season before converting any clock.
    * Dates in both civil years can establish attribution. A single readable date can contradict it.
    * An unreadable date supplies no season evidence and remains a local calendar parsing failure.
    *
