@@ -2,6 +2,7 @@ import { homeHref } from "@/shared/native/home-href";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
+import { StackActions } from "expo-router/react-navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -222,6 +223,8 @@ function ErasureConfirmation({
       ]);
       if (active.current) {
         disablePrevention();
+        // Switching tabs retains the Profile stack, so close its completed visit first.
+        navigation.dispatch(StackActions.popTo("index"));
       }
       router.replace(homeHref);
     },

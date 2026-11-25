@@ -14,12 +14,16 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
+import { CredentialsManagerErrorCodes } from "react-native-auth0";
 import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { Stack, router, useLocalSearchParams, useRouter } from "expo-router";
 import TabsLayout from "@/app/(ordinary)/(tabs)/_layout";
 import SharedTabLayout, {
   unstable_settings as sharedTabSettings,
 } from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+import HomeLayout, {
+  unstable_settings as homeStackSettings,
+} from "@/app/(ordinary)/(tabs)/(home)/(personal)/_layout";
 import ProfileLayout, {
   unstable_settings as profileStackSettings,
 } from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
@@ -138,30 +142,52 @@ async function openProfile(initialUrl = "/profile") {
   await renderRouter(
     {
       _layout: () => (
+        <AccountSessionProvider>
+          <PrivateQueries>
+            <ProProvider>
+              <AccountFeedbackProvider>
+                <Stack
+                  screenOptions={{ headerShown: false, animation: "none" }}
+                />
+              </AccountFeedbackProvider>
+            </ProProvider>
+          </PrivateQueries>
+        </AccountSessionProvider>
+      ),
+      "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       ),
-      "(tabs)/_layout": TabsLayout,
-      "(tabs)/(discovery,home,notifications,profile)/_layout": {
+      "(ordinary)/(tabs)/_layout": TabsLayout,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
         default: SharedTabLayout,
         unstable_settings: sharedTabSettings,
       },
-      "(tabs)/(home)/(personal)/_layout": () => <Stack />,
-      "(tabs)/(home)/(personal)/index": () => <Text>Accueil ouvert</Text>,
-      "(tabs)/(notifications)/notifications": () => <Text>Notifications</Text>,
-      "(tabs)/(profile)/profile/_layout": {
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": {
+        default: HomeLayout,
+        unstable_settings: homeStackSettings,
+      },
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Accueil ouvert</Text>
+      ),
+      "(ordinary)/(tabs)/(notifications)/notifications": () => (
+        <Text>Notifications</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/_layout": {
         default: ProfileLayout,
         unstable_settings: profileStackSettings,
       },
-      "(tabs)/(profile)/profile/index": () => (
+      "(ordinary)/(tabs)/(profile)/profile/index": () => (
         <ProfileScreen admitted proEntry={null} />
       ),
-      "(tabs)/(profile)/profile/(forms)/edit": () => (
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/edit": () => (
         <ProfileEditScreen admitted />
       ),
-      "(tabs)/(profile)/profile/(forms)/erase": () => (
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/erase": () => (
         <EraseAccountScreen admitted />
       ),
-      "(tabs)/(discovery)/search": () => <Text>Recherche ouverte</Text>,
+      "(ordinary)/(tabs)/(discovery)/search": () => (
+        <Text>Recherche ouverte</Text>
+      ),
       "sign-in": () => <Text>Connexion ouverte</Text>,
       support: SupportProbe,
     },
@@ -170,17 +196,7 @@ async function openProfile(initialUrl = "/profile") {
       wrapper: ({ children }) => (
         <QueryClientProvider client={publicClient}>
           <ThemeProvider>
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>
-                <PrivateQueries>
-                  <ProProvider>
-                    <AccountFeedbackProvider>
-                      {children}
-                    </AccountFeedbackProvider>
-                  </ProProvider>
-                </PrivateQueries>
-              </AccountSessionProvider>
-            </ApplicationAccessProvider>
+            <ApplicationAccessProvider>{children}</ApplicationAccessProvider>
           </ThemeProvider>
         </QueryClientProvider>
       ),
@@ -519,6 +535,42 @@ it("offers sign-in and independent public links to a guest without profile-editi
   expect(await screen.findByText("Connexion ouverte")).toBeOnTheScreen();
   expect(screen).toHavePathname("/sign-in");
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+});
+
+it("opens the guest overview on the first Profile tab press after erasure", async () => {
+  // Given
+  mockFetch.mockImplementation(async (_, request) =>
+    request?.method === "DELETE"
+      ? new Response(null, { status: 204 })
+      : Response.json(account),
+  );
+  mockAuth0.clearCredentials.mockRejectedValueOnce({
+    code: CredentialsManagerErrorCodes.STORE_FAILED,
+    message: "Storage unavailable",
+  });
+  const user = userEvent.setup();
+  await openProfile("/search");
+  await screen.findByText("Recherche ouverte");
+  await user.press(screen.getByRole("button", { name: "Profil" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Supprimer mon compte" }),
+  );
+  await user.press(await screen.findByRole("checkbox"));
+  await user.press(
+    screen.getByRole("button", { name: "Supprimer mon compte" }),
+  );
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(screen).toHavePathname("/search"));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Profil" }));
+
+  // Then
+  await waitFor(() => expect(screen).toHavePathname("/profile"));
+  expect(screen.getByRole("header", { name: "Mon profil" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Se connecter" }),
+  ).toBeOnTheScreen();
 });
 
 it("keeps the dirty editor without main navigation when Back is refused", async () => {
