@@ -177,6 +177,30 @@ Grant-only transactions take only the target account lock. Protected commands ta
 
 [F05 erasure](../../specs/005-accounts-identity/plan.md#erasure-and-manual-resolution) removes the original account and its grants, while global `access_settings` survive. Explicit recreation gets a fresh UUID with no inherited grants. An old UUID-targeted command cannot act on it; an otherwise valid same-subject token may identify the replacement only under its current rights. See [F12 T011 qualification](../../specs/013-administration-app-configuration/quickstart.md#direct-authorization-and-manual-grant-lifecycle) for the disposable-data proof and its provider/native limits.
 
+### Prepare an operator and correct blocked settings
+
+While ordinary access is available, have the designated operator sign in normally through Auth0 and establish the business account. Verify its current UUID through `/accounts/me`, apply only the authorized grants above, and reread the current capabilities. Verify that the operator can open the intended administration screens before activating maintenance. Use the designated test identities and isolated migrated PostgreSQL for the [local rehearsal](../../specs/013-administration-app-configuration/quickstart.md#first-environment-rehearsal). Before public exposure, follow [F14's production preparation](../../specs/014-v1-v2-transition/plan.md#cutover-and-recovery) with separate authorization and the exact production binary in its native test channel.
+
+When mobile administration is blocked by a wrong setting, use an independently authorized connection to the confirmed environment. Inspect the current rows privately and agree the correction with the owner. Check the complete resulting group against the [maintenance](../../specs/013-administration-app-configuration/data-model.md#maintenance-settings) or [application version](../../specs/013-administration-app-configuration/data-model.md#application-version-settings) invariants before updating it. Keep the other group and unrelated fields intact. An unchanged value requires no update.
+
+For example, to remove an erroneous iOS minimum while retaining its valid store link, review the `versions` row and pass its observed `revision` as `expected_revision` to a private `psql -X -v ON_ERROR_STOP=1` batch on the authorized connection.
+
+```sql
+BEGIN;
+UPDATE access_settings
+SET ios_minimum_version = NULL, revision = revision + 1
+WHERE id = 'versions' AND revision = :'expected_revision'::bigint
+  AND ios_minimum_version IS NOT NULL
+RETURNING revision AS corrected_revision
+\gset
+COMMIT;
+SELECT revision, ios_minimum_version, ios_store_url,
+       android_minimum_version, android_store_url, message
+FROM access_settings WHERE id = 'versions';
+```
+
+An absent or stale row stops the batch before commit. Reread it before any new attempt. Verify the committed correction and the single JPA revision advance, and compare the other group's state with the prior read. With a compatible client, complete a normal `/application-access` read and confirm the resulting access or remaining restriction and the operator's current allowed actions.
+
 ## Ordinary owner recovery
 
 Use these existing owner paths after interrupted processing without resetting retained data. Confirm the local target, running revision, affected source/control/resource and current authorization. Keep original command/cycle identities and private evidence; a lost response does not prove cancellation and a cleared technical error does not prove business recovery. The [A11–A13 qualification](../../specs/003-shared-quality/quickstart.md#ordinary-owner-recovery) separates tested application behavior from native/provider evidence.

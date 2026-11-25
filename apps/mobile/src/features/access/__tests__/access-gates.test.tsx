@@ -765,6 +765,48 @@ it("refreshes maintenance and retries existing-account identification without in
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 });
 
+it("retries only the complete access read after a signed-in operator sees its failure", async () => {
+  // Given
+  const full = applicationAccessResponse();
+  full.maintenance.active = true;
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  let accessAvailable = true;
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(operator);
+    }
+    if (!accessAvailable) {
+      throw new Error("Complete check unavailable");
+    }
+    return json(full);
+  });
+  const user = userEvent.setup();
+  await openRoute("/");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  accessAvailable = false;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(async () => jest.advanceTimersByTimeAsync(8_000));
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  const requestsBeforeRetry = mockFetch.mock.calls.length;
+
+  // When
+  accessAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(requestsBeforeRetry)
+      .map(([url, options]) => [
+        new URL(String(url)).pathname,
+        options?.method,
+      ]),
+  ).toEqual([["/application-access", "GET"]]);
+});
+
 it("opens the exact direct Match before the first account response and retains it after failure", async () => {
   // Given: the real Router/session owners remain mounted while HTTP alone is delayed.
   mockAuth0.hasValidCredentials.mockResolvedValue(true);

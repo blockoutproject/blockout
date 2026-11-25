@@ -97,7 +97,6 @@ function GateView({
               query={query}
               loadingContent={null}
               failed={gate === "unavailable" || readFailed}
-              onRetry={onRefresh}
             />
           )}
         </ScreenState>
