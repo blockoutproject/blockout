@@ -359,6 +359,7 @@ function ParticipantMap({
         showsPointsOfInterests={false}
         {...mapAttribution}
         toolbarEnabled={false}
+        moveOnMarkerPress={false}
         zoomControlEnabled={false}
         rotateEnabled={false}
         pitchEnabled={false}

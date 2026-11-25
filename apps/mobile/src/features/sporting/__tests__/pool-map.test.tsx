@@ -1507,6 +1507,7 @@ it("keeps the lone location frame until Show all explicitly clears and reframes 
     { latitude: -0.075, longitude: -0.075 },
   ]);
   nativeMapCommands.fitToCoordinates.mockClear();
+  expect(nativeMap).toHaveProp("moveOnMarkerPress", false);
 
   // When: selection, dismissal and refreshed names/coordinates leave the camera where the user left it.
   await fireEvent(
