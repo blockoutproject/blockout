@@ -115,6 +115,20 @@ npx eas-cli@25.1.1 env:exec preview \
 
 After credentials are ready, the same project selectors with `eas build --profile preview --platform all --freeze-credentials` request the internal builds. EAS's official `--local` build with the same profile is available when its cloud queue delays qualification and the required native tools already exist. Preserve the exact artifact/source and distinguish local development clients from signed preview binaries; do not install providers, buy capacity or rebuild compatible clients by default.
 
+For RevenueCat Test Store checks against the hosted preproduction API, build the internal `preview-test-store` development client from the same revision. It uses Debug builds, the `preview` EAS environment and the same preproduction app identity, so use a separate test device or emulator if the installed Release app must stay in place. The installed Android Debug artifact may have a different signing certificate, which needs its own verified Maps restriction if that circuit uses Maps.
+
+```sh
+APP_VARIANT=preview-test-store EXPO_PROJECT_SLUG=blockoutproject \
+npx eas-cli@25.1.1 build --profile preview-test-store --platform all --non-interactive --freeze-credentials
+```
+
+Keep `REVENUECAT_OFFERING_ID=default` in EAS `preview` and use its existing Test Store product under the [F09 setup](../../specs/006-pro-subscriptions/quickstart.md#prerequisites-and-setup). Set the authorized `REVENUECAT_TEST_STORE_API_KEY` in the shell launching Metro. Use the same source revision from `apps/mobile` and open the Metro session in the installed Debug client. With `preview-test-store` selected, Pro stays unavailable until the Test Store key is supplied.
+
+```sh
+APP_VARIANT=preview-test-store EXPO_PROJECT_SLUG=blockoutproject EXPO_NO_DOTENV=1 \
+npx eas-cli@25.1.1 env:exec preview 'APP_VARIANT=preview-test-store npx expo start --dev-client' --non-interactive
+```
+
 ## Owner-only action grants
 
 Only the product owner may assign or withdraw privileged actions, through an independently authorized database connection. A delegated operator receives application capabilities only: no SQL credentials, assignment endpoint or right to redistribute grants. Confirm the environment and current deployment, verify the target privately through F05, and use its **current business UUID** (`account.id`), never an email, Auth0 subject, old UUID or inferred replacement. Keep identifiers, connection material and results private; there is no public grant ledger.
@@ -579,7 +593,7 @@ Inspect the canonical season, accepted source reference, latest catalogue read, 
 
 F03 uses `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on Android. `GOOGLE_MAPS_ANDROID_API_KEY` is a native build input consumed by the package's Expo config plugin; it is not an `EXPO_PUBLIC_` runtime value. Rebuild the development/release client after changing it. No iOS Google key, location permission request, GPS, custom tile service or persistent geographic cache is configured.
 
-Before authorized Android map use, supply a separate appropriately scoped key for the intended environment. Restrict it to **Android applications**, with the exact application package and SHA-1 signing-certificate fingerprint of each authorized build. The configured packages are `com.blockout.local`, `com.blockoutproject.blockout.preproduction` and `com.blockoutproject.blockout`; release verification must use the certificate that signs the installed artifact (including Play App Signing where applicable), not an assumed local/upload certificate. Restrict the key's APIs to **Maps SDK for Android**. Keep real key values and private provider evidence outside this repository; a mobile key is embedded in its native artifact and relies on verified restrictions.
+Before authorized Android map use, supply a separate appropriately scoped key for the intended environment. Restrict it to **Android applications**, with the exact application package and SHA-1 signing-certificate fingerprint of each authorized build. The configured packages are `com.blockoutproject.blockout.local`, `com.blockoutproject.blockout.preproduction` and `com.blockoutproject.blockout`; release verification must use the certificate that signs the installed artifact (including Play App Signing where applicable), not an assumed local/upload certificate. Restrict the key's APIs to **Maps SDK for Android**. Keep real key values and private provider evidence outside this repository; a mobile key is embedded in its native artifact and relies on verified restrictions.
 
 F03 T040 owns provider configuration, verification of actual credentials and restrictions, and native observations on compatible clients. Android activation remains on owner hold. F13 tracks the remaining physical-device observations. [F03 native map cases](../../specs/007-sporting-consultation/quickstart.md#native-map-cases) · [Android hold](https://github.com/blockoutproject/blockout/issues/218) · [F13 physical-device qualification](https://github.com/blockoutproject/blockout/issues/833)
 

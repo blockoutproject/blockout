@@ -17,6 +17,11 @@
       "environment": "preview",
       "env": { "APP_VARIANT": "preview" }
     },
+    "preview-test-store": {
+      "extends": "preview",
+      "developmentClient": true,
+      "env": { "APP_VARIANT": "preview-test-store" }
+    },
     "production": {
       "node": "24.18.0",
       "environment": "production",

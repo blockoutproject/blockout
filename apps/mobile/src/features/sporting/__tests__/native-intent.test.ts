@@ -44,7 +44,7 @@ it.each([
   `/matches/${entityId}/report-contribution`,
   "/search/filters",
   "/administration/maintenance",
-  "com.blockout.local.auth0://identity.example.invalid/android/com.blockout.local/callback?code=synthetic",
+  "com.blockoutproject.blockout.local.auth0://identity.example.invalid/android/com.blockoutproject.blockout.local/callback?code=synthetic",
   "https://[",
 ])("leaves the existing Router handling intact for %s", (path) => {
   // Given: this system entry is outside the four exact sporting-detail routes.

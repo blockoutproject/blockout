@@ -109,7 +109,7 @@ it.each(["app:///index.android.bundle", "app:///main.jsbundle"])(
       type: undefined,
       event_id: "0123456789abcdef0123456789abcdef",
       platform: "javascript",
-      release: "com.blockout.local@0.0.0+1",
+      release: "com.blockoutproject.blockout.local@0.0.0+1",
       sdk: { name: "sentry.javascript.react-native", version: "7.11.0" },
       message: "private-provider-body",
       user: { email: "private@example.invalid" },
