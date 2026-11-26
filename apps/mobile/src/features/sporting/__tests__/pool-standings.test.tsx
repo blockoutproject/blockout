@@ -517,8 +517,8 @@ it("keeps the displayed podium logo through cards and back to the list", async (
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   const name = "Logo : Effective Z";
-  const logo = await screen.findByRole("image", { name, busy: true });
-  await fireEvent(logo, "display");
+  const slot = await screen.findByRole("image", { name, busy: true });
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "display");
 
   // When
   await user.press(screen.getByRole("radio", { name: "Afficher en cartes" }));
@@ -548,7 +548,8 @@ it("loads a replacement logo without remounting its team link", async () => {
   await layoutNativeTabs();
   const link = await screen.findByRole("link", { name: /Official Z\. Rang 1/ });
   const name = `Logo : ${team.name}`;
-  await fireEvent(screen.getByRole("image", { name, busy: true }), "display");
+  const slot = screen.getByRole("image", { name, busy: true });
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "display");
 
   // When
   table.rows[0] = {
@@ -558,9 +559,15 @@ it("loads a replacement logo without remounting its team link", async () => {
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  const replacement = await screen.findByRole("image", { name, busy: true });
+  const replacementSlot = await screen.findByRole("image", {
+    name,
+    busy: true,
+  });
   expect(link).toBeOnTheScreen();
-  await fireEvent(replacement, "display");
+  await fireEvent(
+    within(replacementSlot).getByTestId("sporting-logo-image"),
+    "display",
+  );
   expect(screen.getByRole("image", { name, busy: false })).toBeOnTheScreen();
 });
 
