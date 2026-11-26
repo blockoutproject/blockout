@@ -4,7 +4,6 @@ import {
   useCallback,
   useImperativeHandle,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   type ReactElement,
@@ -18,12 +17,16 @@ import {
   View,
   type FlatListProps,
 } from "react-native";
-import type { LegendListRef } from "@legendapp/list/react-native";
 import {
-  AnimatedLegendList,
-  type AnimatedLegendListProps,
-} from "@legendapp/list/reanimated";
-import { useAnimatedRef, useScrollOffset } from "react-native-reanimated";
+  LegendList,
+  type LegendListProps,
+  type LegendListRef,
+} from "@legendapp/list/react-native";
+import {
+  useAnimatedRef,
+  useScrollOffset,
+  type AnimatedRef,
+} from "react-native-reanimated";
 import { NavigationScrollMarker } from "./navigation-backdrop";
 import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
@@ -79,7 +82,7 @@ function renderRevealedItem<Content extends ReactNode>(
 }
 
 /** The page owns the offset published to pinned chrome. */
-type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
+type PageListProps<T> = LegendListProps<T> & {
   ref?: Ref<LegendListRef>;
   /** The first active read's skeleton, retained decoratively while LegendList measures its first rows. */
   loadingFeedback?: { active: boolean; content: ReactElement };
@@ -89,6 +92,7 @@ type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
 export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const {
     contentContainerStyle,
+    ref,
     maintainVisibleContentPosition,
     stickyHeaderConfig,
     loadingFeedback,
@@ -102,10 +106,19 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const { offset, stickyInset, clearance } = usePageScrollBinding(
     contentContainerStyle,
   );
-  const sharedValues = useMemo(
-    () => (offset ? { scrollOffset: offset } : undefined),
-    [offset],
+  const list = useAnimatedRef<LegendListRef>();
+  useScrollOffset(offset ? list : null, offset ?? undefined);
+  useImperativeHandle<LegendListRef | null, LegendListRef | null>(
+    ref,
+    () => list.current,
+    [list],
   );
+  // Replacing a scroller can change its initial offset before the first native event.
+  useLayoutEffect(() => {
+    if (offset && list.current) {
+      offset.set(list.current.getState().scroll);
+    }
+  }, [list, offset]);
   const hasRows = (props.data?.length ?? 0) > 0;
   const loading = !hasRows && loadingFeedback?.active === true;
   const [retainingSkeleton, setRetainingSkeleton] = useState(loading);
@@ -140,7 +153,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const nativeProps = {
     ...props,
     ...hiddenScrollIndicators,
-    sharedValues,
+    ref: list,
     contentContainerStyle: [contentContainerStyle, clearance],
     // On iOS, size anchoring turns measured chrome padding into scroll movement.
     maintainVisibleContentPosition:
@@ -178,7 +191,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
           paddingTop={clearance.paddingTop}
         />
       ) : (
-        <AnimatedLegendList {...nativeProps} />
+        <LegendList {...nativeProps} />
       )}
     </NavigationScrollMarker>
   );
@@ -187,16 +200,16 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
 function RevealingLegendList<T>({
   reveal,
   paddingTop,
-  ref,
+  ref: list,
   onReady,
   onMetricsChange,
   renderItem,
   ...props
 }: Readonly<
-  AnimatedLegendListProps<T> &
+  LegendListProps<T> &
     RevealingRows<T> & {
       paddingTop: number;
-      ref?: Ref<LegendListRef>;
+      ref: AnimatedRef<LegendListRef>;
     }
 >) {
   const ownPresentation = useContentReveal();
@@ -206,12 +219,6 @@ function RevealingLegendList<T>({
     presentation = ownPresentation,
   } = revealOptions(reveal, props.keyExtractor);
   const { start } = presentation;
-  const list = useRef<LegendListRef>(null);
-  useImperativeHandle<LegendListRef | null, LegendListRef | null>(
-    ref,
-    () => list.current,
-    [list],
-  );
   const laidOut = useRef(false);
   const presented = useRef(false);
   const headerHeight = useRef(0);
@@ -248,11 +255,11 @@ function RevealingLegendList<T>({
       }
     }
     presented.current = start([...keys]);
-  }, [active, blockKey, bottomInset, items, paddingTop, start]);
+  }, [active, blockKey, bottomInset, items, list, paddingTop, start]);
   useLayoutEffect(present, [present]);
 
   return (
-    <AnimatedLegendList
+    <LegendList
       {...props}
       ref={list}
       onReady={() => {

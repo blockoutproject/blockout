@@ -84,6 +84,40 @@ function Example({
 
 afterEach(() => jest.restoreAllMocks());
 
+it("shows the identity and tabs before admitting the scene with its measured clearance", async () => {
+  // Given
+  const read = jest.fn();
+  await render(
+    <ThemeProvider>
+      <PagedTabs
+        selected="upcoming"
+        onSelect={jest.fn()}
+        header={<Text>Équipe</Text>}
+        collapsibleHeader={<Text>Identité de l’équipe</Text>}
+        collapsibleHeaderMinHeight={160}
+        tabs={[
+          {
+            id: "upcoming",
+            label: "À venir",
+            content: <FirstScene onRead={read} />,
+          },
+        ]}
+      />
+    </ThemeProvider>,
+  );
+  expect(screen.getByText("Identité de l’équipe")).toBeOnTheScreen();
+  expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
+  expect(screen.queryByText("Scène initiale")).toBeNull();
+  expect(read).not.toHaveBeenCalled();
+
+  // When
+  await layoutNativeTabs();
+
+  // Then
+  expect(screen.getByText("Scène initiale")).toBeOnTheScreen();
+  expect(read).toHaveBeenCalledTimes(1);
+});
+
 it.each([false, true])(
   "requests native tab animation according to reduced motion (%s) while retaining destination content",
   async (reducedMotion) => {
