@@ -27,6 +27,16 @@ const outcomeTones = {
   unconfirmed: "warning",
 } satisfies Record<CollectionResultResponse["outcome"], StatusBadgeTone>;
 
+// These fixed collector reasons also appear on results retained before this presentation.
+const geocodingBadgeByReason = new Map<
+  string,
+  { label: string; tone: StatusBadgeTone }
+>([
+  ["IGN location: empty", { label: "Aucun point trouvé", tone: "neutral" }],
+  ["IGN location: ambiguous", { label: "Résultats ambigus", tone: "warning" }],
+  ["IGN location: located", { label: "Localisé", tone: "success" }],
+]);
+
 /** One accepted outcome. A contextual link needs an established source from this very row. */
 export function CollectionBilanResult({
   result,
@@ -37,6 +47,13 @@ export function CollectionBilanResult({
 }>) {
   const { colors } = useTheme();
   const { source, reason, reasonType, lastSuccessAt } = result;
+  const geocodingBadge =
+    result.stage === "geocoding" &&
+    result.phase === "acquisition" &&
+    result.outcome === "success" &&
+    reason
+      ? geocodingBadgeByReason.get(reason)
+      : undefined;
   const sourceLink =
     onViewSource && result.outcome !== "success" ? source : undefined;
   const outlinedBadge =
@@ -86,13 +103,13 @@ export function CollectionBilanResult({
           </View>
         </View>
         <StatusBadge
-          label={outcomeLabels[result.outcome]}
-          tone={outcomeTones[result.outcome]}
+          label={geocodingBadge?.label ?? outcomeLabels[result.outcome]}
+          tone={geocodingBadge?.tone ?? outcomeTones[result.outcome]}
           outlined={outlinedBadge}
           style={styles.badge}
         />
       </View>
-      {!!reason && (
+      {!!reason && !geocodingBadge && (
         <Text style={[tokens.typography.body, { color: colors.text }]}>
           {reason}
         </Text>

@@ -160,6 +160,70 @@ it("presents the accepted outcomes and opens only established source context", a
   expect(screen.getByText("Non confirmée")).toBeOnTheScreen();
 });
 
+it("shows the geocoding finding separately from a technical failure", async () => {
+  // Given
+  const geocoding = control({ family: "geocoding", seasonId: undefined });
+  peer.results = [
+    result({
+      scopeId: "00000000-0000-4000-8000-000000000201",
+      scopeLabel: "Club sans point",
+      stage: "geocoding",
+      phase: "acquisition",
+      outcome: "success",
+      reason: "IGN location: empty",
+    }),
+    result({
+      scopeId: "00000000-0000-4000-8000-000000000202",
+      scopeLabel: "Club au résultat ambigu",
+      stage: "geocoding",
+      phase: "acquisition",
+      outcome: "success",
+      reason: "IGN location: ambiguous",
+    }),
+    result({
+      scopeId: "00000000-0000-4000-8000-000000000203",
+      scopeLabel: "Club localisé",
+      stage: "geocoding",
+      phase: "acquisition",
+      outcome: "success",
+      reason: "IGN location: located",
+    }),
+    result({
+      scopeId: "00000000-0000-4000-8000-000000000204",
+      scopeLabel: "Club en échec",
+      stage: "geocoding",
+      phase: "acquisition",
+      outcome: "failed",
+      reason: "Le service de géocodage est indisponible.",
+    }),
+  ];
+
+  // When
+  await renderCollection(
+    <CollectionBilanScreen
+      header={<Text>Bilan</Text>}
+      controlId={geocoding.id}
+      criteria={{}}
+      {...navigation}
+    />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+
+  // Then
+  expect(await screen.findByText("Aucun point trouvé")).toBeOnTheScreen();
+  expect(screen.getByText("Résultats ambigus")).toBeOnTheScreen();
+  expect(screen.getByText("Localisé")).toBeOnTheScreen();
+  expect(screen.getByText("Échouée")).toBeOnTheScreen();
+  expect(
+    screen.getByText("Le service de géocodage est indisponible."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Réussie")).not.toBeOnTheScreen();
+  expect(screen.queryByText(/^IGN location:/)).not.toBeOnTheScreen();
+});
+
 it("keeps the admitted rows and only retries a failed continuation from its footer", async () => {
   // Given
   const user = userEvent.setup();
