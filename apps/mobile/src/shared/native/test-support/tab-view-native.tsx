@@ -9,7 +9,7 @@ jest.mock("react-native-reanimated", () =>
   jest.requireMock("react-native-reanimated/mock"),
 );
 
-jest.mock("@legendapp/list/reanimated", () => {
+jest.mock("@legendapp/list/react-native", () => {
   const { FlatList } =
     jest.requireActual<typeof import("react-native")>("react-native");
   const { useImperativeHandle, useRef } =
@@ -27,6 +27,8 @@ jest.mock("@legendapp/list/reanimated", () => {
         viewport.current &&
         Object.assign(viewport.current, {
           scrollToKey: () => Promise.resolve(),
+          // The native test renderer starts at rest and supplies no measured range.
+          getState: () => ({ scroll: 0, start: -1, end: -1 }),
         }),
       [],
     );
@@ -40,7 +42,7 @@ jest.mock("@legendapp/list/reanimated", () => {
     );
   }
 
-  return { AnimatedLegendList: NativeLegendViewport };
+  return { LegendList: NativeLegendViewport };
 });
 
 /** Supplies the layout absent from the native test renderer; these bounds prove no geometry. */

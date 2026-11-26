@@ -60,8 +60,6 @@ export interface PagedTabsProps {
   contextColor?: string;
   header?: ReactNode;
   collapsibleHeader?: ReactNode;
-  /** The minimum that the existing header and rail reserve before native layout reports their size. */
-  collapsibleHeaderMinHeight?: number;
   tabBarMinHeight?: number;
   /** The Home brand fades while it folds; sporting cards clip below fixed navigation. */
   fadeHeaderOnScroll?: boolean;
@@ -89,7 +87,6 @@ export function PagedTabs({
   contextColor,
   header,
   collapsibleHeader,
-  collapsibleHeaderMinHeight = tokens.layout.header,
   tabBarMinHeight = tokens.touch.minimum,
   fadeHeaderOnScroll = false,
   renderTabBar,
@@ -103,11 +100,8 @@ export function PagedTabs({
     width: window.width,
     height: 0,
   });
-  const [pinnedHeight, setPinnedHeight] = useState(
-    header ? tokens.layout.header : 0,
-  );
-  const [brandHeight, setBrandHeight] = useState(collapsibleHeaderMinHeight);
-  const [railHeight, setRailHeight] = useState(tabBarMinHeight);
+  const [chromeHeight, setChromeHeight] = useState<number>();
+  const [collapsibleHeight, setCollapsibleHeight] = useState<number>();
   const [settled, setSettled] = useState(selected);
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
@@ -131,15 +125,23 @@ export function PagedTabs({
   const position = useSharedValue(selectedIndex);
   const command = useSharedValue<TabCommand | null>(null);
   const lastIndex = Math.max(0, tabs.length - 1);
-  const headerHeight = collapsibleHeader ? brandHeight : 0;
-  const minScrollDistance =
-    header && collapsibleHeader
-      ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
-      : headerHeight;
+  const hasSportingIdentity = Boolean(header && collapsibleHeader);
+  const headerHeight = collapsibleHeader
+    ? (collapsibleHeight ?? tokens.layout.header)
+    : 0;
+  // A sporting list needs both its expanded clearance and its pinned date offset at mount.
+  const sceneLayoutReady =
+    !hasSportingIdentity ||
+    (chromeHeight !== undefined && collapsibleHeight !== undefined);
+  const minScrollDistance = hasSportingIdentity
+    ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
+    : headerHeight;
   const minContentHeight = height ? height + minScrollDistance : 0;
-  const inset = topInset + (header ? pinnedHeight : 0);
-  const stickyInset = inset + railHeight;
-  const contentInset = stickyInset + headerHeight;
+  const contentInset =
+    topInset +
+    (chromeHeight ??
+      (header ? tokens.layout.header : 0) + headerHeight + tabBarMinHeight);
+  const stickyInset = contentInset - headerHeight;
 
   const [scenes, setScenes] = useState(() =>
     tabs.map((tab) => createSceneOffset(tab)),
@@ -205,16 +207,11 @@ export function PagedTabs({
     height: contentInset - chromeOffset.get(),
   }));
   const chromeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: fadeHeaderOnScroll ? -chromeOffset.get() : 0 }],
+    transform: [{ translateY: -chromeOffset.get() }],
   }));
-  const clipStyle = useAnimatedStyle(() =>
-    fadeHeaderOnScroll ? {} : { height: headerHeight - chromeOffset.get() },
-  );
   const brandStyle = useAnimatedStyle(() => {
     const progress = collapseProgress.get();
-    return fadeHeaderOnScroll
-      ? { opacity: reducedMotion ? Number(progress < 1) : 1 - progress }
-      : { transform: [{ translateY: -chromeOffset.get() }] };
+    return { opacity: reducedMotion ? Number(progress < 1) : 1 - progress };
   });
   const brandAccessibility = useAnimatedProps(() => {
     const hidden = collapseProgress.get() >= 1;
@@ -428,8 +425,8 @@ export function PagedTabs({
                 index={index}
                 command={command}
                 collapse={chromeOffset}
-                active={index === selectedIndex}
-                preview={tab.preview}
+                active={index === selectedIndex && sceneLayoutReady}
+                preview={sceneLayoutReady ? tab.preview : undefined}
                 width={width}
                 height={height}
                 contentInset={contentInset}
@@ -448,56 +445,41 @@ export function PagedTabs({
         scrollOffset={materialOffset}
         style={[styles.material, materialStyle]}
       />
-      <Animated.View
+      <View
         pointerEvents="box-none"
-        style={[styles.top, { top: inset }, chromeStyle]}
+        style={[styles.top, { top: topInset }]}
+        onLayout={({ nativeEvent }) =>
+          setChromeHeight(nativeEvent.layout.height)
+        }
       >
-        {collapsibleHeader && (
-          <Animated.View
-            pointerEvents="box-none"
-            animatedProps={brandAccessibility}
-            style={!fadeHeaderOnScroll && [styles.clip, clipStyle]}
-          >
-            <Animated.View
-              pointerEvents="box-none"
-              onLayout={({ nativeEvent }) =>
-                setBrandHeight(nativeEvent.layout.height)
-              }
-              style={[
-                !fadeHeaderOnScroll && styles.top,
-                { minHeight: collapsibleHeaderMinHeight },
-                brandStyle,
-              ]}
-            >
-              {collapsibleHeader}
-            </Animated.View>
-          </Animated.View>
+        {header && (
+          <PagedTabHeaderOffsetContext value={headerOffset}>
+            {header}
+          </PagedTabHeaderOffsetContext>
         )}
         <View
-          style={{ minHeight: tabBarMinHeight }}
-          onLayout={({ nativeEvent }) =>
-            setRailHeight(nativeEvent.layout.height)
-          }
-        >
-          {renderTabBar ? renderTabBar(rail) : rail}
-        </View>
-      </Animated.View>
-      {header && (
-        <View
           pointerEvents="box-none"
-          style={[styles.top, { paddingTop: topInset }]}
+          style={!!collapsibleHeader && !fadeHeaderOnScroll && styles.clip}
         >
-          <View
-            onLayout={({ nativeEvent }) =>
-              setPinnedHeight(nativeEvent.layout.height)
-            }
-          >
-            <PagedTabHeaderOffsetContext value={headerOffset}>
-              {header}
-            </PagedTabHeaderOffsetContext>
-          </View>
+          <Animated.View pointerEvents="box-none" style={chromeStyle}>
+            {collapsibleHeader && (
+              <Animated.View
+                pointerEvents="box-none"
+                animatedProps={brandAccessibility}
+                onLayout={({ nativeEvent }) =>
+                  setCollapsibleHeight(nativeEvent.layout.height)
+                }
+                style={fadeHeaderOnScroll && brandStyle}
+              >
+                {collapsibleHeader}
+              </Animated.View>
+            )}
+            <View style={{ minHeight: tabBarMinHeight }}>
+              {renderTabBar ? renderTabBar(rail) : rail}
+            </View>
+          </Animated.View>
         </View>
-      )}
+      </View>
     </View>
   );
 }

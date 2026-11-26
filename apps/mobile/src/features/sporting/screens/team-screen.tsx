@@ -6,7 +6,6 @@ import { SportingCalendar } from "../components/sporting-calendar";
 import { CalendarLoading } from "../components/calendar-loading";
 import { StandingsLoading } from "../components/standings-loading";
 import {
-  sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
@@ -70,18 +69,6 @@ function TeamPage({
     })),
   ];
   const tab = tabs.find((item) => item.id === selected) ?? calendarTabs[0];
-  /** One shared identity owns its club link and the single follow lifetime above all scenes. */
-  const identity = data ? (
-    <SportingIdentity
-      identity={data.team.team}
-      kind="team"
-      classification={data.team.classification}
-      season={data.team.season}
-      clubId={data.team.club?.id}
-    >
-      {renderFollow?.(data.team.team, data.team.season, divisionColor)}
-    </SportingIdentity>
-  ) : undefined;
   return (
     <SportingInitialComposition
       detail={team}
@@ -103,21 +90,32 @@ function TeamPage({
           onSelect={setSelected}
           contextColor={divisionColor}
           header={
-            data && (
-              <SportingPageHeader
-                action={
-                  <SportingSupportAction
-                    target={{ type: "team", id: teamId }}
-                  />
-                }
-                identity={data.team.team}
-                division={data.team.classification.division}
-                kind="team"
-              />
-            )
+            <SportingPageHeader
+              action={
+                <SportingSupportAction target={{ type: "team", id: teamId }} />
+              }
+              identity={data.team.team}
+              division={data.team.classification.division}
+              kind="team"
+            />
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
-          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
+          collapsibleHeader={
+            <PageContent>
+              <SportingIdentity
+                identity={data.team.team}
+                kind="team"
+                classification={data.team.classification}
+                season={data.team.season}
+                clubId={data.team.club?.id}
+              >
+                {renderFollow?.(
+                  data.team.team,
+                  data.team.season,
+                  divisionColor,
+                )}
+              </SportingIdentity>
+            </PageContent>
+          }
           tabs={tabs.map((item) => {
             const active = tab.id === item.id;
             const isParticipation = "participation" in item;

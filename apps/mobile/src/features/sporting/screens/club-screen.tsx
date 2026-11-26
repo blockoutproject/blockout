@@ -7,10 +7,7 @@ import {
 import { CalendarLoading } from "../components/calendar-loading";
 import { ClubLocation } from "../components/club-location";
 import { PageList } from "@/shared/components/page-list";
-import {
-  sportingIdentityHeaderMinHeight,
-  SportingInitialComposition,
-} from "../components/sporting-initial-composition";
+import { SportingInitialComposition } from "../components/sporting-initial-composition";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
@@ -100,15 +97,6 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
     await club.refetch({ cancelRefetch: false });
   }
 
-  const identity = data ? (
-    <SportingIdentity
-      identity={data.club}
-      kind="club"
-      subtitle={[data.contacts.city, data.contacts.postalCode]
-        .filter(Boolean)
-        .join(" ")}
-    />
-  ) : undefined;
   const tabs = [
     { id: "info", label: "Infos" },
     { id: "teams", label: "Équipes" },
@@ -232,20 +220,25 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
           selected={tab}
           onSelect={setTab}
           header={
-            data && (
-              <SportingPageHeader
-                action={
-                  <SportingSupportAction
-                    target={{ type: "club", id: clubId }}
-                  />
-                }
+            <SportingPageHeader
+              action={
+                <SportingSupportAction target={{ type: "club", id: clubId }} />
+              }
+              identity={data.club}
+              kind="club"
+            />
+          }
+          collapsibleHeader={
+            <PageContent>
+              <SportingIdentity
                 identity={data.club}
                 kind="club"
+                subtitle={[data.contacts.city, data.contacts.postalCode]
+                  .filter(Boolean)
+                  .join(" ")}
               />
-            )
+            </PageContent>
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
-          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
           tabs={tabs.map(({ id: value, label }) => {
             /** Chooses the retained Info, season-owned Teams or calendar scene without joining their read lifetimes. */
             function renderTabContent() {

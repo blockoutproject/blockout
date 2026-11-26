@@ -12,7 +12,12 @@ import {
   Text,
   TextInput,
 } from "react-native";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "../paged-tabs";
 
@@ -83,6 +88,56 @@ function Example({
 }
 
 afterEach(() => jest.restoreAllMocks());
+
+const sportingIdentity = { label: "Identité de l’équipe", height: 274 };
+const sportingHeaderColumn = { label: "Équipe", height: 374 };
+
+it.each([
+  { first: sportingIdentity, second: sportingHeaderColumn },
+  { first: sportingHeaderColumn, second: sportingIdentity },
+])(
+  "waits for both sporting layouts before starting the selected scene ($first.label first)",
+  async ({ first, second }) => {
+    // Given
+    const read = jest.fn();
+    await render(
+      <ThemeProvider>
+        <PagedTabs
+          selected="upcoming"
+          onSelect={jest.fn()}
+          header={<Text>{sportingHeaderColumn.label}</Text>}
+          collapsibleHeader={<Text>{sportingIdentity.label}</Text>}
+          tabs={[
+            {
+              id: "upcoming",
+              label: "À venir",
+              content: <FirstScene onRead={read} />,
+            },
+          ]}
+        />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
+
+    // When one of the two native containers reports its height
+    await fireEvent.layout(screen.getByText(first.label).parent!, {
+      height: first.height,
+    });
+
+    // Then
+    expect(screen.queryByText("Scène initiale")).toBeNull();
+    expect(read).not.toHaveBeenCalled();
+
+    // When the other native container reports its height
+    await fireEvent.layout(screen.getByText(second.label).parent!, {
+      height: second.height,
+    });
+
+    // Then
+    expect(screen.getByText("Scène initiale")).toBeOnTheScreen();
+    expect(read).toHaveBeenCalledTimes(1);
+  },
+);
 
 it.each([false, true])(
   "requests native tab animation according to reduced motion (%s) while retaining destination content",

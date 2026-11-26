@@ -12,7 +12,6 @@ import { StandingsLoading } from "../components/standings-loading";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import {
-  sportingIdentityHeaderMinHeight,
   SportingInitialComposition,
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
@@ -73,19 +72,6 @@ function PoolPage({
     data !== undefined && mapVisited,
   );
   const divisionColor = data?.pool.classification.division?.color;
-  const identity = data ? (
-    <SportingIdentity
-      identity={data.pool.pool}
-      kind="pool"
-      classification={data.pool.classification}
-      season={data.pool.season}
-      subtitle={[data.pool.competitionName, data.pool.phaseName]
-        .filter(Boolean)
-        .join(" - ")}
-    >
-      {renderFollow?.(data.pool.pool, data.pool.season, divisionColor)}
-    </SportingIdentity>
-  ) : undefined;
   const tabs = [
     { id: "standings", label: "Classement" },
     { id: "upcoming", label: "À venir" },
@@ -113,21 +99,34 @@ function PoolPage({
           onSelect={selectTab}
           contextColor={divisionColor}
           header={
-            data && (
-              <SportingPageHeader
-                action={
-                  <SportingSupportAction
-                    target={{ type: "pool", id: poolId }}
-                  />
-                }
-                identity={data.pool.pool}
-                division={data.pool.classification.division}
-                kind="pool"
-              />
-            )
+            <SportingPageHeader
+              action={
+                <SportingSupportAction target={{ type: "pool", id: poolId }} />
+              }
+              identity={data.pool.pool}
+              division={data.pool.classification.division}
+              kind="pool"
+            />
           }
-          collapsibleHeader={<PageContent>{identity}</PageContent>}
-          collapsibleHeaderMinHeight={sportingIdentityHeaderMinHeight}
+          collapsibleHeader={
+            <PageContent>
+              <SportingIdentity
+                identity={data.pool.pool}
+                kind="pool"
+                classification={data.pool.classification}
+                season={data.pool.season}
+                subtitle={[data.pool.competitionName, data.pool.phaseName]
+                  .filter(Boolean)
+                  .join(" - ")}
+              >
+                {renderFollow?.(
+                  data.pool.pool,
+                  data.pool.season,
+                  divisionColor,
+                )}
+              </SportingIdentity>
+            </PageContent>
+          }
           tabs={tabs.map(({ id: value, label }) => {
             const category =
               value === "upcoming" || value === "completed" ? value : undefined;
