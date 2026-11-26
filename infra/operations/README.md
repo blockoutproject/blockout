@@ -126,6 +126,8 @@ npx eas-cli@25.1.1 build --profile preview-test-store --platform all --non-inter
 
 Keep `REVENUECAT_OFFERING_ID=default` in EAS `preview` and use its existing Test Store product under the [F09 setup](../../specs/006-pro-subscriptions/quickstart.md#prerequisites-and-setup). Set the authorized `REVENUECAT_TEST_STORE_API_KEY` in the shell launching Metro. Use the same source revision from `apps/mobile` and open the Metro session in the installed Debug client. With `preview-test-store` selected, Pro stays unavailable until the Test Store key is supplied.
 
+Set the four public Preproduction inputs (`EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_AUTH0_DOMAIN`, `EXPO_PUBLIC_AUTH0_CLIENT_ID` and `EXPO_PUBLIC_AUTH0_AUDIENCE`) in the worktree's ignored `apps/mobile/.env.local` before launching Metro. Preserve any previous Local values separately. In development, Expo's JavaScript bundle can read that file even when the launch command sets `EXPO_NO_DOTENV=1`. Keep those inputs identical to EAS `preview` and keep the RevenueCat Test Store key in the launching shell. After switching profiles, restart Metro and verify that the Debug client opens against the intended API.
+
 ```sh
 APP_VARIANT=preview-test-store EXPO_NO_DOTENV=1 \
 EXPO_PROJECT_SLUG=blockout-preproduction EXPO_PROJECT_ID=748a9886-16a9-4166-994b-77fdaf715852 \
