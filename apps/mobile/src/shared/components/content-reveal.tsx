@@ -113,12 +113,15 @@ export function useContentReveal() {
 }
 
 /** Captures shared values directly so each mounted portion observes its owner's progress. */
-function useContentRevealStyle(style: ContentRevealStyle, key: string) {
+function useContentRevealStyle(
+  { order, elapsed, reducedMotion }: ContentRevealStyle,
+  key: string,
+) {
   return useAnimatedStyle(() => {
-    if (style.reducedMotion) {
+    if (reducedMotion) {
       return settledStyle;
     }
-    const keys = style.order.get();
+    const keys = order.get();
     if (keys === null) {
       return initialStyle;
     }
@@ -126,7 +129,7 @@ function useContentRevealStyle(style: ContentRevealStyle, key: string) {
     if (index === -1) {
       return settledStyle;
     }
-    const progress = (style.elapsed.get() - index * stagger) / revealDuration;
+    const progress = (elapsed.get() - index * stagger) / revealDuration;
     if (progress <= 0) {
       return initialStyle;
     }
