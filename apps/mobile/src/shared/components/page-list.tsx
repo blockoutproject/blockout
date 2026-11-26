@@ -11,7 +11,13 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { FlatList, StyleSheet, View, type FlatListProps } from "react-native";
+import {
+  FlatList,
+  Platform,
+  StyleSheet,
+  View,
+  type FlatListProps,
+} from "react-native";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import {
   AnimatedLegendList,
@@ -83,6 +89,7 @@ type PageListProps<T> = Omit<AnimatedLegendListProps<T>, "sharedValues"> & {
 export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const {
     contentContainerStyle,
+    maintainVisibleContentPosition,
     stickyHeaderConfig,
     loadingFeedback,
     ListEmptyComponent,
@@ -135,6 +142,16 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
     ...hiddenScrollIndicators,
     sharedValues,
     contentContainerStyle: [contentContainerStyle, clearance],
+    // On iOS, size anchoring turns measured chrome padding into scroll movement.
+    maintainVisibleContentPosition:
+      Platform.OS === "ios" && offset
+        ? {
+            ...(typeof maintainVisibleContentPosition === "object"
+              ? maintainVisibleContentPosition
+              : { data: maintainVisibleContentPosition === true }),
+            size: false,
+          }
+        : maintainVisibleContentPosition,
     ListEmptyComponent: loading ? loadingFeedback?.content : ListEmptyComponent,
     ListHeaderComponent: header,
     ListHeaderComponentStyle: layoutFeedback
