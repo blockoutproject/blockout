@@ -210,7 +210,7 @@ afterEach(async () => {
 });
 
 it.each([false, true])(
-  "keeps only an available public Stream link card when personal access is unavailable and URL=%s",
+  "keeps only an available public stream link card when personal access is unavailable and URL=%s",
   async (published) => {
     // Given
     context = ownContributions({
@@ -257,10 +257,10 @@ it.each([false, true])(
     await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
-    expect(!!screen.queryByRole("header", { name: "Stream link" })).toBe(
+    expect(!!screen.queryByRole("header", { name: "Lien de diffusion" })).toBe(
       published,
     );
-    expect(!!screen.queryByRole("link", { name: "Ouvrir le lien" })).toBe(
+    expect(!!screen.queryByRole("link", { name: "Regarder le live" })).toBe(
       published,
     );
     expect(
@@ -407,7 +407,7 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
     params: { matchId: "00000000-0000-4000-8000-000000000002" },
   });
   expect(
-    screen.queryByRole("button", { name: "Stream link" }),
+    screen.queryByRole("button", { name: "Lien de diffusion" }),
   ).not.toBeOnTheScreen();
 });
 
@@ -495,7 +495,7 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
     expect(!!screen.queryByRole("button", { name: "Modifier le lien" })).toBe(
       ownership === "exact owner",
     );
-    expect(!!screen.queryByRole("link", { name: "Ouvrir le lien" })).toBe(
+    expect(!!screen.queryByRole("link", { name: "Regarder le live" })).toBe(
       ownership !== "exact owner",
     );
     expect(
@@ -587,12 +587,12 @@ it.each(["own", "other", "failure"] as const)(
         </ThemeProvider>
       </QueryClientProvider>,
     );
-    await screen.findByRole("header", { name: "Stream link" });
+    await screen.findByRole("header", { name: "Lien de diffusion" });
     await waitFor(() => expect(firstRead).toBe(false));
 
     // Then: the published URL alone cannot expose the foreign-owner F11 action.
     expect(
-      screen.queryByRole("link", { name: "Ouvrir le lien" }),
+      screen.queryByRole("link", { name: "Regarder le live" }),
     ).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Modifier le lien" }),
@@ -618,7 +618,7 @@ it.each(["own", "other", "failure"] as const)(
         }),
       ).not.toBeOnTheScreen();
       expect(
-        screen.queryByRole("link", { name: "Ouvrir le lien" }),
+        screen.queryByRole("link", { name: "Regarder le live" }),
       ).not.toBeOnTheScreen();
       expect(
         screen.queryByRole("button", { name: "Modifier le lien" }),
@@ -631,7 +631,7 @@ it.each(["own", "other", "failure"] as const)(
     // Then
     expect(
       await screen.findByRole(outcome === "other" ? "link" : "button", {
-        name: outcome === "other" ? "Ouvrir le lien" : "Modifier le lien",
+        name: outcome === "other" ? "Regarder le live" : "Modifier le lien",
       }),
     ).toBeOnTheScreen();
     expect(
@@ -696,7 +696,7 @@ it.each(["guest", "professional"] as const)(
     // Then
     try {
       expect(
-        await screen.findByRole("link", { name: "Ouvrir le lien" }),
+        await screen.findByRole("link", { name: "Regarder le live" }),
       ).toBeOnTheScreen();
       if (source === "professional") {
         await waitFor(() => expect(privateReads).toBe(1));
@@ -704,7 +704,7 @@ it.each(["guest", "professional"] as const)(
         expect(privateReads).toBe(0);
       }
       expect(
-        screen.getByRole("link", { name: "Ouvrir le lien" }),
+        screen.getByRole("link", { name: "Regarder le live" }),
       ).toBeOnTheScreen();
       expect(
         screen.queryByRole("button", { name: "Modifier le lien" }),
@@ -771,7 +771,7 @@ it.each([
 
     // Then
     expect(
-      await screen.findByRole("link", { name: "Ouvrir le lien" }),
+      await screen.findByRole("link", { name: "Regarder le live" }),
     ).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Modifier le lien" }),

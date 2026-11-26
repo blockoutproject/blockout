@@ -133,28 +133,66 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it.each(["upcoming", "completed"] as const)(
-  "keeps the neutral Stream link label for %s without inferring live or replay",
-  async (category) => {
+it.each([
+  {
+    name: "before the match",
+    category: "upcoming",
+    result: undefined,
+    viewingAction: "Regarder le live",
+  },
+  {
+    name: "with a provisional score",
+    viewingAction: "Regarder le live",
+    category: "upcoming",
+    result: {
+      state: "provisional",
+      homeSets: 1,
+      awaySets: 0,
+      observedAt: "2026-10-25T16:00:00Z",
+    },
+  },
+  {
+    name: "past the cutoff without a score",
+    viewingAction: "Regarder la rediffusion",
+    category: "completed",
+    result: undefined,
+  },
+  {
+    name: "with a final score",
+    viewingAction: "Regarder la rediffusion",
+    category: "completed",
+    result: {
+      state: "final",
+      homeSets: 3,
+      awaySets: 1,
+      observedAt: "2026-10-25T18:00:00Z",
+    },
+  },
+] as const)(
+  "offers the match category’s viewing action $name",
+  async ({ category, result, viewingAction }) => {
     // Given
     detail = {
       ...detail,
       streamUrl: "https://stream.example.invalid/exact?version=259",
       streamContributionId: "00000000-0000-4000-8000-000000000259",
-      match: { ...detail.match, category },
+      match: { ...detail.match, category, result },
     };
     const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const user = userEvent.setup();
     await renderPage(<MatchScreen matchId={sportingId} />);
 
     // When
-    await user.press(
-      await screen.findByRole("link", { name: "Ouvrir le lien" }),
-    );
+    const link = await screen.findByRole("link", { name: viewingAction });
+    await user.press(link);
 
     // Then
-    expect(screen.getByText("Stream link")).toBeOnTheScreen();
-    expect(screen.queryByText(/Live|Replay/)).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByHintText("Ouvrir le lien de diffusion en dehors de Blockout"),
+    ).toBe(link);
     expect(open).toHaveBeenCalledWith(detail.streamUrl);
   },
 );
@@ -169,7 +207,9 @@ it("keeps a failed stream opening explicitly retryable beside the match context"
   await renderPage(<MatchScreen matchId={sportingId} />);
 
   // When
-  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Regarder le live" }),
+  );
 
   // Then
   expect(open).toHaveBeenCalledTimes(1);
@@ -177,7 +217,7 @@ it("keeps a failed stream opening explicitly retryable beside the match context"
   expect(
     screen.getByRole("button", { name: "Signaler un problème" }),
   ).toBeOnTheScreen();
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(screen.getByRole("link", { name: "Regarder le live" }));
   expect(open).toHaveBeenCalledTimes(2);
 });
 
@@ -200,6 +240,6 @@ it("offers only the published official calendar and no invented stream destinati
   // Then
   expect(open).toHaveBeenCalledWith(detail.officialCalendarUrl);
   expect(
-    screen.queryByRole("link", { name: "Ouvrir le lien" }),
+    screen.queryByRole("link", { name: "Regarder le live" }),
   ).not.toBeOnTheScreen();
 });

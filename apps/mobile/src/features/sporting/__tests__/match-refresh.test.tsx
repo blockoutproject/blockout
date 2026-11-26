@@ -143,7 +143,9 @@ it("rereads the current match when its route regains focus and applies accepted 
     await screen.findByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
-  expect(screen.getByText("Stream link")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       String(url).endsWith(`/matches/${sportingId}`),

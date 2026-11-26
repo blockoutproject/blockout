@@ -73,11 +73,12 @@ const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
 >();
-const match = matchDetail();
+let match: ReturnType<typeof matchDetail>;
 const previous = { ...process.env };
 let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 beforeEach(() => {
+  match = matchDetail();
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -257,12 +258,12 @@ it.each([
       name: entryLabel,
     });
     expect(
-      screen.getByRole("header", { name: "Stream link" }),
+      screen.getByRole("header", { name: "Lien de diffusion" }),
     ).toBeOnTheScreen();
     expect(screen.queryByText("Mes contributions")).not.toBeOnTheScreen();
     expect(screen.queryByText("Gérer mes propositions")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("button", { name: "Stream link" }),
+      screen.queryByRole("button", { name: "Lien de diffusion" }),
     ).not.toBeOnTheScreen();
     if (state !== "active") {
       expect(
@@ -272,7 +273,7 @@ it.each([
 
     // When
     expect(
-      screen.queryByRole("link", { name: "Ouvrir le lien" }),
+      screen.queryByRole("link", { name: "Regarder le live" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Signaler")).not.toBeOnTheScreen();
     await user.press(entry);
@@ -299,52 +300,69 @@ it.each([
   },
 );
 
-it("opens the existing guest invitation from an empty Stream link card without retaining a command", async () => {
-  // Given
-  jest.replaceProperty(
-    proSessionModule,
-    "proSession",
-    proSessionModule.createProSession(),
-  );
-  prepareProNativeIO();
-  mockAuth0.hasValidCredentials.mockResolvedValue(false);
-  const user = userEvent.setup();
-  await renderRouter(
-    {
-      _layout: Layout,
-      index: () => (
-        <AdvertisingProviders>
-          <MatchScreen matchId={match.match.id} />
-        </AdvertisingProviders>
-      ),
-      "sign-in-invitation": InvitationRoute,
+it.each([
+  {
+    action: "Proposer un lien",
+    publicLink: {},
+    description: "Aucun lien disponible pour ce match.",
+    invitation: "Connectez-vous pour proposer un lien de diffusion",
+  },
+  {
+    action: "Signaler le lien",
+    publicLink: {
+      streamUrl: "https://youtu.be/published",
+      streamContributionId: "00000000-0000-4000-8000-000000000004",
     },
-    { initialUrl: "/" },
-  );
-  const manage = await screen.findByRole("button", {
-    name: "Proposer un lien",
-  });
-  expect(
-    screen.getByText("Aucun lien disponible pour ce match."),
-  ).toBeOnTheScreen();
+    description: "youtu.be",
+    invitation: "Connectez-vous pour signaler ce lien de diffusion",
+  },
+])(
+  "opens the contextual guest invitation for $action",
+  async ({ action, publicLink, description, invitation }) => {
+    // Given
+    match = { ...match, ...publicLink };
+    jest.replaceProperty(
+      proSessionModule,
+      "proSession",
+      proSessionModule.createProSession(),
+    );
+    prepareProNativeIO();
+    mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    const user = userEvent.setup();
+    await renderRouter(
+      {
+        _layout: Layout,
+        index: () => (
+          <AdvertisingProviders>
+            <MatchScreen matchId={match.match.id} />
+          </AdvertisingProviders>
+        ),
+        "sign-in-invitation": InvitationRoute,
+      },
+      { initialUrl: "/" },
+    );
+    const entry = await screen.findByRole("button", { name: action });
+    expect(
+      screen.getByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(description)).toBeOnTheScreen();
 
-  // When
-  await user.press(manage);
+    // When
+    await user.press(entry);
 
-  // Then
-  expect(
-    await screen.findByText("Connectez-vous pour proposer un Stream link"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Se connecter" }),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.some(([url]) =>
-      String(url).includes("/stream-contributions"),
-    ),
-  ).toBe(false);
-  expect(Alert.alert).not.toHaveBeenCalled();
-});
+    // Then
+    expect(await screen.findByText(invitation)).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Se connecter" }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).includes("/stream-contributions"),
+      ),
+    ).toBe(false);
+    expect(Alert.alert).not.toHaveBeenCalled();
+  },
+);
 
 it("keeps history revoked when a refused match opens it before technical mount reads fail", async () => {
   // Given: the real match screen keeps its F08 observer mounted after public data is refused.
@@ -720,7 +738,7 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
   );
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("link", { name: "Ouvrir le lien" }),
+    screen.queryByRole("link", { name: "Regarder le live" }),
   ).not.toBeOnTheScreen();
   await act(() =>
     router.push({

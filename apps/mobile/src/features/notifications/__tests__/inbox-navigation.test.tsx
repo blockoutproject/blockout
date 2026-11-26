@@ -482,7 +482,7 @@ it.each(["professional", "contributed"] as const)(
     // When
     await user.press(screen.getByRole("link", { name: /non lue$/ }));
     await user.press(
-      await screen.findByRole("link", { name: "Ouvrir le lien" }),
+      await screen.findByRole("link", { name: "Regarder la rediffusion" }),
     );
 
     // Then
@@ -521,7 +521,9 @@ it("counts inbox match opens while leaving a native push and its stream link imm
 
   // When
   await act(() => tap(push));
-  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Regarder la rediffusion" }),
+  );
 
   // Then
   expect(screen).toHavePathname(`/matches/${row.match.id}`);
@@ -555,7 +557,9 @@ it("offers no fictional stream opening when the current match has no link", asyn
   await screen.findByRole("header", { name: "Informations" });
 
   // Then: the distinct contribution action does not become a fictional viewing destination.
-  expect(screen.queryByRole("link", { name: "Ouvrir le lien" })).toBeNull();
+  expect(
+    screen.queryByRole("link", { name: "Regarder la rediffusion" }),
+  ).toBeNull();
   expect(
     await screen.findByRole("button", { name: "Proposer un lien" }),
   ).toBeOnTheScreen();
@@ -657,7 +661,9 @@ it("retains a public inbox row after destination refusal until ordinary refresh 
 
   // Then
   expect(screen).toHavePathname(`/matches/${row.match.id}`);
-  expect(screen.queryByRole("link", { name: "Ouvrir le lien" })).toBeNull();
+  expect(
+    screen.queryByRole("link", { name: "Regarder la rediffusion" }),
+  ).toBeNull();
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([row]);
@@ -686,7 +692,9 @@ it("keeps the match available after a failed stream handoff and retries only on 
   await user.press(await screen.findByRole("link", { name: /non lue$/ }));
 
   // When
-  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Regarder la rediffusion" }),
+  );
 
   // Then
   expect(await screen.findByRole("alert")).toBeOnTheScreen();
@@ -694,14 +702,16 @@ it("keeps the match available after a failed stream handoff and retries only on 
     screen.getByRole("header", { name: "Informations" }),
   ).toBeOnTheScreen();
   expect(open).toHaveBeenCalledTimes(1);
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(
+    screen.getByRole("link", { name: "Regarder la rediffusion" }),
+  );
   await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
   expect(open).toHaveBeenLastCalledWith(streamUrl);
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it.each(["before", "after-without-result", "definitive-result"] as const)(
-  "retains the neutral stream label for a match %s",
+  "opens Match with its current viewing action for %s",
   async (state) => {
     // Given
     if (state !== "definitive-result") {
@@ -723,12 +733,14 @@ it.each(["before", "after-without-result", "definitive-result"] as const)(
 
     // Then
     expect(
-      await screen.findByRole("header", { name: "Stream link" }),
+      await screen.findByRole("header", { name: "Lien de diffusion" }),
     ).toBeOnTheScreen();
     expect(
-      screen.getByRole("link", { name: "Ouvrir le lien" }),
+      screen.getByRole("link", {
+        name:
+          state === "before" ? "Regarder le live" : "Regarder la rediffusion",
+      }),
     ).toBeOnTheScreen();
-    expect(screen.queryByRole("link", { name: /live|replay/i })).toBeNull();
   },
 );
 
@@ -737,7 +749,7 @@ it("keeps the notification tab without a counter after returning from the match 
   await openInbox();
   const user = userEvent.setup();
   await user.press(await screen.findByRole("link", { name: /non lue$/ }));
-  await screen.findByRole("header", { name: "Stream link" });
+  await screen.findByRole("header", { name: "Lien de diffusion" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
