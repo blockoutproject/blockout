@@ -22,7 +22,7 @@
     "@config-plugins/react-native-blob-util": "14.0.2",
     "@config-plugins/react-native-pdf": "14.0.2",
     "@hookform/resolvers": "5.9.2",
-    "@legendapp/list": "3.7.0",
+    "@legendapp/list": "3.9.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-mobile-ads/facebook": "17.3.1",
     "@react-native-masked-view/masked-view": "0.3.2",
