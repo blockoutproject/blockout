@@ -31,41 +31,22 @@ import { NavigationScrollMarker } from "./navigation-backdrop";
 import { usePageScrollBinding } from "./page-scroll-binding";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { useBottomContentInset } from "./bottom-content-inset";
-import {
-  ContentRevealBlock,
-  useContentReveal,
-  type ContentReveal,
-} from "./content-reveal";
+import { ContentRevealBlock, type ContentReveal } from "./content-reveal";
 
 interface ListRevealOptions<T> {
   /** A retained scene can wait until it is selected and its content is ready. */
   active?: boolean;
-  /** Omit structural rows or use the same key for multiple parts of one block. */
+  /** Omit structural rows or group cells. Sticky cells reveal their content inside the stationary backing. */
   blockKey?: (item: T) => string | undefined;
   /** Keep the first presentation when feedback or a traversal replaces the scroller. */
-  presentation?: ContentReveal;
+  presentation: ContentReveal;
 }
-
-type ListReveal<T> = true | ListRevealOptions<T>;
-type ListKeyExtractor<T> = (item: T, index: number) => string;
 
 type RevealingRows<T> = {
-  reveal: ListReveal<T>;
+  reveal: ListRevealOptions<T>;
   /** Use stable row identities so refresh and recycling do not transfer a fade to a different item. */
-  keyExtractor: ListKeyExtractor<T>;
+  keyExtractor: (item: T, index: number) => string;
 };
-
-function revealOptions<T>(
-  reveal: ListReveal<T>,
-  keyExtractor: ListKeyExtractor<T>,
-) {
-  const options = reveal === true ? {} : reveal;
-  return {
-    active: options.active ?? true,
-    presentation: options.presentation,
-    blockKey: options.blockKey ?? keyExtractor,
-  };
-}
 
 function renderRevealedItem<Content extends ReactNode>(
   item: Content,
@@ -217,20 +198,14 @@ function RevealingLegendList<T>({
       ref: AnimatedRef<LegendListRef>;
     }
 >) {
-  const ownPresentation = useContentReveal();
-  const {
-    active,
-    blockKey,
-    presentation = ownPresentation,
-  } = revealOptions(reveal, props.keyExtractor);
-  const { start } = presentation;
+  const { active = true, blockKey = props.keyExtractor, presentation } = reveal;
+  const { start, started } = presentation;
   const laidOut = useRef(false);
-  const presented = useRef(false);
   const headerHeight = useRef(0);
   const bottomInset = useBottomContentInset();
   const items = props.data;
   const present = useCallback(() => {
-    if (!active || !laidOut.current || presented.current || !items?.length) {
+    if (!active || !laidOut.current || started.current || !items?.length) {
       return;
     }
     const viewport = list.current?.getState();
@@ -259,8 +234,8 @@ function RevealingLegendList<T>({
         keys.add(key);
       }
     }
-    presented.current = start([...keys]);
-  }, [active, blockKey, bottomInset, items, list, paddingTop, start]);
+    start([...keys]);
+  }, [active, blockKey, bottomInset, items, list, paddingTop, start, started]);
   useLayoutEffect(present, [present]);
 
   return (
@@ -278,12 +253,16 @@ function RevealingLegendList<T>({
       }}
       renderItem={
         renderItem &&
-        ((info) =>
-          renderRevealedItem(
-            renderItem(info),
-            blockKey(info.item, info.index),
-            presentation,
-          ))
+        ((info) => {
+          const item = renderItem(info);
+          return props.stickyHeaderIndices?.includes(info.index)
+            ? item
+            : renderRevealedItem(
+                item,
+                blockKey(info.item, info.index),
+                presentation,
+              );
+        })
       }
     />
   );
@@ -355,18 +334,13 @@ function RevealingFlatList<T>({
   renderItem,
   ...props
 }: Readonly<NativeFlatListProps<T> & RevealingRows<T>>) {
-  const ownPresentation = useContentReveal();
-  const {
-    active,
-    blockKey,
-    presentation = ownPresentation,
-  } = revealOptions(reveal, props.keyExtractor);
-  const { start } = presentation;
-  const snapshot = useRef<readonly string[] | null | undefined>(undefined);
+  const { active = true, blockKey = props.keyExtractor, presentation } = reveal;
+  const { start, started } = presentation;
+  const snapshot = useRef<readonly string[] | undefined>(undefined);
   const present = useCallback(() => {
     const keys = snapshot.current;
     if (active && keys && start(keys)) {
-      snapshot.current = null;
+      snapshot.current = undefined;
     }
   }, [active, start]);
   useLayoutEffect(present, [present]);
@@ -375,7 +349,7 @@ function RevealingFlatList<T>({
       {...props}
       viewabilityConfig={initialViewability}
       onViewableItemsChanged={(event) => {
-        if (snapshot.current !== null) {
+        if (!started.current) {
           const keys = new Set<string>();
           for (const { item, index } of event.viewableItems) {
             const key = index == null ? undefined : blockKey(item, index);

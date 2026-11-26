@@ -80,6 +80,7 @@ function PoolPage({
   ] as const;
   return (
     <SportingInitialComposition
+      initialSceneSelected={tab === tabs[0].id}
       detail={pool}
       follow={initialFollow}
       canvasTint={divisionColor}

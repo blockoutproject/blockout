@@ -71,6 +71,7 @@ function TeamPage({
   const tab = tabs.find((item) => item.id === selected) ?? calendarTabs[0];
   return (
     <SportingInitialComposition
+      initialSceneSelected={tab.id === calendarTabs[0].id}
       detail={team}
       follow={initialFollow}
       canvasTint={divisionColor}

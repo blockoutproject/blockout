@@ -4,6 +4,7 @@ import { Text } from "react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { PageList } from "../page-list";
+import { useContentReveal } from "../content-reveal";
 
 function Results({
   items,
@@ -16,11 +17,12 @@ function Results({
   onReady?: () => void;
   reveal?: { active: boolean };
 }>) {
+  const presentation = useContentReveal();
   return (
     <PageList
       testID="results-list"
       data={items}
-      reveal={reveal}
+      reveal={reveal && { ...reveal, presentation }}
       keyExtractor={(item) => item}
       renderItem={({ item }) => <Text>{item}</Text>}
       ListHeaderComponent={<Text>Results</Text>}
@@ -85,7 +87,9 @@ it.each([
 
 it("releases loading feedback immediately for a successful empty list", async () => {
   // Given
-  const view = await render(<Results items={[]} loading />);
+  const view = await render(<Results items={[]} loading />, {
+    wrapper: ThemeProvider,
+  });
   expect(screen.getByRole("progressbar")).toBeOnTheScreen();
 
   // When

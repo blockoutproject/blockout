@@ -1,5 +1,6 @@
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
+import { useContentReveal } from "@/shared/components/content-reveal";
 import {
   useInfiniteQuery,
   useMutation,
@@ -106,6 +107,7 @@ function Inbox({
 }>) {
   const client = useQueryClient();
   const focused = useIsFocused();
+  const presentation = useContentReveal();
   const query = useInfiniteQuery({
     ...queries.inbox,
     enabled: (state) => focused && state.state.status !== "error",
@@ -223,7 +225,7 @@ function Inbox({
       <PageFlatList
         alwaysBounceVertical={rows.length > 0}
         data={rows}
-        reveal={{ active: focused }}
+        reveal={{ active: focused, presentation }}
         onEndReached={() => {
           if (!query.isError) {
             void loadMore();

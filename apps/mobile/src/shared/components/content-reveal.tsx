@@ -22,9 +22,8 @@ const {
   initialTranslateY,
   duration: revealDuration,
   stagger,
-  easing,
 } = tokens.motion.contentReveal;
-const easeOut = Easing.bezierFn(...easing);
+const easeInOut = Easing.inOut(Easing.ease);
 
 function styleAtProgress(progress: number) {
   "worklet";
@@ -38,23 +37,20 @@ const initialStyle = styleAtProgress(0);
 const settledStyle = styleAtProgress(1);
 
 /** Common detail admission can hide mounted scenes until their first presentation is possible. */
-export const ContentRevealReadyContext = createContext(true);
+export const ContentRevealContext = createContext<{
+  ready: boolean;
+  precedingElapsed?: SharedValue<number>;
+}>({ ready: true });
 
 interface ContentRevealStyle {
   order: SharedValue<readonly string[] | null>;
   elapsed: SharedValue<number>;
-  blockDelay: number;
   reducedMotion: boolean;
 }
 
-export type ContentRevealOptions = Readonly<{ staggered?: boolean }>;
-
 /** One presentation samples the visible blocks. Recycled views read the same elapsed animation. */
-export function useContentReveal({
-  staggered = false,
-}: ContentRevealOptions = {}) {
-  const blockDelay = staggered ? stagger : 0;
-  const ready = useContext(ContentRevealReadyContext);
+export function useContentReveal() {
+  const { ready, precedingElapsed } = useContext(ContentRevealContext);
   const { reducedMotion } = useTheme();
   // Null waits for the initial sample. An empty sample keeps every block settled.
   const order = useSharedValue<readonly string[] | null>(null);
@@ -74,13 +70,20 @@ export function useContentReveal({
         (keys: readonly string[], reduce: boolean) => {
           "worklet";
           order.set(reduce ? [] : keys);
-          if (!reduce && keys.length) {
-            const duration = revealDuration + (keys.length - 1) * blockDelay;
+          if (reduce) {
+            elapsed.set(revealDuration);
+          } else if (keys.length) {
+            // The initial scene waits only for the remainder of the identity's first step.
+            const wait = precedingElapsed
+              ? Math.max(0, stagger - precedingElapsed.get())
+              : 0;
+            const duration = revealDuration + (keys.length - 1) * stagger;
+            elapsed.set(-wait);
             elapsed.set(
               withTiming(
                 duration,
                 {
-                  duration,
+                  duration: duration + wait,
                   easing: Easing.linear,
                   reduceMotion: ReduceMotion.Never,
                 },
@@ -98,16 +101,15 @@ export function useContentReveal({
       );
       return true;
     },
-    [blockDelay, elapsed, order, ready, reducedMotion],
+    [elapsed, order, precedingElapsed, ready, reducedMotion],
   );
 
   const style: ContentRevealStyle = {
     order,
     elapsed,
-    blockDelay,
     reducedMotion,
   };
-  return { start, style };
+  return { start, started, style };
 }
 
 /** Captures shared values directly so each mounted portion observes its owner's progress. */
@@ -124,15 +126,14 @@ function useContentRevealStyle(style: ContentRevealStyle, key: string) {
     if (index === -1) {
       return settledStyle;
     }
-    const progress =
-      (style.elapsed.get() - index * style.blockDelay) / revealDuration;
+    const progress = (style.elapsed.get() - index * stagger) / revealDuration;
     if (progress <= 0) {
       return initialStyle;
     }
     if (progress >= 1) {
       return settledStyle;
     }
-    return styleAtProgress(easeOut(progress));
+    return styleAtProgress(easeInOut(progress));
   });
 }
 
@@ -163,5 +164,8 @@ export function useSingleContentReveal(visible: boolean) {
     }
   }, [start, visible]);
 
-  return useContentRevealStyle(style, "content");
+  return {
+    motion: useContentRevealStyle(style, "content"),
+    elapsed: style.elapsed,
+  };
 }

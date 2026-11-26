@@ -32,8 +32,8 @@ import { isAccessDenied } from "@/shared/api/access-denied";
 import { EmptyState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
-import { useIsFocused } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
+import type { ClubDetailResponse } from "../../../../.generated/schemas/index.zod";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, Phone } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
@@ -77,8 +77,6 @@ export function ClubScreen(props: Readonly<ClubScreenProps>) {
  */
 function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
-  const { colors } = useTheme();
-  const focused = useIsFocused();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
@@ -130,79 +128,9 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
-  // The season can replace the pager while the club's information stays presented.
-  const informationReveal = useSectionContentReveal(
-    focused && tab === "info" && !!data && !hasReadError(club),
-  );
-  const information = data ? (
-    <PageScrollView
-      onLayout={informationReveal.onViewportLayout}
-      alwaysBounceVertical
-      refreshControl={
-        <DataRefreshControl
-          onRefresh={refresh}
-          enabled={tab === "info"}
-          fetching={club.isFetching}
-        />
-      }
-    >
-      <SectionContentReveal
-        style={styles.information}
-        reveal={informationReveal}
-      >
-        <RevealSection sectionKey="contacts" style={styles.informationSection}>
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.headingSm, { color: colors.text }]}
-          >
-            Coordonnées
-          </Text>
-          <Surface style={styles.contactGroup}>
-            <ContactLink
-              label="Site web"
-              value={data.contacts.website}
-              destination={safeWebsite(data.contacts.website)}
-              icon={Globe}
-            />
-            <View style={styles.contactDivider}>
-              <EntryGroupSeparator />
-            </View>
-            <ContactLink
-              label="E-mail du club"
-              value={data.contacts.email}
-              destination={
-                data.contacts.email
-                  ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                  : undefined
-              }
-              icon={Mail}
-            />
-            <View style={styles.contactDivider}>
-              <EntryGroupSeparator />
-            </View>
-            <ContactLink
-              label="Téléphone"
-              value={data.contacts.phone}
-              destination={phoneDestination(data.contacts.phone)}
-              icon={Phone}
-            />
-          </Surface>
-        </RevealSection>
-        <RevealSection sectionKey="location" style={styles.informationSection}>
-          <Text
-            accessibilityRole="header"
-            style={[tokens.typography.headingSm, { color: colors.text }]}
-          >
-            Localisation
-          </Text>
-          <ClubLocation detail={data} />
-        </RevealSection>
-      </SectionContentReveal>
-    </PageScrollView>
-  ) : undefined;
-
   return (
     <SportingInitialComposition
+      initialSceneSelected={tab === tabs[0].id}
       detail={club}
       header={
         <PageHeader
@@ -216,7 +144,6 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
     >
       {data && (
         <PagedTabs
-          key={season?.id}
           selected={tab}
           onSelect={setTab}
           header={
@@ -278,12 +205,20 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
                   </ClubTeams>
                 );
               }
-              return information;
+              return (
+                <ClubInformation
+                  data={data}
+                  active={tab === value}
+                  fetching={club.isFetching}
+                  onRefresh={refresh}
+                />
+              );
             }
 
             return {
               id: value,
               label,
+              resetKey: value === "info" ? undefined : season?.id,
               content: renderTabContent(),
               preview:
                 value === "info" ? (
@@ -309,6 +244,88 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       )}
     </SportingInitialComposition>
+  );
+}
+
+/** Information belongs to the club visit and keeps its entrance and reading position across seasons. */
+function ClubInformation({
+  data,
+  active,
+  fetching,
+  onRefresh,
+}: Readonly<{
+  data: ClubDetailResponse;
+  active: boolean;
+  fetching: boolean;
+  onRefresh: () => Promise<void>;
+}>) {
+  const { colors } = useTheme();
+  const informationReveal = useSectionContentReveal(active);
+  return (
+    <PageScrollView
+      onLayout={informationReveal.onViewportLayout}
+      alwaysBounceVertical
+      refreshControl={
+        <DataRefreshControl
+          onRefresh={onRefresh}
+          enabled={active}
+          fetching={fetching}
+        />
+      }
+    >
+      <SectionContentReveal
+        style={styles.information}
+        reveal={informationReveal}
+      >
+        <RevealSection sectionKey="contacts" style={styles.informationSection}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.headingSm, { color: colors.text }]}
+          >
+            Coordonnées
+          </Text>
+          <Surface style={styles.contactGroup}>
+            <ContactLink
+              label="Site web"
+              value={data.contacts.website}
+              destination={safeWebsite(data.contacts.website)}
+              icon={Globe}
+            />
+            <View style={styles.contactDivider}>
+              <EntryGroupSeparator />
+            </View>
+            <ContactLink
+              label="E-mail du club"
+              value={data.contacts.email}
+              destination={
+                data.contacts.email
+                  ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                  : undefined
+              }
+              icon={Mail}
+            />
+            <View style={styles.contactDivider}>
+              <EntryGroupSeparator />
+            </View>
+            <ContactLink
+              label="Téléphone"
+              value={data.contacts.phone}
+              destination={phoneDestination(data.contacts.phone)}
+              icon={Phone}
+            />
+          </Surface>
+        </RevealSection>
+        <RevealSection sectionKey="location" style={styles.informationSection}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.headingSm, { color: colors.text }]}
+          >
+            Localisation
+          </Text>
+          <ClubLocation detail={data} />
+        </RevealSection>
+      </SectionContentReveal>
+    </PageScrollView>
   );
 }
 
