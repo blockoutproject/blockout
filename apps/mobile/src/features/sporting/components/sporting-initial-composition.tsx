@@ -12,13 +12,6 @@ import {
   ContentRevealReadyContext,
   useSingleContentReveal,
 } from "@/shared/components/content-reveal";
-import { tokens } from "@/shared/theme/tokens";
-
-/** Minimum of the shared identity card in the standard PageContent insets. */
-export const sportingIdentityHeaderMinHeight =
-  tokens.layout.identity.minHeight +
-  tokens.layout.content.start +
-  tokens.layout.content.end;
 
 /** A season can replace the pager while the common card remains presented within the detail visit. */
 export const SportingIdentityRevealContext = createContext<

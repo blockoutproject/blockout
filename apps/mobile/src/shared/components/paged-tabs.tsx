@@ -60,8 +60,6 @@ export interface PagedTabsProps {
   contextColor?: string;
   header?: ReactNode;
   collapsibleHeader?: ReactNode;
-  /** Native layout may grow the header and rail beyond these minimums. */
-  collapsibleHeaderMinHeight?: number;
   tabBarMinHeight?: number;
   /** The Home brand fades while it folds; sporting cards clip below fixed navigation. */
   fadeHeaderOnScroll?: boolean;
@@ -89,7 +87,6 @@ export function PagedTabs({
   contextColor,
   header,
   collapsibleHeader,
-  collapsibleHeaderMinHeight = tokens.layout.header,
   tabBarMinHeight = tokens.touch.minimum,
   fadeHeaderOnScroll = false,
   renderTabBar,
@@ -104,7 +101,7 @@ export function PagedTabs({
     height: 0,
   });
   const [chromeHeight, setChromeHeight] = useState<number>();
-  const [brandHeight, setBrandHeight] = useState(collapsibleHeaderMinHeight);
+  const [collapsibleHeight, setCollapsibleHeight] = useState<number>();
   const [settled, setSettled] = useState(selected);
   const settledTab = useRef(selected);
   const controlledTab = useRef(selected);
@@ -128,14 +125,17 @@ export function PagedTabs({
   const position = useSharedValue(selectedIndex);
   const command = useSharedValue<TabCommand | null>(null);
   const lastIndex = Math.max(0, tabs.length - 1);
-  const headerHeight = collapsibleHeader ? brandHeight : 0;
-  // A scene beneath a sporting identity needs its actual clearance at first layout.
+  const hasSportingIdentity = Boolean(header && collapsibleHeader);
+  const headerHeight = collapsibleHeader
+    ? (collapsibleHeight ?? tokens.layout.header)
+    : 0;
+  // A sporting list needs both its expanded clearance and its pinned date offset at mount.
   const sceneLayoutReady =
-    !header || !collapsibleHeader || chromeHeight !== undefined;
-  const minScrollDistance =
-    header && collapsibleHeader
-      ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
-      : headerHeight;
+    !hasSportingIdentity ||
+    (chromeHeight !== undefined && collapsibleHeight !== undefined);
+  const minScrollDistance = hasSportingIdentity
+    ? Math.max(headerHeight, tokens.motion.navigation.headerRevealDistance)
+    : headerHeight;
   const minContentHeight = height ? height + minScrollDistance : 0;
   const contentInset =
     topInset +
@@ -426,7 +426,7 @@ export function PagedTabs({
                 command={command}
                 collapse={chromeOffset}
                 active={index === selectedIndex && sceneLayoutReady}
-                preview={tab.preview}
+                preview={sceneLayoutReady ? tab.preview : undefined}
                 width={width}
                 height={height}
                 contentInset={contentInset}
@@ -467,12 +467,9 @@ export function PagedTabs({
                 pointerEvents="box-none"
                 animatedProps={brandAccessibility}
                 onLayout={({ nativeEvent }) =>
-                  setBrandHeight(nativeEvent.layout.height)
+                  setCollapsibleHeight(nativeEvent.layout.height)
                 }
-                style={[
-                  { minHeight: collapsibleHeaderMinHeight },
-                  fadeHeaderOnScroll && brandStyle,
-                ]}
+                style={fadeHeaderOnScroll && brandStyle}
               >
                 {collapsibleHeader}
               </Animated.View>
