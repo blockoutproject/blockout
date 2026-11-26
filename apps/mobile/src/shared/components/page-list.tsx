@@ -144,9 +144,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
     contentContainerStyle: [contentContainerStyle, clearance],
     // On iOS, size anchoring turns measured chrome padding into scroll movement.
     maintainVisibleContentPosition:
-      Platform.OS === "ios" &&
-      offset &&
-      maintainVisibleContentPosition !== false
+      Platform.OS === "ios" && offset
         ? {
             ...(typeof maintainVisibleContentPosition === "object"
               ? maintainVisibleContentPosition
