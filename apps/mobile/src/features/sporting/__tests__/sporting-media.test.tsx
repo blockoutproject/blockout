@@ -4,6 +4,7 @@ import {
   render,
   screen,
   userEvent,
+  within,
 } from "@testing-library/react-native";
 import { useState } from "react";
 import { TextInput, View } from "react-native";
@@ -81,10 +82,11 @@ it("announces native logo loading until its foreground is displayed", async () =
       />
     </ThemeProvider>,
   );
-  const foreground = screen.getByRole("image", {
+  const slot = screen.getByRole("image", {
     name: `Logo : ${identity.name}`,
     busy: true,
   });
+  const foreground = within(slot).getByTestId("sporting-logo-image");
 
   // When
   await fireEvent(foreground, "load", {
@@ -149,9 +151,10 @@ it("retains caller content and ignores former events when an image source return
   }
 
   const view = await render(<Card uri={firstUri} />);
-  const firstImage = screen.getByRole("image", {
+  const firstSlot = screen.getByRole("image", {
     name: `Logo : ${identity.name}`,
   });
+  const firstImage = within(firstSlot).getByTestId("sporting-logo-image");
   // Native callbacks may already be queued when a former image view is detached.
   const staleDisplay = firstImage.props.onDisplay;
   const staleError = firstImage.props.onError;
@@ -164,8 +167,11 @@ it("retains caller content and ignores former events when an image source return
 
   // When
   await view.rerender(<Card uri={replacementUri} />);
+  const replacementSlot = screen.getByRole("image", {
+    name: `Logo : ${identity.name}`,
+  });
   await fireEvent(
-    screen.getByRole("image", { name: `Logo : ${identity.name}` }),
+    within(replacementSlot).getByTestId("sporting-logo-image"),
     "display",
   );
   await view.rerender(<Card uri={firstUri} />);
@@ -178,7 +184,7 @@ it("retains caller content and ignores former events when an image source return
   });
 
   // Then
-  const currentImage = screen.getByRole("image", {
+  const currentSlot = screen.getByRole("image", {
     name: `Logo : ${identity.name}`,
     busy: true,
   });
@@ -190,7 +196,10 @@ it("retains caller content and ignores former events when an image source return
   expect(screen.getByDisplayValue("Texte conservé")).toBeOnTheScreen();
 
   // When
-  await fireEvent(currentImage, "display");
+  await fireEvent(
+    within(currentSlot).getByTestId("sporting-logo-image"),
+    "display",
+  );
 
   // Then
   expect(
@@ -242,8 +251,8 @@ it("retains the logo when its optional atmosphere fails to decode", async () => 
       />
     </ThemeProvider>,
   );
-  const crest = screen.getByRole("image", { name: `Logo : ${identity.name}` });
-  await fireEvent(crest, "display");
+  const slot = screen.getByRole("image", { name: `Logo : ${identity.name}` });
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "display");
 
   // When
   await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "error", {
@@ -286,9 +295,10 @@ it.each(["foreground", "atmosphere"] as const)(
         />
       </ThemeProvider>,
     );
-    const foreground = screen.getByRole("image", {
+    const slot = screen.getByRole("image", {
       name: `Logo : ${identity.name}`,
     });
+    const foreground = within(slot).getByTestId("sporting-logo-image");
     const atmosphere = screen.getByTestId("sporting-logo-atmosphere");
     const lateDisplay = foreground.props.onDisplay;
     expect(foreground).toHaveProp("source", expect.arrayContaining([{ uri }]));

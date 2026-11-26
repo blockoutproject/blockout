@@ -129,7 +129,7 @@ it.each([
   },
 );
 
-it("keeps ordinary local builds unconfigured without inventing provider identifiers", () => {
+it("uses the local native identity and leaves Pro unconfigured without provider inputs", () => {
   // Given: no RevenueCat inputs, as in the environment example.
 
   // When
@@ -137,6 +137,11 @@ it("keeps ordinary local builds unconfigured without inventing provider identifi
     jest.requireActual<typeof import("../app.config")>("../app.config");
 
   // Then
+  expect(config.ios?.bundleIdentifier).toBe(
+    "com.blockoutproject.blockout.local",
+  );
+  expect(config.android?.package).toBe("com.blockoutproject.blockout.local");
+  expect(config.scheme).toBe("blockout-local");
   expect(config.extra?.revenueCat).toEqual({
     iosApiKey: undefined,
     androidApiKey: undefined,
@@ -144,27 +149,69 @@ it("keeps ordinary local builds unconfigured without inventing provider identifi
   });
 });
 
-it.each(["development", "preview"])(
-  "selects Test Store for both platforms in %s",
-  (variant) => {
-    // Given
+it.each([
+  { build: "local Debug", variant: undefined },
+  { build: "EAS development", variant: "development" },
+  { build: "preproduction Test Store", variant: "preview-test-store" },
+])("selects Test Store for both platforms in a $build build", ({ variant }) => {
+  // Given
+  if (variant !== undefined) {
     process.env.APP_VARIANT = variant;
     process.env.EXPO_PROJECT_SLUG = "synthetic-project";
-    process.env.REVENUECAT_TEST_STORE_API_KEY = "test_synthetic";
-    process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
-    process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
+  }
+  process.env.REVENUECAT_TEST_STORE_API_KEY = "test_synthetic";
+  process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
+  process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
 
-    // When
-    const { default: config } =
-      jest.requireActual<typeof import("../app.config")>("../app.config");
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
 
-    // Then
-    expect(config.extra?.revenueCat).toMatchObject({
-      iosApiKey: "test_synthetic",
-      androidApiKey: "test_synthetic",
-    });
-  },
-);
+  // Then
+  expect(config.extra?.revenueCat).toMatchObject({
+    iosApiKey: "test_synthetic",
+    androidApiKey: "test_synthetic",
+  });
+});
+
+it("uses the preproduction identity with purchases unconfigured until Test Store is available", () => {
+  // Given: the preproduction environment can provide platform keys for its Release client.
+  process.env.APP_VARIANT = "preview-test-store";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
+  process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.ios?.bundleIdentifier).toBe(
+    "com.blockoutproject.blockout.preproduction",
+  );
+  expect(config.android?.package).toBe(
+    "com.blockoutproject.blockout.preproduction",
+  );
+  expect(config.extra?.revenueCat).toMatchObject({
+    iosApiKey: undefined,
+    androidApiKey: undefined,
+  });
+});
+
+it("rejects a platform key supplied as the preproduction Test Store key", () => {
+  // Given
+  process.env.APP_VARIANT = "preview-test-store";
+  process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  process.env.REVENUECAT_TEST_STORE_API_KEY = "appl_synthetic";
+
+  // When
+  const loadConfig = () => jest.requireActual("../app.config");
+
+  // Then
+  expect(loadConfig).toThrow(
+    "The preview Test Store client requires a RevenueCat Test Store key.",
+  );
+});
 
 it.each(["preview", "production"])(
   "uses explicit platform keys and provider identifiers in %s",
@@ -193,12 +240,15 @@ it.each(["preview", "production"])(
 );
 
 it.each([
-  "REVENUECAT_TEST_STORE_API_KEY",
-  "REVENUECAT_IOS_API_KEY",
-  "REVENUECAT_ANDROID_API_KEY",
-])("rejects a production candidate with a Test Store key in %s", (input) => {
+  ["preview", "REVENUECAT_TEST_STORE_API_KEY"],
+  ["preview", "REVENUECAT_IOS_API_KEY"],
+  ["preview", "REVENUECAT_ANDROID_API_KEY"],
+  ["production", "REVENUECAT_TEST_STORE_API_KEY"],
+  ["production", "REVENUECAT_IOS_API_KEY"],
+  ["production", "REVENUECAT_ANDROID_API_KEY"],
+])("rejects a %s build with a Test Store key in %s", (variant, input) => {
   // Given
-  process.env.APP_VARIANT = "production";
+  process.env.APP_VARIANT = variant;
   process.env.EXPO_PROJECT_SLUG = "synthetic-project";
   process.env[input] = "test_synthetic";
 
@@ -207,7 +257,7 @@ it.each([
 
   // Then
   expect(loadConfig).toThrow(
-    "Production candidates must not contain RevenueCat Test Store keys.",
+    "RevenueCat Test Store keys require a Debug build.",
   );
 });
 
