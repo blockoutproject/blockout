@@ -128,6 +128,15 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
+  const information = data && (
+    <ClubInformation
+      data={data}
+      active={tab === "info"}
+      fetching={club.isFetching}
+      onRefresh={refresh}
+    />
+  );
+
   return (
     <SportingInitialComposition
       initialSceneSelected={tab === tabs[0].id}
@@ -205,14 +214,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
                   </ClubTeams>
                 );
               }
-              return (
-                <ClubInformation
-                  data={data}
-                  active={tab === value}
-                  fetching={club.isFetching}
-                  onRefresh={refresh}
-                />
-              );
+              return information;
             }
 
             return {

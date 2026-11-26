@@ -58,11 +58,13 @@ it("keeps encounters addressable and joins each date-local pool card under its s
   expect(cardKeys[0]).toBe(cardKeys[1]);
   expect(new Set(cardKeys).size).toBe(3);
   expect(
-    rows.filter((row) => row.kind === "date").map((row) => row.groupKey),
-  ).toEqual([cardKeys[0], cardKeys[3]]);
-  expect(
-    rows.filter((row) => row.kind === "date").map((row) => row.date),
-  ).toEqual(["2026-10-26", "2026-10-27"]);
+    rows
+      .filter((row) => row.kind === "date")
+      .map((row) => [row.date, row.groupKey]),
+  ).toEqual([
+    ["2026-10-26", cardKeys[0]],
+    ["2026-10-27", cardKeys[3]],
+  ]);
   expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
   expect(stackedRows).toEqual(rows.filter((row) => row.kind !== "space"));
 });
