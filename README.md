@@ -346,6 +346,6 @@ Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](htt
 
 Android builds require Android 10 / API 29 through Expo BuildProperties. Native qualification uses this minimum and the latest stable runtime with the real Auth0 browser handoff.
 
-`Blockout Local` uses development-only `com.blockout.local` identifiers for the current V2 routes. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
+`Blockout Local` uses `com.blockoutproject.blockout.local` as its development-only Android application ID and iOS bundle identifier. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
 
 The [canonical HTTP roots](specs/003-shared-quality/contracts/README.md) cover mobile, ingestion and the legacy update read. Redocly's minimal ruleset checks source structure and references without inferring a product license; generation and current consumer checks run through [verification](#verification). Integrated business and provider qualifications remain with the owning feature tasks.

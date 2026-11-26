@@ -2,8 +2,10 @@ import type { ExpoConfig } from "expo/config";
 
 const variant = process.env.APP_VARIANT;
 const production = variant === "production";
-const preview = variant === "preview";
-const release = production || preview;
+const previewRelease = variant === "preview";
+const previewTestStore = variant === "preview-test-store";
+const release = production || previewRelease;
+const preview = previewRelease || previewTestStore;
 const googleDemoPublisher = "ca-app-pub-3940256099942544";
 // Google sample app IDs let the native SDK start without a configured provider app.
 const admobIosAppId =
@@ -12,17 +14,31 @@ const admobAndroidAppId =
   process.env.ADMOB_ANDROID_APP_ID?.trim() ||
   `${googleDemoPublisher}~3347511713`;
 const testStoreApiKey = process.env.REVENUECAT_TEST_STORE_API_KEY;
-const iosApiKey = process.env.REVENUECAT_IOS_API_KEY;
-const androidApiKey = process.env.REVENUECAT_ANDROID_API_KEY;
+// The preproduction Test Store client can start without enabling purchases.
+const iosApiKey = previewTestStore
+  ? undefined
+  : process.env.REVENUECAT_IOS_API_KEY;
+const androidApiKey = previewTestStore
+  ? undefined
+  : process.env.REVENUECAT_ANDROID_API_KEY;
 
+// RevenueCat's native SDK rejects Test Store keys in Release builds.
 if (
-  production &&
+  release &&
   (testStoreApiKey ||
     iosApiKey?.startsWith("test_") ||
     androidApiKey?.startsWith("test_"))
 ) {
+  throw new Error("RevenueCat Test Store keys require a Debug build.");
+}
+
+if (
+  previewTestStore &&
+  testStoreApiKey &&
+  !testStoreApiKey.startsWith("test_")
+) {
   throw new Error(
-    "Production candidates must not contain RevenueCat Test Store keys.",
+    "The preview Test Store client requires a RevenueCat Test Store key.",
   );
 }
 
@@ -31,7 +47,7 @@ const easSlug = process.env.EXPO_PROJECT_SLUG;
 const expoProjectId =
   process.env.EXPO_PROJECT_ID ??
   (easSlug ? "10cdf86a-a81e-496a-bcaa-07c132678f6d" : undefined);
-let applicationId = "com.blockout.local";
+let applicationId = "com.blockoutproject.blockout.local";
 let applicationName = "Blockout Local";
 if (production) {
   applicationId = "com.blockoutproject.blockout";
@@ -63,7 +79,7 @@ const config: ExpoConfig = {
   slug: easSlug ?? "blockout-local",
   version: "2.0.0",
   userInterfaceStyle: "automatic",
-  ...(!release ? { scheme: "blockout-local" } : {}),
+  ...(!production && !preview ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
   plugins: [
     ["expo-router", { sitemap: false }],
