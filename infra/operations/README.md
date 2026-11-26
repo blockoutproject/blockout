@@ -103,7 +103,7 @@ An exceptional preproduction reset requires an explicit owner decision naming th
 
 ### Preview mobile
 
-The `preview` and `preview-test-store` profiles use the dedicated `blockout-pre-production` project (`edb28bec-8883-418e-8237-116fb5c66df4`) and its EAS `preview` environment. Configure that environment with the verified hosted HTTPS API URL, the existing preproduction Auth0 inputs and the matching preproduction build inputs. Keep the `Blockout Preprod` app name, native identifier `com.blockoutproject.blockout.preproduction`, internal distribution and compatible signatures. Production uses its historical `blockoutproject` project (`10cdf86a-a81e-496a-bcaa-07c132678f6d`) and EAS `production` environment. Local development does not require an EAS project.
+The `preview` and `preview-test-store` profiles use the dedicated `blockout-preproduction` project (`748a9886-16a9-4166-994b-77fdaf715852`) and its EAS `preview` environment. Configure that environment with the verified hosted HTTPS API URL, the existing preproduction Auth0 inputs and the matching preproduction build inputs. Keep the `Blockout Preprod` app name, native identifier `com.blockoutproject.blockout.preproduction`, internal distribution and compatible signatures. Production uses its historical `blockoutproject` project (`10cdf86a-a81e-496a-bcaa-07c132678f6d`) and EAS `production` environment. Local development does not require an EAS project.
 
 Run EAS commands from `apps/mobile`. `eas build --profile` reads the project selectors from the named profile before fetching remote variables. For commands without a build profile, such as `project:info` and `env:exec`, supply `APP_VARIANT`, `EXPO_PROJECT_SLUG` and `EXPO_PROJECT_ID` in the invoking shell. `env:exec` resolves the project before loading its environment. Check the resolved project with `project:info` before configuring inputs or credentials. Keep any remote project selectors consistent with those used by the shell and build profile.
 
@@ -111,7 +111,7 @@ Before building on the dedicated preview project, associate the existing compati
 
 ```sh
 APP_VARIANT=preview EXPO_NO_DOTENV=1 \
-EXPO_PROJECT_SLUG=blockout-pre-production EXPO_PROJECT_ID=edb28bec-8883-418e-8237-116fb5c66df4 \
+EXPO_PROJECT_SLUG=blockout-preproduction EXPO_PROJECT_ID=748a9886-16a9-4166-994b-77fdaf715852 \
 npx eas-cli@25.1.1 env:exec preview \
 'npx eas-cli@25.1.1 credentials:configure-build --platform ios --profile preview'
 ```
@@ -128,7 +128,7 @@ Keep `REVENUECAT_OFFERING_ID=default` in EAS `preview` and use its existing Test
 
 ```sh
 APP_VARIANT=preview-test-store EXPO_NO_DOTENV=1 \
-EXPO_PROJECT_SLUG=blockout-pre-production EXPO_PROJECT_ID=edb28bec-8883-418e-8237-116fb5c66df4 \
+EXPO_PROJECT_SLUG=blockout-preproduction EXPO_PROJECT_ID=748a9886-16a9-4166-994b-77fdaf715852 \
 npx eas-cli@25.1.1 env:exec preview 'APP_VARIANT=preview-test-store npx expo start --dev-client' --non-interactive
 ```
 

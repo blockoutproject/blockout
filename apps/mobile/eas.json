@@ -17,8 +17,8 @@
       "environment": "preview",
       "env": {
         "APP_VARIANT": "preview",
-        "EXPO_PROJECT_SLUG": "blockout-pre-production",
-        "EXPO_PROJECT_ID": "edb28bec-8883-418e-8237-116fb5c66df4"
+        "EXPO_PROJECT_SLUG": "blockout-preproduction",
+        "EXPO_PROJECT_ID": "748a9886-16a9-4166-994b-77fdaf715852"
       }
     },
     "preview-test-store": {
