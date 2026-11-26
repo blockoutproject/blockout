@@ -117,6 +117,7 @@ it("rereads the current match when its route regains focus and applies accepted 
   // Given: route focus is supplied by Router; the screen owns its real Query read.
   const opened = await renderPage(<MatchScreen matchId={sportingId} focused />);
   await screen.findByText("Home");
+  expect(screen.queryByRole("link", { name: /^Regarder / })).toBeNull();
   await opened.rerender(<MatchScreen matchId={sportingId} focused={false} />);
   mockFetch.mockClear();
   detail = {
@@ -144,7 +145,7 @@ it("rereads the current match when its route regains focus and applies accepted 
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
   expect(
-    screen.getByRole("header", { name: "Lien de diffusion" }),
+    screen.getByRole("link", { name: "Regarder la rediffusion" }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>

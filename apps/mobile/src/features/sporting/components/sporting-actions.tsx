@@ -65,12 +65,3 @@ const styles = StyleSheet.create({
     paddingTop: tokens.spacing.md,
   },
 });
-
-/** Match contribution entry stays owned by F08; other sporting actions retain their owners. */
-export {
-  ContributionEntry as MatchContributionAction,
-  useContributionEntry as useMatchContributionAction,
-} from "@/features/contributions/entry";
-
-/** F02 owns presentation editing and F12 owns its current capability; no match/result editor is exposed. */
-export { PresentationEntry as SportingPresentationAction } from "@/features/sporting-administration/entry";

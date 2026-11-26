@@ -5,7 +5,7 @@ import type {
 import { PageHeader } from "@/shared/components/page-header";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
-import { SportingPresentationAction } from "./sporting-actions";
+import { PresentationEntry } from "@/features/sporting-administration/entry";
 import { usePagedTabHeaderOffset } from "@/shared/components/paged-tab-context";
 
 /** Pinned navigation presents the sporting identity as the pager scrolls. */
@@ -43,7 +43,7 @@ export function SportingPageHeader({
       }
       action={
         <>
-          <SportingPresentationAction target={{ kind, id: identity.id }} />
+          <PresentationEntry target={{ kind, id: identity.id }} />
           {action}
         </>
       }

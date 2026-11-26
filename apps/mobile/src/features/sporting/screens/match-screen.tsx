@@ -1,4 +1,8 @@
-import { ContributionReportEntry } from "@/features/contributions/entry";
+import {
+  ContributionEntry,
+  ContributionReportEntry,
+  useContributionEntry,
+} from "@/features/contributions/entry";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -14,11 +18,7 @@ import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
-import {
-  MatchContributionAction,
-  SportingSupportAction,
-  useMatchContributionAction,
-} from "../components/sporting-actions";
+import { SportingSupportAction } from "../components/sporting-actions";
 import { MatchSummary, MatchSummaryLoading } from "../components/match-summary";
 import { MatchPageHeader } from "../components/match-page-header";
 import { MatchSetScores } from "../components/match-set-scores";
@@ -63,14 +63,14 @@ export function MatchScreen({
               reportAction={<ContributionReportEntry entry={contribution} />}
               action={
                 contribution.hasProposals && !contribution.ownsPublic ? (
-                  <MatchContributionAction entry={contribution} header />
+                  <ContributionEntry entry={contribution} header />
                 ) : undefined
               }
               primaryAction={
                 contribution.publicOwnershipUnknown ||
                 contribution.ownsPublic ||
                 (!data.streamUrl && contribution.canPropose) ? (
-                  <MatchContributionAction
+                  <ContributionEntry
                     entry={contribution}
                     contextColor={division?.color}
                     contextGradient={division?.gradient}
@@ -128,38 +128,40 @@ export function MatchScreen({
   if (document && (!focused || !documentAvailable)) {
     setDocument(undefined);
   }
-  const contribution = useMatchContributionAction(
+  const contribution = useContributionEntry(
     matchId,
     !!data,
     data?.streamUrl ? data.streamContributionId : undefined,
     data?.streamUrl,
   );
+  const { personalRead } = contribution;
 
   /** Refreshes ordinary Match and contribution-owner reads without attributing read failures to an action toast. */
   async function refresh() {
     await Promise.all([
       match.refetch({ cancelRefetch: false }),
-      contribution.refresh(),
+      personalRead?.refetch({ cancelRefetch: false }),
     ]);
   }
 
-  const ownership = contribution.publicOwnershipUnknown
-    ? contribution.ownershipRead
-    : undefined;
-  const failed =
-    hasReadError(match) || (!!ownership && hasReadError(ownership));
+  const matchFailed = hasReadError(match);
+  const ownershipFailed =
+    contribution.publicOwnershipUnknown &&
+    !!personalRead &&
+    hasReadError(personalRead);
+  const failed = matchFailed || ownershipFailed;
   const blockingState =
-    hasReadError(match) || !data ? (
+    matchFailed || !data ? (
       <ReadFeedback
         key={matchId}
         query={match}
         loadingContent={<MatchSummaryLoading />}
       />
-    ) : ownership && hasReadError(ownership) ? (
+    ) : ownershipFailed ? (
       <ReadFeedback
         key={`${matchId}:ownership`}
-        query={ownership}
-        onRetry={() => ownership.refetch({ cancelRefetch: false })}
+        query={personalRead}
+        onRetry={() => personalRead.refetch({ cancelRefetch: false })}
         loadingContent={null}
       />
     ) : undefined;
@@ -195,9 +197,7 @@ export function MatchScreen({
           data && !failed ? (
             <DataRefreshControl
               onRefresh={refresh}
-              fetching={
-                match.isFetching || !!contribution.ownershipRead?.isFetching
-              }
+              fetching={match.isFetching || !!personalRead?.isFetching}
             />
           ) : undefined
         }

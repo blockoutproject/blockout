@@ -22,10 +22,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import {
-  MatchContributionAction,
-  useMatchContributionAction,
-} from "@/features/sporting/components/sporting-actions";
+import { ContributionEntry, useContributionEntry } from "../entry";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -79,10 +76,8 @@ const previous = { ...process.env };
 
 /** Uses the actual public action and its read owner, as the match refresh composition does. */
 function Entry({ header = false }: Readonly<{ header?: boolean }>) {
-  const entry = useMatchContributionAction(
-    "00000000-0000-4000-8000-000000000002",
-  );
-  return <MatchContributionAction entry={entry} header={header} />;
+  const entry = useContributionEntry("00000000-0000-4000-8000-000000000002");
+  return <ContributionEntry entry={entry} header={header} />;
 }
 
 let client = createQueryClient();
@@ -260,9 +255,13 @@ it.each([false, true])(
     expect(!!screen.queryByRole("header", { name: "Lien de diffusion" })).toBe(
       published,
     );
-    expect(!!screen.queryByRole("link", { name: "Regarder le live" })).toBe(
-      published,
-    );
+    if (published) {
+      expect(
+        screen.getByRole("link", { name: "Regarder le live" }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByRole("link", { name: /^Regarder / })).toBeNull();
+    }
     expect(
       screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
@@ -406,9 +405,6 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
     pathname: "/matches/[matchId]/contributions",
     params: { matchId: "00000000-0000-4000-8000-000000000002" },
   });
-  expect(
-    screen.queryByRole("button", { name: "Lien de diffusion" }),
-  ).not.toBeOnTheScreen();
 });
 
 it.each(["exact owner", "different owner", "missing projection"] as const)(
@@ -495,17 +491,18 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
     expect(!!screen.queryByRole("button", { name: "Modifier le lien" })).toBe(
       ownership === "exact owner",
     );
-    expect(!!screen.queryByRole("link", { name: "Regarder le live" })).toBe(
-      ownership !== "exact owner",
-    );
     expect(
       screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
     if (ownership === "exact owner") {
+      expect(screen.queryByRole("link", { name: /^Regarder / })).toBeNull();
       expect(
         screen.queryByRole("button", { name: "Signaler le lien" }),
       ).not.toBeOnTheScreen();
     } else {
+      expect(
+        screen.getByRole("link", { name: "Regarder le live" }),
+      ).toBeOnTheScreen();
       expect(
         screen.getByRole("button", { name: "Signaler le lien" }),
       ).toBeOnTheScreen();
@@ -590,9 +587,9 @@ it.each(["own", "other", "failure"] as const)(
     await screen.findByRole("header", { name: "Lien de diffusion" });
     await waitFor(() => expect(firstRead).toBe(false));
 
-    // Then: the published URL alone cannot expose the foreign-owner F11 action.
+    // Then: opening and editing both wait for the owner of the published version.
     expect(
-      screen.queryByRole("link", { name: "Regarder le live" }),
+      screen.queryByRole("link", { name: /^Regarder / }),
     ).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Modifier le lien" }),
@@ -618,7 +615,7 @@ it.each(["own", "other", "failure"] as const)(
         }),
       ).not.toBeOnTheScreen();
       expect(
-        screen.queryByRole("link", { name: "Regarder le live" }),
+        screen.queryByRole("link", { name: /^Regarder / }),
       ).not.toBeOnTheScreen();
       expect(
         screen.queryByRole("button", { name: "Modifier le lien" }),

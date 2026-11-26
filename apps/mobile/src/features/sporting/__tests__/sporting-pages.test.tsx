@@ -1858,16 +1858,19 @@ it.each([true, false])(
       awaySets: 0,
       observedAt: "2026-10-25T13:00:00Z",
     };
+    contributions = ownContributions({
+      eligibility: { canSubmit, requiresApproval: false },
+    });
     const publicRead = Promise.withResolvers<void>();
-    const privateRead = Promise.withResolvers<Response>();
+    const privateRead = Promise.withResolvers<void>();
     const readEligibility = jest.fn(() => privateRead.promise);
-    mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+    mockFetch.mockImplementation(async (url: string, request?: RequestInit) => {
       const path = new URL(url).pathname;
       if (path === `/matches/${sportingId}`) {
-        return publicRead.promise.then(() => Response.json(match));
+        await publicRead.promise;
       }
       if (path.endsWith("/stream-contributions")) {
-        return readEligibility();
+        await readEligibility();
       }
       return reads(url, request);
     });
@@ -1896,15 +1899,7 @@ it.each([true, false])(
     expect(
       screen.getByRole("header", { name: "Informations" }),
     ).toBeOnTheScreen();
-    await act(async () =>
-      privateRead.resolve(
-        Response.json(
-          ownContributions({
-            eligibility: { canSubmit, requiresApproval: false },
-          }),
-        ),
-      ),
-    );
+    await act(async () => privateRead.resolve());
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
     // Then

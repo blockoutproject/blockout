@@ -271,11 +271,14 @@ it.each([
       ).toBeOnTheScreen();
     }
 
-    // When
     expect(
-      screen.queryByRole("link", { name: "Regarder le live" }),
+      screen.queryByRole("link", { name: /^Regarder / }),
     ).not.toBeOnTheScreen();
-    expect(screen.queryByText("Signaler")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Signaler le lien" }),
+    ).not.toBeOnTheScreen();
+
+    // When
     await user.press(entry);
 
     // Then
@@ -738,7 +741,7 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
   );
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.queryByRole("link", { name: "Regarder le live" }),
+    screen.queryByRole("link", { name: /^Regarder / }),
   ).not.toBeOnTheScreen();
   await act(() =>
     router.push({
