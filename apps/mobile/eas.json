@@ -15,7 +15,11 @@
       "node": "24.18.0",
       "distribution": "internal",
       "environment": "preview",
-      "env": { "APP_VARIANT": "preview" }
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PROJECT_SLUG": "blockout-pre-production",
+        "EXPO_PROJECT_ID": "edb28bec-8883-418e-8237-116fb5c66df4"
+      }
     },
     "preview-test-store": {
       "extends": "preview",
@@ -26,7 +30,11 @@
       "node": "24.18.0",
       "environment": "production",
       "autoIncrement": true,
-      "env": { "APP_VARIANT": "production" }
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PROJECT_SLUG": "blockoutproject",
+        "EXPO_PROJECT_ID": "10cdf86a-a81e-496a-bcaa-07c132678f6d"
+      }
     }
   }
 }

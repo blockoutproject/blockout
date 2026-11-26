@@ -103,29 +103,32 @@ An exceptional preproduction reset requires an explicit owner decision naming th
 
 ### Preview mobile
 
-After the hosted API is healthy, set only the existing EAS `preview` environment to its verified HTTPS URL and existing preproduction Auth0 inputs. Keep the `Blockout Preprod` identity, internal distribution, existing project and compatible signatures. Build from a committed revision through the pinned official EAS CLI: Android APK and iOS ad hoc for registered test devices. Keep build IDs and private provisioning evidence in their native records; do not copy credentials here. The owner tests the installed binaries on physical devices and reports sign-in, profile, consultation, search, collection and inbox results; agents prepare builds and run automated emulator/simulator checks. State unsupported device/provider cases explicitly; JavaScript export or an old production-identity archive does not replace this evidence. Production candidates, store submission and V1 cutover remain separate.
+The `preview` and `preview-test-store` profiles use the dedicated `blockout-pre-production` project (`edb28bec-8883-418e-8237-116fb5c66df4`) and its EAS `preview` environment. Configure that environment with the verified hosted HTTPS API URL, the existing preproduction Auth0 inputs and the matching preproduction build inputs. Keep the `Blockout Preprod` app name, native identifier `com.blockoutproject.blockout.preproduction`, internal distribution and compatible signatures. Production uses its historical `blockoutproject` project (`10cdf86a-a81e-496a-bcaa-07c132678f6d`) and EAS `production` environment. Local development does not require an EAS project.
 
-Run EAS commands from `apps/mobile`. Set `APP_VARIANT=preview` and `EXPO_PROJECT_SLUG=blockoutproject` before commands that resolve the project: `env:exec` identifies the project before loading its remote environment, and its project lookup does not apply a build profile's variables. Verify the retained project `10cdf86a-a81e-496a-bcaa-07c132678f6d`; do not initialize or attach the local variant while preparing preview. For first iOS ad hoc setup, use the existing Apple account, valid distribution certificate and registered test devices:
+Run EAS commands from `apps/mobile`. `eas build --profile` reads the project selectors from the named profile before fetching remote variables. For commands without a build profile, such as `project:info` and `env:exec`, supply `APP_VARIANT`, `EXPO_PROJECT_SLUG` and `EXPO_PROJECT_ID` in the invoking shell. `env:exec` resolves the project before loading its environment. Check the resolved project with `project:info` before configuring inputs or credentials. Keep any remote project selectors consistent with those used by the shell and build profile.
+
+Before building on the dedicated preview project, associate the existing compatible Android signing credential with the preproduction package. For iOS, use the existing Apple team, valid distribution certificate and ad hoc provisioning for the registered devices. Verify signing and the [push credentials](#sporting-push-inputs-and-failure-limits) separately. For the iOS ad hoc setup, run this command after the EAS `preview` inputs are available:
 
 ```sh
-APP_VARIANT=preview EXPO_PROJECT_SLUG=blockoutproject \
+APP_VARIANT=preview EXPO_NO_DOTENV=1 \
+EXPO_PROJECT_SLUG=blockout-pre-production EXPO_PROJECT_ID=edb28bec-8883-418e-8237-116fb5c66df4 \
 npx eas-cli@25.1.1 env:exec preview \
 'npx eas-cli@25.1.1 credentials:configure-build --platform ios --profile preview'
 ```
 
-After credentials are ready, the same project selectors with `eas build --profile preview --platform all --freeze-credentials` request the internal builds. EAS's official `--local` build with the same profile is available when its cloud queue delays qualification and the required native tools already exist. Preserve the exact artifact/source and distinguish local development clients from signed preview binaries; do not install providers, buy capacity or rebuild compatible clients by default.
+After credentials are ready, use `npx eas-cli@25.1.1 build --profile preview --platform all --freeze-credentials` from a committed revision to request the Android APK and iOS ad hoc builds. EAS's official `--local` build with the same profile is available when its cloud queue delays qualification and the required native tools already exist. Reuse compatible clients and existing tools where they supply the required evidence. Keep the build IDs, exact source and private provisioning evidence in their native records. The owner tests the installed binaries on physical devices and reports sign-in, profile, consultation, search, collection and inbox results. Agents prepare builds and run automated emulator or simulator checks. Record unsupported cases and the exact build used for each native observation. Production candidates, store submission and V1 cutover follow their own procedures.
 
 For RevenueCat Test Store checks against the hosted preproduction API, build the internal `preview-test-store` development client from the same revision. It uses Debug builds, the `preview` EAS environment and the same preproduction app identity, so use a separate test device or emulator if the installed Release app must stay in place. The installed Android Debug artifact may have a different signing certificate, which needs its own verified Maps restriction if that circuit uses Maps.
 
 ```sh
-APP_VARIANT=preview-test-store EXPO_PROJECT_SLUG=blockoutproject \
 npx eas-cli@25.1.1 build --profile preview-test-store --platform all --non-interactive --freeze-credentials
 ```
 
 Keep `REVENUECAT_OFFERING_ID=default` in EAS `preview` and use its existing Test Store product under the [F09 setup](../../specs/006-pro-subscriptions/quickstart.md#prerequisites-and-setup). Set the authorized `REVENUECAT_TEST_STORE_API_KEY` in the shell launching Metro. Use the same source revision from `apps/mobile` and open the Metro session in the installed Debug client. With `preview-test-store` selected, Pro stays unavailable until the Test Store key is supplied.
 
 ```sh
-APP_VARIANT=preview-test-store EXPO_PROJECT_SLUG=blockoutproject EXPO_NO_DOTENV=1 \
+APP_VARIANT=preview-test-store EXPO_NO_DOTENV=1 \
+EXPO_PROJECT_SLUG=blockout-pre-production EXPO_PROJECT_ID=edb28bec-8883-418e-8237-116fb5c66df4 \
 npx eas-cli@25.1.1 env:exec preview 'APP_VARIANT=preview-test-store npx expo start --dev-client' --non-interactive
 ```
 
@@ -607,16 +610,18 @@ PostgreSQL regardless of transport activation. No production/provider activation
 by this configuration.
 
 - Backend: `BLOCKOUT_NOTIFICATIONS_PUSH_ENABLED` defaults to `false`;
-  `BLOCKOUT_NOTIFICATIONS_PUSH_PROJECT_ID` names the existing isolated project and
+  `BLOCKOUT_NOTIFICATIONS_PUSH_PROJECT_ID` must match the project's UUID for the same environment and
   `BLOCKOUT_NOTIFICATIONS_PUSH_ACCESS_TOKEN` is its private server bearer credential. Enabling
-  requires both inputs. Enable Expo's enhanced push security separately only with authorization,
-  and keep the server credential in the private environment/secret store. Never expose it in a
-  mobile bundle, repository, shell transcript or diagnostic payload.
+  requires both inputs. Store them in the corresponding backend application's private
+  Dokploy environment with transport disabled during preparation. Enable Expo's enhanced push
+  security with authorization after verifying any existing senders on that project can still send.
+  Keep the bearer credential out of mobile, Git and diagnostics.
 - Native `apps/mobile/app.config.ts`: `EXPO_PROJECT_ID` supplies the public build-time project UUID
-  consumed by the existing `getExpoPushTokenAsync({ projectId })` lifecycle. Without an override,
-  the existing `EXPO_PROJECT_SLUG` EAS configuration retains its current project UUID; a plain
-  local build has none and does not register. Select matching native/backend project inputs;
-  the Expo address itself does not prove its project to the backend. Mixed-project rejection is
+  consumed by the existing `getExpoPushTokenAsync({ projectId })` lifecycle. The EAS profiles
+  select the dedicated preproduction project for both preview builds and the historical project
+  for production. An ordinary local build has no project UUID and does not register. The Expo
+  project configured by Dokploy must match the one embedded in the corresponding build.
+  The Expo address itself does not prove its project to the backend. Mixed-project rejection is
   dropped, never split/retried. Preserve F14's existing production application/project identity.
 - Android: `FCM_GOOGLE_SERVICES_FILE` is the environment-owned absolute path to the matching
   `google-services.json`; keep the file outside Git. The matching private FCM v1 service-account
@@ -624,8 +629,9 @@ by this configuration.
   backend token field. The existing SDK creates channel `default` (label `Notifications`, default
   importance) before permission/token acquisition. The `expo-notifications` config plugin uses
   that channel. User/channel settings still control presentation.
-- iOS: the isolated application identifier, APNs key and matching provisioning entitlement belong
-  to the authorized Apple/Expo build credentials. No APNs secret is read from application config.
+- iOS: associate the APNs credential with the exact bundle identifier in the corresponding Expo
+  project and check the Apple team, key scope and provisioning entitlement in the signed artifact.
+  Preserve credentials that still serve V1. Keep the APNs key in the authorized Apple/Expo credentials.
   The SDK plugin supplies ordinary native notification configuration; background remote
   notifications remain disabled. Adding the plugin changes future native binaries and does not
   update an already installed development client.
