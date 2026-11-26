@@ -22,7 +22,7 @@ import {
   type LegendListProps,
   type LegendListRef,
 } from "@legendapp/list/react-native";
-import {
+import Animated, {
   useAnimatedRef,
   useScrollOffset,
   type AnimatedRef,
@@ -93,6 +93,10 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const {
     contentContainerStyle,
     ref,
+    // Keep native scroll commands effective when a calendar grid remounts at a new text size.
+    renderScrollComponent = (scrollProps) => (
+      <Animated.ScrollView {...scrollProps} />
+    ),
     maintainVisibleContentPosition,
     stickyHeaderConfig,
     loadingFeedback,
@@ -153,6 +157,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
   const nativeProps = {
     ...props,
     ...hiddenScrollIndicators,
+    renderScrollComponent,
     ref: list,
     contentContainerStyle: [contentContainerStyle, clearance],
     // On iOS, size anchoring turns measured chrome padding into scroll movement.
