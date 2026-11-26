@@ -59,10 +59,8 @@ export function SportingMedia({
     const artwork = (
       <Image
         key={image.attemptKey}
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel={`${label} : ${identity.name}`}
-        accessibilityState={{ busy }}
+        accessible={false}
+        testID="sporting-logo-image"
         source={{ uri }}
         cachePolicy="none"
         contentFit="contain"
@@ -112,12 +110,13 @@ export function SportingMedia({
         : "Logo absent";
   const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
   const nativeImageSize = (nativeSize ?? size) * artworkScale;
+  // Updating the slot's accessibility state keeps Expo Image's native props stable after display.
   const logo = (
     <View
-      accessible={!available}
-      accessibilityRole={available ? undefined : "image"}
-      accessibilityLabel={available ? undefined : `${label} : ${identity.name}`}
-      accessibilityState={{ busy: !available && busy }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`${label} : ${identity.name}`}
+      accessibilityState={{ busy }}
       style={[
         styles.slot,
         {
