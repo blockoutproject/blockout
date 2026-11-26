@@ -2028,13 +2028,17 @@ it("keeps the full Match summary readable when its competition badge fails to de
     observedAt: "2026-10-25T20:00:00Z",
   };
   await renderPage(<MatchSummary match={match.match} />);
-  const badge = screen.getByRole("image", { name: "Logo : Prénationale" });
+  const badgeSlot = screen.getByRole("image", { name: "Logo : Prénationale" });
   expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
 
   // When
-  await fireEvent(badge, "error", {
-    nativeEvent: { error: "Competition badge decoding failed" },
-  });
+  await fireEvent(
+    within(badgeSlot).getByTestId("sporting-logo-image"),
+    "error",
+    {
+      nativeEvent: { error: "Competition badge decoding failed" },
+    },
+  );
 
   // Then
   expect(
@@ -2093,9 +2097,10 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
       }}
     />,
   );
-  const foreground = screen.getByRole("image", {
+  const foregroundSlot = screen.getByRole("image", {
     name: `Logo : ${match.match.home.name}`,
   });
+  const foreground = within(foregroundSlot).getByTestId("sporting-logo-image");
   const atmosphere = screen.getByTestId(
     `match-score-atmosphere-${match.match.home.id}`,
   );
@@ -2156,12 +2161,16 @@ it("withdraws only the failed Score crest and its associated halo", async () => 
   expect(screen.getByTestId(haloId)).toBeOnTheScreen();
 
   // When
-  const crest = screen.getByRole("image", {
+  const crestSlot = screen.getByRole("image", {
     name: `Logo : ${match.match.home.name}`,
   });
-  await fireEvent(crest, "error", {
-    nativeEvent: { error: "Score crest decoding failed" },
-  });
+  await fireEvent(
+    within(crestSlot).getByTestId("sporting-logo-image"),
+    "error",
+    {
+      nativeEvent: { error: "Score crest decoding failed" },
+    },
+  );
 
   // Then
   expect(screen.queryByTestId(haloId)).not.toBeOnTheScreen();
@@ -2442,12 +2451,12 @@ it("keeps the team's own division artwork when its foreground team logo fails", 
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  const image = await screen.findByRole("image", {
+  const slot = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
 
   // When
-  await fireEvent(image, "error", {
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "error", {
     nativeEvent: { error: "Native decode failed" },
   });
 
@@ -2484,10 +2493,10 @@ it("keeps sharp artwork, classification and the follow action usable when the de
   );
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  const image = await screen.findByRole("image", {
+  const slot = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
-  await fireEvent(image, "display");
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "display");
 
   // When
   await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "error", {
@@ -2526,9 +2535,10 @@ it("loads public artwork directly and withdraws both layers after the team is re
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  const image = await screen.findByRole("image", {
+  const slot = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
+  const image = within(slot).getByTestId("sporting-logo-image");
   expect(image).toHaveProp(
     "source",
     expect.arrayContaining([
@@ -2567,8 +2577,11 @@ it("shows a new native logo source after the previously published source failed"
   await renderPage(<TeamScreen teamId={sportingId} />);
   await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
+  const originalSlot = await screen.findByRole("image", {
+    name: `Logo : ${team.team.team.name}`,
+  });
   await fireEvent(
-    await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` }),
+    within(originalSlot).getByTestId("sporting-logo-image"),
     "error",
     { nativeEvent: { error: "Native decode failed" } },
   );
@@ -2592,10 +2605,10 @@ it("shows a new native logo source after the previously published source failed"
   );
 
   // Then
-  const image = await screen.findByRole("image", {
+  const replacementSlot = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
-  expect(image).toHaveProp(
+  expect(within(replacementSlot).getByTestId("sporting-logo-image")).toHaveProp(
     "source",
     expect.arrayContaining([
       {
