@@ -125,7 +125,7 @@ Apply the [accepted native image-preparation limits](research.md#prepared-images
 
 ## Native UI and approved design
 
-Compare [the Access section](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=8880-651) using the feature owners' native cases. Observe the centered, clipped three-row neutral band, opposite middle-row travel, stable positioning during card movement, and the still arrangement after changing system reduced motion while Access is open. Distribute theme, narrow width and enlarged copy cases across the representative screens.
+Compare [the Access section](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=8880-651) using the feature owners' native cases. Observe the centered, clipped three-row band of empty neutral tiles, opposite middle-row travel, stable positioning during card movement, and the still arrangement after changing system reduced motion while Access is open. Distribute theme, narrow width and enlarged copy cases across the representative screens.
 
 Accessibility qualification follows [F13 FR-030](spec.md#platforms-accessibility-and-bounded-continuity).
 

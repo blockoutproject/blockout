@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -15,27 +14,14 @@ import Animated, {
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-const crests = [
-  require("../../../assets/access/crest-mountain.svg"),
-  require("../../../assets/access/crest-volleyball.svg"),
-  require("../../../assets/access/crest-bird.svg"),
-  require("../../../assets/access/crest-castle.svg"),
-  require("../../../assets/access/crest-waves.svg"),
-  require("../../../assets/access/crest-chevrons.svg"),
-  require("../../../assets/access/crest-sun.svg"),
-  require("../../../assets/access/crest-skater.svg"),
-  require("../../../assets/access/crest-leaf.svg"),
-  require("../../../assets/access/crest-lightning.svg"),
-] as const;
-
 const rows = [
-  { offset: 0, phase: 9 / 32, direction: 1 },
-  { offset: 3, phase: 17 / 32, direction: -1 },
-  { offset: 7, phase: 29 / 32, direction: 1 },
+  { phase: 13 / 16, direction: 1 },
+  { phase: 5 / 16, direction: -1 },
+  { phase: 1 / 16, direction: 1 },
 ] as const;
 
 const tileGap = tokens.spacing.md;
-const crestInset = tokens.spacing.tight * 3;
+const tileTravelDuration = 3200;
 const tiltDegrees = 4;
 const tiltRadians = (tiltDegrees * Math.PI) / 180;
 const backdrop = {
@@ -64,22 +50,18 @@ function ClubRail({
 }>) {
   const { colors } = useTheme();
   const { tileSize, rowHeight } = geometry;
-  const period = crests.length * (tileSize + tileGap);
-  const copies = Math.ceil(coverage / period) + 1;
-  const logos = [...crests.slice(row.offset), ...crests.slice(0, row.offset)];
+  const tileStride = tileSize + tileGap;
+  const tileCount = Math.ceil(coverage / tileStride) + 1;
   const tilePaint = compact
     ? {
         backgroundColor: `${colors.onDarkAccent}1C`,
         borderColor: `${colors.onDarkAccent}20`,
       }
     : { backgroundColor: colors.subtle, borderColor: colors.insetSurface };
-  const crestSize = tileSize - crestInset;
   const sliding = useAnimatedStyle(() => {
-    const cycle = reducedMotion
-      ? row.offset / crests.length
-      : (progress.get() + row.phase) % 1;
+    const cycle = reducedMotion ? row.phase : (progress.get() + row.phase) % 1;
     const offset = row.direction === 1 ? cycle - 1 : -cycle;
-    return { transform: [{ translateX: offset * period }] };
+    return { transform: [{ translateX: offset * tileStride }] };
   });
 
   return (
@@ -93,28 +75,17 @@ function ClubRail({
       ]}
     >
       <Animated.View
-        style={[styles.track, { width: copies * period }, sliding]}
+        style={[styles.track, { width: tileCount * tileStride }, sliding]}
       >
-        {Array.from({ length: copies }, (_, copy) => (
-          <View key={copy} style={styles.cycle}>
-            {logos.map((logo) => (
-              <View
-                key={logo}
-                style={[
-                  styles.tile,
-                  tilePaint,
-                  { width: tileSize, height: tileSize },
-                ]}
-              >
-                <Image
-                  source={logo}
-                  accessible={false}
-                  contentFit="contain"
-                  style={{ width: crestSize, height: crestSize }}
-                />
-              </View>
-            ))}
-          </View>
+        {Array.from({ length: tileCount }, (_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.tile,
+              tilePaint,
+              { width: tileSize, height: tileSize },
+            ]}
+          />
         ))}
       </Animated.View>
     </View>
@@ -141,7 +112,7 @@ export function AccessClubBand({
     progress.set(
       withRepeat(
         withTiming(1, {
-          duration: 32000,
+          duration: tileTravelDuration,
           easing: Easing.linear,
           reduceMotion: ReduceMotion.Never,
         }),
@@ -178,7 +149,7 @@ export function AccessClubBand({
         >
           {rows.map((row) => (
             <ClubRail
-              key={row.offset}
+              key={row.phase}
               row={row}
               geometry={geometry}
               coverage={coverage}
@@ -208,16 +179,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: `-${tiltDegrees}deg` }],
   },
   row: { justifyContent: "center" },
-  track: { flexDirection: "row", flexShrink: 0 },
-  cycle: {
-    flexDirection: "row",
-    gap: tileGap,
-    paddingRight: tileGap,
-    flexShrink: 0,
-  },
+  track: { flexDirection: "row", gap: tileGap, flexShrink: 0 },
   tile: {
-    alignItems: "center",
-    justifyContent: "center",
     borderRadius: tokens.radius.control,
     borderWidth: tokens.border.thin,
   },
