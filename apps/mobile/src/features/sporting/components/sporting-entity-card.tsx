@@ -134,7 +134,11 @@ export function SportingEntityCard({
     />
   );
 
-  function renderCard(logo: ReactNode, atmosphere: ReactNode) {
+  function renderCard(logo: ReactNode, logoAtmosphere: ReactNode) {
+    const atmosphere =
+      kind === "team" && !clubTeam
+        ? division && <SportingDivisionAtmosphere division={division} />
+        : logoAtmosphere;
     const content = (
       <>
         {clubTeam ? (
@@ -254,32 +258,25 @@ export function SportingEntityCard({
     ? tokens.sporting.clubTeam.logoSize
     : tokens.size.media.entity;
   if (!logoIdentity) {
-    return renderCard(
+    return (
       <SportingMedia
         identity={identity}
         kind="division"
         size={logoSize}
         presentation="entity"
-      />,
-      null,
+        renderWithAtmosphere={renderCard}
+      />
     );
   }
-  const usesDivisionAtmosphere = kind === "team" && !clubTeam;
-  const logo = (
+  return (
     <SportingLogo
       identity={logoIdentity}
       kind={kind === "pool" ? "division" : kind}
       size={logoSize}
       presentation="entity"
-      renderWithAtmosphere={usesDivisionAtmosphere ? undefined : renderCard}
+      renderWithAtmosphere={renderCard}
     />
   );
-  return usesDivisionAtmosphere
-    ? renderCard(
-        logo,
-        division && <SportingDivisionAtmosphere division={division} />,
-      )
-    : logo;
 }
 
 /** Neutral copies of the requested card reserve a first read without admitting identities. */

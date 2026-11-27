@@ -43,7 +43,9 @@ export function useNativeImageLifecycle(
   /** Rejects callbacks queued by a replaced source and prevents a late display from undoing its failure. */
   function settleImage(status: "displayed" | "failed") {
     setImage((current) =>
-      current.attemptKey !== attemptKey || current.status === "failed"
+      current.attemptKey !== attemptKey ||
+      current.status === "failed" ||
+      current.status === status
         ? current
         : { ...current, status },
     );

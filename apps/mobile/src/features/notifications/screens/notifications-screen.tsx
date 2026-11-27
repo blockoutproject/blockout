@@ -1,5 +1,5 @@
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
-import { PageFlatList } from "@/shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import {
   useInfiniteQuery,
@@ -222,9 +222,10 @@ function Inbox({
 
   return (
     <Page edges={["top", "left", "right"]} header={<NotificationsHeader />}>
-      <PageFlatList
+      <PageList
         alwaysBounceVertical={rows.length > 0}
         data={rows}
+        maintainVisibleContentPosition={false}
         reveal={{ presentation }}
         onEndReached={() => {
           if (!query.isError) {

@@ -4,6 +4,7 @@ import { createRef } from "react";
 import { Text } from "react-native";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { BottomContentInsetContext } from "../bottom-content-inset";
 import { LoadingGroup } from "../loading-group";
 import { PageList } from "../page-list";
 import { useContentReveal } from "../content-reveal";
@@ -105,41 +106,48 @@ it("releases loading feedback immediately for a successful empty list", async ()
   ).toBeNull();
 });
 
-it("excludes a row scrolled entirely behind the page header from the first presentation", async () => {
+it("samples only rows between pinned chrome when a covered list first becomes active", async () => {
   // Given
   const list = createRef<LegendListRef>();
   const sampled = jest.fn();
 
-  function ScrolledResults() {
-    const presentation = useContentReveal(true);
+  function ScrolledResults({ active }: Readonly<{ active: boolean }>) {
+    const presentation = useContentReveal(active);
     return (
       <PageViewport header={<Text>Results</Text>} headerMinHeight={60}>
-        <PageList
-          ref={list}
-          testID="results-list"
-          data={["Covered", "Visible"]}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => <Text>{item}</Text>}
-          reveal={{ presentation: { ...presentation, start: sampled } }}
-        />
+        <BottomContentInsetContext value={80}>
+          <PageList
+            ref={list}
+            testID="results-list"
+            data={["Above", "Visible", "Below"]}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => <Text>{item}</Text>}
+            reveal={{ presentation: { ...presentation, start: sampled } }}
+          />
+        </BottomContentInsetContext>
       </PageViewport>
     );
   }
 
-  await render(<ScrolledResults />, { wrapper: ThemeProvider });
+  const view = await render(<ScrolledResults active={false} />, {
+    wrapper: ThemeProvider,
+  });
   const viewport = list.current!;
   jest.spyOn(viewport, "getState").mockReturnValue({
     ...viewport.getState(),
     scroll: 60,
-    scrollLength: 400,
+    scrollLength: 190,
     start: 0,
-    end: 1,
+    end: 2,
     positionAtIndex: (index) => index * 60,
     sizeAtIndex: () => 60,
   });
 
-  // When
   await fireEvent(screen.getByTestId("results-list"), "ready");
+  expect(sampled).not.toHaveBeenCalled();
+
+  // When
+  await view.rerender(<ScrolledResults active />);
 
   // Then
   expect(sampled).toHaveBeenCalledWith(["Visible"]);

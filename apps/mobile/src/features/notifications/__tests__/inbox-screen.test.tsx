@@ -1,3 +1,4 @@
+import "@/shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,

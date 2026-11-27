@@ -148,7 +148,11 @@ export function SportingIdentity({
       <IdentityCard
         style={revealStyle}
         artwork={artwork}
-        atmosphere={atmosphere}
+        atmosphere={
+          kind === "team"
+            ? division && <SportingDivisionAtmosphere division={division} />
+            : atmosphere
+        }
         borderColor={
           division ? `${division.color}${colors.contextBorderAlpha}` : undefined
         }
@@ -196,7 +200,7 @@ export function SportingIdentity({
     );
   }
 
-  const artwork = (
+  return (
     <SportingMedia
       identity={logoIdentity}
       kind={logoKind}
@@ -204,15 +208,9 @@ export function SportingIdentity({
       size={tokens.size.media.profile}
       presentation="identity"
       atmosphere={logo.error ? false : undefined}
-      renderWithAtmosphere={kind === "team" ? undefined : renderCard}
+      renderWithAtmosphere={renderCard}
     />
   );
-  return kind === "team"
-    ? renderCard(
-        artwork,
-        division && <SportingDivisionAtmosphere division={division} />,
-      )
-    : artwork;
 }
 
 /** Keeps the club chip visually equal to its metadata peers inside a native minimum-size touch target. */

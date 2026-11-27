@@ -22,13 +22,15 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { ContributionEntry, useContributionEntry } from "../entry";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { ownContributions } from "../test-support/contribution-data";
 import { MatchScreen } from "@/features/sporting/screens/match-screen";
-import { matchDetail } from "@/features/sporting/test-support/consultation-data";
+import {
+  matchDetail,
+  sportingId,
+} from "@/features/sporting/test-support/consultation-data";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import * as proSessionModule from "@/features/pro/pro-session";
@@ -74,10 +76,14 @@ const mockFetch = jest.fn<
 >();
 const previous = { ...process.env };
 
-/** Uses the actual public action and its read owner, as the match refresh composition does. */
-function Entry({ header = false }: Readonly<{ header?: boolean }>) {
-  const entry = useContributionEntry("00000000-0000-4000-8000-000000000002");
-  return <ContributionEntry entry={entry} header={header} />;
+function MatchWithActions() {
+  return (
+    <AccountFeedbackProvider>
+      <AdvertisingProviders>
+        <MatchScreen matchId={sportingId} />
+      </AdvertisingProviders>
+    </AccountFeedbackProvider>
+  );
 }
 
 let client = createQueryClient();
@@ -283,7 +289,7 @@ it.each([true, false])(
           <ApplicationAccessProvider>
             <AccountSessionProvider>
               <PrivateQueries>
-                <Entry />
+                <MatchWithActions />
               </PrivateQueries>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
@@ -301,7 +307,7 @@ it.each([true, false])(
       authenticated
         ? {
             pathname: "/matches/[matchId]/contribution",
-            params: { matchId: "00000000-0000-4000-8000-000000000002" },
+            params: { matchId: sportingId },
           }
         : {
             pathname: "/sign-in-invitation",
@@ -336,7 +342,7 @@ it("omits an unavailable contribution action", async () => {
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <PrivateQueries>
-              <Entry />
+              <MatchWithActions />
             </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
@@ -387,7 +393,7 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
         <ApplicationAccessProvider>
           <AccountSessionProvider>
             <PrivateQueries>
-              <Entry header />
+              <MatchWithActions />
             </PrivateQueries>
           </AccountSessionProvider>
         </ApplicationAccessProvider>
@@ -403,7 +409,7 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
   // Then
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/matches/[matchId]/contributions",
-    params: { matchId: "00000000-0000-4000-8000-000000000002" },
+    params: { matchId: sportingId },
   });
 });
 

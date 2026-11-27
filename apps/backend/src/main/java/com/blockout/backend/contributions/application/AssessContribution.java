@@ -3,9 +3,11 @@ package com.blockout.backend.contributions.application;
 import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
+import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -39,7 +41,12 @@ public class AssessContribution {
       StreamAddress proposed,
       Instant now) {
     ContributionQuota.Day day = ContributionQuota.dayAt(now);
-    ContributionQuota.Usage usage = store.usage(owner, facts.match().id(), day);
+    UUID matchId = facts.match().id();
+    ContributionQuota.Usage usage = store.usage(owner, matchId, day);
+    Optional<ContributionVersion> active = store.active(matchId);
+    // An eligibility read has no proposed address to compare with a pending version.
+    ContributionVersion pending =
+        proposed == null ? null : store.pending(matchId, owner).orElse(null);
     ContributionEligibility.Decision decision =
         ContributionEligibility.evaluate(
             new ContributionEligibility.Actor(owner, true, moderator),
@@ -49,10 +56,7 @@ public class AssessContribution {
                 facts.schedule().localDate(),
                 facts.schedule().reliableStart(),
                 facts.definitiveResult()),
-            new ContributionEligibility.Current(
-                state,
-                store.active(facts.match().id()).orElse(null),
-                store.pending(facts.match().id(), owner).orElse(null)),
+            new ContributionEligibility.Current(state, active.orElse(null), pending),
             proposed,
             usage,
             now);
@@ -60,6 +64,7 @@ public class AssessContribution {
         decision,
         usage,
         day,
+        active.filter(version -> owner.equals(version.ownerId())).orElse(null),
         ContributionEligibility.requiresApproval(moderator, facts.definitiveResult(), state));
   }
 
@@ -69,11 +74,14 @@ public class AssessContribution {
    * @param decision current pure eligibility outcome
    * @param usage persisted ordinary quota participation
    * @param day Paris quota interval containing the evaluation instant
+   * @param ownActive current active version only when it belongs to this owner, independent of
+   *     pagination
    * @param requiresApproval approval rule for an otherwise permitted submission
    */
   public record Assessment(
       ContributionEligibility.Decision decision,
       ContributionQuota.Usage usage,
       ContributionQuota.Day day,
+      ContributionVersion ownActive,
       boolean requiresApproval) {}
 }

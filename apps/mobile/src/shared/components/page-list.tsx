@@ -6,10 +6,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  type ComponentProps,
-  type ComponentRef,
   type ReactElement,
-  type ReactNode,
   type Ref,
 } from "react";
 import {
@@ -47,20 +44,6 @@ type RevealingRows<T> = {
   /** Use stable row identities so refresh and recycling do not transfer a fade to a different item. */
   keyExtractor: (item: T, index: number) => string;
 };
-
-function renderRevealedItem<Content extends ReactNode>(
-  item: Content,
-  key: string | undefined,
-  reveal: ContentReveal,
-) {
-  return key === undefined || item == null ? (
-    item
-  ) : (
-    <ContentRevealBlock reveal={reveal} blockKey={key}>
-      {item}
-    </ContentRevealBlock>
-  );
-}
 
 /** The page owns the offset published to pinned chrome. */
 type PageListProps<T> = LegendListProps<T> & {
@@ -270,13 +253,17 @@ function RevealingLegendList<T>({
         renderItem &&
         ((info) => {
           const item = renderItem(info);
-          return props.stickyHeaderIndices?.includes(info.index)
-            ? item
-            : renderRevealedItem(
-                item,
-                blockKey(info.item, info.index),
-                presentation,
-              );
+          if (item == null || props.stickyHeaderIndices?.includes(info.index)) {
+            return item;
+          }
+          const key = blockKey(info.item, info.index);
+          return key === undefined ? (
+            item
+          ) : (
+            <ContentRevealBlock reveal={presentation} blockKey={key}>
+              {item}
+            </ContentRevealBlock>
+          );
         })
       }
     />
@@ -288,25 +275,18 @@ const styles = StyleSheet.create({
   loadingOverlay: { position: "absolute", top: "100%", left: 0, right: 0 },
 });
 
-type NativeFlatListProps<T> = FlatListProps<T> & { ref?: Ref<FlatList<T>> };
-
-type PageFlatListProps<T> = NativeFlatListProps<T> &
-  (
-    | { reveal?: never }
-    | (RevealingRows<T> & {
-        /** The standard reveal owns the native viewability observer. */
-        CellRendererComponent?: never;
-        onViewableItemsChanged?: never;
-        viewabilityConfig?: never;
-        viewabilityConfigCallbackPairs?: never;
-      })
-  );
+type PageFlatListProps<T> = FlatListProps<T> & { ref?: Ref<FlatList<T>> };
 
 /** FlatList consumers keep their data and native ref while reserving the same header clearance. */
-export function PageFlatList<T>(pageProps: Readonly<PageFlatListProps<T>>) {
-  const { contentContainerStyle, ref, reveal, ...props } = pageProps;
-  const { offset, stickyInset, clearance, refreshControl } =
-    usePageScrollBinding(contentContainerStyle, props.refreshControl);
+export function PageFlatList<T>({
+  contentContainerStyle,
+  ref,
+  ...props
+}: Readonly<PageFlatListProps<T>>) {
+  const { offset, clearance, refreshControl } = usePageScrollBinding(
+    contentContainerStyle,
+    props.refreshControl,
+  );
   const list = useAnimatedRef<FlatList<T>>();
   useScrollOffset(offset ? list : null, offset ?? undefined);
   useImperativeHandle<FlatList<T> | null, FlatList<T> | null>(
@@ -314,123 +294,16 @@ export function PageFlatList<T>(pageProps: Readonly<PageFlatListProps<T>>) {
     () => list.current,
     [list],
   );
-  const nativeProps = {
-    ...props,
-    ...hiddenScrollIndicators,
-    ref: list,
-    scrollEventThrottle: props.scrollEventThrottle ?? 16,
-    refreshControl,
-    contentContainerStyle: [contentContainerStyle, clearance],
-  };
   return (
     <NavigationScrollMarker>
-      {reveal ? (
-        <RevealingFlatList
-          {...nativeProps}
-          stickyInset={stickyInset}
-          reveal={reveal}
-          keyExtractor={pageProps.keyExtractor}
-        />
-      ) : (
-        <FlatList {...nativeProps} />
-      )}
+      <FlatList
+        {...props}
+        {...hiddenScrollIndicators}
+        ref={list}
+        scrollEventThrottle={props.scrollEventThrottle ?? 16}
+        refreshControl={refreshControl}
+        contentContainerStyle={[contentContainerStyle, clearance]}
+      />
     </NavigationScrollMarker>
-  );
-}
-
-function RevealingFlatList<T>({
-  reveal,
-  renderItem,
-  ref: list,
-  stickyInset,
-  ...props
-}: Readonly<
-  FlatListProps<T> &
-    RevealingRows<T> & { ref: AnimatedRef<FlatList<T>>; stickyInset: number }
->) {
-  const { blockKey = props.keyExtractor, presentation } = reveal;
-  const { ready, start, started } = presentation;
-  const bottomInset = useBottomContentInset();
-  const cells = useRef(new Map<number, ComponentRef<typeof View>>());
-  const items = props.data;
-
-  // FlatList keeps its in-flow cell and handlers. Only mounted cells can enter the first read.
-  const Cell = useCallback(
-    ({
-      index,
-      children,
-      onFocusCapture,
-      onLayout,
-      style,
-    }: ComponentProps<
-      NonNullable<FlatListProps<T>["CellRendererComponent"]>
-    >) => (
-      <View
-        ref={(view) => {
-          if (view && !started.current) {
-            cells.current.set(index, view);
-            return () => {
-              cells.current.delete(index);
-            };
-          }
-        }}
-        style={style}
-        onFocusCapture={onFocusCapture}
-        onLayout={onLayout}
-      >
-        {children}
-      </View>
-    ),
-    [started],
-  );
-
-  const present = useCallback(() => {
-    if (!ready || started.current || !items?.length) {
-      return;
-    }
-    const viewport = list.current?.getNativeScrollRef();
-    if (!viewport?.clientHeight) {
-      return;
-    }
-    const bounds = viewport.getBoundingClientRect();
-    const top = bounds.top + stickyInset;
-    const bottom = bounds.bottom - bottomInset;
-    const keys = new Set<string>();
-    let hasMeasuredCard = false;
-    for (const [index, cell] of [...cells.current].sort(([a], [b]) => a - b)) {
-      const key = blockKey(items[index], index);
-      if (key === undefined) {
-        continue;
-      }
-      const row = cell.getBoundingClientRect();
-      if (row.height > 0) {
-        hasMeasuredCard = true;
-        if (Math.max(top, row.top) < Math.min(bottom, row.bottom)) {
-          keys.add(key);
-        }
-      }
-    }
-    if (hasMeasuredCard) {
-      start([...keys]);
-      cells.current.clear();
-    }
-  }, [blockKey, bottomInset, items, list, ready, start, started, stickyInset]);
-  useLayoutEffect(present, [present]);
-  return (
-    <FlatList
-      {...props}
-      ref={list}
-      CellRendererComponent={Cell}
-      onViewableItemsChanged={present}
-      renderItem={
-        renderItem &&
-        ((info) =>
-          renderRevealedItem(
-            renderItem(info),
-            blockKey(info.item, info.index),
-            presentation,
-          ))
-      }
-    />
   );
 }
