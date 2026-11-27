@@ -43,6 +43,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useDiscovery } from "../discovery-provider";
@@ -90,55 +91,80 @@ const steps: readonly DiscoveryStep[] = [
 ];
 const finalStep = steps.length - 1;
 
-function DiscoveryCard({
+function DiscoveryPane({
   content,
-  showCelebration,
-  active,
+  index,
+  step,
+  position,
+  width,
+  scroll,
   heading,
 }: Readonly<{
   content: DiscoveryStep;
-  showCelebration: boolean;
-  active: boolean;
-  heading?: Ref<ComponentRef<typeof Text>>;
+  index: number;
+  step: number;
+  position: SharedValue<number>;
+  width: number;
+  scroll: Ref<ScrollViewInstance>;
+  heading: Ref<ComponentRef<typeof Text>>;
 }>) {
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   const Icon = content.icon;
+  const active = index === step;
+  const showCelebration = index === finalStep;
+  // Each settled card has a native origin inside the viewport, so Android exposes its text.
+  const paneStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: (index - (reducedMotion ? step : position.get())) * width },
+    ],
+  }));
   return (
-    <AccessStageCard style={showCelebration && styles.celebrationCard}>
-      {showCelebration && <AccessCelebration animated={active} />}
-      {Icon && (
-        <View style={[styles.glyph, { backgroundColor: colors.subtle }]}>
-          <Icon
-            accessible={false}
-            size={tokens.size.icon.lg}
-            color={colors.icon}
-          />
-        </View>
-      )}
-      <Text
-        ref={heading}
-        accessible
-        accessibilityRole="header"
-        style={[styles.title, { color: colors.text }]}
-      >
-        {content.title}
-      </Text>
-      <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
-        {content.description}
-      </Text>
-      {content.note && (
-        <View style={[styles.note, { backgroundColor: colors.subtle }]}>
+    <Animated.View
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? "auto" : "no-hide-descendants"}
+      pointerEvents={active ? "auto" : "none"}
+      style={[StyleSheet.absoluteFill, paneStyle]}
+    >
+      <AccessStageScrollView ref={active ? scroll : undefined}>
+        <AccessStageCard style={showCelebration && styles.celebrationCard}>
+          {showCelebration && <AccessCelebration animated={active} />}
+          {Icon && (
+            <View style={[styles.glyph, { backgroundColor: colors.subtle }]}>
+              <Icon
+                accessible={false}
+                size={tokens.size.icon.lg}
+                color={colors.icon}
+              />
+            </View>
+          )}
           <Text
-            style={[
-              tokens.typography.metadata,
-              { color: colors.secondaryText },
-            ]}
+            ref={active ? heading : undefined}
+            accessible
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
           >
-            {content.note}
+            {content.title}
           </Text>
-        </View>
-      )}
-    </AccessStageCard>
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            {content.description}
+          </Text>
+          {content.note && (
+            <View style={[styles.note, { backgroundColor: colors.subtle }]}>
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
+                ]}
+              >
+                {content.note}
+              </Text>
+            </View>
+          )}
+        </AccessStageCard>
+      </AccessStageScrollView>
+    </Animated.View>
   );
 }
 
@@ -158,12 +184,6 @@ export function DiscoveryScreen() {
       AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
     }
   }, []);
-
-  const trackStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -(reducedMotion ? step : position.get()) * width },
-    ],
-  }));
 
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
@@ -285,31 +305,18 @@ export function DiscoveryScreen() {
         }
         style={styles.viewport}
       >
-        <Animated.View style={[styles.track, trackStyle]}>
-          {steps.map((content, index) => {
-            const active = index === step;
-            return (
-              <View
-                key={content.title}
-                accessibilityElementsHidden={!active}
-                importantForAccessibility={
-                  active ? "auto" : "no-hide-descendants"
-                }
-                pointerEvents={active ? "auto" : "none"}
-                style={{ width }}
-              >
-                <AccessStageScrollView ref={active ? scroll : undefined}>
-                  <DiscoveryCard
-                    content={content}
-                    showCelebration={index === finalStep}
-                    active={active}
-                    heading={active ? heading : undefined}
-                  />
-                </AccessStageScrollView>
-              </View>
-            );
-          })}
-        </Animated.View>
+        {steps.map((content, index) => (
+          <DiscoveryPane
+            key={content.title}
+            content={content}
+            index={index}
+            step={step}
+            position={position}
+            width={width}
+            scroll={scroll}
+            heading={heading}
+          />
+        ))}
       </View>
     </AccessFrame>
   );
@@ -335,7 +342,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md,
   },
   viewport: { flex: 1, overflow: "hidden" },
-  track: { flex: 1, flexDirection: "row" },
   footer: {
     paddingHorizontal: tokens.spacing["2xl"],
     flexDirection: "row",
