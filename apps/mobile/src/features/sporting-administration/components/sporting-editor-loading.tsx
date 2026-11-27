@@ -7,6 +7,7 @@ import { SingleImageFieldSkeleton } from "@/shared/components/single-image-field
 import { Surface } from "@/shared/components/surface";
 import { tokens } from "@/shared/theme/tokens";
 import type { PresentationTarget } from "../api/presentation";
+import { clubContactKeys } from "../forms/club-contact-values";
 
 /** Keeps the pack and pool sheet's stacked field slots during the first required read. */
 export function ClassificationLoading({ pool }: Readonly<{ pool: boolean }>) {
@@ -56,6 +57,14 @@ export function PresentationLoading({
           )}
         </View>
       </Surface>
+      {kind === "club" && (
+        <Surface style={styles.form}>
+          <TextSkeleton width="40%" />
+          {clubContactKeys.map((key) => (
+            <FieldSkeleton key={key} />
+          ))}
+        </Surface>
+      )}
       {division && (
         <>
           <Surface>

@@ -177,6 +177,23 @@ beforeEach(async () => {
             }),
       });
     }
+    if (path === `/administration/clubs/${resourceId}/contacts`) {
+      const contact = {
+        mode: "source",
+        sourceValue: null,
+        effectiveValue: null,
+        manualValue: null,
+      };
+      return Response.json({
+        clubId: resourceId,
+        address: contact,
+        city: contact,
+        postalCode: contact,
+        email: contact,
+        phone: contact,
+        website: contact,
+      });
+    }
     if (path === `/teams/${resourceId}` || path === `/pools/${resourceId}`) {
       return publicRead(path);
     }

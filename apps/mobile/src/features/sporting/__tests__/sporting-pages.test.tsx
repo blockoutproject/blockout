@@ -206,6 +206,25 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
       }),
     );
   }
+  if (path === `/administration/clubs/${sportingId}/contacts`) {
+    const contact = {
+      mode: "source",
+      sourceValue: null,
+      effectiveValue: null,
+      manualValue: null,
+    };
+    return Promise.resolve(
+      Response.json({
+        clubId: sportingId,
+        address: contact,
+        city: contact,
+        postalCode: contact,
+        email: contact,
+        phone: contact,
+        website: contact,
+      }),
+    );
+  }
   if (path.endsWith("/follower-count")) {
     return Promise.resolve(Response.json({ count: following ? 8 : 7 }));
   }
@@ -1001,9 +1020,7 @@ it.each(["club", "team", "pool"] as const)(
 
     // Then
     expect(
-      await screen.findByLabelText(
-        kind === "club" ? "Nom personnalisé" : "Nom complet personnalisé",
-      ),
+      await screen.findByLabelText("Nom complet personnalisé"),
     ).toHaveDisplayValue("Presented name");
     expect(screen).toHavePathname(
       `/administration/presentation/${kind}/${sportingId}`,

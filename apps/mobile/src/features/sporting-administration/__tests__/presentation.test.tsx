@@ -9,6 +9,7 @@ import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import type {
   AccountPermissionsResponse,
+  ClubContactsResponse,
   DivisionListResponse,
   DivisionResponse,
   PoolPresentationResponse,
@@ -37,6 +38,7 @@ import type { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { useDivisions, useSportingAuthority } from "../api/classification";
 import { createSportingAdministrationQueries } from "../api/sporting-administration-queries";
 import {
+  getGetClubContactsQueryKey,
   getGetTeamPresentationQueryKey,
   getGetTeamLogoQueryKey,
   getGetMyAccountQueryKey,
@@ -159,6 +161,28 @@ const names = {
   manualShortName: null,
 };
 const logo = { effectiveUrl: null, manualUrl: null, automaticUrl: null };
+const sourceOnly = { mode: "source", manualValue: null } as const;
+const clubContacts: ClubContactsResponse = {
+  clubId: resourceId,
+  address: {
+    ...sourceOnly,
+    effectiveValue: "18 avenue des Sports",
+    sourceValue: "18 avenue des Sports",
+  },
+  city: { ...sourceOnly, effectiveValue: "Niort", sourceValue: "Niort" },
+  postalCode: { ...sourceOnly, effectiveValue: "79100", sourceValue: "79100" },
+  email: {
+    ...sourceOnly,
+    effectiveValue: "contact@example.invalid",
+    sourceValue: "contact@example.invalid",
+  },
+  phone: { ...sourceOnly, effectiveValue: null, sourceValue: null },
+  website: {
+    ...sourceOnly,
+    effectiveValue: "https://example.invalid",
+    sourceValue: "https://example.invalid",
+  },
+};
 const initial: SportingPresentationResponse = {
   id: resourceId,
   kind: "team",
@@ -183,6 +207,9 @@ async function respond(
   url: RequestInfo | URL,
   _options?: RequestInit,
 ): Promise<Response> {
+  if (String(url).endsWith("/contacts")) {
+    return json(clubContacts);
+  }
   return json(
     String(url).endsWith("/accounts/me") ? { ...account, permissions } : stored,
   );
@@ -699,8 +726,11 @@ it("saves club presentation without a short-name field", async () => {
   const user = userEvent.setup();
   await renderEditor("club");
   await screen.findByDisplayValue("Current name");
-  await user.clear(screen.getByLabelText("Nom personnalisé"));
-  await user.type(screen.getByLabelText("Nom personnalisé"), "Club chosen");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Club chosen",
+  );
 
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PATCH") {
@@ -736,6 +766,258 @@ it("saves club presentation without a short-name field", async () => {
   expect(
     screen.queryByLabelText("Nom court personnalisé"),
   ).not.toBeOnTheScreen();
+});
+
+it("saves only edited contact fields and preloads the club's current name", async () => {
+  // Given
+  stored = {
+    ...initial,
+    kind: "club",
+    names: { ...names, manualName: null, effectiveName: "Source name" },
+  };
+  let observedContacts = clubContacts;
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).endsWith("/contacts")) {
+      if (options?.method === "PATCH") {
+        observedContacts = {
+          ...clubContacts,
+          postalCode: {
+            mode: "manual",
+            manualValue: "79000",
+            effectiveValue: "79000",
+            sourceValue: "79100",
+          },
+          email: {
+            ...clubContacts.email,
+            mode: "hidden",
+            effectiveValue: null,
+          },
+        };
+      }
+      return Promise.resolve(json(observedContacts));
+    }
+    return respond(url, options);
+  });
+  const user = userEvent.setup();
+
+  // When
+  await renderEditor("club");
+
+  // Then: the editor shows the accepted values before any write.
+  const postalCode = await screen.findByLabelText("Code postal");
+  expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
+    "Source name",
+  );
+  expect(screen.getByLabelText("Adresse")).toHaveDisplayValue(
+    "18 avenue des Sports",
+  );
+  expect(screen.getByLabelText("Commune")).toHaveDisplayValue("Niort");
+  expect(screen.getByLabelText("Téléphone")).toHaveDisplayValue("");
+  expect(screen.getByLabelText("Site web")).toHaveDisplayValue(
+    "https://example.invalid",
+  );
+  expect(postalCode).toHaveDisplayValue("79100");
+
+  // When
+  await user.clear(postalCode);
+  await user.type(postalCode, "79000");
+  await user.clear(screen.getByLabelText("Adresse e-mail"));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(writes).toHaveLength(1);
+  expect(String(writes[0]?.[0])).toMatch(/\/contacts$/);
+  expect(JSON.parse(String(writes[0]?.[1]?.body))).toEqual({
+    postalCode: { mode: "manual", value: "79000" },
+    email: { mode: "hidden" },
+  });
+  expect(screen.getByLabelText("Code postal")).toHaveDisplayValue("79000");
+  expect(screen.getByText("79100")).toBeOnTheScreen();
+});
+
+it("keeps only unacknowledged contact edits for retry after saving the club name", async () => {
+  // Given
+  stored = { ...initial, kind: "club" };
+  let contactAttempts = 0;
+  const acceptedContacts: ClubContactsResponse = {
+    ...clubContacts,
+    postalCode: {
+      mode: "manual",
+      manualValue: "79000",
+      effectiveValue: "79000",
+      sourceValue: "79100",
+    },
+  };
+  mockFetch.mockImplementation((url, options) => {
+    const path = String(url);
+    if (path.endsWith("/contacts")) {
+      if (options?.method === "PATCH" && ++contactAttempts === 1) {
+        return Promise.resolve(
+          json({ title: "Unavailable", status: 503 }, 503),
+        );
+      }
+      return Promise.resolve(
+        json(contactAttempts > 1 ? acceptedContacts : clubContacts),
+      );
+    }
+    if (path.endsWith("/presentation") && options?.method === "PATCH") {
+      stored = {
+        ...initial,
+        kind: "club",
+        names: { ...names, manualName: "New name", effectiveName: "New name" },
+      };
+    }
+    return respond(url, options);
+  });
+  const user = userEvent.setup();
+  await renderEditor("club");
+  const clubName = await screen.findByLabelText("Nom complet personnalisé");
+  const postalCode = screen.getByLabelText("Code postal");
+  await user.clear(clubName);
+  await user.type(clubName, "New name");
+  await user.clear(postalCode);
+  await user.type(postalCode, "79000");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await screen.findByText(
+    "La présentation a été enregistrée. L’enregistrement des coordonnées n’a pas pu être confirmé.",
+  );
+  expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
+    "New name",
+  );
+  expect(screen.getByLabelText("Code postal")).toHaveDisplayValue("79000");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(
+    writes.filter(([url]) => String(url).endsWith("/presentation")),
+  ).toHaveLength(1);
+  const contactWrites = writes.filter(([url]) =>
+    String(url).endsWith("/contacts"),
+  );
+  expect(contactWrites).toHaveLength(2);
+  expect(JSON.parse(String(contactWrites[1]?.[1]?.body))).toEqual({
+    postalCode: { mode: "manual", value: "79000" },
+  });
+});
+
+it("retains source and absence choices through a failed contact read and retry", async () => {
+  // Given
+  stored = { ...initial, kind: "club" };
+  let readUnavailable = false;
+  let observedContacts: ClubContactsResponse = {
+    ...clubContacts,
+    postalCode: {
+      mode: "manual",
+      manualValue: "79000",
+      effectiveValue: "79000",
+      sourceValue: "79100",
+    },
+  };
+  mockFetch.mockImplementation((url, options) => {
+    if (!String(url).endsWith("/contacts")) {
+      return respond(url, options);
+    }
+    if (options?.method === "PATCH") {
+      observedContacts = {
+        ...observedContacts,
+        postalCode: {
+          ...sourceOnly,
+          sourceValue: observedContacts.postalCode.sourceValue,
+          effectiveValue: observedContacts.postalCode.sourceValue,
+        },
+        phone: { ...clubContacts.phone, mode: "hidden" },
+      };
+    } else if (readUnavailable) {
+      return Promise.resolve(json({ type: "about:blank", status: 503 }, 503));
+    }
+    return Promise.resolve(json(observedContacts));
+  });
+  const user = userEvent.setup();
+  await renderEditor("club");
+  await screen.findByDisplayValue("79000");
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Reprendre FFvolley pour Code postal" }),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Laisser vide pour Téléphone" }),
+  );
+  readUnavailable = true;
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: [...getGetClubContactsQueryKey(resourceId), account.accountId],
+      exact: true,
+    }),
+  );
+
+  // Then: only the read failure is visible until the operator retries.
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByLabelText("Code postal")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Nom complet personnalisé"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+
+  // When: a newer observation arrives while the correction still applies on the server.
+  readUnavailable = false;
+  observedContacts = {
+    ...observedContacts,
+    postalCode: { ...observedContacts.postalCode, sourceValue: "79200" },
+  };
+  await user.press(retry);
+
+  // Then
+  expect(await screen.findByLabelText("Code postal")).toHaveDisplayValue(
+    "79200",
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(0);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then: the draft retains both intents and the server resolves its current source.
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(screen.getByLabelText("Code postal")).toHaveDisplayValue("79200");
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(writes).toHaveLength(1);
+  expect(String(writes[0]?.[0])).toMatch(/\/contacts$/);
+  expect(JSON.parse(String(writes[0]?.[1]?.body))).toEqual({
+    postalCode: { mode: "source" },
+    phone: { mode: "hidden" },
+  });
 });
 
 it("validates and saves division edits after cancelling logo selection", async () => {

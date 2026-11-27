@@ -751,6 +751,64 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
+  @DisplayName("Keeps the postal code corrected from mobile in the current geocoding target")
+  void keepsMobilePostalCorrectionInGeocodingTarget() throws Exception {
+    // Given
+    CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    clubObservations.accept(
+        club,
+        new ClubObservation(
+            context(sheets, 1),
+            null,
+            Map.of(
+                ContactField.CITY, JsonNullable.of("Paris"),
+                ContactField.ADDRESS, JsonNullable.of("Synthetic street"),
+                ContactField.POSTAL_CODE, JsonNullable.of("69001"))));
+    String sourceRevision = reads.publicLocality(club).orElseThrow().revision();
+
+    // When
+    mvc.perform(
+            patch("/administration/clubs/{id}/contacts", club)
+                .with(operator())
+                .contentType("application/json")
+                .content(
+                    """
+                    {"postalCode":{"mode":"manual","value":"75001"}}
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.postalCode.sourceValue").value("69001"))
+        .andExpect(jsonPath("$.postalCode.effectiveValue").value("75001"));
+    CollectionState.Cycle geocoding = admitFamily("GEOCODING");
+    CollectionState.ServedTarget corrected =
+        collectionWork.targets(geocoding.id(), 0, 50).items().stream()
+            .filter(item -> item.target().clubId().equals(club))
+            .findFirst()
+            .orElseThrow();
+    clubObservations.accept(
+        club,
+        new ClubObservation(
+            context(sheets, 2), null, Map.of(ContactField.POSTAL_CODE, JsonNullable.of("13001"))));
+
+    // Then
+    assertThat(corrected.postalCode()).isEqualTo("75001");
+    assertThat(corrected.address()).isEqualTo("Synthetic street");
+    assertThat(corrected.localityRevision()).isNotEqualTo(sourceRevision);
+    mvc.perform(get("/administration/clubs/{id}/contacts", club).with(operator()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.postalCode.mode").value("manual"))
+        .andExpect(jsonPath("$.postalCode.sourceValue").value("13001"))
+        .andExpect(jsonPath("$.postalCode.effectiveValue").value("75001"));
+    assertThat(collectionWork.targets(geocoding.id(), 0, 50).items())
+        .filteredOn(item -> item.target().clubId().equals(club))
+        .singleElement()
+        .satisfies(
+            target -> {
+              assertThat(target.postalCode()).isEqualTo("75001");
+              assertThat(target.localityRevision()).isEqualTo(corrected.localityRevision());
+            });
+  }
+
+  @Test
   @DisplayName("Preserves the point when current source changes remain masked by corrections")
   void reconcilesEffectiveLocality() {
     // Given

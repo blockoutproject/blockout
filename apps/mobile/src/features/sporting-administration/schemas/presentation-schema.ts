@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { File } from "expo-file-system";
+import { clubContactDraftSchema } from "../forms/club-contact-values";
 
 const name = z
   .string()
@@ -19,6 +20,7 @@ export const presentationSchema = z
     shortName: name,
     color: z.string(),
     gradient: z.tuple([z.string(), z.string(), z.string()]),
+    contacts: clubContactDraftSchema.optional(),
     logo: z.discriminatedUnion("action", [
       z.object({ action: z.literal("keep") }),
       z.object({ action: z.literal("automatic") }),

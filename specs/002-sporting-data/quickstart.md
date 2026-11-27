@@ -121,10 +121,10 @@ For native presentation checks, use the exact [approved editor, professional-tea
 demonstration resources and a current account with `manageSportingPresentation`;
 classification, lifecycle, moderation and Pro alone must grant no editor access.
 Enter the club, team, pool and division presentation routes through their resource
-action and the actual F12 operational group. Confirm that club edits contain one
-name, team/pool edits contain independent full/short names, pools have no image,
-and division name/colors/logo do not change activity. No contact-correction form
-is part of this mobile scope.
+action and the actual F12 operational group. Confirm that club edits have the
+prefilled name, logo and six direct contact inputs in the same form with one
+Save. Team/pool edits contain independent full/short names, pools have no image,
+and division name/colors/logo do not change activity.
 
 On native iOS and Android, run both system themes at ordinary and narrow widths,
 then enlarged text including the approved 320-point/200% specimen. Check labels,
@@ -168,6 +168,8 @@ repository/PR. Controlled rehearsals and completed native editor checks do not
 establish this real V1 preservation/reassociation qualification.
 
 Change effective address/city/postcode while a geocoding response is in flight: the old point must not return. A street-only effective correction must advance locality revision and clear the old point; an overridden source change must preserve both. Exercise source/manual/hidden modes, restrictions, deliberate absence and return to source independently. Missing city suppresses the complete target context and point; absent address with usable city permits municipality lookup. An unambiguous municipality fallback is a valid located point without repeated address upgrade or normal-rerun recalculation. Retain no former personal details or new precision state. Qualify these effective-context cases through the [current locality boundary](plan.md#presentation-administration-and-locality); municipality-only inputs do not establish the full-address behavior.
+
+For the club editor, start with a fictional incorrect source postal code. Save a manual correction and deliberately clear a contact in the same form. Verify the corrected postal code and address are used by the next eligible geocoding target. Then import a later FFvolley value and reopen the editor: the manual correction stays effective, the original hint changes, and the deliberate absence persists. Use “Reprendre FFvolley” on the postal code and verify that only its mode returns to source. Exercise a failed Contacts read and Retry, a refused manual value and an ordinary failed save. When both presentation and contacts are edited, acknowledge the first command and fail the second. The accepted group must remain visible and the next explicit save must send only the outstanding group.
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.
 
