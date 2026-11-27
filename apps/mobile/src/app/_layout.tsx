@@ -51,6 +51,8 @@ function Navigation({
   const splashPending = useNativeSplashPending();
   const screenOptions = useStackScreenOptions(splashPending);
   const theme = useTheme();
+  const signInActive = useSegments().join("/") === "(recovery)/sign-in";
+  const lightStatusBar = theme.scheme === "dark" || signInActive;
   const access = useAccessAdmission();
   const discovery = useDiscovery();
   const session = useAccountSession();
@@ -66,7 +68,7 @@ function Navigation({
         registration={registration}
         enabled={access.ordinary && discovery.complete}
       />
-      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={lightStatusBar ? "light" : "dark"} />
       <Stack screenOptions={screenOptions}>
         <Stack.Protected guard={!access.ordinary}>
           <Stack.Screen name="access" />

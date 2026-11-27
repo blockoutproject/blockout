@@ -19,6 +19,10 @@ export interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Access actions can reuse the regular control with the library’s full radius. */
+  rounded?: boolean;
+  /** A full-width action may place its glyph opposite its leading label. */
+  contentAlignment?: "center" | "space-between";
   /** Compact visuals retain a separate, non-overlapping native touch target. UI Library 3386:697. */
   size?: "regular" | "compact";
   /** Selected state is announced independently of the label, colour and busy state. */
@@ -47,6 +51,8 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  rounded = false,
+  contentAlignment = "center",
   size = "regular",
   selected,
   accessibilityHint,
@@ -114,9 +120,11 @@ export function Button({
             styles.action,
             fullWidth ? styles.container : styles.content,
             size === "compact" && styles.compact,
+            rounded && styles.rounded,
             size === "compact" && outlined && styles.compactOutline,
             {
               backgroundColor,
+              justifyContent: contentAlignment,
               backgroundImage:
                 variant === "primary"
                   ? `linear-gradient(120deg, ${stops.join(", ")})`
@@ -236,6 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: tokens.spacing.sm,
   },
+  rounded: { borderRadius: tokens.radius.full },
   container: { alignSelf: "stretch" },
   content: { alignSelf: "flex-start", maxWidth: "100%" },
   label: { ...tokens.typography.strong, flexShrink: 1, textAlign: "center" },

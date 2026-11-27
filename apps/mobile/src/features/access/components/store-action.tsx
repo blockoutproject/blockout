@@ -2,9 +2,9 @@ import { ArrowUpRight } from "lucide-react-native";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { Button } from "@/shared/components/button";
 
-/** Approved platform URL; a successful handoff never claims installation or changes admission. */
+/** The approved platform URL is absent for the disabled preview action. */
 export interface StoreActionProps {
-  url: string;
+  url?: string;
 }
 
 /** Opens the configured store through native Linking; failure retains an explicit new attempt. */
@@ -16,14 +16,13 @@ export function StoreAction({ url }: Readonly<StoreActionProps>) {
 function StoreHandoff({ url }: Readonly<StoreActionProps>) {
   const handoff = useNativeHandoff(url);
   return (
-    <>
-      <Button
-        fullWidth
-        label={"Mettre à jour l’application"}
-        onPress={handoff.open}
-        loading={handoff.pending}
-        trailingIcon={ArrowUpRight}
-      />
-    </>
+    <Button
+      fullWidth
+      label="Mettre à jour l’application"
+      onPress={handoff.open}
+      disabled={!url}
+      loading={handoff.pending}
+      trailingIcon={url ? ArrowUpRight : undefined}
+    />
   );
 }

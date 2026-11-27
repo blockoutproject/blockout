@@ -56,7 +56,7 @@ it("skips explicitly and retains completion after restart", async () => {
   const user = userEvent.setup();
   const view = await openDiscovery();
   expect(
-    await screen.findByText("Tout le volley.\nDans ta poche."),
+    await screen.findByRole("header", { name: "Trouve ton prochain match" }),
   ).toBeOnTheScreen();
 
   // When
@@ -80,14 +80,16 @@ it("shows the five common steps and conditional Pro help without a restoration a
   await openDiscovery();
 
   // When
-  for (let step = 0; step < 4; step++) {
+  for (const title of [
+    "Ne rate pas le résultat",
+    "Une info à vérifier ?",
+    "Déjà sur Blockout ?",
+  ]) {
     await user.press(await screen.findByRole("button", { name: "Suivant" }));
+    expect(screen.getByRole("header", { name: title })).toBeOnTheScreen();
   }
 
   // Then
-  expect(
-    screen.getByText(/Déjà sur Blockout \? Reconnecte-toi/),
-  ).toBeOnTheScreen();
   expect(
     screen.getByText(
       /anciens suivis, notifications, contributions et personnalisations/,
@@ -100,6 +102,18 @@ it("shows the five common steps and conditional Pro help without a restoration a
   ).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: /Restaurer/ })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(false);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivant" }));
+
+  // Then
+  expect(
+    screen.getByRole("header", { name: "À toi de jouer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Déjà sur Blockout ?" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
 
   // When
   await user.press(screen.getByRole("button", { name: "Commencer" }));
@@ -117,16 +131,29 @@ it("keeps interruption and back navigation incomplete", async () => {
   ]);
   const user = userEvent.setup();
   const view = await openDiscovery();
-  await user.press(await screen.findByRole("button", { name: "Suivant" }));
+  expect(await screen.findByLabelText("Étape 1 sur 5")).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Suivant" }));
+  expect(screen.getByLabelText("Étape 2 sur 5")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Ne rate pas le résultat" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Étape précédente" }));
+
+  // Then
+  expect(screen.getByLabelText("Étape 1 sur 5")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Trouve ton prochain match" }),
+  ).toBeOnTheScreen();
+
+  // When
   await view.unmount();
   await openDiscovery();
 
   // Then
   expect(
-    await screen.findByText("Tout le volley.\nDans ta poche."),
+    await screen.findByRole("header", { name: "Trouve ton prochain match" }),
   ).toBeOnTheScreen();
   expect(await readDiscoveryCompletion()).toBe(false);
 });
@@ -174,7 +201,7 @@ it("shows normal discovery when its optional completion flag cannot be read", as
 
   // Then
   expect(
-    await screen.findByText("Tout le volley.\nDans ta poche."),
+    await screen.findByRole("header", { name: "Trouve ton prochain match" }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 
