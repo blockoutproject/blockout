@@ -42,7 +42,7 @@ export function ContributionForm({
 }: Readonly<ContributionFormProps>) {
   const { colors } = useTheme();
   const router = useRouter();
-  const feedback = useActionFeedback();
+  const feedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const confirmAction = useActionConfirmation();
   const mounted = useRef(true);
   useEffect(() => {
@@ -74,9 +74,10 @@ export function ContributionForm({
     !editing.canRetain || refused || !current.eligibility.canSubmit;
 
   /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
-  function finish(url: string) {
-    reset(contributionValues(url));
+  function finish(url: string, message: string) {
     if (mounted.current) {
+      reset(contributionValues(url));
+      feedback.success(message);
       router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
     }
   }
@@ -91,8 +92,13 @@ export function ContributionForm({
     const attempt = submit.mutateAsync(body);
     try {
       const accepted = await attempt;
-      // A reopened route may already own this control while the original callback is detached.
-      finish(accepted.contribution.url);
+      const { url, state } = accepted.contribution;
+      finish(
+        url,
+        state === "pending"
+          ? "Votre lien est en attente de validation."
+          : "Votre lien est publié.",
+      );
     } catch (error) {
       if (error instanceof ApiError && error.status === 422) {
         setError("url", {
@@ -127,7 +133,7 @@ export function ContributionForm({
     const attempt = change.mutateAsync(target);
     try {
       const accepted = await attempt;
-      finish(accepted.contribution.url);
+      finish(accepted.contribution.url, "Lien retiré.");
     } catch {
       feedback.error();
     }

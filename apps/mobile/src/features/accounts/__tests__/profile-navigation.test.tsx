@@ -310,7 +310,7 @@ it("keeps dirty-exit protection through a required-read card and restores the dr
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
-it("returns from an acknowledged save to overview read recovery without replaying the PATCH", async () => {
+it("confirms an acknowledged save on the overview even when its account read fails", async () => {
   // Given: the real Router closes the editor on ACK; only the following account GET fails.
   const user = userEvent.setup();
   await openProfile();
@@ -336,6 +336,9 @@ it("returns from an acknowledged save to overview read recovery without replayin
   // Then: failed reading does not turn the acknowledged write into failure or reopen its form.
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.getByRole("alert", { name: "Profil enregistré." }),
+  ).toBeOnTheScreen();
   expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(
@@ -463,6 +466,9 @@ it("keeps a refused draft in the editor and returns only after an explicitly ret
   ).toBeOnTheScreen();
   expect(screen).toHavePathname("/profile/edit");
   expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: "Profil enregistré." }),
+  ).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
   ).toHaveLength(1);
