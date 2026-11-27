@@ -345,9 +345,11 @@ it.each([
       { initialUrl: "/" },
     );
     const entry = await screen.findByRole("button", { name: action });
-    expect(
-      screen.getByRole("header", { name: "Lien de diffusion" }),
-    ).toBeOnTheScreen();
+    const [firstSection, nextSection] = screen.getAllByRole("header", {
+      name: /^(Lien de diffusion|Informations)$/,
+    });
+    expect(firstSection).toHaveTextContent("Lien de diffusion");
+    expect(nextSection).toHaveTextContent("Informations");
     expect(screen.getByText(description)).toBeOnTheScreen();
 
     // When
