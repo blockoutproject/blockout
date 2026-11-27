@@ -87,6 +87,7 @@ export function ClubLocation({
                 <SportingLogo
                   identity={detail.club}
                   kind="club"
+                  pendingPlaceholder="skeleton"
                   presentation="entity"
                   size={tokens.size.media.entity}
                 />

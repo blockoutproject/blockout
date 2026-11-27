@@ -396,6 +396,7 @@ function ParticipantMap({
                 <SportingLogo
                   identity={first.team.team}
                   kind="team"
+                  pendingPlaceholder="skeleton"
                   size={tokens.size.control.compact}
                 />
               </View>
@@ -500,6 +501,7 @@ function ParticipantMap({
                       <SportingLogo
                         identity={item.team.team}
                         kind="team"
+                        pendingPlaceholder="skeleton"
                         size={tokens.size.control.compact}
                       />
                     </Pressable>

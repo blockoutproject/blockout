@@ -2720,10 +2720,27 @@ it.each([
 
     // Then
     const link = screen.getByRole("link", { name: /Volley des Rives/ });
-    expect(within(link).getByTestId("sporting-logo-atmosphere")).toHaveProp(
-      "source",
-      { uri: `https://api.example.invalid${background}`, cache: "reload" },
-    );
+    const card = within(link);
+    const halo = card.getByTestId("sporting-logo-atmosphere");
+    expect(halo).toHaveProp("source", {
+      uri: `https://api.example.invalid${background}`,
+      cache: "reload",
+    });
+    expect(card.getByTestId("sporting-logo-fallback")).toBeVisible();
+    expect(halo).not.toBeVisible();
+    await fireEvent(halo, "load");
+    if (kind === "team") {
+      await waitFor(() => expect(halo).toBeVisible());
+    } else {
+      expect(halo).not.toBeVisible();
+    }
+
+    // When the foreground reaches the native surface, same-source halos may appear.
+    await fireEvent(card.getByTestId("sporting-logo-image"), "display");
+
+    // Then
+    expect(card.queryByTestId("sporting-logo-fallback")).not.toBeOnTheScreen();
+    await waitFor(() => expect(halo).toBeVisible());
   },
 );
 

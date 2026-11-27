@@ -310,6 +310,7 @@ function DivisionCard({
           key={artwork?.dataUpdatedAt}
           identity={division}
           kind="division"
+          pendingPlaceholder="skeleton"
           size={52}
           uri={artwork?.data ?? undefined}
           loading={artwork?.isLoading}
