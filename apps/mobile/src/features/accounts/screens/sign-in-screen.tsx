@@ -67,7 +67,9 @@ function SignInJourney({
   const guest = useGuestNavigation();
   const onLayout = useNativeSplashLayout();
   const busy = Boolean(session.operation) || session.status === "restoring";
-  const failure = connection.error ?? session.error;
+  const initialConnection = connection.variables?.invitation === undefined;
+  const failure =
+    (initialConnection ? connection.error : null) ?? session.error;
   const cancelled = failure instanceof ApiError && failure.kind === "cancelled";
   let supportOrigin: SupportOrigin = { screen: "sign-in" };
   if (failure instanceof WebAuthError) {
@@ -91,13 +93,19 @@ function SignInJourney({
   });
   useEffect(() => {
     if (
-      (connection.isError && !cancelled) ||
+      (initialConnection && connection.isError && !cancelled) ||
       session.status === "authentication-error" ||
       session.status === "initialization-error"
     ) {
       showFailure();
     }
-  }, [connection.isError, connection.error, cancelled, session.status]);
+  }, [
+    initialConnection,
+    connection.isError,
+    connection.error,
+    cancelled,
+    session.status,
+  ]);
 
   /** The command owner survives Auth0's subject remount; a successful process resumes its original destination. */
   async function signIn() {

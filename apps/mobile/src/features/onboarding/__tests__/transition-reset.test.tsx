@@ -45,6 +45,7 @@ jest.mock("react-native-purchases", () => ({
 }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  useRoute: () => ({ key: "profile" }),
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useNavigation: () => mockNavigation,
   useIsFocused: () => true,

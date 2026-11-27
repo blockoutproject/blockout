@@ -1,3 +1,4 @@
+import { useOpenSignInInvitation } from "@/features/accounts/current-account";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -12,6 +13,7 @@ export function useContributionEntry(
   publicContributionUrl?: string,
 ) {
   const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const { session, query, canRetain, account } = useOwnContributionsRead(
     matchId,
     available,
@@ -45,10 +47,7 @@ export function useContributionEntry(
   /** Captures only the contributed identity actually displayed; guests receive no replay context. */
   function report() {
     if (session.status === "guest") {
-      router.push({
-        pathname: "/sign-in-invitation",
-        params: { reason: "stream-report" },
-      });
+      openSignInInvitation("stream-report");
     } else if (publicContributionId) {
       router.push({
         pathname: "/matches/[matchId]/report-contribution",
@@ -70,10 +69,7 @@ export function useContributionEntry(
 
   function propose() {
     if (session.status === "guest") {
-      router.push({
-        pathname: "/sign-in-invitation",
-        params: { reason: "contribution" },
-      });
+      openSignInInvitation("contribution");
     } else {
       router.push({
         pathname: "/matches/[matchId]/contribution",

@@ -10,18 +10,23 @@ const benefits = [
   { label: "Votre profil et vos suivis synchronisés", icon: UserRound },
 ] as const;
 
-/** The profile owner keeps ordinary admission, current-session checks and sign-in navigation. */
+/** The profile owner keeps ordinary admission and the explicit connection action. */
 export interface ProfileSignInProps {
   onSignIn(): void;
+  loading: boolean;
 }
 
 /** Approved guest profile invitation and benefits, using the same artwork as contextual invitations. */
-export function ProfileSignIn({ onSignIn }: Readonly<ProfileSignInProps>) {
+export function ProfileSignIn({
+  onSignIn,
+  loading,
+}: Readonly<ProfileSignInProps>) {
   const { colors } = useTheme();
   return (
     <SignInInvitationCard
       message="Vos équipes, à vos côtés."
       onSignIn={onSignIn}
+      loading={loading}
     >
       <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
         Connectez-vous pour suivre vos équipes et vos poules, et retrouver leurs

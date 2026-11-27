@@ -106,6 +106,7 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "mobile-audience",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
@@ -170,7 +171,10 @@ it("opens the guest Pro invitation from the admitted profile", async () => {
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   // Then
-  expect(mockRouter.push).toHaveBeenCalledWith("/sign-in-invitation");
+  expect(mockRouter.push).toHaveBeenCalledWith({
+    pathname: "/sign-in-invitation",
+    params: { returnTo: "/" },
+  });
   expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
   expect(
     screen.getByRole("link", { name: "Politique de confidentialité" }),
@@ -224,17 +228,24 @@ it("requests dismissal of the price-free invitation without consulting native of
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
   expect(mockPurchases.logIn).not.toHaveBeenCalled();
 });
-it("replaces the invitation with ordinary sign-in, without any continuation parameter", async () => {
+it("starts hosted sign-in without opening Pro and keeps the invitation on cancellation", async () => {
   // Given
+  mockAuth0.webAuth.mockRejectedValueOnce({
+    code: "a0.session.user_cancelled",
+  });
   await mount(<SignInInvitationScreen admitted message={message} />);
   await screen.findByText("Session: guest");
   // When
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
   // Then
-  expect(mockRouter.replace).toHaveBeenCalledWith("/sign-in");
+  await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1));
+  expect(
+    await screen.findByRole("button", { name: "Se connecter" }),
+  ).toBeEnabled();
+  expect(screen.getByText(message)).toBeOnTheScreen();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
 });
 

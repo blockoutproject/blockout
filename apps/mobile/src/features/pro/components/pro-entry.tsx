@@ -1,7 +1,10 @@
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { useAccountSession } from "@/features/accounts/current-account";
+import {
+  useAccountSession,
+  useOpenSignInInvitation,
+} from "@/features/accounts/current-account";
+
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { EntryRow } from "@/shared/components/entry-row";
@@ -14,7 +17,7 @@ export function ProEntry() {
   const { state } = usePro();
   const open = useOpenProPaywall();
   const account = useAccountSession();
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const guest = account.status === "guest";
   const available =
     guest || (account.status === "authenticated" && account.accountId !== null);
@@ -64,7 +67,7 @@ export function ProEntry() {
       }
       onPress={() => {
         if (guest) {
-          router.push("/sign-in-invitation");
+          openSignInInvitation();
         } else {
           void open();
         }

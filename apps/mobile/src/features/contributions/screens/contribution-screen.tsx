@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -14,7 +13,11 @@ import {
   MatchSummary,
   useConsultationQueries,
 } from "@/features/sporting/match-consultation";
-import { AccountSessionFeedback } from "@/features/accounts/current-account";
+import {
+  AccountSessionFeedback,
+  useOpenSignInInvitation,
+} from "@/features/accounts/current-account";
+
 import { useOwnContributions } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
 
@@ -29,7 +32,7 @@ export function ContributionScreen({
 }: Readonly<ContributionScreenProps>) {
   const editing = useOwnContributions(matchId);
   const match = useQuery(useConsultationQueries().match(matchId));
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const current = editing.query.data?.pages[0];
   const guest = editing.session.status === "guest";
   const authenticated = editing.session.status === "authenticated";
@@ -68,12 +71,7 @@ export function ContributionScreen({
             {guest ? (
               <Button
                 label="Se connecter"
-                onPress={() =>
-                  router.push({
-                    pathname: "/sign-in-invitation",
-                    params: { reason: "contribution" },
-                  })
-                }
+                onPress={() => openSignInInvitation("contribution")}
               />
             ) : !authenticated ? (
               <AccountSessionFeedback

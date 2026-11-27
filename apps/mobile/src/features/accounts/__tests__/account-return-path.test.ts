@@ -37,6 +37,7 @@ it.each([
   "/profile\\edit",
   "/\n/example.invalid/profile",
   "/sign-in",
+  "/(ordinary)/sign-in-invitation?reason=follow",
   "/sign-in/?returnTo=%2Fprofile",
   "/matches/../sign-in",
   "/%73ign-in",
