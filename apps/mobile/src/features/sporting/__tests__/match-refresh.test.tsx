@@ -370,7 +370,11 @@ it("reveals Match information in the third slot when a covered read withdraws th
   await reportLayout(content, 0, 650);
   await reportLayout(screen.getByText("Home"), 0, 180);
   await reportLayout(score, 200, 130);
-  await reportLayout(screen.getByText("Stream link"), 350, 120);
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    350,
+    120,
+  );
   await reportLayout(screen.getByText("Informations"), 490, 260);
 
   // When: Query accepts the withdrawal on reconnect while Match is still covered.
@@ -378,7 +382,11 @@ it("reveals Match information in the third slot when a covered read withdraws th
   await act(() => onlineManager.setOnline(false));
   await act(() => onlineManager.setOnline(true));
   await waitFor(() => expect(screen.queryByText("Score")).toBeNull());
-  await reportLayout(screen.getByText("Stream link"), 200, 120);
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    200,
+    120,
+  );
   await reportLayout(screen.getByText("Informations"), 340, 260);
   expect(motion).not.toHaveBeenCalled();
   await opened.rerender(<MatchScreen matchId={sportingId} focused />);
