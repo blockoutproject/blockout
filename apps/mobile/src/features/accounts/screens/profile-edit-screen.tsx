@@ -1,4 +1,5 @@
-import { Page } from "@/shared/components/page";
+import { Page, PageContent } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
@@ -6,8 +7,9 @@ import { FormScrollView } from "@/shared/components/form-scroll-view";
 
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
+import { AccountRecovery } from "../components/account-recovery";
 import { ProfileLoading } from "../components/profile-loading";
-import { profileReadFeedback } from "../components/profile-read-feedback";
+import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "@/shared/components/page-header";
 
@@ -15,7 +17,7 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { SignInInvitationCard } from "../components/sign-in-invitation";
-import { hasReadError } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 /** Ordinary admission gates editing independently from identity-only account reads. */
 export interface ProfileEditScreenProps {
@@ -37,12 +39,63 @@ export function ProfileEditScreen({
     navigation.dispatch(StackActions.popTo("index"));
   }
 
-  const blockingContent = profileReadFeedback({
-    admitted,
-    session,
-    account,
-    loadingContent: <ProfileLoading editor />,
-  });
+  const recovery = accountSessionRecovery(session);
+
+  /** Recovery never mounts an editor before the current account and session are usable. */
+  function readFeedback() {
+    if (!admitted) {
+      return (
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      );
+    }
+    if (
+      recovery.pending ||
+      (session.status === "authenticated" &&
+        account.isPending &&
+        account.isFetching &&
+        !hasReadError(account))
+    ) {
+      return (
+        <PageContent>
+          <ProfileLoading editor />
+        </PageContent>
+      );
+    }
+    if (recovery.failed) {
+      return (
+        <ScreenState>
+          <AccountRecovery error={account.error}>
+            <ErrorState onRetry={recovery.onRetry} />
+          </AccountRecovery>
+        </ScreenState>
+      );
+    }
+    if (session.status === "guest") {
+      return (
+        <ScreenState>
+          <SignInInvitationCard
+            message="Connectez-vous pour modifier votre profil."
+            onSignIn={() => router.replace("/sign-in")}
+          />
+        </ScreenState>
+      );
+    }
+    if (
+      session.status === "authenticated" &&
+      (account.isPending || hasReadError(account))
+    ) {
+      return (
+        <ScreenState>
+          <AccountRecovery error={account.error}>
+            <ReadFeedback query={account} loadingContent={null} />
+          </AccountRecovery>
+        </ScreenState>
+      );
+    }
+    return null;
+  }
 
   let content;
   if (admitted && session.status === "authenticated" && account.data) {
@@ -58,25 +111,13 @@ export function ProfileEditScreen({
         }
         account={account.data}
         disabled={!account.isSuccess}
-        readFeedback={blockingContent}
+        readFeedback={readFeedback()}
         onCancel={close}
         onSaved={close}
       />
     );
   } else {
-    content = (
-      <FormScrollView>
-        {blockingContent ??
-          (session.status === "guest" && (
-            <ScreenState>
-              <SignInInvitationCard
-                message="Connectez-vous pour modifier votre profil."
-                onSignIn={() => router.replace("/sign-in")}
-              />
-            </ScreenState>
-          ))}
-      </FormScrollView>
-    );
+    content = <FormScrollView>{readFeedback()}</FormScrollView>;
   }
   return (
     <Page
