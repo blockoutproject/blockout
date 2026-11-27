@@ -114,7 +114,6 @@ export function SearchScene({
   return (
     <SearchResults
       resource={resource}
-      active={active}
       reveal={reveal}
       onOpen={(kind, id) => {
         Keyboard.dismiss();

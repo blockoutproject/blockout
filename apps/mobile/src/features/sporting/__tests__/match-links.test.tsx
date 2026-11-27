@@ -9,7 +9,6 @@ import {
 } from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
-import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   ConsultationProviders,
@@ -20,10 +19,6 @@ import {
   matchDetail,
   sportingId,
 } from "../test-support/consultation-data";
-import {
-  documentFiles,
-  documentWrite,
-} from "../test-support/native-document-files";
 import { MatchScreen } from "../screens/match-screen";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
@@ -54,12 +49,6 @@ jest.mock("expo-router", () => ({
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
-jest.mock(
-  "expo-file-system",
-  () =>
-    jest.requireActual("../test-support/native-document-files")
-      .nativeDocumentFiles,
-);
 const mockFetch = jest.fn();
 const mockPush = jest.fn();
 const environment = { ...process.env };
@@ -86,42 +75,18 @@ function renderPage(content: ReactElement) {
   });
 }
 
-/** Uses only synthetic generated HTTP results; no application hook or lifecycle is replaced. */
-function reads(url: string) {
-  if (url.includes("/documents/")) {
-    return Promise.resolve(
-      new Response("%PDF-1.7\nsynthetic\n%%EOF", {
-        headers: { "Content-Type": "application/pdf" },
-      }),
-    );
-  }
-  if (url.endsWith("/accounts/me")) {
-    return Promise.resolve(Response.json(accountResponse()));
-  }
-  return consultationResponse(url, detail);
-}
-
 beforeEach(() => {
   jest.useFakeTimers();
   publicClient = consultationPublicClient();
-  detail = {
-    ...matchDetail(),
-    venueName: "Gymnase fictif",
-    documents: [
-      {
-        kind: "information",
-        url: `/matches/${sportingId}/documents/information`,
-      },
-    ],
-  };
+  detail = matchDetail();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
-  mockFetch.mockReset().mockImplementation(reads);
-  documentFiles.length = 0;
-  documentWrite.mockReset();
+  mockFetch
+    .mockReset()
+    .mockImplementation((url: string) => consultationResponse(url, detail));
 });
 afterEach(async () => {
   await cleanup();
@@ -133,28 +98,66 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it.each(["upcoming", "completed"] as const)(
-  "keeps the neutral Stream link label for %s without inferring live or replay",
-  async (category) => {
+it.each([
+  {
+    name: "before the match",
+    category: "upcoming",
+    result: undefined,
+    viewingAction: "Regarder le live",
+  },
+  {
+    name: "with a provisional score",
+    viewingAction: "Regarder le live",
+    category: "upcoming",
+    result: {
+      state: "provisional",
+      homeSets: 1,
+      awaySets: 0,
+      observedAt: "2026-10-25T16:00:00Z",
+    },
+  },
+  {
+    name: "past the cutoff without a score",
+    viewingAction: "Regarder la rediffusion",
+    category: "completed",
+    result: undefined,
+  },
+  {
+    name: "with a final score",
+    viewingAction: "Regarder la rediffusion",
+    category: "completed",
+    result: {
+      state: "final",
+      homeSets: 3,
+      awaySets: 1,
+      observedAt: "2026-10-25T18:00:00Z",
+    },
+  },
+] as const)(
+  "offers the match category’s viewing action $name",
+  async ({ category, result, viewingAction }) => {
     // Given
     detail = {
       ...detail,
-      streamUrl: "https://stream.example.invalid/exact?version=259",
+      streamUrl: "https://www.youtube.com/watch?v=fixture-259&t=15",
       streamContributionId: "00000000-0000-4000-8000-000000000259",
-      match: { ...detail.match, category },
+      match: { ...detail.match, category, result },
     };
     const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const user = userEvent.setup();
     await renderPage(<MatchScreen matchId={sportingId} />);
 
     // When
-    await user.press(
-      await screen.findByRole("link", { name: "Ouvrir le lien" }),
-    );
+    const link = await screen.findByRole("link", { name: viewingAction });
+    await user.press(link);
 
     // Then
-    expect(screen.getByText("Stream link")).toBeOnTheScreen();
-    expect(screen.queryByText(/Live|Replay/)).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByHintText("Ouvrir le lien de diffusion en dehors de Blockout"),
+    ).toBe(link);
     expect(open).toHaveBeenCalledWith(detail.streamUrl);
   },
 );
@@ -169,7 +172,9 @@ it("keeps a failed stream opening explicitly retryable beside the match context"
   await renderPage(<MatchScreen matchId={sportingId} />);
 
   // When
-  await user.press(await screen.findByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Regarder le live" }),
+  );
 
   // Then
   expect(open).toHaveBeenCalledTimes(1);
@@ -177,7 +182,7 @@ it("keeps a failed stream opening explicitly retryable beside the match context"
   expect(
     screen.getByRole("button", { name: "Signaler un problème" }),
   ).toBeOnTheScreen();
-  await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
+  await user.press(screen.getByRole("link", { name: "Regarder le live" }));
   expect(open).toHaveBeenCalledTimes(2);
 });
 
@@ -200,6 +205,6 @@ it("offers only the published official calendar and no invented stream destinati
   // Then
   expect(open).toHaveBeenCalledWith(detail.officialCalendarUrl);
   expect(
-    screen.queryByRole("link", { name: "Ouvrir le lien" }),
+    screen.queryByRole("link", { name: /^Regarder / }),
   ).not.toBeOnTheScreen();
 });

@@ -3,7 +3,7 @@ import {
   searchToolbarMinHeight,
 } from "@/shared/components/search-toolbar";
 import { hashKey } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { Eraser, Search } from "lucide-react-native";
 import { SupportFlagAction } from "@/features/support";
 import { useSearchVisit } from "../forms/search-visit";
@@ -58,11 +58,12 @@ export function SearchScreen() {
   useEffect(() => resetVisit, [resetVisit]);
   const router = useRouter();
   const [resource, setResource] = useState<DiscoveryResource>("team");
+  const focused = useIsFocused();
   // A criteria reset replaces the scroller; the tab has only one initial presentation.
   const reveal = {
-    team: useContentReveal(),
-    pool: useContentReveal(),
-    club: useContentReveal(),
+    team: useContentReveal(focused && resource === "team"),
+    pool: useContentReveal(focused && resource === "pool"),
+    club: useContentReveal(focused && resource === "club"),
   };
   const { control, reset, setFocus } = useForm<SearchValues>({
     defaultValues: searchValues(),

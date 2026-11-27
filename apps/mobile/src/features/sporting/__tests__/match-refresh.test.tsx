@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react-native";
 import { AppState, type AppStateStatus } from "react-native";
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import * as Reanimated from "react-native-reanimated";
 import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
@@ -117,6 +118,7 @@ it("rereads the current match when its route regains focus and applies accepted 
   // Given: route focus is supplied by Router; the screen owns its real Query read.
   const opened = await renderPage(<MatchScreen matchId={sportingId} focused />);
   await screen.findByText("Home");
+  expect(screen.queryByRole("link", { name: /^Regarder / })).toBeNull();
   await opened.rerender(<MatchScreen matchId={sportingId} focused={false} />);
   mockFetch.mockClear();
   detail = {
@@ -143,7 +145,9 @@ it("rereads the current match when its route regains focus and applies accepted 
     await screen.findByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
-  expect(screen.getByText("Stream link")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Regarder la rediffusion" }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       String(url).endsWith(`/matches/${sportingId}`),
@@ -316,6 +320,85 @@ it("withdraws refused match facts at foreground and keeps them absent if the nex
   ).not.toBeOnTheScreen();
   expect(screen.queryByText("Home")).not.toBeOnTheScreen();
   expect(screen.getByRole("alert")).toBeOnTheScreen();
+});
+
+it("reveals Match information in the third slot when a covered read withdraws the score before entry", async () => {
+  // Given: the first read finishes after another route covers Match.
+  const firstRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith(`/matches/${sportingId}`) ? firstRead.promise : reads(url),
+  );
+  const opened = await renderPage(<MatchScreen matchId={sportingId} />);
+  await opened.rerender(<MatchScreen matchId={sportingId} focused={false} />);
+  await act(() =>
+    firstRead.resolve(
+      Response.json({
+        ...detail,
+        match: {
+          ...detail.match,
+          category: "completed",
+          result: {
+            state: "final",
+            homeSets: 3,
+            awaySets: 0,
+            observedAt: "2026-10-26T19:00:00Z",
+          },
+        },
+      }),
+    ),
+  );
+  const score = await screen.findByText("Score");
+
+  // Native layout belongs to the enclosing card, its content and its scroll viewport.
+  type Host = ReturnType<typeof screen.getByText>;
+
+  function layoutHost(node: Host | null): Host {
+    while (node && !node.props.onLayout) {
+      node = node.parent;
+    }
+    if (!node) {
+      throw new Error("Expected a native layout owner");
+    }
+    return node;
+  }
+
+  const content = layoutHost(layoutHost(score).parent);
+  const motion = jest.spyOn(Reanimated, "withTiming");
+  const reportLayout = (node: Host, y: number, height: number) =>
+    fireEvent.layout(layoutHost(node), { x: 0, y, width: 390, height });
+  await reportLayout(layoutHost(content.parent), 0, 844);
+  await reportLayout(content, 0, 650);
+  await reportLayout(screen.getByText("Home"), 0, 180);
+  await reportLayout(score, 200, 130);
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    350,
+    120,
+  );
+  await reportLayout(screen.getByText("Informations"), 490, 260);
+
+  // When: Query accepts the withdrawal on reconnect while Match is still covered.
+  mockFetch.mockImplementation(reads);
+  await act(() => onlineManager.setOnline(false));
+  await act(() => onlineManager.setOnline(true));
+  await waitFor(() => expect(screen.queryByText("Score")).toBeNull());
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    200,
+    120,
+  );
+  await reportLayout(screen.getByText("Informations"), 340, 260);
+  expect(motion).not.toHaveBeenCalled();
+  await opened.rerender(<MatchScreen matchId={sportingId} focused />);
+
+  // Then: the three remaining cards request a single 220 ms entrance with two 60 ms steps.
+  await waitFor(() =>
+    expect(motion).toHaveBeenCalledWith(
+      340,
+      expect.objectContaining({ duration: 340 }),
+      expect.any(Function),
+    ),
+  );
 });
 
 it("retains an already loaded calendar across match focus/foreground reads without reclassification", async () => {

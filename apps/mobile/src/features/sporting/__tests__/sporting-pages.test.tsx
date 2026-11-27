@@ -1847,6 +1847,76 @@ it.each([404, 503])(
   },
 );
 
+it.each([true, false])(
+  "keeps public Match facts accessible while the delayed private read resolves canSubmit=%s",
+  async (canSubmit) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    match.match.result = {
+      state: "provisional",
+      homeSets: 1,
+      awaySets: 0,
+      observedAt: "2026-10-25T13:00:00Z",
+    };
+    contributions = ownContributions({
+      eligibility: { canSubmit, requiresApproval: false },
+    });
+    const publicRead = Promise.withResolvers<void>();
+    const privateRead = Promise.withResolvers<void>();
+    const readEligibility = jest.fn(() => privateRead.promise);
+    mockFetch.mockImplementation(async (url: string, request?: RequestInit) => {
+      const path = new URL(url).pathname;
+      if (path === `/matches/${sportingId}`) {
+        await publicRead.promise;
+      }
+      if (path.endsWith("/stream-contributions")) {
+        await readEligibility();
+      }
+      return reads(url, request);
+    });
+    await renderPage(<MatchScreen matchId={sportingId} />);
+    await screen.findByRole("progressbar", { name: "Chargement du match" });
+    await waitFor(() => expect(session.accountId).toBe(account.accountId));
+
+    // When the public response arrives, Query must wait for connectivity to start eligibility.
+    await act(async () => {
+      onlineManager.setOnline(false);
+      publicRead.resolve();
+    });
+
+    // Then
+    await screen.findByRole("header", { name: "Informations" });
+    expect(readEligibility).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Pool" })).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Score" })).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Proposer un lien" }),
+    ).toBeNull();
+
+    // When connectivity returns, only the outstanding private response is held.
+    await act(() => onlineManager.setOnline(true));
+    await waitFor(() => expect(readEligibility).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByRole("header", { name: "Informations" }),
+    ).toBeOnTheScreen();
+    await act(async () => privateRead.resolve());
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    await waitFor(() =>
+      expect(!!screen.queryByRole("button", { name: "Proposer un lien" })).toBe(
+        canSubmit,
+      ),
+    );
+    expect(!!screen.queryByRole("header", { name: "Lien de diffusion" })).toBe(
+      canSubmit,
+    );
+    expect(
+      screen.getByRole("header", { name: "Informations" }),
+    ).toBeOnTheScreen();
+  },
+);
+
 it("keeps match identities and independent missing sections without a zero score or guessed venue", async () => {
   // Given
   const user = userEvent.setup();
