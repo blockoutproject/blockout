@@ -268,14 +268,15 @@ public final class FfvbPage {
 
   /**
    * Reads official document forms from the exact match rows already attributed to this pool or
-   * group. Only their published identifiers may supply a proposal. Missing or unqualified forms
-   * supply no withdrawal and cannot invalidate the sporting row.
+   * group. FFVB can replace the information-sheet form with a scoresheet form after a result. The
+   * qualified scoresheet form supplies the same identifiers for the information-sheet route.
+   * Missing or unqualified forms supply no withdrawal and cannot invalidate the sporting row.
    *
    * @param reference qualified native match code in this group
    * @return separate optional information and scoresheet references
    */
   DocumentReferences documents(String reference) {
-    InformationSheet information = null;
+    boolean hasInformationForm = false;
     URI scoresheet = null;
     for (Element row : matchRows.getOrDefault(reference, List.of())) {
       for (Element candidate : row.select("form[method=post][action]")) {
@@ -289,8 +290,7 @@ public final class FfvbPage {
         if (INFORMATION_PATH.equals(action.getRawPath())
             && action.getRawQuery() == null
             && matchesDocumentFields(requestFields(form), "wss_saison", reference)) {
-          information =
-              new InformationSheet(scope.seasonLabel(), scope.organizerReference(), reference);
+          hasInformationForm = true;
         } else if (scoresheet == null
             && SCORESHEET_PATH.equals(action.getRawPath())
             && form.formData().isEmpty()
@@ -301,6 +301,10 @@ public final class FfvbPage {
         }
       }
     }
+    InformationSheet information =
+        hasInformationForm || scoresheet != null
+            ? new InformationSheet(scope.seasonLabel(), scope.organizerReference(), reference)
+            : null;
     return new DocumentReferences(information, scoresheet);
   }
 

@@ -203,6 +203,7 @@ class FfvbObservationsTest {
               assertThat(match.facts().result().get())
                   .isEqualTo(new SportingObservation.Result(ResultStateEnum.FINAL, 3, 0, null));
               assertThat(match.facts().sets().get()).hasSize(3);
+              assertThat(match.facts().informationSheet()).isNull();
             });
     assertThat(result.contextSlots())
         .singleElement()
@@ -219,7 +220,7 @@ class FfvbObservationsTest {
         </form>
         """
       })
-  @DisplayName("Keeps the published scoresheet URI for the exact qualified match")
+  @DisplayName("Qualifies both documents from the published scoresheet for the exact match")
   void readsPublishedScoresheet(String repeatedForm) throws IOException {
     // Given
     FfvbPage context =
@@ -241,8 +242,14 @@ class FfvbObservationsTest {
     assertThat(result.matches())
         .singleElement()
         .satisfies(
-            match ->
-                assertThat(match.facts().scoresheetUrl()).isEqualTo(JsonNullable.of(expected)));
+            match -> {
+              assertThat(match.facts().scoresheetUrl()).isEqualTo(JsonNullable.of(expected));
+              assertThat(match.facts().informationSheet())
+                  .isEqualTo(
+                      JsonNullable.of(
+                          new SportingObservation.InformationSheet(
+                              "2026/2027", "ABCCS", "TST001")));
+            });
   }
 
   @Test
@@ -281,7 +288,7 @@ class FfvbObservationsTest {
   }
 
   @Test
-  @DisplayName("Omits a scoresheet whose form supplies contradictory POST data")
+  @DisplayName("Omits both documents when the scoresheet supplies contradictory POST data")
   void omitsScoresheetWithPostData() throws IOException {
     // Given
     FfvbPage context =
@@ -299,7 +306,11 @@ class FfvbObservationsTest {
     assertThat(result.complete()).isTrue();
     assertThat(result.matches())
         .singleElement()
-        .satisfies(match -> assertThat(match.facts().scoresheetUrl()).isNull());
+        .satisfies(
+            match -> {
+              assertThat(match.facts().scoresheetUrl()).isNull();
+              assertThat(match.facts().informationSheet()).isNull();
+            });
   }
 
   @ParameterizedTest
@@ -309,8 +320,7 @@ class FfvbObservationsTest {
         "../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST002",
         "../resu/ffvolley_fdme.php?saison=2026/2027&amp;codent=ABCCS&amp;codmatch=TST001&amp;codmatch=TST002"
       })
-  @DisplayName(
-      "Omits an unqualified scoresheet while preserving the independently published result")
+  @DisplayName("Omits both documents for an unqualified scoresheet and keeps the published result")
   void omitsUnqualifiedScoresheets(String action) throws IOException {
     // Given
     FfvbPage context =
@@ -326,6 +336,7 @@ class FfvbObservationsTest {
         .satisfies(
             match -> {
               assertThat(match.facts().scoresheetUrl()).isNull();
+              assertThat(match.facts().informationSheet()).isNull();
               assertThat(match.facts().result().get().state()).isEqualTo(ResultStateEnum.FINAL);
             });
   }
