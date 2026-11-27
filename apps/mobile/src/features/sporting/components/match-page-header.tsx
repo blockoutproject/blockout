@@ -35,7 +35,12 @@ export function MatchPageHeader({
         importantForAccessibility="no-hide-descendants"
         style={styles.recap}
       >
-        <SportingLogo kind="team" identity={match.home} size={28} />
+        <SportingLogo
+          kind="team"
+          identity={match.home}
+          size={28}
+          pendingPlaceholder="skeleton"
+        />
         <Text
           numberOfLines={1}
           ellipsizeMode="tail"
@@ -43,7 +48,12 @@ export function MatchPageHeader({
         >
           {label}
         </Text>
-        <SportingLogo kind="team" identity={match.away} size={28} />
+        <SportingLogo
+          kind="team"
+          identity={match.away}
+          size={28}
+          pendingPlaceholder="skeleton"
+        />
       </View>
     </PageHeader>
   );

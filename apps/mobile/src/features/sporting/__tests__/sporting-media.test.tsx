@@ -29,6 +29,7 @@ it("uses the neutral missing-image fallback even when a short name is available"
   expect(
     screen.getByRole("image", { name: `Logo absent : ${identity.name}` }),
   ).toBeOnTheScreen();
+  expect(screen.getByTestId("sporting-logo-fallback")).toBeVisible();
   expect(screen.queryByText("ASL")).not.toBeOnTheScreen();
 });
 
@@ -57,6 +58,7 @@ it.each([
     expect(
       screen.getByRole("image", { name: `${label} : ${identity.name}`, busy }),
     ).toBeOnTheScreen();
+    expect(screen.getByTestId("sporting-logo-fallback")).toBeVisible();
     expect(screen.queryByText("VR")).not.toBeOnTheScreen();
     if (error) {
       expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
@@ -64,7 +66,7 @@ it.each([
   },
 );
 
-it("announces native logo loading until its foreground is displayed", async () => {
+it("shows the ordinary fallback and hides an already loaded halo until the logo is displayed", async () => {
   // Given
   const identity = { name: "Volley des Rives" };
   await render(
@@ -87,6 +89,7 @@ it("announces native logo loading until its foreground is displayed", async () =
     busy: true,
   });
   const foreground = within(slot).getByTestId("sporting-logo-image");
+  const halo = screen.getByTestId("sporting-logo-atmosphere");
 
   // When
   await fireEvent(foreground, "load", {
@@ -94,12 +97,14 @@ it("announces native logo loading until its foreground is displayed", async () =
       source: { url: "https://api.example.invalid/logos/team.png" },
     },
   });
-  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "load");
+  await fireEvent(halo, "load");
 
   // Then
   expect(
     screen.getByRole("image", { name: `Logo : ${identity.name}`, busy: true }),
   ).toBeOnTheScreen();
+  expect(within(slot).getByTestId("sporting-logo-fallback")).toBeVisible();
+  expect(halo).not.toBeVisible();
 
   // When
   await fireEvent(foreground, "display");
@@ -108,6 +113,43 @@ it("announces native logo loading until its foreground is displayed", async () =
   expect(
     screen.getByRole("image", { name: `Logo : ${identity.name}`, busy: false }),
   ).toBeOnTheScreen();
+  expect(screen.queryByTestId("sporting-logo-fallback")).not.toBeOnTheScreen();
+  expect(halo).toBeVisible();
+});
+
+it("retains a non-card media skeleton until a pending logo fails", async () => {
+  // Given
+  await render(
+    <ThemeProvider>
+      <SportingMedia
+        identity={{ name: "Volley des Rives" }}
+        kind="team"
+        uri="https://api.example.invalid/logos/team.png"
+        pendingPlaceholder="skeleton"
+      />
+    </ThemeProvider>,
+  );
+  const slot = screen.getByRole("image", {
+    name: "Logo : Volley des Rives",
+    busy: true,
+  });
+  expect(
+    within(slot).queryByTestId("sporting-logo-fallback"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await fireEvent(within(slot).getByTestId("sporting-logo-image"), "error", {
+    nativeEvent: { error: "Native decoder rejected the image" },
+  });
+
+  // Then
+  const unavailable = screen.getByRole("image", {
+    name: "Logo indisponible : Volley des Rives",
+    busy: false,
+  });
+  expect(
+    within(unavailable).getByTestId("sporting-logo-fallback"),
+  ).toBeVisible();
 });
 
 it("retains caller content and ignores former events when an image source returns", async () => {
@@ -220,6 +262,9 @@ it("removes decorative artwork after a native decoding error event", async () =>
     uri: "data:image/png;base64,bm90LWFuLWltYWdl",
     cache: "reload",
   });
+  expect(cover).not.toBeVisible();
+  await fireEvent(cover, "load");
+  expect(cover).toBeVisible();
 
   // When
   await fireEvent(cover, "error", {

@@ -5,7 +5,7 @@ import {
 } from "@/shared/components/artwork-halo";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
@@ -15,7 +15,7 @@ import { mediaRadius } from "@/shared/theme/media-radius";
 
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
-  identity: Pick<SportingIdentityResponse, "name" | "shortName">;
+  identity: Pick<SportingIdentityResponse, "name">;
   uri?: string;
   loading?: boolean;
   /** Failure uses the nominal fallback; only its accessible alternative distinguishes absence. */
@@ -26,6 +26,8 @@ export interface SportingMediaProps {
   /** Keep Expo Image's bounds fixed when the same artwork slot is visually resized. */
   nativeSize?: number;
   presentation?: "logo" | "entity" | "identity";
+  /** Non-card presentations can retain their active media skeleton. */
+  pendingPlaceholder?: "fallback" | "skeleton";
   /** The owner places both layers. A failed sharp source withdraws its decoration as well. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
   /** False keeps the foreground composition mounted with no decorative image. */
@@ -39,7 +41,7 @@ export interface SportingMediaProps {
       }>;
 }
 
-/** Keeps native media beneath its skeleton without remounting the caller's card. */
+/** Keeps the readable plate in place until the native foreground has drawn. */
 export function SportingMedia({
   identity,
   uri,
@@ -49,6 +51,7 @@ export function SportingMedia({
   size = tokens.size.media.row,
   nativeSize,
   presentation = "logo",
+  pendingPlaceholder = "fallback",
   renderWithAtmosphere,
   atmosphere,
 }: Readonly<SportingMediaProps>) {
@@ -97,7 +100,8 @@ export function SportingMedia({
   const image = useNativeImageLifecycle(uri);
   const failed = image.status === "failed";
   const available = !!uri && !failed;
-  const busy = available ? image.status === "pending" : loading;
+  const displayed = available && image.status === "displayed";
+  const busy = available ? !displayed : loading;
   const identityPlate = presentation === "identity";
   const label = available
     ? identityPlate && error
@@ -110,6 +114,7 @@ export function SportingMedia({
         : "Logo absent";
   const artworkScale = kind === "division" || identityPlate ? 1 : 5 / 6;
   const nativeImageSize = (nativeSize ?? size) * artworkScale;
+  const showSkeleton = busy && pendingPlaceholder === "skeleton";
   // Updating the slot's accessibility state keeps Expo Image's native props stable after display.
   const logo = (
     <View
@@ -124,27 +129,36 @@ export function SportingMedia({
           height: size,
           // IdentityCard already clips its artwork slot.
           borderRadius: identityPlate ? undefined : mediaRadius(size),
-          backgroundColor: busy ? undefined : colors.logoSurface,
+          backgroundColor: colors.logoSurface,
         },
       ]}
     >
       {available && renderArtwork()}
-      {!available && !busy && (
-        <ImageFallback
-          color={colors.logoInk}
-          size={
-            presentation === "logo" ? tokens.size.icon.md : tokens.size.icon.lg
-          }
-        />
-      )}
-      {busy && (
+      {!displayed && (
         <View
           pointerEvents="none"
+          testID={showSkeleton ? undefined : "sporting-logo-fallback"}
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: colors.skeleton },
+            styles.fallback,
+            {
+              backgroundColor: showSkeleton
+                ? colors.skeleton
+                : colors.logoSurface,
+            },
           ]}
-        />
+        >
+          {!showSkeleton && (
+            <ImageFallback
+              color={colors.logoInk}
+              size={
+                presentation === "logo"
+                  ? tokens.size.icon.md
+                  : tokens.size.icon.lg
+              }
+            />
+          )}
+        </View>
       )}
     </View>
   );
@@ -157,6 +171,7 @@ export function SportingMedia({
         treatment={atmosphere?.treatment}
         testID={atmosphere?.testID}
         uri={uri}
+        visible={displayed}
         onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
       />
     ) : null;
@@ -171,14 +186,20 @@ export interface SportingCoverProps {
 
 /** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
 export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
-  const [failedUri, setFailedUri] = useState<string>();
-  return failedUri === uri ? null : (
-    <View pointerEvents="none" accessible={false} style={styles.artwork}>
+  const image = useNativeImageLifecycle(uri);
+  return image.status === "failed" ? null : (
+    <View
+      pointerEvents="none"
+      accessible={false}
+      style={[styles.artwork, image.status === "pending" && styles.hidden]}
+    >
       <BlurredArtwork
+        key={image.attemptKey}
         testID="sporting-decorative-cover"
         uri={uri}
         blurRadius={tokens.sporting.coverBlur}
-        onError={() => setFailedUri(uri)}
+        onLoad={image.onDisplay}
+        onError={image.onError}
         style={styles.cover}
       />
       <View
@@ -195,6 +216,8 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
 }
 
 const styles = StyleSheet.create({
+  hidden: { opacity: 0 },
+  fallback: { alignItems: "center", justifyContent: "center" },
   artwork: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",

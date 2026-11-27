@@ -51,6 +51,8 @@ interface ArtworkHaloProps {
   uri: string;
   treatment?: ArtworkHaloTreatment;
   testID?: string;
+  /** A same-source halo can load in parallel but waits for the foreground to draw. */
+  visible?: boolean;
   onError?: () => void;
 }
 
@@ -59,6 +61,7 @@ export function ArtworkHalo({
   uri,
   treatment = "identity",
   testID = "sporting-logo-atmosphere",
+  visible = true,
   onError,
 }: Readonly<ArtworkHaloProps>) {
   const image = useNativeImageLifecycle(uri);
@@ -84,7 +87,7 @@ export function ArtworkHalo({
         styles.halo,
         treatment === "standingsRow" ? styles.compact : styles.centered,
         {
-          opacity: halo.opacity[scheme],
+          opacity: visible ? halo.opacity[scheme] : 0,
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
         },

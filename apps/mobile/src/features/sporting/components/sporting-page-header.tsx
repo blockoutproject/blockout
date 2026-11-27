@@ -32,6 +32,7 @@ export function SportingPageHeader({
       revealOffset={offset}
       titleArtwork={
         <SportingLogo
+          pendingPlaceholder="skeleton"
           identity={
             kind === "pool"
               ? (division ?? { ...identity, logoUrl: undefined })

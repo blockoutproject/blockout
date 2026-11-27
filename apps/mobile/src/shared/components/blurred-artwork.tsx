@@ -10,6 +10,7 @@ export interface BlurredArtworkProps {
   uri: string;
   blurRadius: number;
   style?: StyleProp<ImageStyle>;
+  onLoad?: ImageProps["onLoad"];
   onError: NonNullable<ImageProps["onError"]>;
   testID?: string;
 }
@@ -19,6 +20,7 @@ export function BlurredArtwork({
   uri,
   blurRadius,
   style,
+  onLoad,
   onError,
   testID,
 }: Readonly<BlurredArtworkProps>) {
@@ -30,6 +32,7 @@ export function BlurredArtwork({
       blurRadius={blurRadius}
       resizeMode="contain"
       fadeDuration={0}
+      onLoad={onLoad}
       onError={onError}
       style={style}
       testID={testID}
