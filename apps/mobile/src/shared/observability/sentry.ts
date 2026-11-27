@@ -120,7 +120,7 @@ const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
   };
 };
 
-/** Prepares bounded capture at the route entry; T033 qualification must precede any sending. */
+/** Configures the SDK for local filtering with capture disabled. */
 export function initializeSentry() {
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,

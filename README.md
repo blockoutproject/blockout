@@ -189,9 +189,21 @@ CI verifies the applications and their contracts. Backend and collector run on t
 
 Application diagnostics retain native ECS logging, safe bounded fields, health/readiness and Micrometer metrics. OTLP export is disabled by default. The [application observability boundary](specs/003-shared-quality/plan.md#application-diagnostics-and-health) owns the permitted data; no remote collection, dashboard or alert stack is configured.
 
+### Mobile error filtering
+
 Mobile crash reporting follows the [official Expo/Sentry integration](https://docs.sentry.io/platforms/react-native/guides/expo/): one JavaScript initialization configures the native SDKs, including Android C/C++ crash handling. Reporting is currently disabled in all builds, even when `EXPO_PUBLIC_SENTRY_DSN` is supplied. The public DSN and `EXPO_PUBLIC_SENTRY_ENVIRONMENT` remain build inputs in the [mobile environment file](apps/mobile/.env.example); they do not enable reporting. The JavaScript `beforeSend` filter retains standard error categories, packaged source coordinates and symbolication metadata while excluding free-form context and attachments. Breadcrumbs, replay, tracing, profiling and Sentry Logs are disabled. Native events bypass that JavaScript filter: their [standard Sentry scrubbing controls and limitations](specs/003-shared-quality/research.md#application-observability) must be qualified before activation.
 
+Run the focused tests from the repository root to check the JavaScript filter and the disabled SDK configuration through a controlled device bridge. The tests use synthetic events and a fixture DSN.
+
+```sh
+npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath \
+  src/shared/observability/__tests__/sentry.test.ts \
+  src/shared/observability/__tests__/sentry-native.test.ts
+```
+
 Sentry's Metro/config plugins own source maps and native build integration. Automatic uploads remain disabled by the plugin under [F13's observability decision](specs/003-shared-quality/research.md#application-observability). Future authorized uploads require enabling them and supplying private build variables `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; never expose the token through `EXPO_PUBLIC_` or app configuration. No external reporting activation is part of local verification. No project, credential, paid capability or remote setting is created by repository verification.
+
+### Local PostgreSQL
 
 Compose runs local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432, and an optional OpenSearch service. Applications run on the host. Start the database explicitly:
 
