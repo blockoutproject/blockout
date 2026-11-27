@@ -707,7 +707,7 @@ ClubContacts:
     description: >-
       Requires global sporting-presentation permission for contact correction. Applies supplied
       field modes atomically against current server state; omitted fields are unchanged. A change to
-      the effective municipality or postal context clears the old point and advances the locality
+      the effective street address, municipality or postal code clears the old point and advances the locality
       revision. A write conflicting with a contact privacy restriction returns
       409 without changes. Ordinary edits cannot lift a privacy restriction. A failed or lost
       response permits explicit manual retry without a verification read.

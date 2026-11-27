@@ -1,5 +1,6 @@
 import type { Presentation } from "../api/presentation";
 import type { PresentationValues } from "../schemas/presentation-schema";
+import { clubContactValues } from "./club-contact-values";
 
 /** An editorial division starts with local field values. */
 export const newDivisionValues: PresentationValues = {
@@ -11,7 +12,7 @@ export const newDivisionValues: PresentationValues = {
   logo: { action: "keep" },
 };
 
-/** Starts an editing snapshot from current manual values; automatic names are not copied into overrides. */
+/** Prefills the approved club editor while the command retains independent name and contact intent. */
 export function presentationValues(
   presentation: Presentation,
 ): PresentationValues {
@@ -21,12 +22,18 @@ export function presentationValues(
     presentation.kind !== "division" ? presentation.data.names : undefined;
   return {
     kind: presentation.kind,
-    name: division?.name ?? names?.manualName ?? "",
+    name:
+      division?.name ??
+      (presentation.kind === "club"
+        ? names?.effectiveName
+        : names?.manualName) ??
+      "",
     shortName: names?.manualShortName ?? "",
     color: division?.color ?? "",
     gradient: division?.gradient
       ? [division.gradient[0], division.gradient[1], division.gradient[2]]
       : ["", "", ""],
     logo: { action: "keep" },
+    ...(presentation.kind === "club" ? { contacts: clubContactValues() } : {}),
   };
 }

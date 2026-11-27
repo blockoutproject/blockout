@@ -8,6 +8,7 @@ import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { useDivisionActivity } from "../api/classification";
+import { useClubContacts } from "../api/club-contacts";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "@/shared/components/screen-state";
@@ -63,11 +64,16 @@ function PresentationScreenContent({
     (target.kind === "division" &&
       permissions?.manageDivisionLifecycle === true);
   const editing = usePresentation(target, canRead);
+  const needsContacts = target.kind === "club";
+  const contacts = useClubContacts(target.id, needsContacts);
+  const saving = editing.save.isPending || contacts.save.isPending;
   const presentation =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
   const activity = useDivisionActivity(target.id);
   const confirmAction = useActionConfirmation();
-  const editor = usePresentationDraft(presentation);
+  const editor = usePresentationDraft(
+    needsContacts && !contacts.query.data ? undefined : presentation,
+  );
   const baseline = editor.state.baseline;
   const publicContextEnabled =
     ordinary.admitted && canRead && presentation != null;
@@ -118,15 +124,23 @@ function PresentationScreenContent({
 
   /** Refreshes required presentation and its active optional logo; optional artwork failure adds no notice and a local replacement stays untouched. */
   async function refresh() {
-    if (editing.save.isPending) {
+    if (saving) {
       return;
     }
     if (!canRead) {
       await account.refetch();
       return;
     }
-    const result = await editing.query.refetch();
-    if (result.isError || editing.save.isPending || target.kind === "pool") {
+    const [result, contactResult] = await Promise.all([
+      editing.query.refetch(),
+      needsContacts ? contacts.query.refetch() : undefined,
+    ]);
+    if (
+      result.isError ||
+      contactResult?.isError ||
+      saving ||
+      target.kind === "pool"
+    ) {
       return;
     }
     await client.refetchQueries(
@@ -135,13 +149,27 @@ function PresentationScreenContent({
     );
   }
 
+  const presentationFailed =
+    hasReadError(editing.query) ||
+    (needsContacts && editing.query.data === null);
+  const contactsFailed =
+    needsContacts &&
+    (hasReadError(contacts.query) || contacts.query.data === null);
   const requiredRead =
-    account.isPending || hasReadError(account) ? account : editing.query;
+    account.isPending || hasReadError(account)
+      ? account
+      : needsContacts &&
+          !presentationFailed &&
+          (contactsFailed || !editing.query.isPending)
+        ? contacts.query
+        : editing.query;
+  const unavailable = needsContacts && requiredRead.data === null;
   const blocked =
     sessionStatus !== "authenticated" ||
     !canRead ||
     requiredRead.isPending ||
-    hasReadError(requiredRead);
+    hasReadError(requiredRead) ||
+    unavailable;
   const initialLoading =
     sessionStatus === "restoring" ||
     (!hasReadError(requiredRead) && requiredRead.isLoading);
@@ -238,8 +266,11 @@ function PresentationScreenContent({
       <FormScrollView
         refreshControl={
           <DataRefreshControl
-            enabled={!blocked && !editing.save.isPending}
-            fetching={editing.query.isFetching}
+            enabled={!blocked && !saving}
+            fetching={
+              editing.query.isFetching ||
+              (needsContacts && contacts.query.isFetching)
+            }
             onRefresh={refresh}
           />
         }
@@ -256,6 +287,7 @@ function PresentationScreenContent({
             ) : (
               <ReadFeedback
                 query={requiredRead}
+                failed={unavailable}
                 loadingContent={<PresentationLoading kind={target.kind} />}
               />
             )}
@@ -271,7 +303,15 @@ function PresentationScreenContent({
               kind={target.kind}
               logoTarget={editing.query.data === null ? undefined : target}
               onSave={editing.save.mutateAsync}
-              saving={editing.save.isPending}
+              saving={saving}
+              clubContacts={
+                needsContacts
+                  ? {
+                      current: contacts.query.data,
+                      save: contacts.save.mutateAsync,
+                    }
+                  : undefined
+              }
               activityPending={activity.save.isPending}
               afterSave={renderActivity}
               editor={editor}

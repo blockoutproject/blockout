@@ -20,9 +20,12 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { usePresentationLogo } from "../api/presentation-logo-query";
 import type { Presentation, PresentationTarget } from "../api/presentation";
+import type { ClubContactPatch, ClubContacts } from "../api/club-contacts";
 import { copySelectedImage } from "@/shared/images/copy-selected-image";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
+import { ClubContactFields } from "./club-contact-fields";
+import { clubContactPatch } from "./club-contact-values";
 import type { usePresentationDraft } from "./use-presentation-draft";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
@@ -34,6 +37,10 @@ export interface PresentationFormProps {
   editor: ReturnType<typeof usePresentationDraft>;
   disabled: boolean;
   locked?: boolean;
+  clubContacts?: {
+    current: ClubContacts | null | undefined;
+    save: (patch: ClubContactPatch) => Promise<ClubContacts>;
+  };
   activityPending?: boolean;
   beforeSave?: ReactNode;
   afterSave?: (
@@ -46,7 +53,7 @@ export interface PresentationFormProps {
   professionalTeam?: boolean;
 }
 
-/** Saves the explicit draft atomically and retains dirty fields and prepared files through ordinary refusals. */
+/** Saves each edited group explicitly and keeps the draft and prepared files through ordinary refusals. */
 export function PresentationForm({
   kind,
   logoTarget,
@@ -55,6 +62,7 @@ export function PresentationForm({
   editor,
   disabled,
   locked = false,
+  clubContacts,
   activityPending = false,
   beforeSave,
   afterSave,
@@ -93,7 +101,7 @@ export function PresentationForm({
     },
   });
   // RHF owns this mounted route's fields and dirty state.
-  const { isDirty, dirtyFields } = useFormState({
+  const { isDirty, dirtyFields, isSubmitting } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
@@ -108,8 +116,9 @@ export function PresentationForm({
     : colors.mediaPlaceholder;
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
-  const busy =
+  const unavailable =
     disabled || locked || imageSelection.pending || saving || activityPending;
+  const busy = unavailable || isSubmitting;
   const { logo: currentLogo, title, names } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const remoteUrl =
@@ -138,7 +147,7 @@ export function PresentationForm({
 
   /** Only an explicit save writes; ordinary errors preserve mounted input for refresh or retry. */
   async function submit(values: PresentationValues) {
-    if (!mounted.current || imageSelection.isPending() || busy) {
+    if (!mounted.current || imageSelection.isPending() || unavailable) {
       return;
     }
     editor.update({ ...state, feedback: undefined });
@@ -147,10 +156,13 @@ export function PresentationForm({
     actionFeedback.clear();
     editor.beginUpload(file);
     try {
+      if (baseline?.kind === "club") {
+        await saveClub(values, baseline);
+        return;
+      }
       const accepted = await onSave(values);
       if (accepted && mounted.current) {
-        editor.update({ baseline: accepted });
-        editor.reset(presentationValues(accepted));
+        acceptPresentation(accepted);
       }
     } catch (error) {
       if (mounted.current) {
@@ -159,6 +171,61 @@ export function PresentationForm({
     } finally {
       editor.finishUpload(file);
     }
+  }
+
+  /** Keeps an acknowledged presentation if only the subsequent contact write fails. */
+  async function saveClub(
+    values: PresentationValues,
+    original: Extract<Presentation, { kind: "club" | "team" }>,
+  ) {
+    if (!clubContacts?.current || !values.contacts) {
+      return;
+    }
+    const patch = clubContactPatch(values.contacts, clubContacts.current);
+    let accepted: Presentation | undefined;
+    if (dirtyFields.name || values.logo.action !== "keep") {
+      const { sourceName, manualName } = original.data.names;
+      const name = dirtyFields.name ? values.name : (manualName ?? "");
+      accepted = await onSave({
+        ...values,
+        name: dirtyFields.name && name.trim() === sourceName ? "" : name,
+      });
+      if (!accepted || !mounted.current) {
+        return;
+      }
+    }
+
+    try {
+      if (Object.keys(patch).length > 0) {
+        await clubContacts.save(patch);
+      }
+    } catch (error) {
+      if (!accepted) {
+        throw error;
+      }
+      if (mounted.current) {
+        acceptPresentation(accepted);
+        setValue("contacts", values.contacts, { shouldDirty: true });
+        actionFeedback.error(
+          "La présentation a été enregistrée. L’enregistrement des coordonnées n’a pas pu être confirmé.",
+        );
+      }
+      return;
+    }
+
+    if (!mounted.current) {
+      return;
+    }
+    if (accepted) {
+      acceptPresentation(accepted);
+    } else {
+      editor.reset(presentationValues(original));
+    }
+  }
+
+  function acceptPresentation(accepted: Presentation) {
+    editor.update({ baseline: accepted });
+    editor.reset(presentationValues(accepted));
   }
 
   /** Preserves the draft and reports image or name corrections at their field; other failures use ordinary feedback. */
@@ -189,9 +256,12 @@ export function PresentationForm({
   }
 
   const sourceNameSuffix = names?.sourceName ? ` : ${names.sourceName}` : "";
-  const nameHelper = names
-    ? `Laisser vide rétablit le nom automatique${sourceNameSuffix}.`
-    : undefined;
+  const nameHelper =
+    kind === "club"
+      ? (names?.sourceName ?? undefined)
+      : names
+        ? `Laisser vide rétablit le nom automatique${sourceNameSuffix}.`
+        : undefined;
 
   /** Presents draft, conflict and lifecycle actions against the existing mounted form owners. */
   function renderActions() {
@@ -221,7 +291,7 @@ export function PresentationForm({
             label="Enregistrer"
             fullWidth
             disabled={busy}
-            loading={saving}
+            loading={saving || isSubmitting}
             onPress={() => void handleSubmit(submit)()}
           />
         )}
@@ -322,9 +392,6 @@ export function PresentationForm({
                 if (isDivision) {
                   return "Nom de la division";
                 }
-                if (kind === "club") {
-                  return "Nom personnalisé";
-                }
                 return "Nom complet personnalisé";
               }
 
@@ -362,6 +429,13 @@ export function PresentationForm({
           )}
         </View>
       </Surface>
+      {clubContacts?.current && (
+        <ClubContactFields
+          form={editor.form}
+          current={clubContacts.current}
+          disabled={busy}
+        />
+      )}
       {isDivision && (
         <DivisionColorFields
           control={control}
