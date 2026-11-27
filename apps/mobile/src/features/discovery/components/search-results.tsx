@@ -4,7 +4,6 @@ import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { StyleSheet, Text, View } from "react-native";
 import type { ReactElement, ReactNode } from "react";
-import { useIsFocused } from "expo-router";
 import type { ContentReveal } from "@/shared/components/content-reveal";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -18,7 +17,6 @@ export interface SearchResultsProps {
   resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
-  active: boolean;
   reveal: ContentReveal;
   examples?: boolean;
   heading?: ReactElement;
@@ -38,7 +36,6 @@ export function SearchResults({
   resource,
   items,
   loading,
-  active,
   reveal,
   examples = false,
   heading,
@@ -48,10 +45,9 @@ export function SearchResults({
   onOpen,
 }: Readonly<SearchResultsProps>) {
   const hasItems = items.length > 0;
-  const focused = useIsFocused();
   return (
     <PageList
-      reveal={{ active: active && focused, presentation: reveal }}
+      reveal={{ presentation: reveal }}
       maintainVisibleContentPosition={{ size: false, data: true }}
       accessibilityRole={hasItems ? "list" : undefined}
       accessibilityLabel={

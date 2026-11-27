@@ -1,6 +1,6 @@
 import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { hashKey, useInfiniteQuery } from "@tanstack/react-query";
-import { useNavigation, useRouter } from "expo-router";
+import { useIsFocused, useNavigation, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import type { CollectionResultSourceResponse } from "../../../../.generated/schemas/index.zod";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
@@ -57,6 +57,7 @@ export function CollectionBilanScreen({
   searchPlaceholder = "Poule, source, étape…",
 }: Readonly<CollectionBilanScreenProps>) {
   const navigation = useNavigation();
+  const focused = useIsFocused();
   const router = useRouter();
   const authority = useCollectionAuthority();
   const options = createCollectionQueries(authority).results(
@@ -71,7 +72,7 @@ export function CollectionBilanScreen({
   const searchField = useSubmittedSearch(criteria.query, (text) =>
     router.setParams({ query: text.trim() }),
   );
-  const reveal = useContentReveal();
+  const reveal = useContentReveal(focused);
   const contextKey = hashKey(options.queryKey);
   const refused = isResourceReadRefused(query.error);
   const continuationFailed =

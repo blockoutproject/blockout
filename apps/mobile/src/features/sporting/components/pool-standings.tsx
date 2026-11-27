@@ -88,7 +88,7 @@ export function PoolStandings({
   const hasRows = data?.availability === "available" && data.rows.length > 0;
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
-  const revealStyle = useSingleContentReveal(
+  const { motion: revealStyle } = useSingleContentReveal(
     active && data !== undefined && !failed,
   );
 
