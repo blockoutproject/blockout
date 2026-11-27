@@ -38,6 +38,7 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import {
+  ContentRevealBlock,
   useContentReveal,
   type ContentReveal,
 } from "@/shared/components/content-reveal";
@@ -125,14 +126,14 @@ export interface SportingCalendarViewProps {
 }
 
 function calendarRevealKey(row: CalendarRow) {
-  return row.kind === "match" ? row.groupKey : undefined;
+  return row.kind === "space" ? undefined : row.groupKey;
 }
 
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
 export function SportingCalendarView(
   props: Readonly<SportingCalendarViewProps>,
 ) {
-  const reveal = useContentReveal();
+  const reveal = useContentReveal(props.active ?? true);
   return (
     <CalendarViewport
       key={hashKey(props.queryKey)}
@@ -286,7 +287,7 @@ function CalendarViewport({
           });
         }
       }}
-      reveal={{ active, blockKey: calendarRevealKey, presentation: reveal }}
+      reveal={{ blockKey: calendarRevealKey, presentation: reveal }}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}
@@ -333,7 +334,7 @@ function CalendarViewport({
           return null;
         }
         if (item.kind === "date") {
-          return <CalendarDate date={item.date} stacked={stacked} />;
+          return <CalendarDate row={item} stacked={stacked} reveal={reveal} />;
         }
         const match = (
           <View
@@ -400,9 +401,14 @@ function CalendarViewport({
 
 /** The full spoken heading retains the server-grouped civil day without a relative prefix. */
 function CalendarDate({
-  date,
+  row: { date, groupKey },
   stacked,
-}: Readonly<{ date: string; stacked: boolean }>) {
+  reveal,
+}: Readonly<{
+  row: Extract<CalendarRow, { kind: "date" }>;
+  stacked: boolean;
+  reveal: ContentReveal;
+}>) {
   const { colors } = useTheme();
   const backgroundColor = usePageCanvasBacking();
   const value = new Date(`${date}T12:00:00Z`);
@@ -411,18 +417,23 @@ function CalendarDate({
       accessible
       accessibilityRole="header"
       accessibilityLabel={formatSportingDay(date)}
-      style={[
-        calendarStyles.dateHeading,
-        { backgroundColor },
-        stacked ? calendarStyles.stackedDate : styles.lateralDate,
-      ]}
+      style={[{ backgroundColor }, !stacked && styles.lateralDate]}
     >
-      <Text style={[styles.date, { color: colors.text }]}>
-        {dayFormat.format(value)}
-      </Text>
-      <Text
-        style={[styles.dateMeta, { color: colors.secondaryText }]}
-      >{`${weekdayFormat.format(value)}\n${monthFormat.format(value)}`}</Text>
+      <ContentRevealBlock
+        reveal={reveal}
+        blockKey={groupKey}
+        style={[
+          calendarStyles.dateHeading,
+          stacked && calendarStyles.stackedDate,
+        ]}
+      >
+        <Text style={[styles.date, { color: colors.text }]}>
+          {dayFormat.format(value)}
+        </Text>
+        <Text
+          style={[styles.dateMeta, { color: colors.secondaryText }]}
+        >{`${weekdayFormat.format(value)}\n${monthFormat.format(value)}`}</Text>
+      </ContentRevealBlock>
     </View>
   );
 }

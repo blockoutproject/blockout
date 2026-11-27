@@ -9,13 +9,13 @@ import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
 import {
-  ContentRevealReadyContext,
+  ContentRevealContext,
   useSingleContentReveal,
 } from "@/shared/components/content-reveal";
 
 /** A season can replace the pager while the common card remains presented within the detail visit. */
 export const SportingIdentityRevealContext = createContext<
-  ReturnType<typeof useSingleContentReveal> | undefined
+  ReturnType<typeof useSingleContentReveal>["motion"] | undefined
 >(undefined);
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
@@ -30,6 +30,7 @@ function isSportingInitialReadReady(read: SportingInitialRead) {
 
 /** The public page retains its real measured scenes while one initial presentation owns unresolved inputs. */
 export interface SportingInitialCompositionProps {
+  initialSceneSelected: boolean;
   detail: SportingInitialRead;
   follow?: SportingInitialRead;
   canvasTint?: string;
@@ -41,6 +42,7 @@ export interface SportingInitialCompositionProps {
 /** Common detail and applicable Follow admission never depends on an independently read tab. */
 export function SportingInitialComposition({
   detail,
+  initialSceneSelected,
   follow,
   canvasTint,
   header,
@@ -77,11 +79,18 @@ export function SportingInitialComposition({
         accessibilityElementsHidden={blocked}
         importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
       >
-        <ContentRevealReadyContext value={canPresent}>
-          <SportingIdentityRevealContext value={identityReveal}>
+        <ContentRevealContext
+          value={{
+            ready: canPresent,
+            precedingElapsed: initialSceneSelected
+              ? identityReveal.elapsed
+              : undefined,
+          }}
+        >
+          <SportingIdentityRevealContext value={identityReveal.motion}>
             {children}
           </SportingIdentityRevealContext>
-        </ContentRevealReadyContext>
+        </ContentRevealContext>
       </View>
       {blocked && (
         <View style={StyleSheet.absoluteFill}>

@@ -31,8 +31,7 @@ import {
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { EmptyState } from "@/shared/components/state-card";
 import { Surface } from "@/shared/components/surface";
-import { hashKey, useQuery } from "@tanstack/react-query";
-import { useIsFocused } from "expo-router";
+import { hashKey, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, Phone } from "lucide-react-native";
@@ -48,6 +47,7 @@ import {
 import { SeasonSelector } from "@/shared/components/season-selector";
 import { SelectionRow } from "@/shared/components/selection-row";
 import { useConsultationQueries } from "../api/use-consultation-queries";
+import type { ClubDetailResponse } from "../../../../.generated/schemas/index.zod";
 
 import { SportingIdentity } from "../components/sporting-identity";
 import {
@@ -71,20 +71,50 @@ export function ClubScreen(props: Readonly<ClubScreenProps>) {
   );
 }
 
-/**
- * Retains a valid season across common reads; only successful disappearance derives the fallback.
- * The season keys the native scene lifetime while the selected category remains owned here.
- */
 function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
-  const { colors } = useTheme();
-  const focused = useIsFocused();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
+  return (
+    <SportingInitialComposition
+      detail={club}
+      initialSceneSelected={tab === "info"}
+      header={
+        <PageHeader
+          title="Le club"
+          action={
+            <SportingSupportAction target={{ type: "club", id: clubId }} />
+          }
+        />
+      }
+      loading={<SportingClubLoading />}
+    >
+      <ClubTabs clubId={clubId} club={club} tab={tab} onSelect={setTab} />
+    </SportingInitialComposition>
+  );
+}
+
+/** The Info entrance lasts for the club visit. A season change replaces the pager and its scroll positions. */
+function ClubTabs({
+  clubId,
+  club,
+  tab,
+  onSelect,
+}: Readonly<{
+  clubId: string;
+  club: UseQueryResult<ClubDetailResponse>;
+  tab: string;
+  onSelect: (tab: string) => void;
+}>) {
+  const { colors } = useTheme();
   const [selectedSeason, setSelectedSeason] = useState<string>();
   const [choosingSeason, setChoosingSeason] = useState(false);
+  const informationReveal = useSectionContentReveal(tab === "info");
   const data = club.data;
-  const seasons = data?.seasons ?? [];
+  if (!data) {
+    return null;
+  }
+  const seasons = data.seasons;
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
   // Reconcile only a successful current representation, so a failed read never discards the choice.
@@ -130,11 +160,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
-  // The season can replace the pager while the club's information stays presented.
-  const informationReveal = useSectionContentReveal(
-    focused && tab === "info" && !!data && !hasReadError(club),
-  );
-  const information = data ? (
+  const information = (
     <PageScrollView
       onLayout={informationReveal.onViewportLayout}
       alwaysBounceVertical
@@ -199,116 +225,101 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         </RevealSection>
       </SectionContentReveal>
     </PageScrollView>
-  ) : undefined;
+  );
 
   return (
-    <SportingInitialComposition
-      detail={club}
+    <PagedTabs
+      key={season?.id}
+      selected={tab}
+      onSelect={onSelect}
       header={
-        <PageHeader
-          title="Le club"
+        <SportingPageHeader
           action={
             <SportingSupportAction target={{ type: "club", id: clubId }} />
           }
+          identity={data.club}
+          kind="club"
         />
       }
-      loading={<SportingClubLoading />}
-    >
-      {data && (
-        <PagedTabs
-          key={season?.id}
-          selected={tab}
-          onSelect={setTab}
-          header={
-            <SportingPageHeader
-              action={
-                <SportingSupportAction target={{ type: "club", id: clubId }} />
-              }
-              identity={data.club}
-              kind="club"
-            />
+      collapsibleHeader={
+        <PageContent>
+          <SportingIdentity
+            identity={data.club}
+            kind="club"
+            subtitle={[data.contacts.city, data.contacts.postalCode]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        </PageContent>
+      }
+      tabs={tabs.map(({ id: value, label }) => {
+        /** Chooses the retained Info, season-owned Teams or calendar scene without joining their read lifetimes. */
+        function renderTabContent() {
+          if (value !== "info" && !season) {
+            return (
+              <PageScrollView>
+                <ScreenState>
+                  <EmptyState title={noSeasonTitle}>
+                    <ReloadButton
+                      onReload={refresh}
+                      fetching={club.isFetching}
+                      disabled={tab !== value}
+                    />
+                  </EmptyState>
+                </ScreenState>
+              </PageScrollView>
+            );
           }
-          collapsibleHeader={
-            <PageContent>
-              <SportingIdentity
-                identity={data.club}
-                kind="club"
-                subtitle={[data.contacts.city, data.contacts.postalCode]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
-            </PageContent>
+          if ((value === "upcoming" || value === "completed") && season) {
+            return (
+              <SportingCalendar
+                selection={{ clubId, seasonId: season.id, category: value }}
+                active={tab === value}
+              >
+                {seasonControls}
+              </SportingCalendar>
+            );
           }
-          tabs={tabs.map(({ id: value, label }) => {
-            /** Chooses the retained Info, season-owned Teams or calendar scene without joining their read lifetimes. */
-            function renderTabContent() {
-              if (value !== "info" && !season) {
-                return (
-                  <PageScrollView>
-                    <ScreenState>
-                      <EmptyState title={noSeasonTitle}>
-                        <ReloadButton
-                          onReload={refresh}
-                          fetching={club.isFetching}
-                          disabled={tab !== value}
-                        />
-                      </EmptyState>
-                    </ScreenState>
-                  </PageScrollView>
-                );
-              }
-              if ((value === "upcoming" || value === "completed") && season) {
-                return (
-                  <SportingCalendar
-                    selection={{ clubId, seasonId: season.id, category: value }}
-                    active={tab === value}
-                  >
-                    {seasonControls}
-                  </SportingCalendar>
-                );
-              }
-              if (value === "teams" && season) {
-                return (
-                  <ClubTeams
-                    clubId={clubId}
-                    seasonId={season.id}
-                    active={tab === value}
-                  >
-                    {seasonControls}
-                  </ClubTeams>
-                );
-              }
-              return information;
-            }
+          if (value === "teams" && season) {
+            return (
+              <ClubTeams
+                clubId={clubId}
+                seasonId={season.id}
+                active={tab === value}
+              >
+                {seasonControls}
+              </ClubTeams>
+            );
+          }
+          return information;
+        }
 
-            return {
-              id: value,
-              label,
-              content: renderTabContent(),
-              preview:
-                value === "info" ? (
-                  <PageContent style={styles.information}>
-                    <ClubInformationSkeleton />
-                  </PageContent>
-                ) : season ? (
-                  <PageContent>
-                    {seasonControls}
-                    {value === "teams" ? (
-                      <ClubTeamsLoading />
-                    ) : (
-                      <CalendarLoading category={value} />
-                    )}
-                  </PageContent>
+        return {
+          id: value,
+          label,
+          content: renderTabContent(),
+          preview:
+            value === "info" ? (
+              <PageContent style={styles.information}>
+                <ClubInformationSkeleton />
+              </PageContent>
+            ) : season ? (
+              <PageContent>
+                {seasonControls}
+                {value === "teams" ? (
+                  <ClubTeamsLoading />
                 ) : (
-                  <ScreenState>
-                    <EmptyState title={noSeasonTitle} />
-                  </ScreenState>
-                ),
-            };
-          })}
-        />
-      )}
-    </SportingInitialComposition>
+                  <CalendarLoading category={value} />
+                )}
+              </PageContent>
+            ) : (
+              <ScreenState>
+                <EmptyState title={noSeasonTitle} />
+              </ScreenState>
+            ),
+        };
+      })}
+    />
   );
 }
 
@@ -348,7 +359,7 @@ function ClubTeams({
   const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
-  const presentation = useContentReveal();
+  const presentation = useContentReveal(active);
 
   /** Explicitly rereads only this season, including a failed observer awaiting its card action. */
   async function refresh() {
@@ -396,7 +407,7 @@ function ClubTeams({
           });
         }
       }}
-      reveal={{ active, presentation }}
+      reveal={{ presentation }}
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}

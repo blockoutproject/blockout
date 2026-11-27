@@ -165,9 +165,7 @@ export function MatchScreen({
         loadingContent={null}
       />
     ) : undefined;
-  const reveal = useSectionContentReveal(focused && !!data && !blockingState, {
-    staggered: true,
-  });
+  const reveal = useSectionContentReveal(focused && !!data && !blockingState);
   return (
     <Page
       canvasTint={failed ? undefined : division?.color}

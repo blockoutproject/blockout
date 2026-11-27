@@ -1,9 +1,13 @@
 import "@/shared/native/test-support/tab-view-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { createRef } from "react";
 import { Text } from "react-native";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { PageList } from "../page-list";
+import { useContentReveal } from "../content-reveal";
+import { PageViewport } from "../navigation-backdrop";
 
 function Results({
   items,
@@ -16,11 +20,12 @@ function Results({
   onReady?: () => void;
   reveal?: { active: boolean };
 }>) {
+  const presentation = useContentReveal(reveal?.active ?? false);
   return (
     <PageList
       testID="results-list"
       data={items}
-      reveal={reveal}
+      reveal={reveal && { presentation }}
       keyExtractor={(item) => item}
       renderItem={({ item }) => <Text>{item}</Text>}
       ListHeaderComponent={<Text>Results</Text>}
@@ -85,7 +90,9 @@ it.each([
 
 it("releases loading feedback immediately for a successful empty list", async () => {
   // Given
-  const view = await render(<Results items={[]} loading />);
+  const view = await render(<Results items={[]} loading />, {
+    wrapper: ThemeProvider,
+  });
   expect(screen.getByRole("progressbar")).toBeOnTheScreen();
 
   // When
@@ -96,4 +103,44 @@ it("releases loading feedback immediately for a successful empty list", async ()
   expect(
     screen.queryByText("Placeholders", { includeHiddenElements: true }),
   ).toBeNull();
+});
+
+it("excludes a row scrolled entirely behind the page header from the first presentation", async () => {
+  // Given
+  const list = createRef<LegendListRef>();
+  const sampled = jest.fn();
+
+  function ScrolledResults() {
+    const presentation = useContentReveal(true);
+    return (
+      <PageViewport header={<Text>Results</Text>} headerMinHeight={60}>
+        <PageList
+          ref={list}
+          testID="results-list"
+          data={["Covered", "Visible"]}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => <Text>{item}</Text>}
+          reveal={{ presentation: { ...presentation, start: sampled } }}
+        />
+      </PageViewport>
+    );
+  }
+
+  await render(<ScrolledResults />, { wrapper: ThemeProvider });
+  const viewport = list.current!;
+  jest.spyOn(viewport, "getState").mockReturnValue({
+    ...viewport.getState(),
+    scroll: 60,
+    scrollLength: 400,
+    start: 0,
+    end: 1,
+    positionAtIndex: (index) => index * 60,
+    sizeAtIndex: () => 60,
+  });
+
+  // When
+  await fireEvent(screen.getByTestId("results-list"), "ready");
+
+  // Then
+  expect(sampled).toHaveBeenCalledWith(["Visible"]);
 });

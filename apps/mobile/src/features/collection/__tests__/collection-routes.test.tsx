@@ -23,6 +23,7 @@ import { Stack, router, useGlobalSearchParams, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
+import * as Reanimated from "react-native-reanimated";
 import RootLayout from "@/app/_layout";
 import EntryRoute from "@/app/index";
 import RecoveryLayout from "@/app/(recovery)/_layout";
@@ -893,6 +894,52 @@ it("keeps only club search and Status from a direct seasonless Bilan link", asyn
   expect(
     reads.some(({ pathname }) => pathname.includes("/collection-seasons")),
   ).toBe(false);
+});
+
+it("presents the first Bilan result on return when its read finishes beneath the filters", async () => {
+  // Given
+  const firstPage = Promise.withResolvers<Response>();
+  const serve = responses({ manageCollection: true });
+  const rowsRead = jest.fn(() => firstPage.promise);
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith("/results")
+      ? rowsRead()
+      : serve(url),
+  );
+  const row = result({ scopeLabel: "Poule en attente" });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () =>
+    router.push(`/collection/${seasonId}/controls/lnv/bilan`),
+  );
+  await user.press(await screen.findByRole("button", { name: "Filtres" }));
+  await screen.findByRole("button", { name: "Statut" });
+  const motion = jest.spyOn(Reanimated, "withTiming");
+
+  // When: the retained list receives its first row and native layout while covered.
+  await act(async () =>
+    firstPage.resolve(Response.json({ items: [row], page: 0, hasNext: false })),
+  );
+  await screen.findByText(row.scopeLabel, { includeHiddenElements: true });
+  await fireEvent(
+    screen.getByTestId("collection-bilan-list", {
+      includeHiddenElements: true,
+    }),
+    "ready",
+  );
+  await act(() => jest.advanceTimersToNextFrame());
+
+  // Then
+  const durations = () =>
+    motion.mock.calls.map(([, config]) => config?.duration);
+  expect(durations()).not.toContain(220);
+  await act(async () => router.back());
+  expect(
+    await screen.findByRole("header", { name: row.scopeLabel }),
+  ).toBeOnTheScreen();
+  await waitFor(() => expect(durations()).toContain(220));
+  expect(rowsRead).toHaveBeenCalledTimes(1);
 });
 
 it("opens a source-filtered Bilan and returns from the attributed source to the same criteria", async () => {

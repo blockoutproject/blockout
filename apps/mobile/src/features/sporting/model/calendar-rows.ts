@@ -5,7 +5,7 @@ import type {
 
 /** Native list cells preserve server grouping while each encounter remains independently virtualized. */
 export type CalendarRow =
-  | { kind: "date"; key: string; date: string }
+  | { kind: "date"; key: string; date: string; groupKey: string }
   | { kind: "space"; key: string }
   | {
       kind: "match";
@@ -28,9 +28,16 @@ export function calendarRows(
 ): CalendarRow[] {
   const rows: CalendarRow[] = [];
   for (const day of days) {
-    rows.push({ kind: "date", key: `date:${day.date}`, date: day.date });
     day.pools.forEach((group, poolIndex) => {
       const groupKey = `${day.date}:${group.poolId.toLowerCase()}`;
+      if (poolIndex === 0) {
+        rows.push({
+          kind: "date",
+          key: `date:${day.date}`,
+          date: day.date,
+          groupKey,
+        });
+      }
       group.matches.forEach((match, index) => {
         if (!stacked && (poolIndex > 0 || index > 0)) {
           rows.push({ kind: "space", key: `space:${match.id}` });

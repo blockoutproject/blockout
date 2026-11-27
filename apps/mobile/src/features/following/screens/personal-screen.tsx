@@ -63,7 +63,7 @@ const Instagram = createLucideIcon({
 export function PersonalScreen() {
   const session = useAccountSession();
   const focused = useIsFocused();
-  const guestRevealStyle = useSingleContentReveal(
+  const { motion: guestRevealStyle } = useSingleContentReveal(
     focused && session.status === "guest",
   );
   const router = useRouter();
