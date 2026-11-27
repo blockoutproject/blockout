@@ -171,9 +171,9 @@ const styles = StyleSheet.create({
     right: 0,
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden",
   },
-  stageBackdrop: { top: 0, bottom: 0 },
+  // Login uses its screen edge to clip the rotated band outside the card's layout bounds.
+  stageBackdrop: { top: 0, bottom: 0, overflow: "hidden" },
   rails: {
     justifyContent: "center",
     transform: [{ rotate: `-${tiltDegrees}deg` }],
