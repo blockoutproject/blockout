@@ -1,9 +1,8 @@
-import { useNavigation, useRouter } from "expo-router";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useSettingsSaveFeedback } from "./use-settings-save-feedback";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -41,15 +40,13 @@ export function MaintenanceForm({
 }: Readonly<MaintenanceFormProps>) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
-  const router = useRouter();
-  const navigation = useNavigation();
-  const actionFeedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
   const { isDirty, dirtyFields } = useFormState({ control });
   const disablePrevention = useDiscardChanges(isDirty, () => reset());
+  const actionFeedback = useSettingsSaveFeedback(disablePrevention);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.activation.isPending;
@@ -64,17 +61,7 @@ export function MaintenanceForm({
     actionFeedback.clear();
     editing.content.mutate(toMaintenanceRequest(draft, dirtyFields), {
       onSuccess(accepted) {
-        if (!navigation.isFocused()) {
-          return;
-        }
-        reset(maintenanceValues(accepted));
-        disablePrevention();
-        actionFeedback.success("Modifications enregistrées.");
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace("/administration");
-        }
+        actionFeedback.saved(() => reset(maintenanceValues(accepted)));
       },
       onError: () => actionFeedback.error(),
     });
