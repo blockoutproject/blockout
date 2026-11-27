@@ -1,12 +1,14 @@
 ---
 name: Bug
-about: Correct a verified defect
+about: Report an observed defect
 title: ""
 labels: bug
 assignees: ""
 ---
 
 ## Outcome and scope
+
+<!-- Describe what happened, what you expected, and the shortest steps to reproduce it. Include the affected build or environment if known. Use public or synthetic data and describe any check that requires private access. -->
 
 ## Sources
 
