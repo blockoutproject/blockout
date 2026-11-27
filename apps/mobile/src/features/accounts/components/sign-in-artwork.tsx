@@ -1,31 +1,43 @@
+import { nativeApplicationVersion } from "expo-application";
 import { Image } from "expo-image";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 // Visible title-and-athlete bounds, excluding the source images' transparent margins.
 const artworkAspectRatio = 426.4913 / 365.883;
 
-/** Fits the complete decorative group to the hero remaining above the fixed account actions. */
+/** Centers the artwork and places the installed version in the gap below it. */
 export function SignInArtwork() {
-  const [artworkWidth, setArtworkWidth] = useState(0);
+  const { colors } = useTheme();
+  const version = nativeApplicationVersion?.trim();
+  const [space, setSpace] = useState({ width: 0, height: 0 });
+  const [versionHeight, setVersionHeight] = useState(0);
+  // Equal gaps keep the artwork centered even when enlarged text needs more room.
+  const gap = version ? versionHeight + tokens.spacing.sm : 0;
+  const artworkWidth = Math.min(
+    space.width,
+    Math.max(0, space.height - 2 * gap) * artworkAspectRatio,
+  );
+
   return (
-    <View
-      accessible={false}
-      importantForAccessibility="no-hide-descendants"
-      style={styles.hero}
-    >
+    <View style={styles.hero}>
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <View
           style={styles.space}
           onLayout={({ nativeEvent: { layout } }) =>
-            setArtworkWidth(
-              Math.min(layout.width, layout.height * artworkAspectRatio),
-            )
+            setSpace({ width: layout.width, height: layout.height })
           }
         >
-          <View style={[styles.artwork, { width: artworkWidth }]}>
+          <View style={styles.gap} />
+          <View
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[styles.artwork, { width: artworkWidth }]}
+          >
             <Image
               source={require("../../../../assets/accounts/sign-in-title.svg")}
               contentFit="contain"
@@ -44,6 +56,18 @@ export function SignInArtwork() {
               style={styles.athlete}
             />
           </View>
+          <View style={styles.gap}>
+            {version ? (
+              <Text
+                onLayout={({ nativeEvent: { layout } }) =>
+                  setVersionHeight(layout.height)
+                }
+                style={[styles.version, { color: colors.onDarkAccent }]}
+              >
+                Version {version}
+              </Text>
+            ) : null}
+          </View>
         </View>
       </SafeAreaView>
     </View>
@@ -58,9 +82,14 @@ const styles = StyleSheet.create({
     minHeight: 0,
     marginHorizontal: tokens.spacing.lg,
     alignItems: "center",
-    justifyContent: "center",
   },
+  gap: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
   artwork: { aspectRatio: artworkAspectRatio },
+  version: {
+    ...tokens.typography.metadata,
+    opacity: 0.78,
+    textAlign: "center",
+  },
   title: {
     position: "absolute",
     left: 0,

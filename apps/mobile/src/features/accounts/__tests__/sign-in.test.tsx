@@ -24,6 +24,7 @@ import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
+jest.mock("expo-application", () => ({ nativeApplicationVersion: "2.9.3" }));
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -124,6 +125,29 @@ async function renderJourney(content = <SignInScreen admitted />) {
     ),
   });
 }
+
+it("shows the installed native application version on Login", async () => {
+  // When
+  await renderJourney();
+
+  // Then
+  expect(screen.getByText("Version 2.9.3")).toBeOnTheScreen();
+});
+
+it("omits the Login version label when the installed version is unavailable", async () => {
+  // Given
+  jest.replaceProperty(
+    jest.requireMock("expo-application"),
+    "nativeApplicationVersion",
+    null,
+  );
+
+  // When
+  await renderJourney();
+
+  // Then
+  expect(screen.queryByText(/^Version\b/)).toBeNull();
+});
 
 it("continues as guest without opening hosted login or establishing an account", async () => {
   // Given
