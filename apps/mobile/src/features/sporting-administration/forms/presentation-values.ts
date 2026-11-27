@@ -12,7 +12,7 @@ export const newDivisionValues: PresentationValues = {
   logo: { action: "keep" },
 };
 
-/** Prefills the approved club editor while the command retains independent name and contact intent. */
+/** Prefills the editor from accepted effective values. */
 export function presentationValues(
   presentation: Presentation,
 ): PresentationValues {
@@ -22,13 +22,8 @@ export function presentationValues(
     presentation.kind !== "division" ? presentation.data.names : undefined;
   return {
     kind: presentation.kind,
-    name:
-      division?.name ??
-      (presentation.kind === "club"
-        ? names?.effectiveName
-        : names?.manualName) ??
-      "",
-    shortName: names?.manualShortName ?? "",
+    name: division?.name ?? names?.effectiveName ?? "",
+    shortName: names?.effectiveShortName ?? "",
     color: division?.color ?? "",
     gradient: division?.gradient
       ? [division.gradient[0], division.gradient[1], division.gradient[2]]

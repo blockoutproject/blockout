@@ -418,13 +418,32 @@ it("starts a fresh draft and releases its logo when the business account changes
   ).toBe(true);
 });
 
-it("saves independent names and the rectangular logo returned by the picker in one PATCH", async () => {
+it.each([
+  { scenario: "both names automatic", manualName: null },
+  { scenario: "a new full name", manualName: "Chosen" },
+])("saves a team logo with $scenario", async ({ manualName }) => {
   // Given
+  const automaticNames = {
+    ...names,
+    manualName: null,
+    effectiveName: names.sourceName,
+    effectiveShortName: names.sourceName,
+  };
+  stored = { ...initial, names: automaticNames };
   const user = userEvent.setup();
   await renderEditor();
-  await screen.findByDisplayValue("Current name");
-  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
-  await user.type(screen.getByLabelText("Nom complet personnalisé"), "Chosen");
+  const fullName = await screen.findByLabelText("Nom complet personnalisé");
+  const shortName = screen.getByLabelText("Nom court personnalisé");
+  expect(fullName).toHaveDisplayValue(names.sourceName);
+  expect(shortName).toHaveDisplayValue(names.sourceName);
+  expect(screen.getAllByHintText(names.sourceName)).toEqual([
+    fullName,
+    shortName,
+  ]);
+  if (manualName) {
+    await user.clear(fullName);
+    await user.type(fullName, manualName);
+  }
   jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
     canceled: false,
     assets: [
@@ -444,7 +463,11 @@ it("saves independent names and the rectangular logo returned by the picker in o
       stored = {
         ...initial,
 
-        names: { ...names, manualName: "Chosen", effectiveName: "Chosen" },
+        names: {
+          ...automaticNames,
+          manualName,
+          effectiveName: manualName ?? names.sourceName,
+        },
       };
     }
     return respond(url, options);
@@ -468,7 +491,7 @@ it("saves independent names and the rectangular logo returned by the picker in o
   const parts = Array.from((body as FormData).entries());
   expect(parts.map(([key]) => key)).toEqual(["metadata", "image"]);
   expect(JSON.parse(await (parts[0][1] as Blob).text())).toEqual({
-    manualName: "Chosen",
+    manualName,
     manualShortName: null,
     logoAction: "replace",
   });
@@ -479,8 +502,15 @@ it("saves independent names and the rectangular logo returned by the picker in o
 
 it("restores known customized artwork without decoded bytes and clears only the selected name customization atomically", async () => {
   // Given
+  const shortName = "VDR";
+  const customizedNames = {
+    ...names,
+    manualShortName: shortName,
+    effectiveShortName: shortName,
+  };
   stored = {
     ...initial,
+    names: customizedNames,
     logo: {
       ...logo,
       manualUrl: `/teams/${resourceId}/logo`,
@@ -490,6 +520,9 @@ it("restores known customized artwork without decoded bytes and clears only the 
   const user = userEvent.setup();
   await renderEditor();
   await screen.findByDisplayValue("Current name");
+  expect(screen.getByLabelText("Nom court personnalisé")).toHaveDisplayValue(
+    shortName,
+  );
   expect(
     screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
@@ -505,7 +538,11 @@ it("restores known customized artwork without decoded bytes and clears only the 
       stored = {
         ...initial,
 
-        names: { ...names, manualName: null, effectiveName: names.sourceName },
+        names: {
+          ...customizedNames,
+          manualName: null,
+          effectiveName: names.sourceName,
+        },
         logo,
       };
     }
@@ -526,9 +563,13 @@ it("restores known customized artwork without decoded bytes and clears only the 
   expect(Array.from(body.keys())).toEqual(["metadata"]);
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
     manualName: null,
-    manualShortName: null,
+    manualShortName: shortName,
     logoAction: "automatic",
   });
+  expect(await screen.findByDisplayValue(names.sourceName)).toBeOnTheScreen();
+  expect(screen.getByLabelText("Nom court personnalisé")).toHaveDisplayValue(
+    shortName,
+  );
 });
 
 it("keeps the accepted values behind the form read-error card when the following presentation read fails", async () => {
@@ -673,17 +714,26 @@ it("keeps inherited artwork editable while its read is pending without offering 
   ).toBe(false);
 });
 
-it("edits pool names with complete JSON and no logo or contacts", async () => {
+it("clears a pool's custom short name without changing its automatic full name", async () => {
   // Given
-  stored = { id: resourceId, names };
+  const poolNames = {
+    ...names,
+    effectiveName: names.sourceName,
+    manualName: null,
+    effectiveShortName: "Custom short",
+    manualShortName: "Custom short",
+  };
+  stored = { id: resourceId, names: poolNames };
   const user = userEvent.setup();
   await renderEditor("pool");
-  await screen.findByDisplayValue("Current name");
-  await user.clear(screen.getByLabelText("Nom court personnalisé"));
-  await user.type(
-    screen.getByLabelText("Nom court personnalisé"),
-    "Custom short",
-  );
+  const fullName = await screen.findByLabelText("Nom complet personnalisé");
+  const shortName = screen.getByLabelText("Nom court personnalisé");
+  expect(fullName).toHaveDisplayValue(names.sourceName);
+  expect(shortName).toHaveDisplayValue("Custom short");
+  expect(screen.getAllByHintText(names.sourceName)).toEqual([
+    fullName,
+    shortName,
+  ]);
 
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
@@ -691,9 +741,9 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
         id: resourceId,
 
         names: {
-          ...names,
-          manualShortName: "Custom short",
-          effectiveShortName: "Custom short",
+          ...poolNames,
+          manualShortName: null,
+          effectiveShortName: names.sourceName,
         },
       };
     }
@@ -701,6 +751,7 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
   });
 
   // When
+  await user.clear(shortName);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -711,9 +762,11 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
   );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    manualName: "Current name",
-    manualShortName: "Custom short",
+    manualName: null,
+    manualShortName: null,
   });
+  expect(fullName).toHaveDisplayValue(names.sourceName);
+  expect(shortName).toHaveDisplayValue(names.sourceName);
   expect(
     screen.queryByRole("button", { name: /Ajouter un logo|Modifier le logo/ }),
   ).not.toBeOnTheScreen();

@@ -1,8 +1,8 @@
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useSettingsSaveFeedback } from "./use-settings-save-feedback";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
@@ -40,13 +40,13 @@ export function MaintenanceForm({
 }: Readonly<MaintenanceFormProps>) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
-  const actionFeedback = useActionFeedback();
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
   const { isDirty, dirtyFields } = useFormState({ control });
-  useDiscardChanges(isDirty, () => reset());
+  const disablePrevention = useDiscardChanges(isDirty, () => reset());
+  const actionFeedback = useSettingsSaveFeedback(disablePrevention);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.activation.isPending;
@@ -54,19 +54,17 @@ export function MaintenanceForm({
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
 
   /** Submits supplied dirty content without changing activation. */
-  async function submit(draft: MaintenanceValues) {
+  function submit(draft: MaintenanceValues) {
     if (busy) {
       return;
     }
     actionFeedback.clear();
-    try {
-      const accepted = await editing.content.mutateAsync(
-        toMaintenanceRequest(draft, dirtyFields),
-      );
-      reset(maintenanceValues(accepted));
-    } catch {
-      actionFeedback.error();
-    }
+    editing.content.mutate(toMaintenanceRequest(draft, dirtyFields), {
+      onSuccess(accepted) {
+        actionFeedback.saved(() => reset(maintenanceValues(accepted)));
+      },
+      onError: () => actionFeedback.error(),
+    });
   }
 
   /** Changes only the desired global state and leaves the content draft in RHF untouched. */

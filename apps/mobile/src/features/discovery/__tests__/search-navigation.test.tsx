@@ -363,44 +363,7 @@ async function renderSearch() {
   return result;
 }
 
-it("announces each namesake with its available public context", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSearch();
-
-  // When
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
-
-  // Then
-  expect(
-    await screen.findByLabelText(
-      "Volley, Club public, 2026/2027, 6 × 6, Féminin",
-    ),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("link", { name: "Voir le club Club public" }),
-  ).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("tab", { name: "Poules" }));
-
-  // Then
-  expect(
-    await screen.findByLabelText("Poule A, Ligue publique - Finale, 2026/2027"),
-  ).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-
-  // Then
-  expect(await screen.findByLabelText("Volley, Lyon")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Volley, Niort")).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
-  ).toBe(false);
-});
-
-it("dismisses the search keyboard before opening a team's associated club", async () => {
+it("dismisses the search keyboard before opening the exact team with its club shown as context", async () => {
   // Given: the native keyboard is controlled while Search and sporting navigation remain real.
   const user = userEvent.setup();
   const open = jest.spyOn(privacy, "openSportingDestination");
@@ -408,12 +371,16 @@ it("dismisses the search keyboard before opening a team's associated club", asyn
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   const results = await screen.findByLabelText("Résultats de recherche");
+  const cards = within(results);
+  const team = cards.getByRole("link", {
+    name: "Volley, Club public, 2026/2027, 6 × 6, Féminin",
+  });
+  expect(within(team).getByText("Club public")).toBeOnTheScreen();
+  expect(cards.getAllByRole("link")).toHaveLength(1);
   const dismiss = jest.spyOn(Keyboard, "dismiss").mockImplementation(() => {});
 
   // When
-  await user.press(
-    within(results).getByRole("link", { name: "Voir le club Club public" }),
-  );
+  await user.press(team);
 
   // Then
   expect(dismiss).toHaveBeenCalledTimes(1);
@@ -421,8 +388,8 @@ it("dismisses the search keyboard before opening a team's associated club", asyn
   expect(dismiss.mock.invocationCallOrder[0]).toBeLessThan(
     open.mock.invocationCallOrder[0],
   );
-  expect(screen).toHavePathname(`/clubs/${secondId}`);
-  expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
+  expect(screen).toHavePathname(`/teams/${firstId}`);
+  expect(await screen.findByText("Selected team")).toBeOnTheScreen();
 });
 
 it.each(["network", "schema", "http"])(

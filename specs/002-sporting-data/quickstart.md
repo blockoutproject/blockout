@@ -106,6 +106,8 @@ Compare the [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E
 
 ## Presentation, contacts and continuity
 
+In the [Team, professional Team and Pool editors](plan.md#consumers-and-approved-design), open resources with automatic names and with independent overrides. Verify both effective names and both automatic hints. Save a team logo without editing the names and check its multipart metadata preserves their manual values or `null`. Clear a customized full or short name, save and check the accepted automatic value reappears while the other field keeps its mode. Retain the exact editable draft after a refused save.
+
 Edit a team while its parent club artwork changes. KEEP and omitted fields preserve current manual state, REPLACE preserves precedence and AUTOMATIC resolves the latest permitted fallback. The valid command requires no editing revision. Preserve current grants, privacy restrictions, UUID and native transaction protection.
 
 Qualify on fresh disposable PostgreSQL under [F13’s schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency). Verify the accepted S3 bytes, SQL media type and association, names, locality/observation revisions and native persistence versions through the ordinary owner operations. Fail an upload and a SQL publication and check the last accepted logo remains readable. Verify superseded objects after replacement or automatic restoration and reuse the same accepted source object for repeated identical bytes. [F13](../003-shared-quality/quickstart.md#preproduction-application-images) owns hosted qualification after schema compatibility is established.
