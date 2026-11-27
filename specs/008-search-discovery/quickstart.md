@@ -102,7 +102,7 @@ From a lower list position, distinguish identical names by their available conte
 
 ### Result activation
 
-Search cards use `useSportingNavigation` for F03 UUID routes and the shared F11 counter. The selected scene supplies its active state; F05 identity, F09 eligibility and F12 admission remain with their current owners. Search adds no counter, placement, SDK owner or restriction propagation mechanism.
+Search cards use `useSportingNavigation` for F03 UUID routes and the shared F11 counter. With the keyboard open, select a team whose club is known. Verify the club name in the card’s supporting text and accessible name, a single actionable link, keyboard dismissal and the exact team destination. The selected scene supplies its active state; F05 identity, F09 eligibility and F12 admission remain with their current owners. Search adds no counter, placement, SDK owner or restriction propagation mechanism.
 
 ### Read-failure recovery
 
