@@ -1,10 +1,10 @@
-import { nativeApplicationVersion } from "expo-application";
 import { Image } from "expo-image";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { AppVersionLabel } from "./app-version-label";
 
 // Visible title-and-athlete bounds, excluding the source images' transparent margins.
 const artworkAspectRatio = 426.4913 / 365.883;
@@ -12,11 +12,10 @@ const artworkAspectRatio = 426.4913 / 365.883;
 /** Centers the artwork and places the installed version in the gap below it. */
 export function SignInArtwork() {
   const { colors } = useTheme();
-  const version = nativeApplicationVersion?.trim();
   const [space, setSpace] = useState({ width: 0, height: 0 });
   const [versionHeight, setVersionHeight] = useState(0);
   // Equal gaps keep the artwork centered even when enlarged text needs more room.
-  const gap = version ? versionHeight + tokens.spacing.sm : 0;
+  const gap = versionHeight > 0 ? versionHeight + tokens.spacing.sm : 0;
   const artworkWidth = Math.min(
     space.width,
     Math.max(0, space.height - 2 * gap) * artworkAspectRatio,
@@ -57,16 +56,12 @@ export function SignInArtwork() {
             />
           </View>
           <View style={styles.gap}>
-            {version ? (
-              <Text
-                onLayout={({ nativeEvent: { layout } }) =>
-                  setVersionHeight(layout.height)
-                }
-                style={[styles.version, { color: colors.onDarkAccent }]}
-              >
-                Version {version}
-              </Text>
-            ) : null}
+            <AppVersionLabel
+              onLayout={({ nativeEvent: { layout } }) =>
+                setVersionHeight(layout.height)
+              }
+              style={[styles.version, { color: colors.onDarkAccent }]}
+            />
           </View>
         </View>
       </SafeAreaView>
@@ -85,11 +80,7 @@ const styles = StyleSheet.create({
   },
   gap: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
   artwork: { aspectRatio: artworkAspectRatio },
-  version: {
-    ...tokens.typography.metadata,
-    opacity: 0.78,
-    textAlign: "center",
-  },
+  version: { opacity: 0.78 },
   title: {
     position: "absolute",
     left: 0,

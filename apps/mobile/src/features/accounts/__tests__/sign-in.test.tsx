@@ -126,13 +126,19 @@ async function renderJourney(content = <SignInScreen admitted />) {
   });
 }
 
-it("shows the installed native application version on Login", async () => {
-  // When
-  await renderJourney();
+it.each([
+  { name: "Login", content: <SignInScreen admitted /> },
+  { name: "Profile", content: <ProfileScreen admitted proEntry={null} /> },
+])(
+  "shows the installed native version with the same label on $name",
+  async ({ content }) => {
+    // When
+    await renderJourney(content);
 
-  // Then
-  expect(screen.getByText("Version 2.9.3")).toBeOnTheScreen();
-});
+    // Then
+    expect(await screen.findByText("V2.9.3")).toBeOnTheScreen();
+  },
+);
 
 it("omits the Login version label when the installed version is unavailable", async () => {
   // Given
@@ -146,7 +152,7 @@ it("omits the Login version label when the installed version is unavailable", as
   await renderJourney();
 
   // Then
-  expect(screen.queryByText(/^Version\b/)).toBeNull();
+  expect(screen.queryByText(/^V/)).toBeNull();
 });
 
 it("continues as guest without opening hosted login or establishing an account", async () => {
