@@ -53,6 +53,7 @@ import {
 import type { AccountSession } from "@/features/accounts";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { ownContributions } from "@/features/contributions/test-support/contribution-data";
+import { emptyClubContacts } from "@/features/sporting-administration/test-support/club-contacts";
 import { supportContext } from "@/features/support/model/support-context";
 import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
 import PoolRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
@@ -207,23 +208,7 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
     );
   }
   if (path === `/administration/clubs/${sportingId}/contacts`) {
-    const contact = {
-      mode: "source",
-      sourceValue: null,
-      effectiveValue: null,
-      manualValue: null,
-    };
-    return Promise.resolve(
-      Response.json({
-        clubId: sportingId,
-        address: contact,
-        city: contact,
-        postalCode: contact,
-        email: contact,
-        phone: contact,
-        website: contact,
-      }),
-    );
+    return Promise.resolve(Response.json(emptyClubContacts(sportingId)));
   }
   if (path.endsWith("/follower-count")) {
     return Promise.resolve(Response.json({ count: following ? 8 : 7 }));
@@ -1970,12 +1955,13 @@ it("keeps match identities and independent missing sections without a zero score
 
 it("opens only effective safe contacts and labels the club municipality separately", async () => {
   // Given
+  const website = "HTTP://Club.Example.Invalid/path?view=a%2Fb";
   club = {
     ...club,
     contacts: {
       phone: "+33 1 23 45 67 89",
       email: "club@example.invalid",
-      website: "https://club.example.invalid/path",
+      website,
     },
     location: { latitude: 46.32, longitude: -0.46, label: "Niort" },
   };
@@ -1994,7 +1980,7 @@ it("opens only effective safe contacts and labels the club municipality separate
   );
   await user.press(
     screen.getByRole("link", {
-      name: "Site web : https://club.example.invalid/path",
+      name: `Site web : ${website}`,
     }),
   );
 
@@ -2006,7 +1992,7 @@ it("opens only effective safe contacts and labels the club municipality separate
   expect(open.mock.calls.map(([url]) => url)).toEqual([
     "tel:+33123456789",
     "mailto:club%40example.invalid",
-    "https://club.example.invalid/path",
+    website,
     expect.stringContaining(encodeURIComponent("46.32,-0.46")),
   ]);
   expect(

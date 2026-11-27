@@ -9,23 +9,6 @@ import { TextSkeleton } from "@/shared/components/text-skeleton";
 
 const contactIconSize = 40;
 
-/** Accepts only published HTTP(S) destinations without credentials; malformed values remain plain text. */
-export function safeWebsite(value?: string): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-  try {
-    const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol) &&
-      !url.username &&
-      !url.password
-      ? value
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** Preserves the effective phone's digits and leading plus without allowing dial-service instructions. */
 export function phoneDestination(value?: string): string | undefined {
   if (!value || !/^\+?[\d\s().-]+$/.test(value)) {

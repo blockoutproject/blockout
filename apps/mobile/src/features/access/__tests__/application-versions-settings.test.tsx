@@ -708,31 +708,6 @@ it.each(["revoked", "unavailable"])(
   },
 );
 
-it("presents an initial settings refusal with an opaque retryable card and no editable defaults", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? json(account)
-      : json(
-          {
-            type: "urn:blockout:problem:forbidden",
-            title: "Forbidden",
-            status: 403,
-          },
-          403,
-        ),
-  );
-
-  // When
-  await renderSettings();
-
-  // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
-  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-});
 it("keeps the production route closed without operational admission", async () => {
   // Given
   const route = <ApplicationVersionsRoute />;

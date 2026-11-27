@@ -8,12 +8,8 @@ import type {
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { formatSportingSchedule } from "../model/sporting-time";
-import {
-  ContactLink,
-  InformationRow,
-  mapDestination,
-  safeWebsite,
-} from "./contact-link";
+import { ContactLink, InformationRow, mapDestination } from "./contact-link";
+import { safeWebsite } from "@/shared/native/safe-website";
 import { matchDocumentLabels } from "../api/match-document";
 import { MatchSurface } from "./match-surface";
 

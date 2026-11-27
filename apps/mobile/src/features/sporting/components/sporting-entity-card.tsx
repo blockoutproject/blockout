@@ -11,11 +11,7 @@ import {
   View,
 } from "react-native";
 import { ChevronRight } from "lucide-react-native";
-import type {
-  SportingIdentityResponse,
-  SportingClassificationResponse,
-  SportingSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
+import type { SportingEntityCardData } from "../entity-card-data";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { LoadingGroup } from "@/shared/components/loading-group";
@@ -25,15 +21,7 @@ import { TextSkeleton } from "@/shared/components/text-skeleton";
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 const entityBadgeSize = 24;
 
-/** Current public sporting summary slots; omitted facts remain absent and opening belongs to the caller. */
-export interface SportingEntityCardProps {
-  kind: "club" | "team" | "pool";
-  identity: SportingIdentityResponse;
-  city?: string;
-  subtitle?: string;
-  club?: SportingIdentityResponse;
-  classification?: SportingClassificationResponse;
-  season?: SportingSeasonResponse;
+export interface SportingEntityCardProps extends SportingEntityCardData {
   layout?: "discovery" | "club-team";
   /** The screen receives the exact card destination. */
   onOpen?(kind: SportingEntityCardProps["kind"], id: string): void;
