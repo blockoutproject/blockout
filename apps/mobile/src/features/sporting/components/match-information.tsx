@@ -79,7 +79,7 @@ export function MatchInformation({
         <InformationRow
           label="Lieu"
           value={venue || matchDocumentLabels.information}
-          supporting={venue ? "Fiche d’information (PDF)" : "PDF"}
+          accessibilityHint={venue ? "Ouvre la fiche d’information" : undefined}
           icon={FileText}
           onPress={() => onDocumentOpen("information")}
         />
@@ -111,7 +111,6 @@ export function MatchInformation({
             key={document.kind}
             label="Document"
             value={matchDocumentLabels[document.kind]}
-            supporting="PDF"
             icon={FileText}
             onPress={() => onDocumentOpen(document.kind)}
           />

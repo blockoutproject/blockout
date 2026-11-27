@@ -344,6 +344,47 @@ class CollectorSportingReadIntegrationTest {
         .containsExactly("information", "scoresheet");
   }
 
+  @Test
+  @DisplayName("Publishes both FFVB documents on the first read of an already completed match")
+  void publishesFfvbDocumentsOnFirstCompletedRead() throws IOException {
+    // Given
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    FfvbPage page =
+        ffvbPage(
+            ffvbCalendarHtml()
+                .replace(
+                    "<td>Équipe B</td>\n      </tr>",
+                    """
+                    <td>Équipe B</td>
+                    <form method=post action="ffvolley_fdme.php?saison=2026/2027&amp;codent=SYNTHETIC&amp;codmatch=POOL001">
+                      <td><input type=image src="../images/ffvolley_fdme_ico.jpg"></td>
+                    </form>
+                    </tr>
+                    """));
+    String csv =
+        new ClassPathResource("acquisition/ffvb/calendar.csv")
+            .getContentAsString(StandardCharsets.UTF_8)
+            .replace("ABCCS", FFVB_SCOPE.organizerReference())
+            .replace("TST", FFVB_SCOPE.poolReference());
+    SportingObservation.Calendar collected =
+        new FfvbCalendarParser().parse(csv.getBytes(FFVB_CHARSET), page);
+
+    // When
+    UUID id =
+        sporting
+            .calendar(POOL, context(cycle, cycle.nextReadOrdinal(), FIRST, null), collected)
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    JsonNode match = read("/matches/" + id);
+
+    // Then
+    assertThat(match.at("/match/result/state").asString()).isEqualTo("final");
+    assertThat(
+            match.get("documents").valueStream().map(document -> document.get("kind").asString()))
+        .containsExactly("information", "scoresheet");
+  }
+
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   @DisplayName(
