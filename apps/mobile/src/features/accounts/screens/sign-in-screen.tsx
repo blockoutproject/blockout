@@ -1,21 +1,23 @@
 import { Page, PageScrollView } from "@/shared/components/page";
 import { ErrorState } from "@/shared/components/state-card";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { ArrowUpRight } from "lucide-react-native";
 import { useEffect, useEffectEvent } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
 import { ApiError } from "@/shared/api/api-fetch";
+import { AccessClubBand } from "@/shared/components/access-club-band";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
-import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { Surface } from "@/shared/components/surface";
 
 import { ScreenState } from "@/shared/components/screen-state";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { SignInArtwork } from "../components/sign-in-artwork";
-import { SignInClubRail } from "../components/sign-in-club-rail";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
 import type { SupportOrigin } from "@/features/support";
@@ -118,58 +120,42 @@ function SignInJourney({
   }
 
   return (
-    // Only the decorative hero yields height; actions retain their native bottom inset and touch targets.
-    <View
-      testID="sign-in-screen"
-      onLayout={onLayout}
-      style={[styles.screen, { backgroundColor: colors.canvas }]}
-    >
+    // The decorative hero yields height while the card and links retain their safe-area clearance.
+    <View testID="sign-in-screen" onLayout={onLayout} style={styles.screen}>
+      <Image
+        source={require("../../../../assets/accounts/sign-in-background.svg")}
+        accessible={false}
+        contentFit="fill"
+        style={StyleSheet.absoluteFill}
+      />
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
-        <SignInClubRail />
-        <View style={[styles.inset, styles.footer]}>
-          <View style={styles.actions}>
+        <View style={styles.actionArea}>
+          <AccessClubBand compact />
+          <Surface
+            style={[styles.actions, { boxShadow: colors.capsuleShadow }]}
+          >
             <Button
               label="Se connecter"
               onPress={() => void signIn()}
               loading={busy}
+              trailingIcon={ArrowUpRight}
+              contentAlignment="space-between"
+              rounded
               fullWidth
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Continuer en tant qu’invité"
+            <Button
+              label="Continuer en tant qu’invité"
+              variant="secondary"
               onPress={() => void guest.continueAsGuest()}
-              disabled={busy || guest.pending}
-              accessibilityState={{
-                busy: guest.pending,
-                disabled: busy || guest.pending,
-              }}
-              style={({ pressed }) => [
-                styles.guest,
-                {
-                  backgroundColor: colors.subtle,
-                  borderColor: colors.border,
-                  opacity: pressed ? tokens.opacity.pressed : 1,
-                },
-              ]}
-            >
-              <Text
-                numberOfLines={2}
-                style={[
-                  styles.guestLabel,
-                  { color: colors.text, opacity: guest.pending ? 0 : 1 },
-                ]}
-              >
-                Continuer en tant qu’invité
-              </Text>
-              {guest.pending && (
-                <LoadingIndicator
-                  color={colors.icon}
-                  style={StyleSheet.absoluteFill}
-                />
-              )}
-            </Pressable>
-          </View>
+              disabled={busy}
+              loading={guest.pending}
+              rounded
+              fullWidth
+            />
+          </Surface>
+        </View>
+        <View style={styles.links}>
           <PublicAccountLinks supportOrigin={supportOrigin} />
         </View>
       </SafeAreaView>
@@ -178,29 +164,17 @@ function SignInJourney({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: {
-    flexShrink: 0,
-    paddingTop: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.sm,
-    gap: tokens.spacing.md,
-  },
-  inset: { paddingHorizontal: 22 },
-  footer: { gap: tokens.spacing.sm },
-  actions: { gap: tokens.spacing.md },
-  guest: {
-    minHeight: tokens.size.control.default,
-    padding: tokens.spacing.md,
+  screen: { flex: 1, overflow: "hidden", backgroundColor: "#232323" },
+  content: { flexShrink: 0, paddingBottom: tokens.spacing.sm },
+  actionArea: {
     alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
+    marginBottom: tokens.spacing.md + tokens.spacing.xl,
+  },
+  actions: {
+    width: "76%",
+    maxWidth: 360,
+    padding: tokens.spacing.md,
     gap: tokens.spacing.sm,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
   },
-  guestLabel: {
-    ...tokens.typography.strong,
-    flexShrink: 1,
-    textAlign: "center",
-  },
+  links: { paddingHorizontal: tokens.spacing.lg },
 });

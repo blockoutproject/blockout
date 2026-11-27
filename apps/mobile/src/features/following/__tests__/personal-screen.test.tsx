@@ -198,7 +198,7 @@ function PersonalJourneyStack() {
   );
 }
 
-/** Provides real feature/query/session owners without activating unrelated installation-age or root-route behavior. */
+/** Provides real feature/query/session owners without mounting the application root. */
 async function mount(extra?: ReactNode) {
   return renderRouter(
     {

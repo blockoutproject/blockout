@@ -1,216 +1,341 @@
-import { Page, PageScrollView } from "@/shared/components/page";
-import { ArrowRight, ChevronLeft } from "lucide-react-native";
-import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
-  AccessibilityInfo,
-  BackHandler,
-  type ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-
-import { BrandHeader } from "@/shared/components/brand-header";
+  AccessFrame,
+  AccessStageCard,
+  AccessStageScrollView,
+} from "@/shared/components/access-frame";
+import { AccessCelebration } from "@/shared/components/access-celebration";
 import { Button } from "@/shared/components/button";
+import { controlOpacity } from "@/shared/components/control-styles";
 import { IconButton } from "@/shared/components/icon-button";
-
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
-  DiscoveryBackdrop,
-  DiscoveryExample,
-} from "../components/discovery-artwork";
+  ArrowRight,
+  Bell,
+  CalendarDays,
+  ChevronLeft,
+  Flag,
+  LogIn,
+  type LucideIcon,
+} from "lucide-react-native";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentRef,
+  type Ref,
+} from "react";
+import {
+  AccessibilityInfo,
+  BackHandler,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+  type ScrollViewInstance,
+} from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useDiscovery } from "../discovery-provider";
 
-const steps = [
+interface DiscoveryStep {
+  title: string;
+  description: string;
+  note?: string;
+  icon?: LucideIcon;
+}
+
+const steps: readonly DiscoveryStep[] = [
   {
-    label: "LA COMMUNAUTÉ VOLLEY",
-    title: "Tout le volley.\nDans ta poche.",
-    paragraphs: [
-      "Calendriers, résultats disponibles et classements : suis tes équipes et tes poules pour retrouver leurs rencontres.",
-    ],
+    icon: CalendarDays,
+    title: "Trouve ton prochain match",
+    description:
+      "Calendriers, résultats et classements des compétitions couvertes, du départemental au national.",
   },
   {
-    label: "RESTE DANS LE MATCH",
-    title: "Le résultat arrive,\ntu le retrouves.",
-    paragraphs: [
-      "Retrouve les résultats et les liens de diffusion dans Notifications. Les notifications du téléphone restent facultatives.",
-    ],
+    icon: Bell,
+    title: "Ne rate pas le résultat",
+    description:
+      "Suis tes équipes et tes poules. Retrouve leurs résultats et liens de diffusion disponibles dans Notifications.",
+    note: "Les alertes sur ton téléphone sont facultatives.",
   },
   {
-    label: "MIEUX, ENSEMBLE",
-    title: "Un score à\nfiabiliser ?",
-    paragraphs: [
-      "Les données viennent des sources officielles FFVB et LNV selon les compétitions couvertes. Sur la fiche d’un match, touche le drapeau entouré pour signaler un souci.",
-    ],
+    icon: Flag,
+    title: "Une info à vérifier ?",
+    description:
+      "Blockout est indépendante et s’appuie sur les sources officielles FFVB et LNV selon la compétition.",
+    note: "Un souci ? Signale-le depuis la fiche du match.",
   },
   {
-    label: "TRANSPARENCE",
-    title: "Une appli faite\npour les passionnés.",
-    paragraphs: [
-      "Blockout est une application indépendante. Explore les compétitions nationales, régionales et départementales couvertes. Les données manquantes restent indiquées.",
-    ],
+    icon: LogIn,
+    title: "Déjà sur Blockout ?",
+    description:
+      "Reconnecte-toi avec ton compte habituel. Tes anciens suivis, notifications, contributions et personnalisations de profil ne sont pas transférés.",
+    note: "Tes droits Pro sont conservés. Si besoin, choisis « Restaurer mes achats » dans l’espace Pro après connexion.",
   },
   {
-    label: "C’EST PARTI",
-    title: "Trouve ton prochain match.",
-    paragraphs: [
-      "Commence sans compte, ou connecte-toi pour suivre tes équipes et tes poules.",
-      "Déjà sur Blockout ? Reconnecte-toi. Tes anciens suivis, notifications, contributions et personnalisations de profil ne sont pas repris.",
-      "Tes droits Pro sont conservés. Si besoin, utilise « Restaurer mes achats » dans l’espace Pro après connexion.",
-    ],
+    title: "À toi de jouer",
+    description:
+      "Explore les matchs sans compte. Connecte-toi pour suivre tes équipes et tes poules.",
   },
 ];
+const finalStep = steps.length - 1;
+
+function DiscoveryCard({
+  content,
+  showCelebration,
+  active,
+  heading,
+}: Readonly<{
+  content: DiscoveryStep;
+  showCelebration: boolean;
+  active: boolean;
+  heading?: Ref<ComponentRef<typeof Text>>;
+}>) {
+  const { colors } = useTheme();
+  const Icon = content.icon;
+  return (
+    <AccessStageCard style={showCelebration && styles.celebrationCard}>
+      {showCelebration && <AccessCelebration animated={active} />}
+      {Icon && (
+        <View style={[styles.glyph, { backgroundColor: colors.subtle }]}>
+          <Icon
+            accessible={false}
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+          />
+        </View>
+      )}
+      <Text
+        ref={heading}
+        accessible
+        accessibilityRole="header"
+        style={[styles.title, { color: colors.text }]}
+      >
+        {content.title}
+      </Text>
+      <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>
+        {content.description}
+      </Text>
+      {content.note && (
+        <View style={[styles.note, { backgroundColor: colors.subtle }]}>
+          <Text
+            style={[
+              tokens.typography.metadata,
+              { color: colors.secondaryText },
+            ]}
+          >
+            {content.note}
+          </Text>
+        </View>
+      )}
+    </AccessStageCard>
+  );
+}
 
 /** Common discovery releases this session on explicit finish/skip, independently of flag persistence. */
 export function DiscoveryScreen() {
-  const { colors } = useTheme();
+  const { colors, reducedMotion } = useTheme();
   const discovery = useDiscovery();
   const [step, setStep] = useState(0);
-  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const width = viewportWidth || windowWidth;
+  const position = useSharedValue(0);
+  const scroll = useRef<ScrollViewInstance>(null);
   const heading = useRef<ComponentRef<typeof Text>>(null);
-  const content = steps[step];
-
-  useEffect(() => {
-    scroll.current?.scrollTo({ y: 0, animated: false });
+  const focusHeading = useCallback(() => {
     if (heading.current) {
       AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
     }
-  }, [step]);
+  }, []);
+
+  const trackStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -(reducedMotion ? step : position.get()) * width },
+    ],
+  }));
+
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    if (reducedMotion) {
+      position.set(step);
+      focusHeading();
+      return;
+    }
+
+    // Focus the new heading after the card reaches the viewport.
+    position.set(
+      withTiming(
+        step,
+        {
+          duration: 440,
+          easing: Easing.bezier(0.22, 0.75, 0.22, 1),
+          reduceMotion: ReduceMotion.Never,
+        },
+        (finished) => {
+          if (finished) {
+            scheduleOnRN(focusHeading);
+          }
+        },
+      ),
+    );
+    return () => cancelAnimation(position);
+  }, [focusHeading, position, reducedMotion, step]);
+
+  const previous = useCallback(
+    () => setStep((value) => Math.max(0, value - 1)),
+    [],
+  );
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        if (step > 0) {
-          setStep((value) => value - 1);
-          return true;
+        if (step === 0) {
+          return false;
         }
-        return false;
+        previous();
+        return true;
       },
     );
     return () => subscription.remove();
-  }, [step]);
+  }, [previous, step]);
 
   return (
-    <Page
-      headerMinHeight={tokens.layout.brandHeader}
-      header={
-        <BrandHeader>
-          {step < 4 && (
-            <Button
-              label="Passer"
-              variant="secondary"
-              onPress={discovery.finish}
-            />
-          )}
-        </BrandHeader>
+    <AccessFrame
+      headerAction={
+        step !== finalStep && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Passer"
+            onPress={discovery.finish}
+            style={({ pressed }) => [
+              styles.skip,
+              { opacity: controlOpacity(false, pressed) },
+            ]}
+          >
+            <Text style={[tokens.typography.strong, { color: colors.text }]}>
+              Passer
+            </Text>
+          </Pressable>
+        )
       }
-    >
-      <PageScrollView ref={scroll}>
-        <View style={styles.stage}>
-          <DiscoveryBackdrop />
-          <View style={styles.stack}>
-            <DiscoveryExample step={step} />
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
+      footer={
+        <View style={styles.footer}>
+          <View
+            style={[
+              styles.previous,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <IconButton
+              label="Étape précédente"
+              onPress={previous}
+              disabled={step === 0}
             >
-              <Text
-                style={[tokens.typography.metadata, { color: colors.text }]}
-              >
-                {content.label}
-              </Text>
-              <Text
-                ref={heading}
-                accessible
-                accessibilityRole="header"
-                style={[styles.title, { color: colors.text }]}
-              >
-                {content.title}
-              </Text>
-              {content.paragraphs.map((paragraph) => (
-                <Text
-                  key={paragraph}
-                  style={[
-                    tokens.typography.body,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  {paragraph}
-                </Text>
-              ))}
-            </View>
+              <ChevronLeft size={tokens.size.icon.lg} color={colors.icon} />
+            </IconButton>
+          </View>
+          <View
+            accessible
+            accessibilityLabel={`Étape ${step + 1} sur ${steps.length}`}
+            style={styles.progress}
+          >
+            {steps.map((item, index) => (
+              <View
+                key={item.title}
+                style={[
+                  styles.dot,
+                  {
+                    width: index === step ? 19 : 5,
+                    backgroundColor:
+                      index === step ? colors.text : colors.secondaryText,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.trailingAction}>
+            <Button
+              rounded
+              label={step === finalStep ? "Commencer" : "Suivant"}
+              trailingIcon={ArrowRight}
+              onPress={
+                step === finalStep
+                  ? discovery.finish
+                  : () => setStep((value) => Math.min(finalStep, value + 1))
+              }
+            />
           </View>
         </View>
-      </PageScrollView>
-      <View style={styles.footer}>
-        <View
-          style={[
-            styles.previous,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <IconButton
-            label="Étape précédente"
-            onPress={() => setStep((value) => value - 1)}
-            disabled={step === 0}
-          >
-            <ChevronLeft size={tokens.size.icon.lg} color={colors.icon} />
-          </IconButton>
-        </View>
-        <View
-          accessible
-          accessibilityLabel={`Étape ${step + 1} sur 5`}
-          style={styles.progress}
-        >
-          {steps.map((item, index) => (
-            <View
-              key={item.label}
-              style={[
-                styles.dot,
-                {
-                  width: index === step ? 19 : 5,
-                  backgroundColor:
-                    index === step ? colors.text : colors.secondaryText,
-                },
-              ]}
-            />
-          ))}
-        </View>
-        <View style={styles.trailingAction}>
-          <Button
-            label={step === 4 ? "Commencer" : "Suivant"}
-            trailingIcon={ArrowRight}
-            onPress={() =>
-              step === 4 ? discovery.finish() : setStep((value) => value + 1)
-            }
-          />
-        </View>
+      }
+    >
+      <View
+        onLayout={({ nativeEvent: { layout } }) =>
+          setViewportWidth(layout.width)
+        }
+        style={styles.viewport}
+      >
+        <Animated.View style={[styles.track, trackStyle]}>
+          {steps.map((content, index) => {
+            const active = index === step;
+            return (
+              <View
+                key={content.title}
+                accessibilityElementsHidden={!active}
+                importantForAccessibility={
+                  active ? "auto" : "no-hide-descendants"
+                }
+                pointerEvents={active ? "auto" : "none"}
+                style={{ width }}
+              >
+                <AccessStageScrollView ref={active ? scroll : undefined}>
+                  <DiscoveryCard
+                    content={content}
+                    showCelebration={index === finalStep}
+                    active={active}
+                    heading={active ? heading : undefined}
+                  />
+                </AccessStageScrollView>
+              </View>
+            );
+          })}
+        </Animated.View>
       </View>
-    </Page>
+    </AccessFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  // The approved discovery artwork remains centered with its wider illustrative inset.
-  stage: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: tokens.spacing["2xl"],
-  },
-  stack: { gap: tokens.spacing.lg },
-  card: {
-    padding: tokens.spacing.lg,
-    borderRadius: tokens.radius.panel,
-    borderWidth: tokens.border.thin,
-    gap: tokens.spacing.md,
-  },
+  celebrationCard: { gap: tokens.spacing.sm },
   title: tokens.typography.headingXl,
+  glyph: {
+    width: tokens.size.control.default,
+    height: tokens.size.control.default,
+    borderRadius: tokens.radius.full,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  note: {
+    borderRadius: tokens.radius.lg,
+    padding: tokens.spacing.compact,
+  },
+  skip: {
+    minHeight: tokens.touch.minimum,
+    justifyContent: "center",
+    paddingHorizontal: tokens.spacing.md,
+  },
+  viewport: { flex: 1, overflow: "hidden" },
+  track: { flex: 1, flexDirection: "row" },
   footer: {
     paddingHorizontal: tokens.spacing["2xl"],
     flexDirection: "row",
@@ -221,7 +346,7 @@ const styles = StyleSheet.create({
   },
   previous: {
     borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
+    borderRadius: tokens.radius.full,
   },
   progress: {
     flexGrow: 1,

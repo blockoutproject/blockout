@@ -1,0 +1,109 @@
+import { useState, type ReactNode, type Ref } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  type ScrollViewInstance,
+  type ScrollViewProps,
+  type ViewProps,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { tokens } from "@/shared/theme/tokens";
+import { AccessClubBand } from "./access-club-band";
+import { BrandHeader } from "./brand-header";
+import { Page } from "./page";
+import { Surface } from "./surface";
+
+interface AccessFrameProps {
+  children: ReactNode;
+  headerAction?: ReactNode;
+  footer?: ReactNode;
+}
+
+/** The larger measured chrome and safe-area reservation applies at both ends, so the stage holds the viewport midpoint. */
+export function AccessFrame({
+  children,
+  headerAction,
+  footer,
+}: Readonly<AccessFrameProps>) {
+  const safeArea = useSafeAreaInsets();
+  const [headerHeight, setHeaderHeight] = useState(tokens.layout.brandHeader);
+  const [footerHeight, setFooterHeight] = useState(tokens.size.control.default);
+  const clearance = Math.max(
+    safeArea.top + headerHeight,
+    safeArea.bottom + (footer ? footerHeight : 0),
+  );
+
+  return (
+    <Page edges={["left", "right"]}>
+      <View style={[styles.frame, { paddingVertical: clearance }]}>
+        <View
+          onLayout={({ nativeEvent }) =>
+            setHeaderHeight(nativeEvent.layout.height)
+          }
+          style={[styles.chrome, { top: safeArea.top }]}
+        >
+          <BrandHeader>{headerAction}</BrandHeader>
+        </View>
+        <View style={styles.stage}>
+          <AccessClubBand />
+          {children}
+        </View>
+        {footer && (
+          <View
+            onLayout={({ nativeEvent }) =>
+              setFooterHeight(nativeEvent.layout.height)
+            }
+            style={[styles.chrome, { bottom: safeArea.bottom }]}
+          >
+            {footer}
+          </View>
+        )}
+      </View>
+    </Page>
+  );
+}
+
+interface AccessStageScrollViewProps extends ScrollViewProps {
+  ref?: Ref<ScrollViewInstance>;
+}
+
+export function AccessStageCard({ style, ...props }: ViewProps) {
+  return <Surface {...props} style={[styles.card, style]} />;
+}
+
+/** Centers bounded content when it fits and lets larger text scroll within the same fixed stage. */
+export function AccessStageScrollView({
+  ref,
+  style,
+  contentContainerStyle,
+  ...props
+}: Readonly<AccessStageScrollViewProps>) {
+  return (
+    <ScrollView
+      ref={ref}
+      automaticallyAdjustContentInsets={false}
+      contentInsetAdjustmentBehavior="never"
+      showsVerticalScrollIndicator={false}
+      {...props}
+      style={[styles.scroll, style]}
+      contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  frame: { flex: 1 },
+  chrome: { position: "absolute", left: 0, right: 0, zIndex: 1 },
+  stage: { flex: 1, minHeight: 0, overflow: "hidden" },
+  card: { width: "100%", maxWidth: 312 },
+  scroll: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing["2xl"],
+    paddingVertical: tokens.spacing.md,
+  },
+});

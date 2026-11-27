@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
-**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) separates local checks, isolated hosted preview and native signed-upgrade, provider and mobile-store qualifications. F13 owns server packaging/delivery; infrastructure recovery programmes remain outside this plan.
+**Status**: Transition and implementation decisions. The revised common discovery has explicit prototype and separate Figma approval. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) separates local checks, isolated hosted preview and native signed-upgrade, provider and mobile-store qualifications. F13 owns server packaging/delivery; infrastructure recovery programmes remain outside this plan.
 
 ## Summary
 
@@ -136,9 +136,9 @@ Reusing older data must respect current erasure, permissions, entitlements, priv
 
 ## Design approval
 
-The owner approved the common discovery prototype and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
+The owner separately approved the common discovery prototype and the revised Figma [onboarding journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=8880-653), including the [final illustrated card](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=8880-1379). The original advance approval belongs to the original composition.
 
-Common discovery includes former-user information in its last step. Existing sign-in, Pro and global-gate journeys remain in place. The [approved discovery-to-Search journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=787-21) leads guests directly to public Search. The retained Figma [final discovery composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148) and its existing theme, width and text properties retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
+Common discovery uses the [shared Access stage](../003-shared-quality/plan.md#access-composition) for five cards. Keep the header and footer mounted while the current card moves horizontally. Use installed native animation primitives, the current reduced-motion preference and the actual active card geometry. Reuse the existing step state, Previous/system Back, “Passer”, “Suivant” and “Commencer”. Keep inactive or leaving cards outside touch and accessibility traversal. The fourth card explains the prior Blockout experience. The fifth card uses a bundled grayscale GIF with a fixed bundled still for reduced motion. Mount the illustration with the final card and retain enough local room for text and actions. Guest entry reaches public Search through its current path.
 
 The approved scope covers completion, skipping, ordinary Search entry and 320 px with 150% text. Native accessibility, secure storage, signed upgrade and provider continuity require their own qualification.
 

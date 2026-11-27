@@ -6,8 +6,6 @@ import { tokens } from "@/shared/theme/tokens";
 
 // Visible title-and-athlete bounds, excluding the source images' transparent margins.
 const artworkAspectRatio = 426.4913 / 365.883;
-// Approved Product Design 760:8; the title retains its original vector paths.
-const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="414" height="518" viewBox="0 0 414 518"><defs><linearGradient id="g" x1="-30.8" y1="32.7" x2="444.8" y2="485.3" gradientUnits="userSpaceOnUse"><stop offset=".036706" stop-color="#737373"/><stop offset=".68532" stop-color="#404040"/><stop offset=".96329" stop-color="#A3A3A3"/></linearGradient></defs><rect width="414" height="518" fill="url(#g)"/></svg>`;
 
 /** Fits the complete decorative group to the hero remaining above the fixed account actions. */
 export function SignInArtwork() {
@@ -18,11 +16,6 @@ export function SignInArtwork() {
       importantForAccessibility="no-hide-descendants"
       style={styles.hero}
     >
-      <Image
-        source={{ uri: `data:image/svg+xml;base64,${btoa(gradient)}` }}
-        contentFit="fill"
-        style={StyleSheet.absoluteFill}
-      />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <View
           style={styles.space}
