@@ -9,7 +9,7 @@ import {
   userEvent,
   fireEvent,
 } from "@testing-library/react-native";
-import { Stack, router } from "expo-router";
+import { Link, Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Alert, Text, Pressable } from "react-native";
 import type { ComponentType } from "react";
@@ -17,6 +17,7 @@ import { AccessGateScreen } from "../screens/access-gate-screen";
 import NotFoundRoute from "@/app/+not-found";
 import OperationsLayout from "@/app/(operations)/_layout";
 import AdministrationRoute from "@/app/(operations)/administration";
+import MaintenanceRoute from "@/app/(operations)/administration/maintenance";
 import RootLayout from "@/app/_layout";
 import RecoveryLayout from "@/app/(recovery)/_layout";
 import OnboardingRoute from "@/app/onboarding";
@@ -127,6 +128,11 @@ async function openRoute(path: string) {
       access: AccessGateScreen,
       "+not-found": NotFoundRoute,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/profile": () => (
+        <Link href="/administration/application-versions">
+          Versions minimales
+        </Link>
+      ),
       "(recovery)/support": () => <Text>Support route</Text>,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
 
@@ -142,9 +148,7 @@ async function openRoute(path: string) {
       "(operations)/administration/index": AdministrationRoute,
       "(operations)/administration/application-versions":
         ApplicationVersionsRoute,
-      "(operations)/administration/maintenance": () => (
-        <Text>Maintenance editor</Text>
-      ),
+      "(operations)/administration/maintenance": MaintenanceRoute,
     },
     { initialUrl: path },
   );
@@ -172,10 +176,11 @@ function PermissionRefresh() {
 function accessResponses(
   permissions: Record<string, boolean>,
   outdated = false,
+  maintenanceActive = true,
 ) {
   const access = applicationAccessResponse();
   access.maintenance = {
-    active: true,
+    active: maintenanceActive,
     message: "Maintenance demo",
     imageUrl: null,
   };
@@ -200,6 +205,9 @@ function accessResponses(
         hasPhoto: false,
         permissions,
       });
+    }
+    if (String(url).endsWith("/administration/maintenance")) {
+      return Response.json(access.maintenance);
     }
     return Response.json(access.versions);
   };
@@ -267,6 +275,100 @@ it("refuses an outdated versions manager without a minimum-version exception", a
     ),
   ).toBe(false);
 });
+it.each([
+  {
+    title: "Maintenance",
+    field: "Message de maintenance",
+    endpoint: "maintenance",
+    initialUrl: "/access",
+    returnPath: "/administration",
+  },
+  {
+    title: "Versions minimales",
+    field: "Message commun",
+    endpoint: "application-versions",
+    initialUrl: "/profile",
+    returnPath: "/profile",
+  },
+  {
+    title: "Versions minimales",
+    field: "Message commun",
+    endpoint: "application-versions",
+    initialUrl: "/administration/application-versions",
+    returnPath: "/administration",
+  },
+])(
+  "returns from an acknowledged $title save opened at $initialUrl with the shared success notice",
+  async ({ title, field, endpoint, initialUrl, returnPath }) => {
+    // Given
+    const restricted = initialUrl === "/access";
+    const serve = accessResponses(
+      endpoint === "maintenance"
+        ? { manageMaintenance: true }
+        : { manageApplicationVersions: true },
+      false,
+      restricted,
+    );
+    const save = Promise.withResolvers<Response>();
+    const reread = Promise.withResolvers<Response>();
+    let submitted = false;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PATCH") {
+        submitted = true;
+        return save.promise;
+      }
+      if (submitted && String(url).endsWith(`/administration/${endpoint}`)) {
+        return reread.promise;
+      }
+      return serve(url);
+    });
+    await openRoute(initialUrl);
+    const user = userEvent.setup();
+    if (restricted) {
+      await user.press(
+        await screen.findByRole("link", { name: "Accès administrateur" }),
+      );
+    }
+    if (initialUrl !== `/administration/${endpoint}`) {
+      await user.press(await screen.findByRole("link", { name: title }));
+    }
+    const message = await screen.findByLabelText(field);
+    await user.clear(message);
+    await user.type(message, "Enregistré");
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByRole("button", { name: "Enregistrer", busy: true });
+    expect(
+      screen.queryByText("Modifications enregistrées."),
+    ).not.toBeOnTheScreen();
+    const response = await serve(
+      `https://api.example.invalid/administration/${endpoint}`,
+    );
+    await act(async () => save.resolve(response));
+
+    // Then
+    expect(
+      await screen.findByText("Modifications enregistrées."),
+    ).toBeOnTheScreen();
+    expect(await screen.findByRole("link", { name: title })).toBeOnTheScreen();
+    expect(screen.queryByLabelText(field)).not.toBeOnTheScreen();
+    expect(screen).toHavePathname(returnPath);
+    expect(Alert.alert).not.toHaveBeenCalled();
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(writes).toEqual([
+      [
+        expect.stringMatching(new RegExp(`/administration/${endpoint}$`)),
+        expect.objectContaining({
+          body: JSON.stringify({ message: "Enregistré" }),
+        }),
+      ],
+    ]);
+  },
+);
+
 it("preserves a dirty draft when departure is cancelled, and leaves only after explicit discard", async () => {
   // Given
   mockFetch.mockImplementation(
@@ -366,59 +468,75 @@ it("drops a protected-route draft and ignores its obsolete discard confirmation"
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
 });
-it("keeps a fresh protected-route draft usable when an abandoned save fails later", async () => {
-  // Given
-  const permissions = { manageApplicationVersions: true };
-  const serve = accessResponses(permissions);
-  const save = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PATCH" ? save.promise : serve(url),
-  );
-  await openRoute("/access");
-  const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("link", { name: "Accès administrateur" }),
-  );
-  await user.press(
-    await screen.findByRole("link", { name: "Versions minimales" }),
-  );
-  await user.type(
-    await screen.findByLabelText("Message commun"),
-    "First draft",
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByRole("button", { name: "Enregistrer", busy: true });
+it.each(["acknowledgement", "lost response"] as const)(
+  "keeps a fresh protected-route draft usable after an abandoned save's late %s",
+  async (result) => {
+    // Given
+    const permissions = { manageApplicationVersions: true };
+    const serve = accessResponses(permissions);
+    const save = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "PATCH" ? save.promise : serve(url),
+    );
+    await openRoute("/access");
+    const user = userEvent.setup();
+    await user.press(
+      await screen.findByRole("link", { name: "Accès administrateur" }),
+    );
+    await user.press(
+      await screen.findByRole("link", { name: "Versions minimales" }),
+    );
+    await user.type(
+      await screen.findByLabelText("Message commun"),
+      "First draft",
+    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
-  // When
-  permissions.manageApplicationVersions = false;
-  await user.press(
-    screen.getByRole("button", { name: "Relire les permissions" }),
-  );
-  await screen.findByRole("header", { name: "Blockout est en maintenance" });
-  permissions.manageApplicationVersions = true;
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await user.press(
-    await screen.findByRole("link", { name: "Accès administrateur" }),
-  );
-  await user.press(
-    await screen.findByRole("link", { name: "Versions minimales" }),
-  );
-  const message = await screen.findByLabelText("Message commun");
-  expect(message).toHaveDisplayValue("");
-  await user.type(message, "Fresh draft");
-  await act(async () => save.reject(new TypeError("Lost response")));
+    // When
+    permissions.manageApplicationVersions = false;
+    await user.press(
+      screen.getByRole("button", { name: "Relire les permissions" }),
+    );
+    await screen.findByRole("header", { name: "Blockout est en maintenance" });
+    permissions.manageApplicationVersions = true;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await user.press(
+      await screen.findByRole("link", { name: "Accès administrateur" }),
+    );
+    await user.press(
+      await screen.findByRole("link", { name: "Versions minimales" }),
+    );
+    const message = await screen.findByLabelText("Message commun");
+    expect(message).toHaveDisplayValue("");
+    await user.type(message, "Fresh draft");
+    await act(async () => {
+      if (result === "acknowledgement") {
+        save.resolve(
+          await serve(
+            "https://api.example.invalid/administration/application-versions",
+          ),
+        );
+      } else {
+        save.reject(new TypeError("Lost response"));
+      }
+    });
 
-  // Then
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Fresh draft",
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(
-    screen.queryByRole("button", { name: "Relire les réglages" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-  ).toHaveLength(1);
-});
+    // Then
+    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+      "Fresh draft",
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Relire les réglages" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByText("Modifications enregistrées."),
+    ).not.toBeOnTheScreen();
+  },
+);

@@ -1,9 +1,7 @@
 import { controlOpacity } from "@/shared/components/control-styles";
-import {
-  ActionFeedbackProvider,
-  useActionFeedback,
-} from "@/shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useSettingsSaveFeedback } from "./use-settings-save-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
@@ -52,7 +50,6 @@ export function ApplicationVersionsForm({
 }: Readonly<ApplicationVersionsFormProps>) {
   const session = useAccountSession();
   const { colors, reducedMotion } = useTheme();
-  const actionFeedback = useActionFeedback();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
@@ -65,9 +62,8 @@ export function ApplicationVersionsForm({
   const { isDirty, dirtyFields, defaultValues } = useFormState({
     control,
   });
-  useDiscardChanges(isDirty, () => {
-    reset();
-  });
+  const disablePrevention = useDiscardChanges(isDirty, () => reset());
+  const actionFeedback = useSettingsSaveFeedback(disablePrevention);
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
       control,
@@ -90,20 +86,20 @@ export function ApplicationVersionsForm({
   const busy = disabled || editing.content.isPending;
 
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
-  async function submit(draft: ApplicationVersionsValues) {
+  function submit(draft: ApplicationVersionsValues) {
     if (busy || (raised && !checked)) {
       return;
     }
     actionFeedback.clear();
-    try {
-      const accepted = await editing.content.mutateAsync(
-        toApplicationVersionsRequest(draft, dirtyFields),
-      );
-      reset(applicationVersionsValues(accepted));
-      setAcknowledged(undefined);
-    } catch {
-      actionFeedback.error();
-    }
+    editing.content.mutate(toApplicationVersionsRequest(draft, dirtyFields), {
+      onSuccess(accepted) {
+        actionFeedback.saved(() => {
+          reset(applicationVersionsValues(accepted));
+          setAcknowledged(undefined);
+        });
+      },
+      onError: () => actionFeedback.error(),
+    });
   }
 
   const previewPlatform = Platform.OS === "ios" ? "ios" : "android";
