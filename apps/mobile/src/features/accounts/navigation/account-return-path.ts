@@ -24,7 +24,8 @@ export function accountReturnPath(value: unknown): string | undefined {
       .join("/");
     if (
       destination.origin !== "https://blockout.invalid" ||
-      route === "sign-in"
+      route === "sign-in" ||
+      route === "sign-in-invitation"
     ) {
       return undefined;
     }

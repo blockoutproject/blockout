@@ -1,5 +1,5 @@
+import { useOpenSignInInvitation } from "@/features/accounts/current-account";
 import { hashKey } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
@@ -62,7 +62,7 @@ function FollowAction({
   contextColor,
 }: Readonly<FollowActionProps>) {
   const action = useFollowMutation(target, read);
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const { query, usable, accountUsable, sessionStatus } = read;
@@ -101,10 +101,7 @@ function FollowAction({
       disabled={!guest && (!read.usable || following === undefined)}
       onPress={async () => {
         if (guest) {
-          router.push({
-            pathname: "/sign-in-invitation",
-            params: { reason: "follow" },
-          });
+          openSignInInvitation("follow");
         } else if (read.usable && following !== undefined) {
           feedback.clear();
           try {

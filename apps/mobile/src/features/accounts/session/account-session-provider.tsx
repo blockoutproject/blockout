@@ -82,6 +82,8 @@ export interface AccountSession extends SessionSnapshot {
 export interface AccountConnectionInput {
   audience: string;
   signIn: AccountSession["signIn"];
+  /** The originating Router entry for a contextual connection. */
+  invitation?: string;
 }
 
 /** Root composition supplies the process-wide push owner without transferring its authority. */
@@ -259,6 +261,11 @@ function SessionScope({
     },
   });
   const activeOperation = connection.isPending ? "authenticating" : operation;
+  // The SDK also retains the error from an explicit browser dismissal. Its invitation owns that result.
+  const authError =
+    connection.variables?.invitation && auth.error === connection.error
+      ? null
+      : auth.error;
   let status: AuthenticationStatus = "guest";
   if (initialization.status === "initialization-error") {
     status = "initialization-error";
@@ -266,11 +273,11 @@ function SessionScope({
     status = activeOperation;
   } else if (auth.isLoading) {
     status = "restoring";
-  } else if (requiresReauthentication(auth.error)) {
+  } else if (requiresReauthentication(authError)) {
     status = "reauthentication-required";
   } else if (subject) {
     status = "authenticated";
-  } else if (auth.error) {
+  } else if (authError) {
     status = "authentication-error";
   }
 
@@ -329,7 +336,7 @@ function SessionScope({
     error:
       initialization.status === "initialization-error"
         ? initialization.error
-        : auth.error,
+        : authError,
     getCredentials,
     retryInitialization() {
       if (status === "initialization-error") {

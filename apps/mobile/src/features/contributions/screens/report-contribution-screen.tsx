@@ -25,7 +25,11 @@ import { TextField } from "@/shared/components/text-field";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { AccountSessionFeedback } from "@/features/accounts/current-account";
+import {
+  AccountSessionFeedback,
+  useOpenSignInInvitation,
+} from "@/features/accounts/current-account";
+
 import {
   MatchSummary,
   useConsultationQueries,
@@ -52,7 +56,7 @@ export function ReportContributionScreen({
 }: Readonly<ReportContributionScreenProps>) {
   const reporting = useContributionReport(matchId, contributionId);
   const match = useQuery(useConsultationQueries().match(matchId));
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const authenticated = reporting.session.status === "authenticated";
   const sessionPending =
     reporting.session.status === "restoring" || !!reporting.session.operation;
@@ -80,12 +84,7 @@ export function ReportContributionScreen({
             {reporting.session.status === "guest" ? (
               <Button
                 label="Se connecter"
-                onPress={() =>
-                  router.push({
-                    pathname: "/sign-in-invitation",
-                    params: { reason: "stream-report" },
-                  })
-                }
+                onPress={() => openSignInInvitation("stream-report")}
               />
             ) : !authenticated ? (
               <AccountSessionFeedback

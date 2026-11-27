@@ -24,6 +24,7 @@ import { AccountRecovery } from "../components/account-recovery";
 import { AppVersionLabel } from "../components/app-version-label";
 import { ProfileLoading } from "../components/profile-loading";
 import { ProfileIdentity } from "../components/profile-identity";
+import { useContextualSignIn } from "../hooks/use-contextual-sign-in";
 import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { accountSessionRecovery } from "../session/account-session-recovery";
@@ -64,7 +65,8 @@ export function ProfileScreen({
 
   const { colors } = useTheme();
   const { saving, refresh } = useProfileRefresh(account);
-  const connected = session.status === "authenticated";
+  const signIn = useContextualSignIn(admitted);
+  const connected = session.status === "authenticated" && !signIn.visible;
   const recovery = accountSessionRecovery(session);
 
   /** Keeps whole-page account/session recovery separate from an already admitted profile. */
@@ -75,6 +77,9 @@ export function ProfileScreen({
           <ErrorState />
         </ScreenState>
       );
+    }
+    if (signIn.visible) {
+      return undefined;
     }
     if (
       recovery.pending ||
@@ -143,7 +148,8 @@ export function ProfileScreen({
       account={connected ? (account.data ?? undefined) : undefined}
       disabled={!account.isSuccess}
       onEdit={() => router.push("/profile/edit")}
-      onSignIn={() => router.push("/sign-in")}
+      onSignIn={signIn.start}
+      signingIn={signIn.pending}
     >
       <AdministrationEntry />
       <View style={styles.group}>
@@ -194,6 +200,7 @@ function ProfileContent({
   disabled,
   onEdit,
   onSignIn,
+  signingIn,
   children,
 }: Readonly<{
   refreshControl: PageScrollViewProps["refreshControl"];
@@ -201,6 +208,7 @@ function ProfileContent({
   disabled: boolean;
   onEdit: () => void;
   onSignIn: () => void;
+  signingIn: boolean;
   children: ReactNode;
 }>) {
   const photo = useProfilePhoto(
@@ -221,7 +229,7 @@ function ProfileContent({
           {account ? (
             <ProfileIdentity account={account} photo={photo} />
           ) : (
-            <ProfileSignIn onSignIn={onSignIn} />
+            <ProfileSignIn onSignIn={onSignIn} loading={signingIn} />
           )}
           {children}
         </PageContent>

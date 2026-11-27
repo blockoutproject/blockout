@@ -974,7 +974,7 @@ it("removes the personal selector when its actual session signs out and uses the
   ).not.toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/sign-in-invitation",
-    params: { reason: "follow" },
+    params: { reason: "follow", returnTo: "/" },
   });
   expect(client).not.toBe(originalClient);
   expect(originalClient.getQueryCache().getAll()).toHaveLength(0);

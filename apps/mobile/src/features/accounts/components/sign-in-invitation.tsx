@@ -23,10 +23,10 @@ export interface SignInInvitationCardProps {
   children?: ReactNode;
 }
 
-/** Contextual sheet only; callers dismiss or navigate to F05 sign-in without replaying an action. */
+/** Contextual sheet only; its owner dismisses it or starts the explicit F05 connection. */
 export interface SignInInvitationProps extends Omit<
   SignInInvitationCardProps,
-  "children" | "label" | "loading"
+  "children" | "label"
 > {
   onClose(): void;
 }
@@ -36,11 +36,16 @@ export function SignInInvitation({
   message,
   onClose,
   onSignIn,
+  loading,
 }: Readonly<SignInInvitationProps>) {
   return (
     <Sheet title="Connexion" onClose={onClose}>
       <SheetContent>
-        <SignInInvitationCard message={message} onSignIn={onSignIn} />
+        <SignInInvitationCard
+          message={message}
+          onSignIn={onSignIn}
+          loading={loading}
+        />
       </SheetContent>
     </Sheet>
   );

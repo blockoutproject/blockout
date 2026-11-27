@@ -1,7 +1,7 @@
 import { Page, PageContent } from "@/shared/components/page";
 import { ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 
@@ -16,6 +16,7 @@ import { PageHeader } from "@/shared/components/page-header";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileSupportAction } from "../components/profile-support-action";
+import { useContextualSignIn } from "../hooks/use-contextual-sign-in";
 import { SignInInvitationCard } from "../components/sign-in-invitation";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
@@ -30,7 +31,6 @@ export function ProfileEditScreen({
 }: Readonly<ProfileEditScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
-  const router = useRouter();
   const navigation = useNavigation();
   const { saving, refresh } = useProfileRefresh(account);
 
@@ -40,6 +40,7 @@ export function ProfileEditScreen({
   }
 
   const recovery = accountSessionRecovery(session);
+  const signIn = useContextualSignIn(admitted);
 
   /** Recovery never mounts an editor before the current account and session are usable. */
   function readFeedback() {
@@ -47,6 +48,17 @@ export function ProfileEditScreen({
       return (
         <ScreenState>
           <ErrorState />
+        </ScreenState>
+      );
+    }
+    if (signIn.visible) {
+      return (
+        <ScreenState>
+          <SignInInvitationCard
+            message="Connectez-vous pour modifier votre profil."
+            onSignIn={signIn.start}
+            loading={signIn.pending}
+          />
         </ScreenState>
       );
     }
@@ -72,16 +84,6 @@ export function ProfileEditScreen({
         </ScreenState>
       );
     }
-    if (session.status === "guest") {
-      return (
-        <ScreenState>
-          <SignInInvitationCard
-            message="Connectez-vous pour modifier votre profil."
-            onSignIn={() => router.replace("/sign-in")}
-          />
-        </ScreenState>
-      );
-    }
     if (
       session.status === "authenticated" &&
       (account.isPending || hasReadError(account))
@@ -98,7 +100,12 @@ export function ProfileEditScreen({
   }
 
   let content;
-  if (admitted && session.status === "authenticated" && account.data) {
+  if (
+    admitted &&
+    !signIn.visible &&
+    session.status === "authenticated" &&
+    account.data
+  ) {
     content = (
       <ProfileForm
         key={`${session.subject}:${account.data.accountId}`}
