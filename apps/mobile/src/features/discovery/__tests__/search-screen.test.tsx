@@ -325,46 +325,32 @@ it.each(["guest", "unresolved"])(
   },
 );
 
-it("names each search result with its available public context without logo reads", async () => {
+it("keeps distinct namesakes and presents only available public context without logo reads", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
-
-  // When
   await user.type(await screen.findByLabelText("Rechercher"), "Volley");
 
+  // When
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
   // Then
-  const team = await screen.findByRole("link", {
-    name: "Volley professionnel, 2026/2027, 6 × 6, Féminin",
-  });
-  expect(within(team).getByText("2026/2027")).toBeOnTheScreen();
-  expect(within(team).getByText("6 × 6")).toBeOnTheScreen();
-  expect(within(team).getByText("Féminin")).toBeOnTheScreen();
+  expect(await screen.findAllByText("Volley")).toHaveLength(2);
+  expect(screen.getByText("Lyon")).toBeOnTheScreen();
+  expect(screen.getByText("Niort")).toBeOnTheScreen();
+  // When
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  // Then
+  expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
+  expect(screen.getByText("2026/2027")).toBeOnTheScreen();
+  expect(screen.getByText("Féminin")).toBeOnTheScreen();
+  expect(screen.getByText("6 × 6")).toBeOnTheScreen();
   expect(
     screen.getByRole("image", { name: "Logo absent : Volley professionnel" }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByText(/Club inconnu|Sans club|Logo indisponible/),
   ).not.toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-
-  // Then
-  expect(
-    await screen.findByRole("link", { name: "Volley, Lyon" }),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: "Volley, Niort" })).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("tab", { name: "Poules" }));
-
-  // Then
-  expect(
-    await screen.findByRole("link", {
-      name: "Poule A, Championnat public - Phase finale, 2026/2027",
-    }),
-  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
