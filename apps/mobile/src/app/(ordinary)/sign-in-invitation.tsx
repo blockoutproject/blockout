@@ -17,9 +17,9 @@ export default function SignInInvitationRoute() {
 function invitationMessage(reason: string | undefined): string {
   switch (reason) {
     case "stream-report":
-      return "Connectez-vous pour signaler ce Stream link";
+      return "Connectez-vous pour signaler ce lien de diffusion";
     case "contribution":
-      return "Connectez-vous pour proposer un Stream link";
+      return "Connectez-vous pour proposer un lien de diffusion";
     case "follow":
       return "Connectez-vous pour suivre vos équipes et vos poules";
     case undefined:

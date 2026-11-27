@@ -47,14 +47,17 @@ export function useContributionEntry(
     available &&
     (session.status === "guest" ||
       (authorized && current?.eligibility.canSubmit === true));
-  const admittedOwnershipRead = canRetain ? query : account;
-  const ownershipRead =
-    session.status === "authenticated" ? admittedOwnershipRead : undefined;
+  // Refresh the account itself until it admits the private contributions read.
+  const accountOrContributions = canRetain ? query : account;
+  const personalRead =
+    available && session.status === "authenticated"
+      ? accountOrContributions
+      : undefined;
   return {
     hasProposals,
     ownsPublic,
     publicOwnershipUnknown,
-    ownershipRead,
+    personalRead,
     canPropose,
     canReport:
       available &&
@@ -79,15 +82,6 @@ export function useContributionEntry(
           },
         });
       }
-    },
-    /** Reobserves the existing owner on match refresh; a recovered account enables its dependent query. */
-    refresh() {
-      if (!available || session.status !== "authenticated") {
-        return Promise.resolve(undefined);
-      }
-      return canRetain
-        ? query.refetch({ cancelRefetch: false })
-        : account.refetch({ cancelRefetch: false });
     },
     /** Opens the existing owner screen without replaying a mutation or carrying an address. */
     open() {
@@ -140,9 +134,9 @@ export function ContributionEntry({
     ) : null;
   }
   if (entry.publicOwnershipUnknown) {
-    return entry.ownershipRead ? (
+    return entry.personalRead ? (
       <ReadFeedback
-        query={entry.ownershipRead}
+        query={entry.personalRead}
         loadingContent={<ContributionEntryLoading />}
       />
     ) : null;

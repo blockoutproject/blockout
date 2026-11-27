@@ -216,7 +216,7 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 ### Tests for User Story 6
 
-- [x] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012. Preserve distinct event information, read/unread meaning, selected-zone instants and the neutral F03 Stream link destination. T008/T012's backend tests own every family variant and sporting wording; do not rerender their editorial matrix in Jest. Keep full semantic names, read/unread meaning and busy/disabled tap state; native width/text-scale geometry stays with T060. Preserve absence of notification counters and no manual cleanup/settings/campaign affordances.
+- [x] T058 [P] [US6] Write failing actual presentation cases in `apps/mobile/src/features/notifications/__tests__/notification-presentation.test.tsx` with generated responses from T012. Preserve distinct event information, read/unread meaning, selected-zone instants and navigation to the current F03 Match. T008/T012's backend tests own every family variant and sporting wording; do not rerender their editorial matrix in Jest. Keep full semantic names, read/unread meaning and busy/disabled tap state; native width/text-scale geometry stays with T060. Preserve absence of notification counters and no manual cleanup/settings/campaign affordances.
 
   Stream-only qualification does not complete the document/reporting scope of [F03 T047/T052](../007-sporting-consultation/tasks.md). Native layout qualification under F13 FR-030 remains T060.
 

@@ -118,6 +118,7 @@ it("rereads the current match when its route regains focus and applies accepted 
   // Given: route focus is supplied by Router; the screen owns its real Query read.
   const opened = await renderPage(<MatchScreen matchId={sportingId} focused />);
   await screen.findByText("Home");
+  expect(screen.queryByRole("link", { name: /^Regarder / })).toBeNull();
   await opened.rerender(<MatchScreen matchId={sportingId} focused={false} />);
   mockFetch.mockClear();
   detail = {
@@ -144,7 +145,9 @@ it("rereads the current match when its route regains focus and applies accepted 
     await screen.findByRole("link", { name: "Home - Score domicile : 3" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
-  expect(screen.getByText("Stream link")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Regarder la rediffusion" }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       String(url).endsWith(`/matches/${sportingId}`),
@@ -367,7 +370,11 @@ it("reveals Match information in the third slot when a covered read withdraws th
   await reportLayout(content, 0, 650);
   await reportLayout(screen.getByText("Home"), 0, 180);
   await reportLayout(score, 200, 130);
-  await reportLayout(screen.getByText("Stream link"), 350, 120);
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    350,
+    120,
+  );
   await reportLayout(screen.getByText("Informations"), 490, 260);
 
   // When: Query accepts the withdrawal on reconnect while Match is still covered.
@@ -375,7 +382,11 @@ it("reveals Match information in the third slot when a covered read withdraws th
   await act(() => onlineManager.setOnline(false));
   await act(() => onlineManager.setOnline(true));
   await waitFor(() => expect(screen.queryByText("Score")).toBeNull());
-  await reportLayout(screen.getByText("Stream link"), 200, 120);
+  await reportLayout(
+    screen.getByRole("header", { name: "Lien de diffusion" }),
+    200,
+    120,
+  );
   await reportLayout(screen.getByText("Informations"), 340, 260);
   expect(motion).not.toHaveBeenCalled();
   await opened.rerender(<MatchScreen matchId={sportingId} focused />);

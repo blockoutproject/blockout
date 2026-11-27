@@ -14,7 +14,7 @@ import { divisionTextColor } from "../presentation";
 /** Current public match projection and optional owner-supplied header action; published addresses retain their exact version. */
 export interface MatchLinksProps {
   detail: MatchDetailResponse;
-  /** Supply only an available action; it keeps the empty Stream link card reachable without inventing a destination. */
+  /** Supply only an available action; it keeps the empty stream link card reachable without inventing a destination. */
   action?: ReactNode;
   /** F08 supplies the sole primary action when adding a link or managing the exact public owner version. */
   primaryAction?: ReactNode;
@@ -22,7 +22,7 @@ export interface MatchLinksProps {
   reportAction?: ReactNode;
 }
 
-/** Offers an available HTTP(S) destination or an explicit empty card with the supplied action, without inferring live status or replay. */
+/** Offers a published destination or an empty card with the supplied contribution action. */
 export function MatchLinks({
   detail,
   action,
@@ -46,7 +46,7 @@ export function MatchLinks({
             accessibilityRole="header"
             style={[styles.title, { color: colors.text }]}
           >
-            Stream link
+            Lien de diffusion
           </Text>
           {action}
         </View>
@@ -74,7 +74,7 @@ export function MatchLinks({
 }
 
 /**
- * Projects Media Access 576:8861 with the shared primary action and F03's neutral Stream link name.
+ * Projects Media Access 576:8861 with the shared primary action and F03's neutral heading.
  * Changing URL/version retires the previous native handoff and its feedback; header actions keep their own feature ownership.
  */
 function StreamLink({
@@ -105,9 +105,13 @@ function StreamLink({
       </View>
       {action ?? (
         <Button
-          label="Ouvrir le lien"
+          label={
+            detail.match.category === "completed"
+              ? "Regarder la rediffusion"
+              : "Regarder le live"
+          }
           accessibilityRole="link"
-          accessibilityHint="Ouvrir le Stream link de ce match"
+          accessibilityHint="Ouvrir le lien de diffusion en dehors de Blockout"
           leadingIcon={Play}
           fullWidth
           contextColor={division?.color}
