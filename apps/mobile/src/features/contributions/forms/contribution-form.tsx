@@ -2,8 +2,8 @@ import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Controller, useForm, useFormState } from "react-hook-form";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useForm, useFormState } from "react-hook-form";
+import { StyleSheet, Text, View } from "react-native";
 import type {
   OwnStreamContributionResponse,
   OwnStreamContributionsResponse,
@@ -12,7 +12,6 @@ import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { Surface } from "@/shared/components/surface";
-import { TextField } from "@/shared/components/text-field";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { tokens } from "@/shared/theme/tokens";
@@ -22,6 +21,10 @@ import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
+import {
+  ContributionUrlField,
+  ContributionWithdrawalButton,
+} from "./contribution-form-controls";
 import { contributionValues } from "./contribution-values";
 
 /** One mounted original-match address draft; normal RHF lifetime ends when the route is removed. */
@@ -149,47 +152,14 @@ export function ContributionForm({
           {replacement ? "Votre lien public" : "Proposer un lien"}
         </Text>
         {replacement?.canWithdraw && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retirer"
-            accessibilityState={{
-              disabled: withdrawalDisabled,
-            }}
+          <ContributionWithdrawalButton
             disabled={withdrawalDisabled}
             onPress={() => void withdraw()}
-            style={styles.withdraw}
-          >
-            <Text
-              style={[
-                tokens.typography.body,
-                { color: colors.error, textDecorationLine: "underline" },
-              ]}
-            >
-              Retirer
-            </Text>
-          </Pressable>
+          />
         )}
       </View>
       <View style={styles.form}>
-        <Controller
-          control={control}
-          name="url"
-          render={({ field, fieldState }) => (
-            <TextField
-              ref={field.ref}
-              label="Adresse du lien"
-              value={field.value}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              editable={!busy}
-              error={fieldState.error?.message}
-              helper="YouTube, Twitch ou Facebook"
-            />
-          )}
-        />
+        <ContributionUrlField control={control} editable={!busy} />
         {current.eligibility.requiresApproval && (
           <Text
             style={[tokens.typography.body, { color: colors.secondaryText }]}
@@ -218,10 +188,4 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   title: { ...tokens.typography.title, flex: 1 },
-  withdraw: {
-    minHeight: tokens.touch.minimum,
-    minWidth: tokens.touch.minimum,
-    justifyContent: "center",
-    alignItems: "center",
-  },
 });

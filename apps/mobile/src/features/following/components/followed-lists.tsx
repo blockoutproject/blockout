@@ -22,13 +22,21 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
+import {
+  fetchNextPageIfReady,
+  uniquePageRows,
+} from "@/shared/query/infinite-pages";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import {
   SportingEntityCard,
   SportingEntityCardLoading,
-  type SportingEntityCardProps,
 } from "@/features/sporting/entity-card";
+import {
+  sportingEntityCardData,
+  sportingEntityCardKey,
+  type SportingEntityCardData,
+} from "@/features/sporting/entity-card-data";
 import { useSportingNavigation } from "@/features/sporting/navigation";
 import type { FollowingOwner, FollowingTarget } from "../api/following-keys";
 import {
@@ -45,10 +53,6 @@ export interface FollowedListsProps {
   bypass: boolean;
 }
 
-/** Render-only current identity slots; no follow state or loaded-count total is inferred from them. */
-type FollowedItem = SportingEntityCardProps & {
-  kind: FollowingTarget["type"];
-};
 /** One virtualized native list holds the two collapsible collections and their native loading feedback. */
 type FollowedRow =
   | {
@@ -60,7 +64,7 @@ type FollowedRow =
       key: string;
       kind: "item";
       resource: FollowingTarget["type"];
-      item: FollowedItem;
+      item: SportingEntityCardData;
     };
 
 const disclosureEasing = Easing.bezier(...tokens.motion.compact.easing);
@@ -156,38 +160,11 @@ function FollowedDisclosureRow({
 }
 
 /** UUIDs retain their first position and latest current summary after offset movement; homonyms stay distinct. */
-function followedItems(
-  pages: readonly FollowListPage[] | undefined,
-): FollowedItem[] {
-  const items = (pages ?? []).flatMap((page) =>
-    page.items.map((summary): FollowedItem => {
-      if ("team" in summary) {
-        const { team, club, season, classification } = summary;
-        return {
-          kind: "team",
-          identity: team,
-          club,
-          season,
-          classification,
-        };
-      }
-      const { pool, season, classification, competitionName, phaseName } =
-        summary;
-      return {
-        kind: "pool",
-        identity: pool,
-        subtitle:
-          [competitionName, phaseName].filter(Boolean).join(" - ") || undefined,
-        season,
-        classification,
-      };
-    }),
+function followedItems(pages: readonly FollowListPage[] | undefined) {
+  return uniquePageRows(
+    (pages ?? []).flatMap((page) => page.items.map(sportingEntityCardData)),
+    sportingEntityCardKey,
   );
-  return [
-    ...new Map(
-      items.map((item) => [item.identity.id.toLowerCase(), item]),
-    ).values(),
-  ];
 }
 
 /** Query owns each open collection's retained pages, continuation and reset semantics. */
@@ -210,13 +187,6 @@ function useFollowedList(
     enabled: (state) => active && state.state.status !== "error",
   });
 
-  async function append() {
-    if (!active || query.isFetching || !query.hasNextPage) {
-      return;
-    }
-    await query.fetchNextPage({ cancelRefetch: false });
-  }
-
   /** Refetches the ordinary retained traversal; final failure belongs to the shared Following card. */
   async function refresh() {
     if (!active || !query.data || query.isFetching) {
@@ -233,7 +203,7 @@ function useFollowedList(
   return {
     query,
     items: followedItems(query.data?.pages),
-    append,
+    append: () => fetchNextPageIfReady(query, active),
     refresh,
     refreshing,
   };
@@ -302,7 +272,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     ...(disclosure[resource].visible
       ? [
           ...lists[resource].items.map((item): FollowedRow => ({
-            key: `${resource}-${item.identity.id.toLowerCase()}`,
+            key: `${resource}-${sportingEntityCardKey(item)}`,
             kind: "item",
             resource,
             item,
@@ -362,10 +332,10 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       onEndReachedThreshold={0.5}
       onEndReached={() => {
         if (!teams.query.isError) {
-          void teams.append();
+          teams.append();
         }
         if (!pools.query.isError) {
-          void pools.append();
+          pools.append();
         }
       }}
       ListFooterComponent={<BottomContentSpacer />}
@@ -414,7 +384,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
               loading={list.query.isFetchingNextPage}
               failed={list.query.hasNextPage && list.query.isFetchNextPageError}
               disabled={!props.active || list.query.isFetching}
-              onRetry={() => void list.append()}
+              onRetry={list.append}
             />
           );
         }

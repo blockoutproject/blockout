@@ -12,7 +12,7 @@ import { Button, type ButtonProps } from "@/shared/components/button";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
-import { safeWebsite } from "./contact-link";
+import { safeWebsite } from "@/shared/native/safe-website";
 import { MatchSurface } from "./match-surface";
 import { divisionTextColor } from "../presentation";
 

@@ -11,11 +11,14 @@ import {
   SportingEntityCard,
   SportingEntityCardLoading,
 } from "@/features/sporting/entity-card";
-import type { SearchResult } from "../model/search-result";
+import {
+  sportingEntityCardKey,
+  type SportingEntityCardData,
+} from "@/features/sporting/entity-card-data";
 
 export interface SearchResultsProps {
-  resource: SearchResult["kind"];
-  items: readonly SearchResult[];
+  resource: SportingEntityCardData["kind"];
+  items: readonly SportingEntityCardData[];
   loading: boolean;
   reveal: ContentReveal;
   examples?: boolean;
@@ -24,11 +27,7 @@ export interface SearchResultsProps {
   continuation?: ReactNode;
   onEndReached?: () => void;
   /** Routes a selected identity through the scene's existing sporting-opening owner. */
-  onOpen(kind: SearchResult["kind"], id: string): void;
-}
-
-function searchResultKey(item: SearchResult) {
-  return item.identity.id.toLowerCase();
+  onOpen(kind: SportingEntityCardData["kind"], id: string): void;
 }
 
 /** Keeps results and their structural feedback in the same list viewport. */
@@ -75,7 +74,7 @@ export function SearchResults({
         </>
       }
       data={items}
-      keyExtractor={searchResultKey}
+      keyExtractor={sportingEntityCardKey}
       getItemType={(item) => item.kind}
       recycleItems
       keyboardShouldPersistTaps="handled"
@@ -91,7 +90,7 @@ export function SearchResults({
 
 function SearchResultsLoading({
   resource,
-}: Readonly<{ resource: SearchResult["kind"] }>) {
+}: Readonly<{ resource: SportingEntityCardData["kind"] }>) {
   return (
     <SportingEntityCardLoading
       kind={resource}
@@ -104,7 +103,7 @@ function SearchResultsLoading({
 export function SearchResultsPreview({
   resource,
   examples,
-}: Readonly<{ resource: SearchResult["kind"]; examples: boolean }>) {
+}: Readonly<{ resource: SportingEntityCardData["kind"]; examples: boolean }>) {
   return (
     <View style={styles.listContent}>
       <View style={styles.listHeading}>

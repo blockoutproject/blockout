@@ -1,7 +1,6 @@
 import type { FollowOptionsResponse } from "../../../../.generated/schemas/index.zod";
 import { Button } from "@/shared/components/button";
-import { EntryGroup } from "@/shared/components/entry-group";
-import { SelectionRow } from "@/shared/components/selection-row";
+import { SelectionList } from "@/shared/components/selection-list";
 
 /** Bounded choices use their caller's existing selection; choosing or resetting never creates a second draft. */
 export interface PersonalSeasonChoicesProps {
@@ -23,21 +22,14 @@ export function PersonalSeasonChoices({
   );
   return (
     <>
-      <EntryGroup>
-        {options.seasons.map((season) => (
-          <SelectionRow
-            key={season.id}
-            label={season.label}
-            selected={season.id === seasonId}
-            onPress={() => onSelect(season.id)}
-          />
-        ))}
-        <SelectionRow
-          label="Toutes les saisons"
-          selected={seasonId === undefined}
-          onPress={() => onSelect(undefined)}
-        />
-      </EntryGroup>
+      <SelectionList
+        options={[
+          ...options.seasons.map(({ id, label }) => ({ value: id, label })),
+          { value: undefined, label: "Toutes les saisons" },
+        ]}
+        selected={seasonId}
+        onSelect={onSelect}
+      />
       {proposed && proposed.id !== seasonId && (
         <Button
           variant="secondary"
