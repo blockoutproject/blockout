@@ -57,6 +57,7 @@ export interface InformationRowProps {
   label: string;
   value: string;
   supporting?: string;
+  accessibilityHint?: string;
   icon?: LucideIcon;
   onPress?: () => void;
   pending?: boolean;
@@ -68,6 +69,7 @@ export function InformationRow({
   label,
   value,
   supporting,
+  accessibilityHint,
   icon: Icon,
   onPress,
   pending = false,
@@ -127,6 +129,7 @@ export function InformationRow({
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={name}
+          accessibilityHint={accessibilityHint}
           onPress={onPress}
           disabled={pending}
           accessibilityState={{ disabled: pending, busy: pending }}

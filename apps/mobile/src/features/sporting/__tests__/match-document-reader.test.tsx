@@ -171,18 +171,27 @@ it.each([
   {
     venue: "with a known venue",
     venueName: "Gymnase fictif",
-    accessibleName: "Lieu : Gymnase fictif - Fiche d’information (PDF)",
+    category: "upcoming",
+    accessibleName: "Lieu : Gymnase fictif",
   },
   {
     venue: "without a known venue",
     venueName: undefined,
-    accessibleName: "Lieu : Fiche d’information - PDF",
+    category: "upcoming",
+    accessibleName: "Lieu : Fiche d’information",
   },
-])(
+  {
+    venue: "after completion without a definitive result",
+    venueName: "Gymnase fictif",
+    category: "completed",
+    accessibleName: "Lieu : Gymnase fictif",
+  },
+] as const)(
   "opens the local-only PDF $venue and releases it when returning to the same match",
-  async ({ venueName, accessibleName }) => {
+  async ({ venueName, category, accessibleName }) => {
     // Given
     detail.venueName = venueName;
+    detail.match.category = category;
     const user = userEvent.setup();
     await renderPage(<MatchScreen matchId={sportingId} />);
 
@@ -209,6 +218,44 @@ it.each([
   },
 );
 
+it("opens the venue sheet and the scoresheet from the same completed match", async () => {
+  // Given
+  detail.match.category = "completed";
+  detail.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 1,
+    observedAt: "2026-10-25T18:00:00Z",
+  };
+  detail.documents.push({
+    kind: "scoresheet",
+    url: `/matches/${sportingId}/documents/scoresheet`,
+  });
+  const user = userEvent.setup();
+  await renderPage(<MatchScreen matchId={sportingId} />);
+
+  // When
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Fiche d’information" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer le document" }));
+  await user.press(
+    screen.getByRole("link", { name: "Document : Feuille de match" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Feuille de match" }),
+  ).toBeOnTheScreen();
+});
+
 it.each([
   { reducedMotion: false, animation: "slide" },
   { reducedMotion: true, animation: "none" },
@@ -223,7 +270,7 @@ it.each([
 
     // When
     await userEvent.press(
-      await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+      await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
     );
 
     // Then: Jest can verify the native host configuration; the simulator owns the transition.
@@ -246,7 +293,7 @@ it("keeps ordinary failure retry explicit and preserves the match reporting cont
 
   // When
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
   await screen.findByRole("button", { name: "Réessayer" });
 
@@ -300,7 +347,7 @@ it.each(["initial", "retry"])(
     });
     await renderPage(<MatchScreen matchId={sportingId} />);
     await user.press(
-      await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+      await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
     );
     if (opening === "retry") {
       await user.press(
@@ -339,7 +386,7 @@ it("releases a decoder failure before explicit retry", async () => {
   const user = userEvent.setup();
   await renderPage(<MatchScreen matchId={sportingId} />);
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
   const native = await screen.findByTestId("native-pdf");
 
@@ -364,7 +411,7 @@ it("retains the reader card through a renewed failed download and native decode"
   );
   await renderPage(<MatchScreen matchId={sportingId} />);
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
   await screen.findByRole("button", { name: "Réessayer" });
   mockFetch.mockImplementation((url: string) =>
@@ -426,7 +473,7 @@ it("withdraws an active document on a current match refusal and never reopens it
   const user = userEvent.setup();
   await renderPage(<MatchScreen matchId={sportingId} />);
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
   await screen.findByTestId("native-pdf");
   mockFetch.mockImplementation((url: string) =>
@@ -488,7 +535,7 @@ it("cancels a pending PDF when the SDK principal replaces the private tree", asy
     </>,
   );
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
 
   // When
@@ -512,7 +559,7 @@ it("releases the original file when navigation selects another match without aut
   const user = userEvent.setup();
   const page = await renderPage(<MatchScreen matchId={sportingId} />);
   await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
   );
   await screen.findByTestId("native-pdf");
   const otherId = "00000000-0000-4000-8000-000000000260";
