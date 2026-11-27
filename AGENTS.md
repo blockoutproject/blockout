@@ -48,6 +48,12 @@ Keep normal branch protections active; there is no planning bypass. Do not weake
 
 On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced: true`), force-push bypass actors are empty (`bypassForcePushActorIds: []`), unrestricted force pushes remain disabled (`allowsForcePushes: false`) and deletion prevention remains enabled. Both branches require the up-to-date `verify` check from GitHub Actions. Preserve the remaining protections, including conversation resolution, stale-review dismissal and zero required approvals on `main`, and the existing review settings on `develop`.
 
+## Code Review Rules
+
+- For a defect, trace the observed behavior to the owner of the failing rule, data or lifecycle before choosing a fix. Inspect comparable consumers for the same cause, including outside the diff. Fix the cause at its owner and verify the affected paths.
+- Before adding state, a wrapper or a recovery path, check whether the existing component or the installed library's public API already provides the required guarantee. Keep distinct lifecycles where their guarantees differ. Remove the path the change replaces.
+- Review every code change before handing off the draft PR. Ask for an independent read when it changes a shared rule or lifecycle, introduces a custom mechanism, overlaps another change on the same path, or leaves a consequential verification gap. Give the reader the issue, base, revision and available evidence. Reuse a review that already covers the question. Report confirmed findings and material limits in the PR. A review can conclude that no further edit is justified.
+
 ## Verification
 
 Follow [F13 FR-030's accessibility qualification scope](specs/003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity): do not add VoiceOver/TalkBack qualification to current or future tasks without an explicit human request.

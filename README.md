@@ -35,6 +35,12 @@ This dedicated repository has independent history and contains no V1 runtime imp
 
 Accepted product/design decisions and V1/V2 continuity remain applicable. Withdrawn technical dossiers, former stack decisions, backups and historical technical discussions are not planning inputs unless the owner explicitly requests their consultation. Technical decisions belong in the official Spec Kit artifacts that own them. The existing agent guidance links the design inputs; no parallel architecture or design dossier is required.
 
+## Contributing
+
+Start from a GitHub issue that describes the expected outcome and links the relevant specification when one applies. For a bug, share the observed behavior and steps to reproduce it with public or synthetic data. Describe any check that needs private access so the maintainer can run it.
+
+Follow the [delivery policy](AGENTS.md#git-delivery) and [code review rules](AGENTS.md#code-review-rules). In the draft PR to `develop`, link the issue, explain where the behavior is fixed and why the scope fits, and record what you verified and any material limits. Use the checks below for the affected application or documentation.
+
 ## Verification
 
 Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.10.2; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:
