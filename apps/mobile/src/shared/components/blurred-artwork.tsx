@@ -4,14 +4,29 @@ import {
   type ImageStyle,
   type StyleProp,
 } from "react-native";
-import { cubicBezier } from "react-native-reanimated";
+import {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-/** Shared opacity transition for optional artwork already inside a readable surface. */
-export const artworkOpacityTransition = {
-  transitionProperty: "opacity",
-  transitionTimingFunction: cubicBezier(...tokens.motion.compact.easing),
-} as const;
+/** Blends admitted decoration in place and hides obsolete artwork immediately. */
+export function useArtworkOpacity(opacity: number, animate = true) {
+  const { reducedMotion } = useTheme();
+  return useAnimatedStyle(() => ({
+    opacity:
+      opacity > 0 && animate && !reducedMotion
+        ? withTiming(opacity, {
+            duration: tokens.motion.compact.duration,
+            easing: Easing.bezier(...tokens.motion.compact.easing),
+            reduceMotion: ReduceMotion.Never,
+          })
+        : opacity,
+  }));
+}
 
 /** Decorative image inputs; the caller retains source lifetime, sizing and shared decode-failure ownership. */
 export interface BlurredArtworkProps {

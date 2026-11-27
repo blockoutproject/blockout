@@ -4,8 +4,8 @@ import {
   type ArtworkHaloTreatment,
 } from "@/shared/components/artwork-halo";
 import {
-  artworkOpacityTransition,
   BlurredArtwork,
+  useArtworkOpacity,
 } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import type { ReactNode } from "react";
@@ -191,21 +191,12 @@ export interface SportingCoverProps {
 /** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
 export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
   const image = useNativeImageLifecycle(uri);
-  const { reducedMotion } = useTheme();
-  const shown = image.status === "displayed";
+  const opacity = useArtworkOpacity(image.status === "displayed" ? 1 : 0);
   return image.status === "failed" ? null : (
     <Animated.View
       pointerEvents="none"
       accessible={false}
-      style={[
-        styles.artwork,
-        {
-          ...artworkOpacityTransition,
-          opacity: shown ? 1 : 0,
-          transitionDuration:
-            shown && !reducedMotion ? tokens.motion.compact.duration : 0,
-        },
-      ]}
+      style={[styles.artwork, opacity]}
     >
       <BlurredArtwork
         key={image.attemptKey}

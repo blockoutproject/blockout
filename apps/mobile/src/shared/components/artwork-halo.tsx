@@ -13,7 +13,7 @@ import { useId } from "react";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { artworkOpacityTransition, BlurredArtwork } from "./blurred-artwork";
+import { BlurredArtwork, useArtworkOpacity } from "./blurred-artwork";
 import { MaskedView } from "./masked-view";
 
 const halo = tokens.media.halo;
@@ -67,13 +67,17 @@ export function ArtworkHalo({
 }: Readonly<ArtworkHaloProps>) {
   const image = useNativeImageLifecycle(uri);
   const id = useId();
-  const { scheme, reducedMotion } = useTheme();
+  const { scheme } = useTheme();
+  const shown =
+    visible === undefined || (visible && image.status === "displayed");
+  const opacity = useArtworkOpacity(
+    shown ? halo.opacity[scheme] : 0,
+    visible !== undefined,
+  );
   if (image.status === "failed") {
     return null;
   }
 
-  const shown =
-    visible === undefined || (visible && image.status === "displayed");
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const radial = treatments[treatment];
@@ -89,13 +93,8 @@ export function ArtworkHalo({
       style={[
         styles.halo,
         treatment === "standingsRow" ? styles.compact : styles.centered,
+        opacity,
         {
-          ...artworkOpacityTransition,
-          opacity: shown ? halo.opacity[scheme] : 0,
-          transitionDuration:
-            visible && shown && !reducedMotion
-              ? tokens.motion.compact.duration
-              : 0,
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
         },
