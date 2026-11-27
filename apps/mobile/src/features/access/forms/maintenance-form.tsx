@@ -1,3 +1,4 @@
+import { useNavigation, useRouter } from "expo-router";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
@@ -40,13 +41,15 @@ export function MaintenanceForm({
 }: Readonly<MaintenanceFormProps>) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
-  const actionFeedback = useActionFeedback();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const actionFeedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: maintenanceValues(settings),
   });
   const { isDirty, dirtyFields } = useFormState({ control });
-  useDiscardChanges(isDirty, () => reset());
+  const disablePrevention = useDiscardChanges(isDirty, () => reset());
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.activation.isPending;
@@ -54,19 +57,27 @@ export function MaintenanceForm({
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
 
   /** Submits supplied dirty content without changing activation. */
-  async function submit(draft: MaintenanceValues) {
+  function submit(draft: MaintenanceValues) {
     if (busy) {
       return;
     }
     actionFeedback.clear();
-    try {
-      const accepted = await editing.content.mutateAsync(
-        toMaintenanceRequest(draft, dirtyFields),
-      );
-      reset(maintenanceValues(accepted));
-    } catch {
-      actionFeedback.error();
-    }
+    editing.content.mutate(toMaintenanceRequest(draft, dirtyFields), {
+      onSuccess(accepted) {
+        if (!navigation.isFocused()) {
+          return;
+        }
+        reset(maintenanceValues(accepted));
+        disablePrevention();
+        actionFeedback.success("Modifications enregistrées.");
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace("/administration");
+        }
+      },
+      onError: () => actionFeedback.error(),
+    });
   }
 
   /** Changes only the desired global state and leaves the content draft in RHF untouched. */

@@ -1,3 +1,4 @@
+import { useNavigation, useRouter } from "expo-router";
 import { controlOpacity } from "@/shared/components/control-styles";
 import {
   ActionFeedbackProvider,
@@ -52,7 +53,9 @@ export function ApplicationVersionsForm({
 }: Readonly<ApplicationVersionsFormProps>) {
   const session = useAccountSession();
   const { colors, reducedMotion } = useTheme();
-  const actionFeedback = useActionFeedback();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const actionFeedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
@@ -65,9 +68,7 @@ export function ApplicationVersionsForm({
   const { isDirty, dirtyFields, defaultValues } = useFormState({
     control,
   });
-  useDiscardChanges(isDirty, () => {
-    reset();
-  });
+  const disablePrevention = useDiscardChanges(isDirty, () => reset());
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
       control,
@@ -90,20 +91,28 @@ export function ApplicationVersionsForm({
   const busy = disabled || editing.content.isPending;
 
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
-  async function submit(draft: ApplicationVersionsValues) {
+  function submit(draft: ApplicationVersionsValues) {
     if (busy || (raised && !checked)) {
       return;
     }
     actionFeedback.clear();
-    try {
-      const accepted = await editing.content.mutateAsync(
-        toApplicationVersionsRequest(draft, dirtyFields),
-      );
-      reset(applicationVersionsValues(accepted));
-      setAcknowledged(undefined);
-    } catch {
-      actionFeedback.error();
-    }
+    editing.content.mutate(toApplicationVersionsRequest(draft, dirtyFields), {
+      onSuccess(accepted) {
+        if (!navigation.isFocused()) {
+          return;
+        }
+        reset(applicationVersionsValues(accepted));
+        setAcknowledged(undefined);
+        disablePrevention();
+        actionFeedback.success("Modifications enregistrées.");
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace("/administration");
+        }
+      },
+      onError: () => actionFeedback.error(),
+    });
   }
 
   const previewPlatform = Platform.OS === "ios" ? "ios" : "android";
