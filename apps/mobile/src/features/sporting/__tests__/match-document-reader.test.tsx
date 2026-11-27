@@ -243,6 +243,7 @@ it("opens the venue sheet and the scoresheet from the same completed match", asy
   expect(
     await screen.findByRole("header", { name: "Fiche d’information" }),
   ).toBeOnTheScreen();
+  expect(await screen.findByTestId("native-pdf")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer le document" }));
@@ -254,6 +255,10 @@ it("opens the venue sheet and the scoresheet from the same completed match", asy
   expect(
     await screen.findByRole("header", { name: "Feuille de match" }),
   ).toBeOnTheScreen();
+  expect(await screen.findByTestId("native-pdf")).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.map(([url]) => url)).toContain(
+    `https://api.example.invalid/matches/${sportingId}/documents/scoresheet`,
+  );
 });
 
 it.each([
