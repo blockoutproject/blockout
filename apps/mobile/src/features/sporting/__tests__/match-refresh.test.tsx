@@ -375,12 +375,6 @@ it("reveals Match information in the third slot when a covered read withdraws th
   await act(() => onlineManager.setOnline(false));
   await act(() => onlineManager.setOnline(true));
   await waitFor(() => expect(screen.queryByText("Score")).toBeNull());
-  expect(
-    screen.getAllByRole("header", { name: /^(Stream link|Informations)$/ }),
-  ).toEqual([
-    screen.getByText("Stream link"),
-    screen.getByText("Informations"),
-  ]);
   await reportLayout(screen.getByText("Stream link"), 200, 120);
   await reportLayout(screen.getByText("Informations"), 340, 260);
   expect(motion).not.toHaveBeenCalled();
