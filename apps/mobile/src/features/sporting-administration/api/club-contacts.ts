@@ -29,7 +29,7 @@ export function useClubContacts(clubId: string, enabled: boolean) {
   const read = createSportingReader(authority);
   const query = useQuery<ClubContacts | null>({
     queryKey,
-    enabled: enabled && authority.enabled && accountId !== null,
+    enabled: enabled && authority.enabled,
     gcTime: 0,
     queryFn: (context) =>
       read(context, (options) => getClubContacts(clubId, options)),
@@ -55,17 +55,13 @@ export function useClubContacts(clubId: string, enabled: boolean) {
       if (!canUseContacts()) {
         throw new ApiError("cancelled");
       }
-      const accepted = await setClubContacts(clubId, patch, options);
-      if (!canUseContacts()) {
-        throw new ApiError("cancelled");
-      }
-      return accepted;
+      return setClubContacts(clubId, patch, options);
     },
     onSuccess: (accepted) => {
-      // A late acknowledgement cannot recreate a refused or released read.
-      client.setQueryData<ClubContacts | null>(queryKey, (current) =>
-        current == null ? undefined : accepted,
-      );
+      // Acknowledgement settles the write even if the contact read was withdrawn.
+      if (canUseContacts()) {
+        client.setQueryData(queryKey, accepted);
+      }
     },
     onSettled: () => {
       void client.invalidateQueries({ queryKey, exact: true });

@@ -65,7 +65,7 @@ function PresentationScreenContent({
       permissions?.manageDivisionLifecycle === true);
   const editing = usePresentation(target, canRead);
   const needsContacts = target.kind === "club";
-  const contacts = useClubContacts(target.id, needsContacts && canManage);
+  const contacts = useClubContacts(target.id, needsContacts);
   const saving = editing.save.isPending || contacts.save.isPending;
   const presentation =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
@@ -158,7 +158,9 @@ function PresentationScreenContent({
   const requiredRead =
     account.isPending || hasReadError(account)
       ? account
-      : needsContacts && !presentationFailed && !editing.query.isPending
+      : needsContacts &&
+          !presentationFailed &&
+          (contactsFailed || !editing.query.isPending)
         ? contacts.query
         : editing.query;
   const unavailable = needsContacts && requiredRead.data === null;
@@ -172,14 +174,6 @@ function PresentationScreenContent({
     sessionStatus === "restoring" ||
     (!hasReadError(requiredRead) && requiredRead.isLoading);
   const FeedbackLayout = initialLoading ? PageContent : ScreenState;
-
-  /** The club's single error card retries only the required reads that failed. */
-  async function retryClubReads() {
-    await Promise.all([
-      presentationFailed ? editing.query.refetch() : undefined,
-      contactsFailed ? contacts.query.refetch() : undefined,
-    ]);
-  }
 
   /** Keeps the original division's independent command after the presentation save. */
   function renderActivity(
@@ -294,11 +288,6 @@ function PresentationScreenContent({
               <ReadFeedback
                 query={requiredRead}
                 failed={unavailable}
-                onRetry={
-                  needsContacts && requiredRead !== account
-                    ? retryClubReads
-                    : undefined
-                }
                 loadingContent={<PresentationLoading kind={target.kind} />}
               />
             )}

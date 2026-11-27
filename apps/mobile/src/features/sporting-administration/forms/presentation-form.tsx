@@ -157,15 +157,12 @@ export function PresentationForm({
     editor.beginUpload(file);
     try {
       if (baseline?.kind === "club") {
-        if (clubContacts?.current) {
-          await saveClub(values, baseline, clubContacts.current);
-        }
+        await saveClub(values, baseline);
         return;
       }
       const accepted = await onSave(values);
       if (accepted && mounted.current) {
-        editor.update({ baseline: accepted });
-        editor.reset(presentationValues(accepted));
+        acceptPresentation(accepted);
       }
     } catch (error) {
       if (mounted.current) {
@@ -180,23 +177,22 @@ export function PresentationForm({
   async function saveClub(
     values: PresentationValues,
     original: Extract<Presentation, { kind: "club" | "team" }>,
-    current: ClubContacts,
   ) {
-    if (!clubContacts || !values.contacts) {
+    if (!clubContacts?.current || !values.contacts) {
       return;
     }
-    const patch = clubContactPatch(values.contacts, current);
-    const wantsPresentation = dirtyFields.name || values.logo.action !== "keep";
-    const name = dirtyFields.name
-      ? values.name.trim() === original.data.names.sourceName
-        ? ""
-        : values.name
-      : (original.data.names.manualName ?? "");
-    const accepted = wantsPresentation
-      ? await onSave({ ...values, name })
-      : undefined;
-    if (!mounted.current || (wantsPresentation && !accepted)) {
-      return;
+    const patch = clubContactPatch(values.contacts, clubContacts.current);
+    let accepted: Presentation | undefined;
+    if (dirtyFields.name || values.logo.action !== "keep") {
+      const { sourceName, manualName } = original.data.names;
+      const name = dirtyFields.name ? values.name : (manualName ?? "");
+      accepted = await onSave({
+        ...values,
+        name: dirtyFields.name && name.trim() === sourceName ? "" : name,
+      });
+      if (!accepted || !mounted.current) {
+        return;
+      }
     }
 
     try {
@@ -208,8 +204,7 @@ export function PresentationForm({
         throw error;
       }
       if (mounted.current) {
-        editor.update({ baseline: accepted });
-        editor.reset(presentationValues(accepted));
+        acceptPresentation(accepted);
         setValue("contacts", values.contacts, { shouldDirty: true });
         actionFeedback.error(
           "La présentation a été enregistrée. L’enregistrement des coordonnées n’a pas pu être confirmé.",
@@ -218,11 +213,19 @@ export function PresentationForm({
       return;
     }
 
-    if (mounted.current) {
-      const next = accepted ?? original;
-      editor.update({ baseline: next });
-      editor.reset(presentationValues(next));
+    if (!mounted.current) {
+      return;
     }
+    if (accepted) {
+      acceptPresentation(accepted);
+    } else {
+      editor.reset(presentationValues(original));
+    }
+  }
+
+  function acceptPresentation(accepted: Presentation) {
+    editor.update({ baseline: accepted });
+    editor.reset(presentationValues(accepted));
   }
 
   /** Preserves the draft and reports image or name corrections at their field; other failures use ordinary feedback. */

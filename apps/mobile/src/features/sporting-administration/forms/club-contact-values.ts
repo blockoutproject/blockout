@@ -1,36 +1,26 @@
 import { z } from "zod";
 import type { ClubContactPatch, ClubContacts } from "../api/club-contacts";
 
-export const clubContactLabels = {
-  address: "Adresse",
-  city: "Commune",
-  postalCode: "Code postal",
-  email: "Adresse e-mail",
-  phone: "Téléphone",
-  website: "Site web",
-} as const;
-
-type ClubContactKey = keyof typeof clubContactLabels;
-
-export const clubContactKeys = Object.keys(
-  clubContactLabels,
-) as ClubContactKey[];
-
 const contact = z.object({
   mode: z.enum(["keep", "source", "manual", "hidden"]),
   value: z.string(),
 });
 
-export const clubContactDraftSchema = z
-  .object({
-    address: contact,
-    city: contact,
-    postalCode: contact,
-    email: contact,
-    phone: contact,
-    website: contact,
-  })
-  .superRefine(({ email, website }, context) => {
+const clubContactFields = z.object({
+  address: contact,
+  city: contact,
+  postalCode: contact,
+  email: contact,
+  phone: contact,
+  website: contact,
+});
+
+export const clubContactKeys = clubContactFields.keyof().options;
+
+export type ClubContactKey = (typeof clubContactKeys)[number];
+
+export const clubContactDraftSchema = clubContactFields.superRefine(
+  ({ email, website }, context) => {
     if (
       email.mode === "manual" &&
       email.value &&
@@ -63,7 +53,8 @@ export const clubContactDraftSchema = z
         });
       }
     }
-  });
+  },
+);
 
 export type ClubContactDraft = z.infer<typeof clubContactDraftSchema>;
 
