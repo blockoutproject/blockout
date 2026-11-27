@@ -187,6 +187,9 @@ export function DiscoveryScreen() {
 
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [step]);
+
+  useEffect(() => {
     if (reducedMotion) {
       position.set(step);
       focusHeading();

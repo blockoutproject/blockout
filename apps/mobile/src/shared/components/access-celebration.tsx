@@ -4,6 +4,16 @@ import { StyleSheet } from "react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
+export const accessIllustrationStyle = StyleSheet.create({
+  frame: {
+    width: "100%",
+    maxWidth: 280,
+    aspectRatio: 3 / 2,
+    borderRadius: tokens.radius.panelInset,
+    alignSelf: "center",
+  },
+}).frame;
+
 /** Decorative local media uses the supplied still as soon as motion is reduced or its card is inactive. */
 export function AccessCelebration({
   animated = true,
@@ -18,17 +28,10 @@ export function AccessCelebration({
           : require("../../../assets/access/volleyball-still.png")
       }
       contentFit="contain"
-      style={[styles.artwork, { backgroundColor: colors.mediaPlaceholder }]}
+      style={[
+        accessIllustrationStyle,
+        { backgroundColor: colors.mediaPlaceholder },
+      ]}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  artwork: {
-    width: "100%",
-    maxWidth: 280,
-    aspectRatio: 3 / 2,
-    borderRadius: tokens.media.radius.profile,
-    alignSelf: "center",
-  },
-});

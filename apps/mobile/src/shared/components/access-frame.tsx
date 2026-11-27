@@ -65,7 +65,11 @@ export function AccessFrame({
   );
 }
 
-interface AccessStageScrollViewProps extends ScrollViewProps {
+interface AccessStageScrollViewProps extends Pick<
+  ScrollViewProps,
+  "refreshControl"
+> {
+  children: ReactNode;
   ref?: Ref<ScrollViewInstance>;
 }
 
@@ -75,10 +79,9 @@ export function AccessStageCard({ style, ...props }: ViewProps) {
 
 /** Centers bounded content when it fits and lets larger text scroll within the same fixed stage. */
 export function AccessStageScrollView({
+  children,
   ref,
-  style,
-  contentContainerStyle,
-  ...props
+  refreshControl,
 }: Readonly<AccessStageScrollViewProps>) {
   return (
     <ScrollView
@@ -86,10 +89,12 @@ export function AccessStageScrollView({
       automaticallyAdjustContentInsets={false}
       contentInsetAdjustmentBehavior="never"
       showsVerticalScrollIndicator={false}
-      {...props}
-      style={[styles.scroll, style]}
-      contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-    />
+      refreshControl={refreshControl}
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {children}
+    </ScrollView>
   );
 }
 

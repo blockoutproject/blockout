@@ -1,11 +1,13 @@
-import { AccessCelebration } from "@/shared/components/access-celebration";
+import {
+  AccessCelebration,
+  accessIllustrationStyle,
+} from "@/shared/components/access-celebration";
 import {
   AccessFrame,
   AccessStageCard,
   AccessStageScrollView,
 } from "@/shared/components/access-frame";
 import { BrandHeader } from "@/shared/components/brand-header";
-import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { IconButton } from "@/shared/components/icon-button";
 import { PageViewport } from "@/shared/components/navigation-backdrop";
@@ -21,7 +23,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ArrowDownToLine, X } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
@@ -85,20 +87,6 @@ function GateView({
   const message = update
     ? (updateMessage ?? applicationUpdateMessage)
     : maintenance?.message;
-  let storeAction: ReactNode;
-  if (update && storeUrl) {
-    storeAction = <StoreAction url={storeUrl} />;
-  } else if (update && onClose) {
-    storeAction = (
-      <Button
-        fullWidth
-        label="Mettre à jour l’application"
-        onPress={undefined}
-        disabled
-      />
-    );
-  }
-
   return (
     <AccessFrame
       headerAction={
@@ -176,7 +164,9 @@ function GateView({
           <Text style={[styles.message, { color: colors.secondaryText }]}>
             {message}
           </Text>
-          {storeAction}
+          {update && (storeUrl || onClose) ? (
+            <StoreAction url={storeUrl ?? undefined} />
+          ) : null}
         </AccessStageCard>
       </AccessStageScrollView>
     </AccessFrame>
@@ -192,7 +182,10 @@ function GateImage({ uri }: Readonly<{ uri?: string | null }>) {
       source={{ uri }}
       accessible={false}
       contentFit="contain"
-      style={[styles.media, { backgroundColor: colors.mediaPlaceholder }]}
+      style={[
+        accessIllustrationStyle,
+        { backgroundColor: colors.mediaPlaceholder },
+      ]}
       onError={() => setFailed(true)}
     />
   ) : (
@@ -275,13 +268,6 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.full,
     alignItems: "center",
     justifyContent: "center",
-  },
-  media: {
-    alignSelf: "center",
-    width: "100%",
-    maxWidth: 280,
-    aspectRatio: 3 / 2,
-    borderRadius: tokens.radius.panelInset,
   },
   message: {
     ...tokens.typography.body,
