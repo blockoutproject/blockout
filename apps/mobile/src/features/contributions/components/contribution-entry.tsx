@@ -1,20 +1,8 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
-import { ContributionEntryLoading } from "./contribution-loading";
-import { ReadFeedback } from "@/shared/components/read-feedback";
-import { Button, type ButtonProps } from "@/shared/components/button";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useOwnContributionsRead } from "../api/own-contributions";
-
-/** F08 supplies either the card's primary destination or its compact personal-proposals header entry. */
-export interface ContributionEntryProps {
-  entry: ReturnType<typeof useContributionEntry>;
-  header?: boolean;
-  contextColor?: ButtonProps["contextColor"];
-  contextGradient?: ButtonProps["contextGradient"];
-  contextForeground?: ButtonProps["contextForeground"];
-}
 
 /** Keeps private read/refresh ownership mounted on the match; only the independent active projection proves public ownership. */
 export function useContributionEntry(
@@ -53,117 +41,84 @@ export function useContributionEntry(
     available && session.status === "authenticated"
       ? accountOrContributions
       : undefined;
-  return {
-    hasProposals,
-    ownsPublic,
-    publicOwnershipUnknown,
-    personalRead,
-    canPropose,
-    canReport:
-      available &&
-      !!publicContributionId &&
-      !ownsPublic &&
-      !publicOwnershipUnknown &&
-      (session.status === "guest" || authorized),
-    /** Captures only the contributed identity actually displayed; guests receive no replay context. */
-    report() {
-      if (session.status === "guest") {
-        router.push({
-          pathname: "/sign-in-invitation",
-          params: { reason: "stream-report" },
-        });
-      } else if (publicContributionId) {
-        router.push({
-          pathname: "/matches/[matchId]/report-contribution",
-          params: {
-            matchId,
-            contributionId: publicContributionId,
-            contributionUrl: publicContributionUrl,
-          },
-        });
-      }
-    },
-    /** Opens the existing owner screen without replaying a mutation or carrying an address. */
-    open() {
+
+  /** Captures only the contributed identity actually displayed; guests receive no replay context. */
+  function report() {
+    if (session.status === "guest") {
       router.push({
-        pathname: "/matches/[matchId]/contributions",
+        pathname: "/sign-in-invitation",
+        params: { reason: "stream-report" },
+      });
+    } else if (publicContributionId) {
+      router.push({
+        pathname: "/matches/[matchId]/report-contribution",
+        params: {
+          matchId,
+          contributionId: publicContributionId,
+          contributionUrl: publicContributionUrl,
+        },
+      });
+    }
+  }
+
+  function manage() {
+    router.push({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId },
+    });
+  }
+
+  function propose() {
+    if (session.status === "guest") {
+      router.push({
+        pathname: "/sign-in-invitation",
+        params: { reason: "contribution" },
+      });
+    } else {
+      router.push({
+        pathname: "/matches/[matchId]/contribution",
         params: { matchId },
       });
-    },
-    /** An eligible first proposal opens its form directly; guests retain the existing F05 invitation. */
-    propose() {
-      if (session.status === "guest") {
-        router.push({
-          pathname: "/sign-in-invitation",
-          params: { reason: "contribution" },
-        });
-      } else {
-        router.push({
-          pathname: "/matches/[matchId]/contribution",
-          params: { matchId },
-        });
-      }
-    },
+    }
+  }
+
+  const canReport =
+    available &&
+    !!publicContributionId &&
+    !ownsPublic &&
+    !publicOwnershipUnknown &&
+    (session.status === "guest" || authorized);
+  let primaryAction;
+  if (ownsPublic) {
+    primaryAction = { label: "Modifier le lien", onPress: manage };
+  } else if (!publicContributionUrl && canPropose) {
+    primaryAction = { label: "Proposer un lien", onPress: propose };
+  }
+  return {
+    personalRead,
+    publicOwnershipUnknown,
+    primaryAction,
+    manage: hasProposals && !ownsPublic ? manage : undefined,
+    report: canReport ? report : undefined,
   };
 }
 
-/** Keeps contributed-link ownership unresolved through native read feedback before exposing the appropriate action. */
-export function ContributionEntry({
-  entry,
-  header = false,
-  ...context
-}: Readonly<ContributionEntryProps>) {
+/** Places the compact personal-history or exact-version report action in the stream card. */
+export function ContributionActionLink({
+  label,
+  accessibilityLabel = label,
+  onPress,
+}: Readonly<{
+  label: string;
+  accessibilityLabel?: string;
+  onPress: () => void;
+}>) {
   const { colors } = useTheme();
-  if (header) {
-    return entry.hasProposals ? (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Gérer mes propositions"
-        onPress={entry.open}
-        style={styles.manage}
-      >
-        <Text
-          style={[
-            tokens.typography.body,
-            { color: colors.secondaryText, textDecorationLine: "underline" },
-          ]}
-        >
-          Gérer
-        </Text>
-      </Pressable>
-    ) : null;
-  }
-  if (entry.publicOwnershipUnknown) {
-    return entry.personalRead ? (
-      <ReadFeedback
-        query={entry.personalRead}
-        loadingContent={<ContributionEntryLoading />}
-      />
-    ) : null;
-  }
-  if (!entry.ownsPublic && !entry.canPropose) {
-    return null;
-  }
   return (
-    <Button
-      {...context}
-      label={entry.ownsPublic ? "Modifier le lien" : "Proposer un lien"}
-      fullWidth
-      onPress={entry.ownsPublic ? entry.open : entry.propose}
-    />
-  );
-}
-
-/** Contextual exact-version report action, distinct from the match's general support destination. */
-export function ContributionReportEntry({
-  entry,
-}: Readonly<ContributionEntryProps>) {
-  const { colors } = useTheme();
-  return entry.canReport ? (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Signaler le lien"
-      onPress={entry.report}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
       style={styles.manage}
     >
       <Text
@@ -172,10 +127,10 @@ export function ContributionReportEntry({
           { color: colors.secondaryText, textDecorationLine: "underline" },
         ]}
       >
-        Signaler le lien
+        {label}
       </Text>
     </Pressable>
-  ) : null;
+  );
 }
 
 const styles = StyleSheet.create({

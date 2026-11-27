@@ -1,8 +1,4 @@
-import {
-  ContributionEntry,
-  ContributionReportEntry,
-  useContributionEntry,
-} from "@/features/contributions/entry";
+import { useContributionEntry } from "@/features/contributions/entry";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -26,7 +22,6 @@ import { MatchInformation } from "../components/match-information";
 import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
 import { MatchDocumentReader } from "../components/match-document-reader";
 import { MatchLinks } from "../components/match-links";
-import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
 /** Exact dated public match identity; contextual actions remain with their feature owners. */
@@ -58,29 +53,7 @@ export function MatchScreen({
               displayTimeZone={displayTimeZone}
             />
             <MatchSetScores match={data.match} sets={data.sets} />
-            <MatchLinks
-              detail={data}
-              reportAction={<ContributionReportEntry entry={contribution} />}
-              action={
-                contribution.hasProposals && !contribution.ownsPublic ? (
-                  <ContributionEntry entry={contribution} header />
-                ) : undefined
-              }
-              primaryAction={
-                contribution.publicOwnershipUnknown ||
-                contribution.ownsPublic ||
-                (!data.streamUrl && contribution.canPropose) ? (
-                  <ContributionEntry
-                    entry={contribution}
-                    contextColor={division?.color}
-                    contextGradient={division?.gradient}
-                    contextForeground={
-                      division ? divisionTextColor(division.color) : undefined
-                    }
-                  />
-                ) : undefined
-              }
-            />
+            <MatchLinks detail={data} contribution={contribution} />
             <MatchInformation
               onDocumentOpen={(kind) => setDocument({ matchId, kind })}
               detail={data}

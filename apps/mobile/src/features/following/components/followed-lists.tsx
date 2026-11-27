@@ -1,5 +1,5 @@
 import { NoAvailableFollows } from "./no-available-follows";
-import { PageFlatList } from "@/shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { useContentReveal } from "@/shared/components/content-reveal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -346,7 +346,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     );
   }
   return (
-    <PageFlatList
+    <PageList
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
@@ -355,7 +355,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         presentation,
       }}
       keyExtractor={(row) => row.key}
-      removeClippedSubviews={false}
+      maintainVisibleContentPosition={false}
       alwaysBounceVertical
       refreshControl={refreshControl}
       contentContainerStyle={styles.content}

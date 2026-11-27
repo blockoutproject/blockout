@@ -77,7 +77,7 @@ public class ReadOwnContributions {
         assessment.usage(),
         assessment.day().endsAt(),
         store.ownProposalCount(matchId, owner),
-        store.ownActive(matchId, owner).orElse(null),
+        assessment.ownActive(),
         store.own(matchId, owner, (int) page),
         page);
   }
