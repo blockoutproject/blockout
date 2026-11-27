@@ -252,10 +252,12 @@ it("retains caller content and ignores former events when an image source return
 it("removes decorative artwork after a native decoding error event", async () => {
   // Given
   await render(
-    <SportingCover
-      uri="data:image/png;base64,bm90LWFuLWltYWdl"
-      primary="#F4C66A"
-    />,
+    <ThemeProvider>
+      <SportingCover
+        uri="data:image/png;base64,bm90LWFuLWltYWdl"
+        primary="#F4C66A"
+      />
+    </ThemeProvider>,
   );
   const cover = screen.getByTestId("sporting-decorative-cover");
   expect(cover).toHaveProp("source", {
