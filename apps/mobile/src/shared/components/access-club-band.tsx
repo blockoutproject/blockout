@@ -43,6 +43,8 @@ const backdrop = {
   login: { tileSize: 60, rowHeight: 76, height: 228 },
 } as const;
 
+export const compactAccessBandHeight = backdrop.login.height;
+
 type BandGeometry = (typeof backdrop)[keyof typeof backdrop];
 
 function ClubRail({

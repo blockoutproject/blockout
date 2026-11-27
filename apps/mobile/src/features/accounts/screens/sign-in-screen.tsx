@@ -8,7 +8,10 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
 import { ApiError } from "@/shared/api/api-fetch";
-import { AccessClubBand } from "@/shared/components/access-club-band";
+import {
+  AccessClubBand,
+  compactAccessBandHeight,
+} from "@/shared/components/access-club-band";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { Surface } from "@/shared/components/surface";
@@ -120,7 +123,7 @@ function SignInJourney({
   }
 
   return (
-    // The decorative hero yields height while the card and links retain their safe-area clearance.
+    // The hero fits above the reserved band and the legal links stay in the bottom safe area.
     <View testID="sign-in-screen" onLayout={onLayout} style={styles.screen}>
       <Image
         source={require("../../../../assets/accounts/sign-in-background.svg")}
@@ -167,8 +170,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, overflow: "hidden", backgroundColor: "#232323" },
   content: { flexShrink: 0, paddingBottom: tokens.spacing.sm },
   actionArea: {
+    minHeight: compactAccessBandHeight,
     alignItems: "center",
-    marginBottom: tokens.spacing.md + tokens.spacing.xl,
+    justifyContent: "center",
+    marginBottom: tokens.spacing.lg,
   },
   actions: {
     width: "76%",
