@@ -134,6 +134,9 @@ description: "Implementation tasks for F12 administration and application access
 
 - [x] T046 [US3] Verify the designated Product Design System sources follow FR-013, with current gates, ordinary outside-gate access, route guards and the authorized administrator text action intact. Use `quickstart.md#native-access-composition` for bounded structural/rendering checks; this supplies no native/provider qualification.
 
+- [x] T088 [US3] Adopt the shared Access stage and neutral club band from F13 T257 in `apps/mobile/src/features/access/screens/access-gate-screen.tsx` for confirmed maintenance and required update. Preserve the maintenance image/fallback, operator permissions, store handoff and native refresh. Keep failed-read Retry-only feedback on its own surface.
+- [ ] T089 [US3] Verify the approved restriction layouts on compatible native clients through [native access composition](quickstart.md#native-access-composition). Use representative themes, widths, enlarged text and live reduced motion while retaining reachable store/operator actions and the existing safe-read behavior. Reuse focused access gate and store tests for the unchanged semantics.
+
 **Checkpoint**: Ordinary and operational admission are distinct and coherent across server and native consumers. Maintenance has no instant-screen-update or cross-system cancellation guarantee; US4 separately proves the push handoff boundary.
 
 ---

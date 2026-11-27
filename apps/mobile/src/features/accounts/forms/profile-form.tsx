@@ -53,7 +53,7 @@ export function ProfileForm({
   onCancel,
   onSaved,
 }: Readonly<ProfileFormProps>) {
-  const feedback = useActionFeedback();
+  const feedback = useActionFeedback({ retainSuccessOnUnmount: true });
   const { save } = useProfileEditing(account.accountId);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
@@ -188,6 +188,7 @@ export function ProfileForm({
           keepDirty: false,
           keepErrors: false,
         });
+        feedback.success("Profil enregistré.");
         onSaved();
       }
     } catch (error) {

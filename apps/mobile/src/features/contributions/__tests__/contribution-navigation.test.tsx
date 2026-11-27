@@ -491,7 +491,7 @@ it("keeps history revoked when a refused match opens it before technical mount r
   );
 });
 
-it("leaves an acknowledged clean form without asking to discard the saved address", async () => {
+it("confirms publication on the match without asking to discard the acknowledged address", async () => {
   // Given
   await renderRouter(
     {
@@ -523,6 +523,9 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
   await waitFor(() =>
     expect(screen.getByText("Match origin")).toBeOnTheScreen(),
   );
+  expect(
+    screen.getByRole("alert", { name: "Votre lien est publié." }),
+  ).toBeOnTheScreen();
   expect(Alert.alert).not.toHaveBeenCalled();
 });
 
@@ -652,16 +655,20 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
       ),
     ),
   );
+
   // Then
   expect(
     screen.getByDisplayValue("https://youtu.be/new-draft"),
   ).toBeOnTheScreen();
   expect(
+    screen.queryByRole("alert", { name: "Votre lien est publié." }),
+  ).not.toBeOnTheScreen();
+  expect(
     mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
   ).toHaveLength(1);
 });
 
-it("keeps an acknowledged replacement distinct from retained proposals after returning to the match", async () => {
+it("confirms a pending replacement on the match even when its owner read fails", async () => {
   // Given
   jest.replaceProperty(
     proSessionModule,
@@ -697,7 +704,19 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
       if (init?.method === "POST") {
         submissions++;
         acknowledged = true;
-        return boundary(url, init);
+        return Response.json(
+          {
+            revision: "next",
+            contribution: {
+              ...previous,
+              id: "00000000-0000-4000-8000-000000000005",
+              url: "https://youtu.be/example",
+              state: "pending",
+              canWithdraw: false,
+            },
+          },
+          { status: 201 },
+        );
       }
       if (acknowledged && failOwnerRead) {
         throw new TypeError("Controlled owner read failure");
@@ -738,13 +757,22 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
 
   // When
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+  // Then
   await waitFor(() =>
     expect(screen).toHavePathname(`/matches/${match.match.id}`),
   );
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
+    screen.getByRole("alert", {
+      name: "Votre lien est en attente de validation.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
     screen.queryByRole("link", { name: /^Regarder / }),
   ).not.toBeOnTheScreen();
+
+  // When
   await act(() =>
     router.push({
       pathname: "/matches/[matchId]/contributions",
@@ -781,7 +809,7 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
   expect(submissions).toBe(1);
 });
 
-it("returns from the owned editor to the exact match after withdrawing its active projection", async () => {
+it("returns to the exact match and confirms withdrawal of the active link", async () => {
   // Given: the acknowledgement removes the public editor while the retained draft is dirty.
   jest.replaceProperty(
     proSessionModule,
@@ -875,6 +903,7 @@ it("returns from the owned editor to the exact match after withdrawing its activ
   expect(
     await screen.findByRole("button", { name: "Proposer un lien" }),
   ).toBeOnTheScreen();
+  expect(screen.getByRole("alert", { name: "Lien retiré." })).toBeOnTheScreen();
   expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
   expect(Alert.alert).toHaveBeenCalledTimes(1);
   expect(
