@@ -160,7 +160,20 @@ export function PresentationForm({
         await saveClub(values, baseline);
         return;
       }
-      const accepted = await onSave(values);
+      // Prefilled automatic names must not become manual overrides when another field is saved.
+      const submitted =
+        baseline?.kind === "team" || baseline?.kind === "pool"
+          ? {
+              ...values,
+              name: dirtyFields.name
+                ? values.name
+                : (baseline.data.names.manualName ?? ""),
+              shortName: dirtyFields.shortName
+                ? values.shortName
+                : (baseline.data.names.manualShortName ?? ""),
+            }
+          : values;
+      const accepted = await onSave(submitted);
       if (accepted && mounted.current) {
         acceptPresentation(accepted);
       }
@@ -255,13 +268,7 @@ export function PresentationForm({
     editor.replaceLogo({ action: "automatic" });
   }
 
-  const sourceNameSuffix = names?.sourceName ? ` : ${names.sourceName}` : "";
-  const nameHelper =
-    kind === "club"
-      ? (names?.sourceName ?? undefined)
-      : names
-        ? `Laisser vide rétablit le nom automatique${sourceNameSuffix}.`
-        : undefined;
+  const automaticName = names?.sourceName ?? undefined;
 
   /** Presents draft, conflict and lifecycle actions against the existing mounted form owners. */
   function renderActions() {
@@ -404,7 +411,7 @@ export function PresentationForm({
                   onBlur={field.onBlur}
                   editable={!busy}
                   error={fieldState.error?.message}
-                  helper={nameHelper}
+                  helper={automaticName}
                 />
               );
             }}
@@ -422,7 +429,7 @@ export function PresentationForm({
                   onBlur={field.onBlur}
                   editable={!busy}
                   error={fieldState.error?.message}
-                  helper="Laisser vide rétablit le nom court automatique."
+                  helper={automaticName}
                 />
               )}
             />
