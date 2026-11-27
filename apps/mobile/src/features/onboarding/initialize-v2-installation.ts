@@ -19,7 +19,7 @@ export function initializeV2Installation(auth0: Auth0): Promise<void> {
 }
 
 /**
- * Writes only the initialization flag, leaving discovery, age and other installation state intact.
+ * Writes only the initialization flag, leaving discovery and other installation state intact.
  * @param auth0 Native client responsible for clearing retained credentials.
  */
 async function initialize(auth0: Auth0): Promise<void> {

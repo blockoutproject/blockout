@@ -125,6 +125,8 @@ Apply the [accepted native image-preparation limits](research.md#prepared-images
 
 ## Native UI and approved design
 
+Compare [the Access section](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=8880-651) using the feature owners' native cases. Observe the centered three-row band of empty neutral tiles, its clipping at the shared stage or Login viewport edges, opposite middle-row travel, stable positioning during card movement, and the still arrangement after changing system reduced motion while Access is open. Distribute theme, narrow width and enlarged copy cases across the representative screens.
+
 Accessibility qualification follows [F13 FR-030](spec.md#platforms-accessibility-and-bounded-continuity).
 
 Choose distinct representative compositions for the changed shared mechanisms under [the qualification model](plan.md#proportionate-qualification). Inspect copy, theme, width and busy-action properties through existing frames/components rather than drawing each combination. Keep short notes only for interactions the composition cannot show and record review history/coverage outside the canvas. Across those cases cover ordinary keyboard/focus, labels/roles/states, narrow/enlarged content, reduced motion and both themes; do not repeat each consumer state on every combination. Dedicated VoiceOver/TalkBack campaigns remain excluded for current and future work unless explicitly requested by the owner.

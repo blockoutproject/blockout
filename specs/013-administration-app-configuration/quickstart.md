@@ -112,7 +112,7 @@ Across representative compositions, verify both themes, ordinary form keyboard/f
 
 Open representative Collection and sporting editors with current grants. In each visit, enter a draft and fail only the current-account GET when the client returns to the foreground. Known matching grants keep each route admitted. The common card masks each form while its required read is unavailable and preserves the mounted draft. Restore the read and verify that Retry sends only the account GET and reveals the same draft. Then withdraw one grant through the [owner procedure](../../infra/operations/README.md#owner-only-action-grants) and obtain a successful current-account read. The affected scope closes and a separately authorized operational route remains available.
 
-Compare the blocking-screen backdrop with the [native composition](plan.md#mobile-state-and-native-behavior): the compact rail stack stays centered as a whole, the one-way loop joins seamlessly, and reduced motion stays still.
+Compare the [native restriction layouts](plan.md#mobile-state-and-native-behavior) using the [shared Access backdrop cases](../003-shared-quality/quickstart.md#native-ui-and-approved-design). Verify the configured maintenance image and bundled fallback, the still under reduced motion, the authorized “Accès administrateur” entry, and the required-update store action.
 
 ## Native versions and release boundaries
 

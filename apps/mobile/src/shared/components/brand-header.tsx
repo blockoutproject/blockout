@@ -9,11 +9,11 @@ export interface BrandHeaderProps {
   children?: ReactNode;
 }
 
-/** Shares entry branding and trailing actions across discovery, age and admission; Page owns the native safe area. */
+/** Shares entry branding and trailing actions across discovery and admission; Page owns the native safe area. */
 export function BrandHeader({ children }: Readonly<BrandHeaderProps>) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.header, { borderColor: colors.border }]}>
+    <View style={styles.header}>
       <View style={styles.brand} accessible accessibilityLabel="Blockout">
         <BrandMark />
         <Text
@@ -40,8 +40,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: tokens.layout.brandHeader,
-    paddingBottom: tokens.spacing.lg,
-    borderBottomWidth: tokens.border.thin,
   },
   brand: {
     flexDirection: "row",

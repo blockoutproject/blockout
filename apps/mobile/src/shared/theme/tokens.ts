@@ -363,17 +363,12 @@ export const tokens = {
       lineHeight: 30,
       letterSpacing: -0.12,
     },
-    // UI Library Heading/XL and Display/Age (3681:14), used by Product Design 6650:4930.
+    // UI Library Heading/XL supports larger headings across discovery and sporting content.
     headingXl: {
       fontFamily: "Outfit-Bold",
       fontSize: 32,
       lineHeight: 38,
       letterSpacing: -0.32,
-    },
-    displayAge: {
-      fontFamily: "Outfit-SemiBold",
-      fontSize: 36,
-      lineHeight: 50.4,
     },
     navigation: { fontFamily: "Outfit-Bold", fontSize: 16, lineHeight: 22 },
     // UI Library bottom navigation 223:415 / 3305:1849; native text scaling supplies enlarged variants.

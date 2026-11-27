@@ -8,7 +8,6 @@ import {
 import { ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { useRouter } from "expo-router";
-import Constants from "expo-constants";
 import { SquarePen } from "lucide-react-native";
 import { IconButton } from "@/shared/components/icon-button";
 import type { ReactNode } from "react";
@@ -22,6 +21,7 @@ import { useCurrentAccount } from "../api/use-current-account";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileLegalLinks } from "../components/public-account-links";
 import { AccountRecovery } from "../components/account-recovery";
+import { AppVersionLabel } from "../components/app-version-label";
 import { ProfileLoading } from "../components/profile-loading";
 import { ProfileIdentity } from "../components/profile-identity";
 import { ProfileSignIn } from "../components/profile-sign-in";
@@ -182,9 +182,7 @@ export function ProfileScreen({
           />
         </View>
       )}
-      <Text style={[styles.version, { color: colors.secondaryText }]}>
-        Version {Constants.expoConfig?.version}
-      </Text>
+      <AppVersionLabel style={{ color: colors.secondaryText }} />
     </ProfileContent>
   );
 }
@@ -270,5 +268,4 @@ function ProfileHeader({
 const styles = StyleSheet.create({
   actions: { gap: tokens.layout.actions.gap },
   group: { gap: tokens.spacing.md },
-  version: { ...tokens.typography.metadata, textAlign: "center" },
 });
