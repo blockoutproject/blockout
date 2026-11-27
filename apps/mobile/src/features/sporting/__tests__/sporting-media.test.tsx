@@ -298,9 +298,13 @@ it("retains the logo when its optional atmosphere fails to decode", async () => 
   );
   const slot = screen.getByRole("image", { name: `Logo : ${identity.name}` });
   await fireEvent(within(slot).getByTestId("sporting-logo-image"), "display");
+  const halo = screen.getByTestId("sporting-logo-atmosphere");
+  expect(halo).not.toBeVisible();
 
   // When
-  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "error", {
+  await fireEvent(halo, "load");
+  expect(halo).toBeVisible();
+  await fireEvent(halo, "error", {
     nativeEvent: { error: "Atmosphere decoding failed" },
   });
 

@@ -2657,6 +2657,8 @@ it.each([
       cache: "reload",
     });
     expect(card.getByTestId("sporting-logo-fallback")).toBeVisible();
+    expect(halo).not.toBeVisible();
+    await fireEvent(halo, "load");
     if (kind === "team") {
       expect(halo).toBeVisible();
     } else {

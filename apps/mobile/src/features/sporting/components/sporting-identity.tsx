@@ -91,7 +91,7 @@ export function SportingDivisionAtmosphere({
   division,
 }: Readonly<{ division: SportingDivisionResponse }>) {
   const { uri } = useSportingLogo(division, "division");
-  return uri ? <ArtworkHalo uri={uri} /> : null;
+  return uri ? <ArtworkHalo uri={uri} visible /> : null;
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */

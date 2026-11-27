@@ -3,10 +3,14 @@ import {
   ArtworkHalo,
   type ArtworkHaloTreatment,
 } from "@/shared/components/artwork-halo";
-import { BlurredArtwork } from "@/shared/components/blurred-artwork";
+import {
+  artworkOpacityTransition,
+  BlurredArtwork,
+} from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -187,11 +191,21 @@ export interface SportingCoverProps {
 /** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
 export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
   const image = useNativeImageLifecycle(uri);
+  const { reducedMotion } = useTheme();
+  const shown = image.status === "displayed";
   return image.status === "failed" ? null : (
-    <View
+    <Animated.View
       pointerEvents="none"
       accessible={false}
-      style={[styles.artwork, image.status === "pending" && styles.hidden]}
+      style={[
+        styles.artwork,
+        {
+          ...artworkOpacityTransition,
+          opacity: shown ? 1 : 0,
+          transitionDuration:
+            shown && !reducedMotion ? tokens.motion.compact.duration : 0,
+        },
+      ]}
     >
       <BlurredArtwork
         key={image.attemptKey}
@@ -211,12 +225,11 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
           },
         ]}
       />
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  hidden: { opacity: 0 },
   fallback: { alignItems: "center", justifyContent: "center" },
   artwork: {
     ...StyleSheet.absoluteFill,

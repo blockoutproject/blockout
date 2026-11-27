@@ -1,4 +1,5 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
 import Svg, {
   Defs,
   G,
@@ -12,7 +13,7 @@ import { useId } from "react";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { BlurredArtwork } from "./blurred-artwork";
+import { artworkOpacityTransition, BlurredArtwork } from "./blurred-artwork";
 import { MaskedView } from "./masked-view";
 
 const halo = tokens.media.halo;
@@ -51,7 +52,7 @@ interface ArtworkHaloProps {
   uri: string;
   treatment?: ArtworkHaloTreatment;
   testID?: string;
-  /** A same-source halo can load in parallel but waits for the foreground to draw. */
+  /** Sporting halos blend after decoding and any required foreground display. */
   visible?: boolean;
   onError?: () => void;
 }
@@ -61,16 +62,18 @@ export function ArtworkHalo({
   uri,
   treatment = "identity",
   testID = "sporting-logo-atmosphere",
-  visible = true,
+  visible,
   onError,
 }: Readonly<ArtworkHaloProps>) {
   const image = useNativeImageLifecycle(uri);
   const id = useId();
-  const { scheme } = useTheme();
+  const { scheme, reducedMotion } = useTheme();
   if (image.status === "failed") {
     return null;
   }
 
+  const shown =
+    visible === undefined || (visible && image.status === "displayed");
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const radial = treatments[treatment];
@@ -80,14 +83,19 @@ export function ArtworkHalo({
     center: `${(leadingFade + artworkWidth * center) * 100}%`,
   }));
   return (
-    <View
+    <Animated.View
       accessible={false}
       pointerEvents="none"
       style={[
         styles.halo,
         treatment === "standingsRow" ? styles.compact : styles.centered,
         {
-          opacity: visible ? halo.opacity[scheme] : 0,
+          ...artworkOpacityTransition,
+          opacity: shown ? halo.opacity[scheme] : 0,
+          transitionDuration:
+            visible && shown && !reducedMotion
+              ? tokens.motion.compact.duration
+              : 0,
           // MaskedView's legacy native manager cannot apply the Fabric blend mode.
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
         },
@@ -148,6 +156,7 @@ export function ArtworkHalo({
           testID={testID}
           uri={uri}
           blurRadius={halo.blur}
+          onLoad={visible === undefined ? undefined : image.onDisplay}
           onError={() => {
             image.onError();
             onError?.();
@@ -155,7 +164,7 @@ export function ArtworkHalo({
           style={styles.image}
         />
       </MaskedView>
-    </View>
+    </Animated.View>
   );
 }
 

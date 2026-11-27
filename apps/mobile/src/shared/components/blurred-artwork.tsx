@@ -4,6 +4,14 @@ import {
   type ImageStyle,
   type StyleProp,
 } from "react-native";
+import { cubicBezier } from "react-native-reanimated";
+import { tokens } from "@/shared/theme/tokens";
+
+/** Shared opacity transition for optional artwork already inside a readable surface. */
+export const artworkOpacityTransition = {
+  transitionProperty: "opacity",
+  transitionTimingFunction: cubicBezier(...tokens.motion.compact.easing),
+} as const;
 
 /** Decorative image inputs; the caller retains source lifetime, sizing and shared decode-failure ownership. */
 export interface BlurredArtworkProps {
