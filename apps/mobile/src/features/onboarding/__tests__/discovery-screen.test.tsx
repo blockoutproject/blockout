@@ -131,7 +131,9 @@ it("keeps interruption and back navigation incomplete", async () => {
   ]);
   const user = userEvent.setup();
   const view = await openDiscovery();
-  await user.press(await screen.findByRole("button", { name: "Suivant" }));
+  expect(await screen.findByLabelText("Étape 1 sur 5")).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Suivant" }));
+  expect(screen.getByLabelText("Étape 2 sur 5")).toBeOnTheScreen();
   expect(
     screen.getByRole("header", { name: "Ne rate pas le résultat" }),
   ).toBeOnTheScreen();
@@ -140,6 +142,7 @@ it("keeps interruption and back navigation incomplete", async () => {
   await user.press(screen.getByRole("button", { name: "Étape précédente" }));
 
   // Then
+  expect(screen.getByLabelText("Étape 1 sur 5")).toBeOnTheScreen();
   expect(
     screen.getByRole("header", { name: "Trouve ton prochain match" }),
   ).toBeOnTheScreen();

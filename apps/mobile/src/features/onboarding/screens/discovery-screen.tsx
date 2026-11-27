@@ -39,6 +39,7 @@ import {
 import Animated, {
   cancelAnimation,
   Easing,
+  interpolateColor,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
@@ -90,6 +91,8 @@ const steps: readonly DiscoveryStep[] = [
   },
 ];
 const finalStep = steps.length - 1;
+const dotSize = 5;
+const activeDotWidth = 19;
 
 function DiscoveryPane({
   content,
@@ -166,6 +169,32 @@ function DiscoveryPane({
       </AccessStageScrollView>
     </Animated.View>
   );
+}
+
+function DiscoveryProgressDot({
+  index,
+  step,
+  position,
+}: Readonly<{
+  index: number;
+  step: number;
+  position: SharedValue<number>;
+}>) {
+  const { colors, reducedMotion } = useTheme();
+  const animatedStyle = useAnimatedStyle(() => {
+    const distance = Math.abs(index - (reducedMotion ? step : position.get()));
+    // Neighboring dots trade width so the footer does not shift as the card moves.
+    const emphasis = Math.max(0, 1 - distance);
+    return {
+      width: dotSize + (activeDotWidth - dotSize) * emphasis,
+      backgroundColor: interpolateColor(
+        emphasis,
+        [0, 1],
+        [colors.secondaryText, colors.text],
+      ),
+    };
+  });
+  return <Animated.View style={[styles.dot, animatedStyle]} />;
 }
 
 /** Common discovery releases this session on explicit finish/skip, independently of flag persistence. */
@@ -273,17 +302,12 @@ export function DiscoveryScreen() {
             accessibilityLabel={`Étape ${step + 1} sur ${steps.length}`}
             style={styles.progress}
           >
-            {steps.map((item, index) => (
-              <View
-                key={item.title}
-                style={[
-                  styles.dot,
-                  {
-                    width: index === step ? 19 : 5,
-                    backgroundColor:
-                      index === step ? colors.text : colors.secondaryText,
-                  },
-                ]}
+            {steps.map((content, index) => (
+              <DiscoveryProgressDot
+                key={content.title}
+                index={index}
+                step={step}
+                position={position}
               />
             ))}
           </View>
@@ -363,6 +387,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: tokens.spacing.tight,
   },
-  dot: { height: 5, borderRadius: tokens.radius.full },
+  dot: { height: dotSize, borderRadius: tokens.radius.full },
   trailingAction: { marginLeft: "auto", maxWidth: "100%" },
 });
