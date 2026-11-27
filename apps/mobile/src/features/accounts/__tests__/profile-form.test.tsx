@@ -52,6 +52,8 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
+  useRoute: () => ({ key: "profile-edit" }),
+  useIsFocused: () => true,
   useNavigation: () => ({ dispatch: mockNavigate }),
   usePathname: () => "/profile/edit",
   useRouter: () => mockRouter,

@@ -1,7 +1,7 @@
 import { isResourceReadRefused } from "@/shared/api/access-denied";
 import { PageFlatList } from "@/shared/components/page-list";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import {
   AppState,
   Platform,
@@ -31,7 +31,11 @@ import { ScreenState } from "@/shared/components/screen-state";
 
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { AccountSessionFeedback } from "@/features/accounts/current-account";
+import {
+  AccountSessionFeedback,
+  useOpenSignInInvitation,
+} from "@/features/accounts/current-account";
+
 import {
   MatchSummary,
   useConsultationQueries,
@@ -100,7 +104,7 @@ export function OwnContributionsScreen({
 }: Readonly<OwnContributionsScreenProps>) {
   const editing = useOwnContributions(matchId);
   const match = useQuery(useConsultationQueries().match(matchId));
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { query, change, submit, session } = editing;
@@ -199,12 +203,7 @@ export function OwnContributionsScreen({
                 {session.status === "guest" ? (
                   <Button
                     label="Se connecter"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/sign-in-invitation",
-                        params: { reason: "contribution" },
-                      })
-                    }
+                    onPress={() => openSignInInvitation("contribution")}
                   />
                 ) : session.status !== "authenticated" ? (
                   <AccountSessionFeedback

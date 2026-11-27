@@ -11,3 +11,5 @@ export {
 export { AccountSessionFeedback } from "./components/account-session-feedback";
 
 export { AccountRecovery } from "./components/account-recovery";
+
+export { useOpenSignInInvitation } from "./navigation/open-sign-in-invitation";

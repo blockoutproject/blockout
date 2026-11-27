@@ -84,12 +84,17 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "mobile-audience",
   });
   jest.mocked(initializeV2Installation).mockResolvedValue();
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
   mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|synthetic"));
+  mockAuth0.webAuth
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|synthetic"));
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
@@ -98,6 +103,9 @@ beforeEach(() => {
     }
     if (path.endsWith("/me")) {
       return Response.json(accountResponse());
+    }
+    if (path === "/accounts" && init?.method === "POST") {
+      return Response.json(accountResponse(), { status: 201 });
     }
     if (path.includes("/stream-contributions")) {
       return Response.json(
@@ -303,6 +311,28 @@ it.each([
   },
 );
 
+async function openGuestMatch() {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  await renderRouter(
+    {
+      _layout: Layout,
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "sign-in-invitation": InvitationRoute,
+    },
+    { initialUrl: `/matches/${match.match.id}` },
+  );
+}
+
 it.each([
   {
     action: "Proposer un lien",
@@ -320,30 +350,12 @@ it.each([
     invitation: "Connectez-vous pour signaler ce lien de diffusion",
   },
 ])(
-  "opens the contextual guest invitation for $action",
+  "signs in from the contextual $action invitation without replaying the protected action",
   async ({ action, publicLink, description, invitation }) => {
     // Given
     match = { ...match, ...publicLink };
-    jest.replaceProperty(
-      proSessionModule,
-      "proSession",
-      proSessionModule.createProSession(),
-    );
-    prepareProNativeIO();
-    mockAuth0.hasValidCredentials.mockResolvedValue(false);
     const user = userEvent.setup();
-    await renderRouter(
-      {
-        _layout: Layout,
-        index: () => (
-          <AdvertisingProviders>
-            <MatchScreen matchId={match.match.id} />
-          </AdvertisingProviders>
-        ),
-        "sign-in-invitation": InvitationRoute,
-      },
-      { initialUrl: "/" },
-    );
+    await openGuestMatch();
     const entry = await screen.findByRole("button", { name: action });
     const [firstSection, nextSection] = screen.getAllByRole("header", {
       name: /^(Lien de diffusion|Informations)$/,
@@ -366,8 +378,74 @@ it.each([
       ),
     ).toBe(false);
     expect(Alert.alert).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen).toHavePathname(`/matches/${match.match.id}`),
+    );
+    expect(
+      await screen.findByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(invitation)).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .filter(([, init]) => init?.method === "POST")
+        .map(([url]) => new URL(String(url)).pathname),
+    ).toEqual(["/accounts"]);
   },
 );
+
+it("lets the active match keep navigation when a dismissed invitation settles", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  if (!peer) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  mockFetch.mockImplementation((url, init) =>
+    init?.method === "POST" && new URL(String(url)).pathname === "/accounts"
+      ? response.promise
+      : peer(url, init),
+  );
+  const user = userEvent.setup();
+  await openGuestMatch();
+  await user.press(
+    await screen.findByRole("button", { name: "Proposer un lien" }),
+  );
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
+  try {
+    // When: the ordinary entry remains mounted as its explicit connection waits for establishment.
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/accounts$/),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeBusy();
+    await user.press(screen.getByRole("button", { name: "Fermer" }));
+    expect(screen).toHavePathname(`/matches/${match.match.id}`);
+  } finally {
+    await act(() =>
+      response.resolve(Response.json(accountResponse(), { status: 201 })),
+    );
+  }
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Lien de diffusion" }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname(`/matches/${match.match.id}`);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(1);
+});
 
 it("keeps history revoked when a refused match opens it before technical mount reads fail", async () => {
   // Given: the real match screen keeps its F08 observer mounted after public data is refused.

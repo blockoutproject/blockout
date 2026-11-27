@@ -465,13 +465,13 @@ it("shows separate current teams and pools in Following and opens their exact sp
   // When
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
-  const teamLink = await screen.findByRole("link", { name: /Étoile/ });
-  const clubLink = await screen.findByRole("link", {
-    name: "Voir le club Club du Port",
+  const teamLink = await screen.findByRole("link", {
+    name: `Étoile, ${club.name}, ${older.label}`,
   });
   const poolLink = await screen.findByRole("link", { name: /Poule A/ });
+  expect(within(teamLink).getByText(club.name)).toBeOnTheScreen();
+  expect(screen.getAllByRole("link", { name: /Club du Port/ })).toHaveLength(1);
   await userEvent.press(teamLink);
-  await userEvent.press(clubLink);
   await userEvent.press(poolLink);
 
   // Then
@@ -485,10 +485,7 @@ it("shows separate current teams and pools in Following and opens their exact sp
     pathname: "/teams/[teamId]",
     params: { teamId: team.id },
   });
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/clubs/[clubId]",
-    params: { clubId: club.id },
-  });
+  expect(mockPush).toHaveBeenCalledTimes(2);
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/pools/[poolId]",
     params: { poolId: newer.id },
@@ -974,7 +971,7 @@ it("removes the personal selector when its actual session signs out and uses the
   ).not.toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/sign-in-invitation",
-    params: { reason: "follow" },
+    params: { reason: "follow", returnTo: "/" },
   });
   expect(client).not.toBe(originalClient);
   expect(originalClient.getQueryCache().getAll()).toHaveLength(0);

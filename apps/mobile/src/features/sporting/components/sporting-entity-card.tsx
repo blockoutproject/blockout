@@ -23,7 +23,7 @@ const entityBadgeSize = 24;
 
 export interface SportingEntityCardProps extends SportingEntityCardData {
   layout?: "discovery" | "club-team";
-  /** The screen receives the exact primary or associated club destination. */
+  /** The screen receives the exact card destination. */
   onOpen?(kind: SportingEntityCardProps["kind"], id: string): void;
 }
 
@@ -41,8 +41,6 @@ export function SportingEntityCard({
 }: Readonly<SportingEntityCardProps>) {
   const { colors } = useTheme();
   const clubTeam = layout === "club-team";
-  const linkedClub =
-    onOpen && !clubTeam && club?.name.trim() ? club : undefined;
   const supportingText = club?.name ?? subtitle;
   const division = classification?.division;
   const divisionContent = division
@@ -164,7 +162,7 @@ export function SportingEntityCard({
                 >
                   {identity.name}
                 </Text>
-                {!linkedClub && supportingText && (
+                {supportingText && (
                   <Text
                     style={[
                       tokens.typography.metadata,
@@ -189,45 +187,14 @@ export function SportingEntityCard({
         style={[StyleSheet.absoluteFill, styles.edge, { borderColor: outline }]}
       />
     );
-    const primary = {
-      accessible: true,
-      accessibilityRole: "link" as const,
-      accessibilityLabel: label,
-      onPress: () => onOpen?.(kind, identity.id),
-    };
-    if (linkedClub) {
-      return (
-        <View style={style}>
-          <Pressable {...primary}>
-            {atmosphere}
-            {content}
-          </Pressable>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`Voir le club ${linkedClub.name}`}
-            onPress={() => onOpen?.("club", linkedClub.id)}
-            style={({ pressed }) => [
-              styles.relatedClub,
-              pressed && { opacity: tokens.opacity.pressed },
-            ]}
-          >
-            <Text
-              style={[styles.relatedClubName, { color: colors.secondaryText }]}
-            >
-              Club - <Text>{linkedClub.name}</Text>
-            </Text>
-            <ChevronRight
-              accessible={false}
-              size={tokens.size.icon.sm}
-              color={colors.icon}
-            />
-          </Pressable>
-          {border}
-        </View>
-      );
-    }
     return onOpen ? (
-      <Pressable {...primary} style={style}>
+      <Pressable
+        accessible
+        accessibilityRole="link"
+        accessibilityLabel={label}
+        onPress={() => onOpen(kind, identity.id)}
+        style={style}
+      >
         {atmosphere}
         {content}
         {border}
@@ -343,9 +310,7 @@ function EntityCardSkeleton({
             />
             <View style={styles.name}>
               <TextSkeleton role="navigation" />
-              {kind !== "club" && kind !== "team" && (
-                <TextSkeleton role="metadata" width="75%" />
-              )}
+              {kind !== "club" && <TextSkeleton role="metadata" width="75%" />}
             </View>
             <Skeleton
               width={tokens.size.icon.sm}
@@ -357,17 +322,6 @@ function EntityCardSkeleton({
               <Skeleton key={width} width={width} height={badgeHeight} />
             ))}
           </View>
-          {kind === "team" && (
-            <View style={styles.relatedClub}>
-              <View style={styles.relatedClubName}>
-                <TextSkeleton role="metadata" width="72%" />
-              </View>
-              <Skeleton
-                width={tokens.size.icon.sm}
-                height={tokens.size.icon.sm}
-              />
-            </View>
-          )}
         </>
       )}
       <View
@@ -423,14 +377,6 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   name: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
-  relatedClub: {
-    minHeight: tokens.touch.minimum,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: tokens.spacing.lg,
-    gap: tokens.spacing.sm,
-  },
-  relatedClubName: { ...tokens.typography.metadata, flex: 1, minWidth: 0 },
   metadata: {
     flexDirection: "row",
     flexWrap: "wrap",

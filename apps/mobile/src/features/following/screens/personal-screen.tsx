@@ -8,7 +8,9 @@ import {
   useCurrentAccount,
   AccountSessionFeedback,
   AccountRecovery,
+  useOpenSignInInvitation,
 } from "@/features/accounts/current-account";
+
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { useSingleContentReveal } from "@/shared/components/content-reveal";
 import { BrandMark } from "@/shared/components/brand-mark";
@@ -66,7 +68,7 @@ export function PersonalScreen() {
   const { motion: guestRevealStyle } = useSingleContentReveal(
     focused && session.status === "guest",
   );
-  const router = useRouter();
+  const openSignInInvitation = useOpenSignInInvitation();
   const scope = usePersonalSeasonScope();
   const authenticated = session.status === "authenticated";
   const pending =
@@ -82,12 +84,7 @@ export function PersonalScreen() {
             <Animated.View style={guestRevealStyle}>
               <Button
                 label="Se connecter"
-                onPress={() =>
-                  router.push({
-                    pathname: "/sign-in-invitation",
-                    params: { reason: "follow" },
-                  })
-                }
+                onPress={() => openSignInInvitation("follow")}
               />
             </Animated.View>
           </ScreenState>
