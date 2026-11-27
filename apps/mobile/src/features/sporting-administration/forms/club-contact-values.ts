@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { safeWebsite } from "@/shared/native/safe-website";
 import type { ClubContactPatch, ClubContacts } from "../api/club-contacts";
 
 const contact = z.object({
@@ -34,18 +35,7 @@ export const clubContactDraftSchema = clubContactFields.superRefine(
     }
     if (website.mode === "manual" && website.value) {
       const value = website.value.trim();
-      let url: URL | undefined;
-      try {
-        url = new URL(value);
-      } catch {
-        // A partially edited URL is allowed until Save.
-      }
-      if (
-        !url ||
-        !/^https?:\/\/[^/]/i.test(value) ||
-        url.username ||
-        url.password
-      ) {
+      if (!/^https?:\/\/[^/]/i.test(value) || !safeWebsite(value)) {
         context.addIssue({
           code: "custom",
           path: ["website"],

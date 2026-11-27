@@ -5,8 +5,6 @@ import {
   PageScrollView,
   type PageScrollViewProps,
 } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
-import { ScreenState } from "@/shared/components/screen-state";
 import { useRouter } from "expo-router";
 import { SquarePen } from "lucide-react-native";
 import { IconButton } from "@/shared/components/icon-button";
@@ -20,20 +18,19 @@ import { AdministrationEntry } from "@/features/access/entry";
 import { useCurrentAccount } from "../api/use-current-account";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileLegalLinks } from "../components/public-account-links";
-import { AccountRecovery } from "../components/account-recovery";
 import { AppVersionLabel } from "../components/app-version-label";
 import { ProfileLoading } from "../components/profile-loading";
+import { profileReadFeedback } from "../components/profile-read-feedback";
 import { ProfileIdentity } from "../components/profile-identity";
+import { useContextualSignIn } from "../hooks/use-contextual-sign-in";
 import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
-import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "@/shared/components/page-header";
 
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 /** Ordinary account overview; route-owned account controls and membership retain their independent authorities. */
 export interface ProfileScreenProps {
@@ -64,53 +61,17 @@ export function ProfileScreen({
 
   const { colors } = useTheme();
   const { saving, refresh } = useProfileRefresh(account);
-  const connected = session.status === "authenticated";
-  const recovery = accountSessionRecovery(session);
-
-  /** Keeps whole-page account/session recovery separate from an already admitted profile. */
-  function readFeedback() {
-    if (!admitted) {
-      return (
-        <ScreenState>
-          <ErrorState />
-        </ScreenState>
-      );
-    }
-    if (
-      recovery.pending ||
-      (connected &&
-        account.isPending &&
-        account.isFetching &&
-        !hasReadError(account))
-    ) {
-      return (
-        <PageContent>
-          <ProfileLoading />
-        </PageContent>
-      );
-    }
-    if (recovery.failed) {
-      return (
-        <ScreenState>
-          <AccountRecovery error={account.error}>
-            <ErrorState onRetry={recovery.onRetry} />
-          </AccountRecovery>
-        </ScreenState>
-      );
-    }
-    if (connected && (account.isPending || hasReadError(account))) {
-      return (
-        <ScreenState>
-          <AccountRecovery error={account.error}>
-            <ReadFeedback query={account} loadingContent={null} />
-          </AccountRecovery>
-        </ScreenState>
-      );
-    }
-    return undefined;
-  }
-
-  const blockingContent = readFeedback();
+  const signIn = useContextualSignIn(admitted);
+  const showInvitation = admitted && signIn.visible;
+  const connected = session.status === "authenticated" && !showInvitation;
+  const blockingContent = showInvitation
+    ? null
+    : profileReadFeedback({
+        admitted,
+        session,
+        account,
+        loadingContent: <ProfileLoading />,
+      });
   if (blockingContent) {
     return (
       <Page
@@ -143,7 +104,8 @@ export function ProfileScreen({
       account={connected ? (account.data ?? undefined) : undefined}
       disabled={!account.isSuccess}
       onEdit={() => router.push("/profile/edit")}
-      onSignIn={() => router.push("/sign-in")}
+      onSignIn={signIn.start}
+      signingIn={signIn.pending}
     >
       <AdministrationEntry />
       <View style={styles.group}>
@@ -194,6 +156,7 @@ function ProfileContent({
   disabled,
   onEdit,
   onSignIn,
+  signingIn,
   children,
 }: Readonly<{
   refreshControl: PageScrollViewProps["refreshControl"];
@@ -201,6 +164,7 @@ function ProfileContent({
   disabled: boolean;
   onEdit: () => void;
   onSignIn: () => void;
+  signingIn: boolean;
   children: ReactNode;
 }>) {
   const photo = useProfilePhoto(
@@ -221,7 +185,7 @@ function ProfileContent({
           {account ? (
             <ProfileIdentity account={account} photo={photo} />
           ) : (
-            <ProfileSignIn onSignIn={onSignIn} />
+            <ProfileSignIn onSignIn={onSignIn} loading={signingIn} />
           )}
           {children}
         </PageContent>

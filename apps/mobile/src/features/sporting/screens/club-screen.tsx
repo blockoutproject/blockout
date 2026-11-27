@@ -40,21 +40,15 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ReloadButton } from "@/shared/components/reload-button";
-import {
-  EntryGroup,
-  EntryGroupSeparator,
-} from "@/shared/components/entry-group";
+import { EntryGroupSeparator } from "@/shared/components/entry-group";
 import { SeasonSelector } from "@/shared/components/season-selector";
-import { SelectionRow } from "@/shared/components/selection-row";
+import { SelectionList } from "@/shared/components/selection-list";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import type { ClubDetailResponse } from "../../../../.generated/schemas/index.zod";
 
 import { SportingIdentity } from "../components/sporting-identity";
-import {
-  ContactLink,
-  phoneDestination,
-  safeWebsite,
-} from "../components/contact-link";
+import { ContactLink, phoneDestination } from "../components/contact-link";
+import { safeWebsite } from "@/shared/native/safe-website";
 
 const noSeasonTitle = "Aucune saison disponible";
 
@@ -144,19 +138,14 @@ function ClubTabs({
         />
       </View>
       {choosingSeason && (
-        <EntryGroup>
-          {seasons.map((item) => (
-            <SelectionRow
-              key={item.id}
-              label={item.label}
-              selected={item.id === season.id}
-              onPress={() => {
-                setSelectedSeason(item.id);
-                setChoosingSeason(false);
-              }}
-            />
-          ))}
-        </EntryGroup>
+        <SelectionList
+          options={seasons.map(({ id, label }) => ({ value: id, label }))}
+          selected={season.id}
+          onSelect={(id) => {
+            setSelectedSeason(id);
+            setChoosingSeason(false);
+          }}
+        />
       )}
     </View>
   ) : undefined;

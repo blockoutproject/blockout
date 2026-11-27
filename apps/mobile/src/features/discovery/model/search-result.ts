@@ -1,24 +1,12 @@
-import type {
-  SportingIdentityResponse,
-  SportingClassificationResponse,
-  SportingSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
+import {
+  sportingEntityCardData,
+  sportingEntityCardKey,
+  type SportingEntityCardData,
+} from "@/features/sporting/entity-card-data";
 import { uniquePageRows } from "@/shared/query/infinite-pages";
 import type { DiscoveryPage } from "../api/discovery-queries";
 
-/** Available public summary slots; missing context never produces invented identity or classification. */
-export interface SearchResult {
-  kind: "club" | "team" | "pool";
-  identity: SportingIdentityResponse;
-  city?: string;
-  subtitle?: string;
-  club?: SportingIdentityResponse;
-  classification?: SportingClassificationResponse;
-  season?: SportingSeasonResponse;
-}
-
-/** Maps current generated summaries to available presentation slots without storing a second result collection. */
-export function searchResults(page: DiscoveryPage): SearchResult[] {
+function searchResults(page: DiscoveryPage): SportingEntityCardData[] {
   if ("clubs" in page) {
     return page.clubs.map(({ club, city }) => ({
       kind: "club",
@@ -27,24 +15,9 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
     }));
   }
   if ("teams" in page) {
-    return page.teams.map(({ team, club, season, classification }) => ({
-      kind: "team",
-      identity: team,
-      club,
-      season,
-      classification,
-    }));
+    return page.teams.map(sportingEntityCardData);
   }
-  return page.pools.map(
-    ({ pool, season, classification, competitionName, phaseName }) => ({
-      kind: "pool",
-      identity: pool,
-      subtitle:
-        [competitionName, phaseName].filter(Boolean).join(" - ") || undefined,
-      season,
-      classification,
-    }),
-  );
+  return page.pools.map(sportingEntityCardData);
 }
 
 /**
@@ -53,8 +26,9 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
  */
 export function uniqueSearchResults(
   pages: readonly DiscoveryPage[] | undefined,
-): SearchResult[] {
-  return uniquePageRows((pages ?? []).flatMap(searchResults), (item) =>
-    item.identity.id.toLowerCase(),
+) {
+  return uniquePageRows(
+    (pages ?? []).flatMap(searchResults),
+    sportingEntityCardKey,
   );
 }

@@ -6,8 +6,7 @@ import {
 } from "../../../../.generated/schemas/index.zod";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { ErrorState } from "@/shared/components/state-card";
-import { EntryGroup } from "@/shared/components/entry-group";
-import { SelectionRow } from "@/shared/components/selection-row";
+import { SelectionList } from "@/shared/components/selection-list";
 import { useSupportVisit } from "../forms/support-visit";
 import {
   supportKindLabels,
@@ -35,37 +34,32 @@ export function SupportChoice({ field }: Readonly<SupportChoiceProps>) {
   }
   const choices = Object.entries(
     field === "kind" ? supportKindLabels : supportSubjectLabels,
-  );
+  ).map(([value, label]) => ({ value, label }));
   return (
     <Sheet
       title={field === "kind" ? "Nature de la demande" : "Sujet (facultatif)"}
       onClose={() => router.back()}
     >
       <SheetContent>
-        <EntryGroup>
-          {choices.map(([value, label]) => (
-            <SelectionRow
-              key={value}
-              label={label}
-              selected={values[field] === value}
-              onPress={() => {
-                if (field === "kind") {
-                  form.setValue(field, SupportRequestKindEnum.parse(value), {
-                    shouldDirty: true,
-                    shouldTouch: true,
-                  });
-                } else {
-                  form.setValue(
-                    field,
-                    value === "" ? "" : SupportRequestSubjectEnum.parse(value),
-                    { shouldDirty: true, shouldTouch: true },
-                  );
-                }
-                router.back();
-              }}
-            />
-          ))}
-        </EntryGroup>
+        <SelectionList
+          options={choices}
+          selected={values[field]}
+          onSelect={(value) => {
+            if (field === "kind") {
+              form.setValue(field, SupportRequestKindEnum.parse(value), {
+                shouldDirty: true,
+                shouldTouch: true,
+              });
+            } else {
+              form.setValue(
+                field,
+                value === "" ? "" : SupportRequestSubjectEnum.parse(value),
+                { shouldDirty: true, shouldTouch: true },
+              );
+            }
+            router.back();
+          }}
+        />
       </SheetContent>
     </Sheet>
   );

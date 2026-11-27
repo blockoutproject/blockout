@@ -158,10 +158,12 @@ async function mount() {
     {
       index: Journey,
       "sign-in-invitation": () => (
-        <SignInInvitationScreen
-          admitted
-          message="Connectez-vous pour utiliser Blockout Pro"
-        />
+        <ActionFeedbackProvider scopeKey="invitation">
+          <SignInInvitationScreen
+            admitted
+            message="Connectez-vous pour utiliser Blockout Pro"
+          />
+        </ActionFeedbackProvider>
       ),
     },
     { initialUrl: "/", wrapper: Owners },

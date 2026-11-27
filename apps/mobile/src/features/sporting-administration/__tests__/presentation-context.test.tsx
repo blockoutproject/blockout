@@ -39,6 +39,7 @@ import {
 import { completeDiscovery } from "@/features/onboarding/discovery-state";
 import { TeamScreen } from "@/features/sporting/screens/team-screen";
 import { PoolScreen } from "@/features/sporting/screens/pool-screen";
+import { emptyClubContacts } from "../test-support/club-contacts";
 
 // Root, F05/F12 admission, F03 reads, F02 fields and F10 navigation remain real.
 // Only native SDK/storage/file boundaries and HTTP are controlled.
@@ -178,21 +179,7 @@ beforeEach(async () => {
       });
     }
     if (path === `/administration/clubs/${resourceId}/contacts`) {
-      const contact = {
-        mode: "source",
-        sourceValue: null,
-        effectiveValue: null,
-        manualValue: null,
-      };
-      return Response.json({
-        clubId: resourceId,
-        address: contact,
-        city: contact,
-        postalCode: contact,
-        email: contact,
-        phone: contact,
-        website: contact,
-      });
+      return Response.json(emptyClubContacts(resourceId));
     }
     if (path === `/teams/${resourceId}` || path === `/pools/${resourceId}`) {
       return publicRead(path);

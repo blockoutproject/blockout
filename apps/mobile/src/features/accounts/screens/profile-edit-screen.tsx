@@ -1,23 +1,22 @@
-import { Page, PageContent } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
+import { Page } from "@/shared/components/page";
 import { ScreenState } from "@/shared/components/screen-state";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
-import { AccountRecovery } from "../components/account-recovery";
 import { ProfileLoading } from "../components/profile-loading";
-import { accountSessionRecovery } from "../session/account-session-recovery";
+import { profileReadFeedback } from "../components/profile-read-feedback";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "@/shared/components/page-header";
 
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileSupportAction } from "../components/profile-support-action";
+import { useContextualSignIn } from "../hooks/use-contextual-sign-in";
 import { SignInInvitationCard } from "../components/sign-in-invitation";
-import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError } from "@/shared/components/read-feedback";
 
 /** Ordinary admission gates editing independently from identity-only account reads. */
 export interface ProfileEditScreenProps {
@@ -30,7 +29,6 @@ export function ProfileEditScreen({
 }: Readonly<ProfileEditScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
-  const router = useRouter();
   const navigation = useNavigation();
   const { saving, refresh } = useProfileRefresh(account);
 
@@ -39,66 +37,32 @@ export function ProfileEditScreen({
     navigation.dispatch(StackActions.popTo("index"));
   }
 
-  const recovery = accountSessionRecovery(session);
-
-  /** Recovery never mounts an editor before the current account and session are usable. */
-  function readFeedback() {
-    if (!admitted) {
-      return (
-        <ScreenState>
-          <ErrorState />
-        </ScreenState>
-      );
-    }
-    if (
-      recovery.pending ||
-      (session.status === "authenticated" &&
-        account.isPending &&
-        account.isFetching &&
-        !hasReadError(account))
-    ) {
-      return (
-        <PageContent>
-          <ProfileLoading editor />
-        </PageContent>
-      );
-    }
-    if (recovery.failed) {
-      return (
-        <ScreenState>
-          <AccountRecovery error={account.error}>
-            <ErrorState onRetry={recovery.onRetry} />
-          </AccountRecovery>
-        </ScreenState>
-      );
-    }
-    if (session.status === "guest") {
-      return (
-        <ScreenState>
-          <SignInInvitationCard
-            message="Connectez-vous pour modifier votre profil."
-            onSignIn={() => router.replace("/sign-in")}
-          />
-        </ScreenState>
-      );
-    }
-    if (
-      session.status === "authenticated" &&
-      (account.isPending || hasReadError(account))
-    ) {
-      return (
-        <ScreenState>
-          <AccountRecovery error={account.error}>
-            <ReadFeedback query={account} loadingContent={null} />
-          </AccountRecovery>
-        </ScreenState>
-      );
-    }
-    return null;
-  }
+  const signIn = useContextualSignIn(admitted);
+  const showInvitation = admitted && signIn.visible;
+  const blockingContent = showInvitation ? (
+    <ScreenState>
+      <SignInInvitationCard
+        message="Connectez-vous pour modifier votre profil."
+        onSignIn={signIn.start}
+        loading={signIn.pending}
+      />
+    </ScreenState>
+  ) : (
+    profileReadFeedback({
+      admitted,
+      session,
+      account,
+      loadingContent: <ProfileLoading editor />,
+    })
+  );
 
   let content;
-  if (admitted && session.status === "authenticated" && account.data) {
+  if (
+    admitted &&
+    !showInvitation &&
+    session.status === "authenticated" &&
+    account.data
+  ) {
     content = (
       <ProfileForm
         key={`${session.subject}:${account.data.accountId}`}
@@ -111,13 +75,13 @@ export function ProfileEditScreen({
         }
         account={account.data}
         disabled={!account.isSuccess}
-        readFeedback={readFeedback()}
+        readFeedback={blockingContent}
         onCancel={close}
         onSaved={close}
       />
     );
   } else {
-    content = <FormScrollView>{readFeedback()}</FormScrollView>;
+    content = <FormScrollView>{blockingContent}</FormScrollView>;
   }
   return (
     <Page

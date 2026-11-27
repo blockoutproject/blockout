@@ -7,7 +7,7 @@ export function SelectionList<Value extends string | undefined>({
   onSelect,
 }: Readonly<{
   options: readonly { value: Value; label: string }[];
-  selected: Value;
+  selected: Value | undefined;
   onSelect: (value: Value) => void;
 }>) {
   return (

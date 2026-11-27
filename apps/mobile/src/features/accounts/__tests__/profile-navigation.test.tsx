@@ -1,6 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import {
+  TECHNICAL_ERROR,
+  TECHNICAL_ERROR_TITLE,
+} from "@/shared/components/error-copy";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
@@ -32,6 +35,7 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { AccountSessionProvider } from "../session/account-session-provider";
+import { SignInScreen } from "../screens/sign-in-screen";
 import { ProfileScreen } from "../screens/profile-screen";
 import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import { EraseAccountScreen } from "../screens/erase-account-screen";
@@ -98,6 +102,7 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "mobile-audience",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
@@ -188,7 +193,7 @@ async function openProfile(initialUrl = "/profile") {
       "(ordinary)/(tabs)/(discovery)/search": () => (
         <Text>Recherche ouverte</Text>
       ),
-      "sign-in": () => <Text>Connexion ouverte</Text>,
+      "sign-in": () => <SignInScreen admitted />,
       support: SupportProbe,
     },
     {
@@ -379,8 +384,9 @@ it("uses the contextual shared sign-in invitation for a guest editor", async () 
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
   // Then
-  expect(screen).toHavePathname("/sign-in");
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(await screen.findByLabelText("Pseudo")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/profile/edit");
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
 });
 
 it("creates a canonically absent account only from the editor's explicit illustrated action", async () => {
@@ -538,9 +544,95 @@ it("offers sign-in and independent public links to a guest without profile-editi
   await user.press(signIn);
 
   // Then
-  expect(await screen.findByText("Connexion ouverte")).toBeOnTheScreen();
-  expect(screen).toHavePathname("/sign-in");
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(await screen.findByText("Original")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/profile");
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  {
+    name: "native cancellation",
+    code: "a0.session.user_cancelled",
+    showsError: false,
+  },
+  { name: "a native failure", code: "a0.network_error", showsError: true },
+])(
+  "keeps the guest Profile invitation after $name",
+  async ({ code, showsError }) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    mockAuth0.webAuth.mockRejectedValueOnce({
+      code,
+      message: "Private provider detail",
+    });
+    const user = userEvent.setup();
+    await openProfile();
+    const signIn = await screen.findByRole("button", { name: "Se connecter" });
+
+    // When
+    await user.press(signIn);
+
+    // Then
+    await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1));
+    expect(screen).toHavePathname("/profile");
+    expect(
+      await screen.findByRole("button", { name: "Se connecter" }),
+    ).toBeEnabled();
+    if (showsError) {
+      expect(
+        await screen.findByRole("alert", { name: `${TECHNICAL_ERROR_TITLE}.` }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    }
+    expect(screen.queryByText("Private provider detail")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+    ).toHaveLength(0);
+
+    // When: another route opens ordinary Login.
+    await act(() => router.push("/sign-in"));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Continuer en tant qu’invité",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  },
+);
+
+it("keeps the Profile invitation after failed establishment even when the native subject changed", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  mockFetch.mockImplementation(async (_, request) =>
+    request?.method === "POST"
+      ? Response.json(
+          { status: 422, code: "provider-email-unavailable" },
+          { status: 422 },
+        )
+      : Response.json(account),
+  );
+  const user = userEvent.setup();
+  await openProfile();
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: `${TECHNICAL_ERROR_TITLE}.` }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname("/profile");
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Modifier mon profil" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+  ).toHaveLength(1);
 });
 
 it("opens the guest overview on the first Profile tab press after erasure", async () => {
@@ -845,7 +937,9 @@ it.each([
 
     // Then: this action opens the existing route without retrying a read or starting hosted login.
     expect(screen).toHavePathname("/sign-in");
-    expect(screen.getByText("Connexion ouverte")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    ).toBeOnTheScreen();
     expect(mockFetch).toHaveBeenCalledTimes(reads);
     expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   },

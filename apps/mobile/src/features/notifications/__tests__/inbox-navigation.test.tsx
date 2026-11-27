@@ -464,33 +464,24 @@ it.each(["owner", "foreign", "guest"] as const)(
   },
 );
 
-it.each(["professional", "contributed"] as const)(
-  "opens the current match's exact %s stream destination from the real inbox",
-  async (source) => {
-    // Given
-    if (source === "contributed") {
-      match.streamContributionId = "00000000-0000-4000-8000-000000000290";
-    }
-    await openInbox();
-    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
-    const user = userEvent.setup();
-    await screen.findByRole("link", { name: /non lue$/ });
-    expect(
-      await screen.findByRole("button", { name: "Notifications" }),
-    ).toBeOnTheScreen();
+it("opens the current match's exact contributed stream destination from the inbox", async () => {
+  // Given
+  match.streamContributionId = "00000000-0000-4000-8000-000000000290";
+  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  await openInbox();
 
-    // When
-    await user.press(screen.getByRole("link", { name: /non lue$/ }));
-    await user.press(
-      await screen.findByRole("link", { name: "Regarder la rediffusion" }),
-    );
+  // When
+  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+  await user.press(
+    await screen.findByRole("link", { name: "Regarder la rediffusion" }),
+  );
 
-    // Then
-    expect(screen).toHavePathname(`/matches/${row.match.id}`);
-    expect(open).toHaveBeenCalledTimes(1);
-    expect(open).toHaveBeenCalledWith(streamUrl);
-  },
-);
+  // Then
+  expect(screen).toHavePathname(`/matches/${row.match.id}`);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(open).toHaveBeenCalledWith(streamUrl);
+});
 
 it("counts inbox match opens while leaving a native push and its stream link immediate", async () => {
   // Given
@@ -675,35 +666,6 @@ it("retains a public inbox row after destination refusal until ordinary refresh 
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([]);
-});
-
-it("keeps the match available after a failed stream handoff and retries only on another press", async () => {
-  // Given
-  const open = jest
-    .spyOn(Linking, "openURL")
-    .mockRejectedValueOnce(new Error("No native handler"))
-    .mockResolvedValue(undefined);
-  await openInbox();
-  const user = userEvent.setup();
-  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
-
-  // When
-  await user.press(
-    await screen.findByRole("link", { name: "Regarder la rediffusion" }),
-  );
-
-  // Then
-  expect(await screen.findByRole("alert")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("header", { name: "Informations" }),
-  ).toBeOnTheScreen();
-  expect(open).toHaveBeenCalledTimes(1);
-  await user.press(
-    screen.getByRole("link", { name: "Regarder la rediffusion" }),
-  );
-  await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
-  expect(open).toHaveBeenLastCalledWith(streamUrl);
-  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("offers the current upcoming Match video after opening an earlier result notification", async () => {

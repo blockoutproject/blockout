@@ -7,13 +7,12 @@ import {
   type Ref,
 } from "react";
 import { ArrowUpRight } from "lucide-react-native";
-import { Controller, useForm, useFormState } from "react-hook-form";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useForm, useFormState } from "react-hook-form";
+import { StyleSheet, Text, View } from "react-native";
 import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { Button } from "@/shared/components/button";
-import { TextField } from "@/shared/components/text-field";
 import { IconButton } from "@/shared/components/icon-button";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { Surface } from "@/shared/components/surface";
@@ -26,6 +25,10 @@ import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
+import {
+  ContributionUrlField,
+  ContributionWithdrawalButton,
+} from "./contribution-form-controls";
 import { contributionValues } from "./contribution-values";
 import { ContributionStateBadge } from "../components/contribution-state-badge";
 import {
@@ -48,7 +51,7 @@ export interface ModerationPublicationFormHandle {
   refresh: () => Promise<void>;
 }
 
-/** Reuses ContributionForm's header withdrawal, address field and full-width replacement composition. */
+/** The active link can be opened or withdrawn independently of the moderator's publication draft. */
 export function ModerationPublicationForm({
   current,
   editing,
@@ -158,46 +161,16 @@ export function ModerationPublicationForm({
           </IconButton>
         )}
         {active?.canWithdraw && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retirer"
-            accessibilityState={{
-              disabled: withdrawalDisabled,
-            }}
+          <ContributionWithdrawalButton
             disabled={withdrawalDisabled}
             onPress={onWithdraw}
-            style={styles.withdraw}
-          >
-            <Text
-              style={[
-                tokens.typography.body,
-                { color: colors.error, textDecorationLine: "underline" },
-              ]}
-            >
-              Retirer
-            </Text>
-          </Pressable>
+          />
         )}
       </View>
       <View style={styles.form}>
-        <Controller
+        <ContributionUrlField
           control={control}
-          name="url"
-          render={({ field, fieldState }) => (
-            <TextField
-              ref={field.ref}
-              label="Adresse du lien"
-              value={field.value}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-              error={fieldState.error?.message}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              editable={!busy && !!current?.canPublish}
-              helper="YouTube, Twitch ou Facebook"
-            />
-          )}
+          editable={!busy && !!current?.canPublish}
         />
         {current && !current.canPublish && (
           <Text
@@ -234,10 +207,4 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   title: tokens.typography.title,
-  withdraw: {
-    minHeight: tokens.touch.minimum,
-    minWidth: tokens.touch.minimum,
-    justifyContent: "center",
-    alignItems: "center",
-  },
 });
