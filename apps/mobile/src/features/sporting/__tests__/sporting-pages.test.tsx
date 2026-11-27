@@ -2660,7 +2660,7 @@ it.each([
     expect(halo).not.toBeVisible();
     await fireEvent(halo, "load");
     if (kind === "team") {
-      expect(halo).toBeVisible();
+      await waitFor(() => expect(halo).toBeVisible());
     } else {
       expect(halo).not.toBeVisible();
     }
@@ -2670,7 +2670,7 @@ it.each([
 
     // Then
     expect(card.queryByTestId("sporting-logo-fallback")).not.toBeOnTheScreen();
-    expect(halo).toBeVisible();
+    await waitFor(() => expect(halo).toBeVisible());
   },
 );
 

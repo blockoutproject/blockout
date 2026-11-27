@@ -11,6 +11,11 @@ import { TextInput, View } from "react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { SportingCover, SportingMedia } from "../components/sporting-media";
 
+// Assert visibility ordering at the native animation boundary. Device recordings cover the blend.
+jest.mock("react-native-reanimated", () =>
+  jest.requireActual("react-native-reanimated/mock"),
+);
+
 it("uses the neutral missing-image fallback even when a short name is available", async () => {
   // Given
   const identity = {
@@ -114,7 +119,7 @@ it("shows the ordinary fallback and hides an already loaded halo until the logo 
     screen.getByRole("image", { name: `Logo : ${identity.name}`, busy: false }),
   ).toBeOnTheScreen();
   expect(screen.queryByTestId("sporting-logo-fallback")).not.toBeOnTheScreen();
-  expect(halo).toBeVisible();
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeVisible();
 });
 
 it("retains a non-card media skeleton until a pending logo fails", async () => {
@@ -266,7 +271,7 @@ it("removes decorative artwork after a native decoding error event", async () =>
   });
   expect(cover).not.toBeVisible();
   await fireEvent(cover, "load");
-  expect(cover).toBeVisible();
+  expect(screen.getByTestId("sporting-decorative-cover")).toBeVisible();
 
   // When
   await fireEvent(cover, "error", {
@@ -305,7 +310,7 @@ it("retains the logo when its optional atmosphere fails to decode", async () => 
 
   // When
   await fireEvent(halo, "load");
-  expect(halo).toBeVisible();
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeVisible();
   await fireEvent(halo, "error", {
     nativeEvent: { error: "Atmosphere decoding failed" },
   });
