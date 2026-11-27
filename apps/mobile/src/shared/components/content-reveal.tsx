@@ -49,21 +49,28 @@ interface ContentRevealStyle {
 }
 
 /** One presentation samples the visible blocks. Recycled views read the same elapsed animation. */
-export function useContentReveal() {
-  const { ready, precedingElapsed } = useContext(ContentRevealContext);
+export function useContentReveal(active: boolean) {
+  const { ready: admitted, precedingElapsed } =
+    useContext(ContentRevealContext);
+  const ready = active && admitted;
   const { reducedMotion } = useTheme();
   // Null waits for the initial sample. An empty sample keeps every block settled.
   const order = useSharedValue<readonly string[] | null>(null);
   const elapsed = useSharedValue(0);
   const started = useRef(false);
 
+  useLayoutEffect(() => {
+    // A retained scene may return before its original entrance would have finished.
+    if (started.current && (!ready || reducedMotion)) {
+      order.set([]);
+      elapsed.set(revealDuration);
+    }
+  }, [elapsed, order, ready, reducedMotion]);
+
   const start = useCallback(
     (visibleKeys: readonly string[]) => {
-      if (!ready) {
-        return false;
-      }
-      if (started.current) {
-        return true;
+      if (!ready || started.current) {
+        return;
       }
       started.current = true;
       scheduleOnUI(
@@ -99,7 +106,6 @@ export function useContentReveal() {
         visibleKeys,
         reducedMotion,
       );
-      return true;
     },
     [elapsed, order, precedingElapsed, ready, reducedMotion],
   );
@@ -109,7 +115,7 @@ export function useContentReveal() {
     elapsed,
     reducedMotion,
   };
-  return { start, started, style };
+  return { ready, start, started, style };
 }
 
 /** Captures shared values directly so each mounted portion observes its owner's progress. */
@@ -160,12 +166,10 @@ export function ContentRevealBlock({
 
 /** Uses the same reveal for one existing content block once its owner presents it. */
 export function useSingleContentReveal(visible: boolean) {
-  const { style, start } = useContentReveal();
+  const { style, start } = useContentReveal(visible);
   useLayoutEffect(() => {
-    if (visible) {
-      start(["content"]);
-    }
-  }, [start, visible]);
+    start(["content"]);
+  }, [start]);
 
   return {
     motion: useContentRevealStyle(style, "content"),

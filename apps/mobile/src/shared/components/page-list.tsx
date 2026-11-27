@@ -6,6 +6,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ComponentProps,
+  type ComponentRef,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -34,8 +36,6 @@ import { useBottomContentInset } from "./bottom-content-inset";
 import { ContentRevealBlock, type ContentReveal } from "./content-reveal";
 
 interface ListRevealOptions<T> {
-  /** A retained scene can wait until it is selected and its content is ready. */
-  active?: boolean;
   /** Omit structural rows or group cells. Sticky cells reveal their content inside the stationary backing. */
   blockKey?: (item: T) => string | undefined;
   /** Keep the first presentation when feedback or a traversal replaces the scroller. */
@@ -175,6 +175,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
           reveal={reveal}
           keyExtractor={pageProps.keyExtractor}
           paddingTop={clearance.paddingTop}
+          stickyInset={stickyInset}
         />
       ) : (
         <LegendList {...nativeProps} />
@@ -186,6 +187,7 @@ export function PageList<T>(pageProps: Readonly<PageListProps<T>>) {
 function RevealingLegendList<T>({
   reveal,
   paddingTop,
+  stickyInset,
   ref: list,
   onReady,
   onMetricsChange,
@@ -195,17 +197,18 @@ function RevealingLegendList<T>({
   LegendListProps<T> &
     RevealingRows<T> & {
       paddingTop: number;
+      stickyInset: number;
       ref: AnimatedRef<LegendListRef>;
     }
 >) {
-  const { active = true, blockKey = props.keyExtractor, presentation } = reveal;
-  const { start, started } = presentation;
+  const { blockKey = props.keyExtractor, presentation } = reveal;
+  const { ready, start, started } = presentation;
   const laidOut = useRef(false);
   const headerHeight = useRef(0);
   const bottomInset = useBottomContentInset();
   const items = props.data;
   const present = useCallback(() => {
-    if (!active || !laidOut.current || started.current || !items?.length) {
+    if (!ready || !laidOut.current || started.current || !items?.length) {
       return;
     }
     const viewport = list.current?.getState();
@@ -213,12 +216,9 @@ function RevealingLegendList<T>({
       return;
     }
     // LegendList's item coordinates exclude the list's header and content padding.
-    const visibleEnd =
-      viewport.scroll +
-      viewport.scrollLength -
-      headerHeight.current -
-      paddingTop -
-      bottomInset;
+    const origin = viewport.scroll - headerHeight.current - paddingTop;
+    const visibleStart = origin + stickyInset;
+    const visibleEnd = origin + viewport.scrollLength - bottomInset;
     const keys = new Set<string>();
     for (
       let index = viewport.start;
@@ -226,7 +226,12 @@ function RevealingLegendList<T>({
       index++
     ) {
       const top = viewport.positionAtIndex(index);
-      if (top === undefined || top >= visibleEnd) {
+      if (
+        top === undefined ||
+        top >= visibleEnd ||
+        (top < visibleStart &&
+          top + viewport.sizeAtIndex(index) <= visibleStart)
+      ) {
         continue;
       }
       const key = blockKey(items[index], index);
@@ -235,7 +240,17 @@ function RevealingLegendList<T>({
       }
     }
     start([...keys]);
-  }, [active, blockKey, bottomInset, items, list, paddingTop, start, started]);
+  }, [
+    blockKey,
+    bottomInset,
+    items,
+    list,
+    paddingTop,
+    ready,
+    start,
+    started,
+    stickyInset,
+  ]);
   useLayoutEffect(present, [present]);
 
   return (
@@ -280,6 +295,7 @@ type PageFlatListProps<T> = NativeFlatListProps<T> &
     | { reveal?: never }
     | (RevealingRows<T> & {
         /** The standard reveal owns the native viewability observer. */
+        CellRendererComponent?: never;
         onViewableItemsChanged?: never;
         viewabilityConfig?: never;
         viewabilityConfigCallbackPairs?: never;
@@ -289,10 +305,8 @@ type PageFlatListProps<T> = NativeFlatListProps<T> &
 /** FlatList consumers keep their data and native ref while reserving the same header clearance. */
 export function PageFlatList<T>(pageProps: Readonly<PageFlatListProps<T>>) {
   const { contentContainerStyle, ref, reveal, ...props } = pageProps;
-  const { offset, clearance, refreshControl } = usePageScrollBinding(
-    contentContainerStyle,
-    props.refreshControl,
-  );
+  const { offset, stickyInset, clearance, refreshControl } =
+    usePageScrollBinding(contentContainerStyle, props.refreshControl);
   const list = useAnimatedRef<FlatList<T>>();
   useScrollOffset(offset ? list : null, offset ?? undefined);
   useImperativeHandle<FlatList<T> | null, FlatList<T> | null>(
@@ -313,6 +327,7 @@ export function PageFlatList<T>(pageProps: Readonly<PageFlatListProps<T>>) {
       {reveal ? (
         <RevealingFlatList
           {...nativeProps}
+          stickyInset={stickyInset}
           reveal={reveal}
           keyExtractor={pageProps.keyExtractor}
         />
@@ -323,49 +338,90 @@ export function PageFlatList<T>(pageProps: Readonly<PageFlatListProps<T>>) {
   );
 }
 
-// Let FlatList collect the initial cell layouts before reporting its first visible batch.
-const initialViewability = {
-  itemVisiblePercentThreshold: 1,
-  minimumViewTime: 16,
-};
-
 function RevealingFlatList<T>({
   reveal,
   renderItem,
+  ref: list,
+  stickyInset,
   ...props
-}: Readonly<NativeFlatListProps<T> & RevealingRows<T>>) {
-  const { active = true, blockKey = props.keyExtractor, presentation } = reveal;
-  const { start, started } = presentation;
-  const snapshot = useRef<readonly string[] | undefined>(undefined);
+}: Readonly<
+  FlatListProps<T> &
+    RevealingRows<T> & { ref: AnimatedRef<FlatList<T>>; stickyInset: number }
+>) {
+  const { blockKey = props.keyExtractor, presentation } = reveal;
+  const { ready, start, started } = presentation;
+  const bottomInset = useBottomContentInset();
+  const cells = useRef(new Map<number, ComponentRef<typeof View>>());
+  const items = props.data;
+
+  // FlatList keeps its in-flow cell and handlers. Only mounted cells can enter the first read.
+  const Cell = useCallback(
+    ({
+      index,
+      children,
+      onFocusCapture,
+      onLayout,
+      style,
+    }: ComponentProps<
+      NonNullable<FlatListProps<T>["CellRendererComponent"]>
+    >) => (
+      <View
+        ref={(view) => {
+          if (view && !started.current) {
+            cells.current.set(index, view);
+            return () => {
+              cells.current.delete(index);
+            };
+          }
+        }}
+        style={style}
+        onFocusCapture={onFocusCapture}
+        onLayout={onLayout}
+      >
+        {children}
+      </View>
+    ),
+    [started],
+  );
+
   const present = useCallback(() => {
-    const keys = snapshot.current;
-    if (active && keys && start(keys)) {
-      snapshot.current = undefined;
+    if (!ready || started.current || !items?.length) {
+      return;
     }
-  }, [active, start]);
+    const viewport = list.current?.getNativeScrollRef();
+    if (!viewport?.clientHeight) {
+      return;
+    }
+    const bounds = viewport.getBoundingClientRect();
+    const top = bounds.top + stickyInset;
+    const bottom = bounds.bottom - bottomInset;
+    const keys = new Set<string>();
+    let hasMeasuredCard = false;
+    for (const [index, cell] of [...cells.current].sort(([a], [b]) => a - b)) {
+      const key = blockKey(items[index], index);
+      if (key === undefined) {
+        continue;
+      }
+      const row = cell.getBoundingClientRect();
+      if (row.height > 0) {
+        hasMeasuredCard = true;
+        if (Math.max(top, row.top) < Math.min(bottom, row.bottom)) {
+          keys.add(key);
+        }
+      }
+    }
+    if (hasMeasuredCard) {
+      start([...keys]);
+      cells.current.clear();
+    }
+  }, [blockKey, bottomInset, items, list, ready, start, started, stickyInset]);
   useLayoutEffect(present, [present]);
   return (
     <FlatList
       {...props}
-      viewabilityConfig={initialViewability}
-      onViewableItemsChanged={(event) => {
-        if (!started.current) {
-          const keys = new Set<string>();
-          for (const { item, index } of event.viewableItems) {
-            const key = index == null ? undefined : blockKey(item, index);
-            if (key !== undefined) {
-              keys.add(key);
-            }
-          }
-          // A loading list can report structural rows before it has content.
-          if (keys.size || (active && event.viewableItems.length)) {
-            snapshot.current = [...keys];
-            present();
-          } else {
-            snapshot.current = undefined;
-          }
-        }
-      }}
+      ref={list}
+      CellRendererComponent={Cell}
+      onViewableItemsChanged={present}
       renderItem={
         renderItem &&
         ((info) =>

@@ -27,8 +27,15 @@ jest.mock("@legendapp/list/react-native", () => {
         viewport.current &&
         Object.assign(viewport.current, {
           scrollToKey: () => Promise.resolve(),
-          // The native test renderer starts at rest and supplies no measured range.
-          getState: () => ({ scroll: 0, start: -1, end: -1 }),
+          // A native ready event admits one visible cell in the test viewport.
+          getState: () => ({
+            scroll: 0,
+            scrollLength: mockViewport.height,
+            start: 0,
+            end: 0,
+            positionAtIndex: () => 0,
+            sizeAtIndex: () => mockViewport.height,
+          }),
         }),
       [],
     );

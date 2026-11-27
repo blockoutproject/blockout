@@ -109,8 +109,12 @@ function ClubTabs({
   const { colors } = useTheme();
   const [selectedSeason, setSelectedSeason] = useState<string>();
   const [choosingSeason, setChoosingSeason] = useState(false);
+  const informationReveal = useSectionContentReveal(tab === "info");
   const data = club.data;
-  const seasons = data?.seasons ?? [];
+  if (!data) {
+    return null;
+  }
+  const seasons = data.seasons;
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
   // Reconcile only a successful current representation, so a failed read never discards the choice.
@@ -156,8 +160,7 @@ function ClubTabs({
       )}
     </View>
   ) : undefined;
-  const informationReveal = useSectionContentReveal(tab === "info");
-  const information = data ? (
+  const information = (
     <PageScrollView
       onLayout={informationReveal.onViewportLayout}
       alwaysBounceVertical
@@ -222,9 +225,9 @@ function ClubTabs({
         </RevealSection>
       </SectionContentReveal>
     </PageScrollView>
-  ) : undefined;
+  );
 
-  return data ? (
+  return (
     <PagedTabs
       key={season?.id}
       selected={tab}
@@ -317,7 +320,7 @@ function ClubTabs({
         };
       })}
     />
-  ) : null;
+  );
 }
 
 function ClubTeamsLoading() {
@@ -356,7 +359,7 @@ function ClubTeams({
   const hasItems = items.length > 0;
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
-  const presentation = useContentReveal();
+  const presentation = useContentReveal(active);
 
   /** Explicitly rereads only this season, including a failed observer awaiting its card action. */
   async function refresh() {
@@ -404,7 +407,7 @@ function ClubTeams({
           });
         }
       }}
-      reveal={{ active, presentation }}
+      reveal={{ presentation }}
       refreshControl={
         <DataRefreshControl
           onRefresh={refresh}

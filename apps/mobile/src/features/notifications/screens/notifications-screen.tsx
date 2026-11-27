@@ -107,7 +107,7 @@ function Inbox({
 }>) {
   const client = useQueryClient();
   const focused = useIsFocused();
-  const presentation = useContentReveal();
+  const presentation = useContentReveal(focused);
   const query = useInfiniteQuery({
     ...queries.inbox,
     enabled: (state) => focused && state.state.status !== "error",
@@ -225,7 +225,7 @@ function Inbox({
       <PageFlatList
         alwaysBounceVertical={rows.length > 0}
         data={rows}
-        reveal={{ active: focused, presentation }}
+        reveal={{ presentation }}
         onEndReached={() => {
           if (!query.isError) {
             void loadMore();

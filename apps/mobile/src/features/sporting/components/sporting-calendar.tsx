@@ -133,7 +133,7 @@ function calendarRevealKey(row: CalendarRow) {
 export function SportingCalendarView(
   props: Readonly<SportingCalendarViewProps>,
 ) {
-  const reveal = useContentReveal();
+  const reveal = useContentReveal(props.active ?? true);
   return (
     <CalendarViewport
       key={hashKey(props.queryKey)}
@@ -287,7 +287,7 @@ function CalendarViewport({
           });
         }
       }}
-      reveal={{ active, blockKey: calendarRevealKey, presentation: reveal }}
+      reveal={{ blockKey: calendarRevealKey, presentation: reveal }}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}
