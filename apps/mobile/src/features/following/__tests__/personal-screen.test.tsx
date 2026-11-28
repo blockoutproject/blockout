@@ -199,7 +199,7 @@ function PersonalJourneyStack() {
 }
 
 /** Provides real feature/query/session owners without mounting the application root. */
-async function mount(extra?: ReactNode) {
+async function mount(extra?: ReactNode, proAccent = false) {
   return renderRouter(
     {
       _layout: {
@@ -224,7 +224,7 @@ async function mount(extra?: ReactNode) {
       wrapper: ({ children }) => (
         <GestureHandlerRootView>
           <QueryClientProvider client={publicClient}>
-            <ThemeProvider>
+            <ThemeProvider proAccent={proAccent}>
               <ApplicationAccessProvider>
                 <AccountSessionProvider>
                   <AccountFeedbackProvider>
@@ -380,6 +380,25 @@ it("returns Home to Upcoming when its business UUID changes under the same nativ
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: older.label });
 });
+
+it.each([
+  { proAccent: false, title: "Blockout", otherTitle: "Blockout Pro" },
+  { proAccent: true, title: "Blockout Pro", otherTitle: "Blockout" },
+])(
+  "shows the $title heading on Home",
+  async ({ proAccent, title, otherTitle }) => {
+    // Given: the theme supplies the current membership appearance.
+
+    // When
+    await mount(undefined, proAccent);
+
+    // Then
+    expect(
+      await screen.findByRole("header", { name: title }),
+    ).toHaveTextContent(title);
+    expect(screen.queryByRole("header", { name: otherTitle })).toBeNull();
+  },
+);
 
 it("opens support from Home without changing personal data", async () => {
   // Given

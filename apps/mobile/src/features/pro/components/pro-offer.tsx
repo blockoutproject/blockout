@@ -1,6 +1,5 @@
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { BrandMark } from "@/shared/components/brand-mark";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { membershipColors, tokens } from "@/shared/theme/tokens";
 import { canShowProOffer } from "../pro-offering";
@@ -35,11 +34,10 @@ export function ProOffer() {
       ]}
     >
       <View style={styles.brand}>
-        <BrandMark size={tokens.size.icon.lg} />
         <Text style={[tokens.typography.label, { color: colors.text }]}>
           Blockout
         </Text>
-        <Text style={[tokens.typography.label, { color: premium.fill }]}>
+        <Text style={[tokens.typography.label, { color: premium.text }]}>
           Pro
         </Text>
       </View>

@@ -184,8 +184,20 @@ export const membershipColors = {
   },
   dark: { fill: "#F1F1F2", content: reference.neutral900, border: "#FFFFFF2E" },
   pro: {
-    light: { fill: "#E7D39B", content: "#201E19", border: "#C1AA68" },
-    dark: { fill: "#E2C985", content: "#201E19", border: "#A99662" },
+    light: {
+      fill: "#E7D39B",
+      content: "#201E19",
+      border: "#C1AA68",
+      text: "#886820",
+      wordmark: "#9E844C",
+    },
+    dark: {
+      fill: "#E2C985",
+      content: "#201E19",
+      border: "#A99662",
+      text: "#E2C985",
+      wordmark: "#CFAE70",
+    },
   },
 };
 
@@ -225,7 +237,7 @@ export const tokens = {
   // Safe-area and keyboard measurements remain native; these are content roles only.
   layout: {
     header: 48,
-    brandHeader: 69,
+    accessHeaderClearance: 69,
     width: { compact: 320 },
     content: { start: spacing.sm, end: spacing.lg },
     form: { gap: spacing.lg, labelGap: spacing.tight },
@@ -259,7 +271,6 @@ export const tokens = {
     },
   },
   size: {
-    brandMark: 28,
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
     media: { row: 40, entity: 48, match: 32, profile: 64 },

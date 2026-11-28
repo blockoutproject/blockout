@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { BadgeCheck } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import {
   useAccountSession,
@@ -58,11 +58,10 @@ export function ProEntry() {
         )
       }
       icon={
-        <Image
+        <BadgeCheck
           accessible={false}
-          source={require("../../../../assets/accounts/pro.png")}
-          contentFit="contain"
-          style={[styles.icon, { backgroundColor: colors.mediaPlaceholder }]}
+          size={tokens.size.icon.md}
+          color={colors.icon}
         />
       }
       onPress={() => {
@@ -77,11 +76,6 @@ export function ProEntry() {
 }
 
 const styles = StyleSheet.create({
-  icon: {
-    width: tokens.size.icon.md,
-    height: tokens.size.icon.md,
-    borderRadius: tokens.media.radius.compact,
-  },
   badge: {
     flexShrink: 1,
     borderWidth: tokens.border.thin,
