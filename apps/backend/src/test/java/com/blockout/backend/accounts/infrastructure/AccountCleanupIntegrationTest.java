@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,7 +42,6 @@ class AccountCleanupIntegrationTest {
   private String origin;
   private final List<String> requests = java.util.Collections.synchronizedList(new ArrayList<>());
   private final CompletableFuture<Void> release = new CompletableFuture<>();
-  private String identities = "[{\"provider\":\"auth0\",\"connection\":\"isolated-test\"}]";
   private int deleteStatus = 204;
   private boolean delay;
   private boolean progressive;
@@ -76,15 +74,10 @@ class AccountCleanupIntegrationTest {
               exchange.getResponseHeaders().set("Location", redirect);
             }
             byte[] body =
-                exchange.getRequestMethod().equals("GET")
-                    ? ("{\"user_id\":\"auth0|original\",\"identities\":" + identities + "}")
-                        .getBytes(StandardCharsets.UTF_8)
-                    : "{\"object\":\"customer\",\"deleted_at\":123}"
-                        .getBytes(StandardCharsets.UTF_8);
-            int status = exchange.getRequestMethod().equals("GET") ? 200 : deleteStatus;
+                "{\"object\":\"customer\",\"deleted_at\":123}".getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(status, status == 204 ? -1 : body.length);
-            if (status != 204) {
+            exchange.sendResponseHeaders(deleteStatus, deleteStatus == 204 ? -1 : body.length);
+            if (deleteStatus != 204) {
               for (byte value : body) {
                 exchange.getResponseBody().write(value);
                 if (progressive) {
@@ -130,82 +123,42 @@ class AccountCleanupIntegrationTest {
     }
   }
 
-  @Test
-  @DisplayName("Auth0 deletes the exact original principal through the official installed SDK")
-  void deletesExactAuth0Target() {
+  @ParameterizedTest(name = "Deletes the original {0} principal")
+  @ValueSource(strings = {"auth0", "google-oauth2", "apple"})
+  @DisplayName("Auth0 deletes the exact original principal in one request")
+  void deletesExactAuth0Target(String identityProvider) {
     // Given
-    AccountCleanup.Auth0 cleanup = auth0(Set.of("isolated-test"));
+    AccountCleanup.Auth0 cleanup = auth0();
 
     // When
-    Outcome result = cleanup.remove(origin + "/", "auth0|original");
+    Outcome result = cleanup.remove(origin + "/", identityProvider + "|original");
 
     // Then
     assertThat(result).isEqualTo(Outcome.REMOVED);
     assertThat(requests)
-        .containsExactly(
-            "GET /api/v2/users/auth0%7Coriginal", "DELETE /api/v2/users/auth0%7Coriginal");
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "[]",
-        "[{\"provider\":\"auth0\",\"connection\":\"foreign\"}]",
-        "[{\"provider\":\"auth0\",\"connection\":\"isolated-test-extra\"}]",
-        "[{\"provider\":\"auth0\",\"connection\":\"isolated-test\"},{\"provider\":\"apple\",\"connection\":\"apple\"}]",
-        "[{\"provider\":\"auth0\"}]"
-      })
-  @DisplayName("Refuses any absent or unconfigured Auth0 identity connection")
-  void refusesUnsafeIdentity(String evidence) {
-    // Given
-    identities = evidence;
-    AccountCleanup.Auth0 cleanup = auth0(Set.of("isolated-test"));
-
-    // When
-    Outcome result = cleanup.remove(origin + "/", "auth0|original");
-
-    // Then
-    assertThat(result).isEqualTo(Outcome.UNSAFE_SCOPE);
-    assertThat(requests).containsExactly("GET /api/v2/users/auth0%7Coriginal");
+        .containsExactly("DELETE /api/v2/users/" + identityProvider + "%7Coriginal");
   }
 
   @Test
-  @DisplayName("Configured linked Apple and Google connections use Auth0's revocation path")
-  void delegatesApplicableAppleRevocation() {
+  @DisplayName("Auth0 acknowledges an already absent original principal")
+  void acceptsAbsentAuth0Target() {
     // Given
-    identities =
-        "[{\"provider\":\"apple\",\"connection\":\"configured-apple\"},{\"provider\":\"google-oauth2\",\"connection\":\"configured-google\"}]";
-    AccountCleanup.Auth0 cleanup = auth0(Set.of("configured-apple", "configured-google"));
+    deleteStatus = 404;
+    AccountCleanup.Auth0 cleanup = auth0();
 
     // When
     Outcome result = cleanup.remove(origin + "/", "auth0|original");
 
     // Then
-    assertThat(result).isEqualTo(Outcome.REMOVED);
-    assertThat(requests)
-        .containsExactly(
-            "GET /api/v2/users/auth0%7Coriginal", "DELETE /api/v2/users/auth0%7Coriginal");
-  }
-
-  @Test
-  @DisplayName("An empty connection set skips Auth0 even when the SDK is configured")
-  void skipsAuth0WithoutConnections() {
-    // Given
-    AccountCleanup.Auth0 cleanup = auth0(Set.of());
-
-    // When
-    Outcome result = cleanup.remove(origin + "/", "auth0|original");
-
-    // Then
-    assertThat(result).isEqualTo(Outcome.NOT_CONFIGURED);
-    assertThat(requests).isEmpty();
+    assertThat(result).isEqualTo(Outcome.ABSENT);
+    assertThat(requests).containsExactly("DELETE /api/v2/users/auth0%7Coriginal");
   }
 
   @Test
   @DisplayName("A foreign issuer causes no Auth0 request")
   void refusesForeignIssuer() {
     // Given
-    AccountCleanup.Auth0 cleanup = auth0(Set.of("isolated-test"));
+    AccountCleanup.Auth0 cleanup = auth0();
 
     // When
     Outcome result = cleanup.remove("https://foreign.example.invalid/", "auth0|original");
@@ -213,20 +166,6 @@ class AccountCleanupIntegrationTest {
     // Then
     assertThat(result).isEqualTo(Outcome.UNSAFE_SCOPE);
     assertThat(requests).isEmpty();
-  }
-
-  @Test
-  @DisplayName("An Auth0 response for another subject causes no deletion")
-  void refusesDifferentReturnedSubject() {
-    // Given
-    AccountCleanup.Auth0 cleanup = auth0(Set.of("isolated-test"));
-
-    // When
-    Outcome result = cleanup.remove(origin + "/", "auth0|different");
-
-    // Then
-    assertThat(result).isEqualTo(Outcome.UNSAFE_SCOPE);
-    assertThat(requests).containsExactly("GET /api/v2/users/auth0%7Cdifferent");
   }
 
   @Test
@@ -359,10 +298,9 @@ class AccountCleanupIntegrationTest {
   /**
    * Builds the production Auth0 native transport over this synthetic peer, with SDK retries off.
    *
-   * @param connections exact configured identity connections
    * @return real SDK cleanup adapter
    */
-  private AccountCleanup.Auth0 auth0(Set<String> connections) {
+  private AccountCleanup.Auth0 auth0() {
     http =
         new Auth0Configuration()
             .auth0ManagementHttp(
@@ -378,8 +316,7 @@ class AccountCleanupIntegrationTest {
                 .maxRetries(0)
                 .addHeader("Authorization", "Bearer synthetic-token")
                 .build());
-    return new Auth0AccountCleanup(
-        Optional.of(client), properties(connections, "", ""), origin + "/");
+    return new Auth0AccountCleanup(Optional.of(client), origin + "/");
   }
 
   private AccountCleanup.RevenueCat revenueCat() {
@@ -395,20 +332,15 @@ class AccountCleanupIntegrationTest {
    */
   private AccountCleanup.RevenueCat revenueCat(String project, String key) {
     AccountCleanupConfiguration configuration = new AccountCleanupConfiguration();
-    AccountCleanupProperties properties = properties(Set.of(), project, key);
+    AccountCleanupProperties properties = properties(project, key);
     revenueHttp = configuration.revenueCatCleanupHttp(properties);
     revenueRequests = configuration.revenueCatCleanupRequests(properties, revenueHttp);
     return configuration.revenueCatAccountCleanup(
         RestClient.builder(), revenueRequests, properties);
   }
 
-  private AccountCleanupProperties properties(Set<String> connections, String project, String key) {
+  private AccountCleanupProperties properties(String project, String key) {
     return new AccountCleanupProperties(
-        connections,
-        URI.create(origin + "/v2"),
-        project,
-        key,
-        Duration.ofMillis(100),
-        Duration.ofMillis(300));
+        URI.create(origin + "/v2"), project, key, Duration.ofMillis(100), Duration.ofMillis(300));
   }
 }

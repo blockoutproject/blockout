@@ -67,7 +67,6 @@ import tools.jackson.databind.ObjectMapper;
 @Import(PostgresTestConfiguration.class)
 @TestPropertySource(
     properties = {
-      "blockout.accounts.cleanup.auth0-connections=",
       "blockout.accounts.cleanup.revenue-cat-project-id=",
       "blockout.accounts.cleanup.revenue-cat-secret-key="
     })

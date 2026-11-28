@@ -34,7 +34,7 @@ class AccountCleanupConfigurationTest {
           .withUserConfiguration(Settings.class);
 
   @Test
-  @DisplayName("The application YAML supplies no provider cleanup targets or credentials")
+  @DisplayName("The application YAML leaves RevenueCat cleanup unconfigured")
   void defaultsToUnconfigured() {
     // Given
     ApplicationContextRunner defaults = context;
@@ -45,7 +45,6 @@ class AccountCleanupConfigurationTest {
           // Then
           assertThat(application).hasNotFailed();
           AccountCleanupProperties properties = application.getBean(AccountCleanupProperties.class);
-          assertThat(properties.auth0Connections()).isEmpty();
           assertThat(properties.revenueCatSecretKey()).isEmpty();
           assertThat(properties.revenueCatProjectId()).isEmpty();
         });
@@ -68,8 +67,8 @@ class AccountCleanupConfigurationTest {
   }
 
   @Test
-  @DisplayName("Native optional SDK wiring stays absent when server registration is missing")
-  void permitsMissingProviderConfiguration() {
+  @DisplayName("Missing Auth0 server registration requires attention at erasure")
+  void reportsMissingAuth0Registration() {
     // Given
     ApplicationContextRunner missing = wired();
 
@@ -82,28 +81,8 @@ class AccountCleanupConfigurationTest {
                   application
                       .getBean(AccountCleanup.Auth0.class)
                       .remove("https://identity.example.invalid/", "auth0|synthetic"))
-              .isEqualTo(Outcome.NOT_CONFIGURED);
-          assertThat(application.getBean(PrincipalReader.class)).isNotNull();
-        });
-  }
-
-  @Test
-  @DisplayName("An Auth0 cleanup connection with no Management SDK requires attention")
-  void reportsMissingManagementSdkForConfiguredConnection() {
-    // Given
-    ApplicationContextRunner incomplete =
-        wired().withPropertyValues("blockout.accounts.cleanup.auth0-connections=synthetic");
-
-    // When
-    incomplete.run(
-        application -> {
-          // Then
-          assertThat(application).hasNotFailed();
-          assertThat(
-                  application
-                      .getBean(AccountCleanup.Auth0.class)
-                      .remove("https://identity.example.invalid/", "auth0|synthetic"))
               .isEqualTo(Outcome.MISSING_CONFIGURATION);
+          assertThat(application.getBean(PrincipalReader.class)).isNotNull();
         });
   }
 
@@ -139,8 +118,8 @@ class AccountCleanupConfigurationTest {
           assertThat(
                   application
                       .getBean(AccountCleanup.Auth0.class)
-                      .remove("https://identity.example.invalid/", "auth0|synthetic"))
-              .isEqualTo(Outcome.NOT_CONFIGURED);
+                      .remove("https://foreign.example.invalid/", "auth0|synthetic"))
+              .isEqualTo(Outcome.UNSAFE_SCOPE);
         });
   }
 

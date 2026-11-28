@@ -60,8 +60,8 @@ class ErasureDiagnosticsTest {
   }
 
   @Test
-  @DisplayName("Provider cleanup omitted from Local emits no manual-attention diagnostic")
-  void skipsDiagnosticsForIntentionallyUnconfiguredProviders() {
+  @DisplayName("Missing Auth0 credentials require attention while RevenueCat stays optional")
+  void reportsMissingAuth0Credentials() {
     // Given
     Logger logger = (Logger) LoggerFactory.getLogger(OriginalTargetCleanup.class);
     ListAppender<ILoggingEvent> events = new ListAppender<>();
@@ -70,7 +70,7 @@ class ErasureDiagnosticsTest {
     UUID original = UUID.fromString("00000000-0000-4000-8000-000000000280");
     OriginalTargetCleanup cleanup =
         new OriginalTargetCleanup(
-            (issuer, subject) -> Outcome.NOT_CONFIGURED,
+            (issuer, subject) -> Outcome.MISSING_CONFIGURATION,
             customer -> Outcome.NOT_CONFIGURED,
             mock(ImageObjects.class));
     try {
@@ -84,7 +84,10 @@ class ErasureDiagnosticsTest {
               null));
 
       // Then
-      assertThat(events.list).isEmpty();
+      assertThat(events.list).hasSize(1);
+      assertThat(events.list.getFirst().getKeyValuePairs().toString())
+          .contains("auth0|synthetic", "missing_configuration")
+          .doesNotContain("revenuecat");
     } finally {
       logger.detachAppender(events);
       events.stop();

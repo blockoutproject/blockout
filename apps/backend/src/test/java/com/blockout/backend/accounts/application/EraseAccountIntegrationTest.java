@@ -71,7 +71,6 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
  */
 @TestPropertySource(
     properties = {
-      "blockout.accounts.cleanup.auth0-connections=",
       "blockout.accounts.cleanup.revenue-cat-project-id=",
       "blockout.accounts.cleanup.revenue-cat-secret-key="
     })

@@ -28,7 +28,7 @@ public final class AccountCleanup {
   @FunctionalInterface
   public interface Auth0 {
     /**
-     * Checks the configured connection scope and attempts one delete of the captured principal.
+     * Checks the configured issuer and deletes the captured principal by exact subject.
      *
      * @param issuer captured original issuer
      * @param subject captured original subject

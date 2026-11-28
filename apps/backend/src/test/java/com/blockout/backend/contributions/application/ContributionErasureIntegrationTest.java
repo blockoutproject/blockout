@@ -31,7 +31,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Real F08 commands and F05 erasure retain sporting facts while clearing personal attribution. */
 @TestPropertySource(
     properties = {
-      "blockout.accounts.cleanup.auth0-connections=",
       "blockout.accounts.cleanup.revenue-cat-project-id=",
       "blockout.accounts.cleanup.revenue-cat-secret-key="
     })

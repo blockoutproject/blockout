@@ -57,7 +57,6 @@ blockout:
       allowed-origins: []
   accounts:
     cleanup:
-      auth0-connections: ${BLOCKOUT_ACCOUNTS_CLEANUP_AUTH0_CONNECTIONS:}
       revenue-cat-base-url: https://api.revenuecat.com/v2
       revenue-cat-project-id: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_PROJECT_ID:}
       revenue-cat-secret-key: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_SECRET_KEY:}
