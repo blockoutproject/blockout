@@ -278,6 +278,10 @@ it("configures isolated push inputs without a secret or background task", () => 
   );
   expect(config.plugins).toContainEqual([
     "expo-notifications",
-    { defaultChannel: "default", enableBackgroundRemoteNotifications: false },
+    {
+      icon: "./assets/notification-icon.png",
+      defaultChannel: "default",
+      enableBackgroundRemoteNotifications: false,
+    },
   ]);
 });
