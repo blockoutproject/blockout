@@ -20,7 +20,7 @@ No Pro HTTP endpoint, backend rights mirror, gift ledger, webhook, polling, pers
 
 **Storage**: RevenueCat's native cache; current-account entitlement and operation presentation in memory. F05 owns PostgreSQL account/customer references. No new table, Liquibase change or persistent mobile business state.
 
-**Testing**: Existing Jest Expo / React Native Testing Library approach for deterministic state/session variants, representative compatible native iOS/Android clients under F13 FR-029 and focused actual SDK/store observations. Physical devices and exact production-identity candidates remain required at their store/release boundaries. Test Store is useful for routine development but does not qualify either platform's billing.
+**Testing**: Existing Jest Expo / React Native Testing Library approach for deterministic state/session variants, representative compatible native iOS/Android clients under F13 FR-029 and focused actual SDK/store observations. Physical devices and exact production-identity candidates remain required at their store/release boundaries. Use Test Store in preproduction for routine live provider checks. Qualify each platform's billing with its own sandbox.
 
 **Target Platform**: Native iOS/Android under F13; iOS minimum 16.4. No Expo Go qualification.
 
@@ -111,7 +111,7 @@ Prototype and Figma retain only the fictitious text placeholder for provider-own
 
 ## Environments and continuity
 
-Keep the existing RevenueCat project and native `Sandbox testing access: Anybody`. Use dedicated test accounts with Test Store for development and routine preproduction; qualify real Apple/Google sandbox purchases with the corresponding platform keys before release. Test Store keys never enter production candidates. A project can hold sandbox and production receipts for the same customer: these are not isolated identity namespaces. F05's original-target and test-account restrictions remain necessary for destructive cleanup.
+Keep the existing RevenueCat project and native `Sandbox testing access: Anybody`. True local development leaves RevenueCat SDK and server settings unset. Use dedicated Test Store accounts in the existing project through the preproduction Debug preview. Qualify real Apple/Google sandbox purchases with the corresponding platform keys before release. Production candidates use the native platform keys. The shared project can hold sandbox and production receipts for the same customer. F05 owns exact original-target cleanup and verification of the test account.
 
 The existing provider configuration determines Customer Center availability within the paywall journey; pricing eligibility is a time-bounded observation, not a permanent free-service guarantee. Use the existing RevenueCat subscription.
 

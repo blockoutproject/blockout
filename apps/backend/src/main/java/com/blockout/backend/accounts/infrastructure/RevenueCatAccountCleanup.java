@@ -2,8 +2,8 @@ package com.blockout.backend.accounts.infrastructure;
 
 import com.blockout.backend.accounts.application.AccountCleanup;
 import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
-import com.blockout.backend.accounts.infrastructure.AccountCleanupProperties.Environment;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 /** Native bounded v2 DELETE; its 200 queues customer deletion and never cancels store billing. */
@@ -15,16 +15,13 @@ public class RevenueCatAccountCleanup implements AccountCleanup.RevenueCat {
   /** {@inheritDoc} */
   @Override
   public Outcome remove(String customerId) {
-    if (properties.environment() == Environment.DISABLED
-        || properties.revenueCatProjectId() == null
-        || properties.revenueCatProjectId().isBlank()
-        || properties.revenueCatSecretKey() == null
-        || properties.revenueCatSecretKey().isBlank()) {
-      return Outcome.MISSING_CONFIGURATION;
+    boolean hasProject = StringUtils.hasText(properties.revenueCatProjectId());
+    boolean hasKey = StringUtils.hasText(properties.revenueCatSecretKey());
+    if (!hasProject && !hasKey) {
+      return Outcome.NOT_CONFIGURED;
     }
-    if (properties.environment() == Environment.PREPRODUCTION
-        && !properties.preproductionRevenueCatIds().contains(customerId)) {
-      return Outcome.UNSAFE_SCOPE;
+    if (!hasProject || !hasKey) {
+      return Outcome.MISSING_CONFIGURATION;
     }
     return client
         .delete()

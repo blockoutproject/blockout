@@ -33,8 +33,7 @@ class ErasureDiagnosticsTest {
                   "email@example.invalid token-secret raw-payload photo-bytes");
             },
             customer -> Outcome.QUEUED,
-            mock(ImageObjects.class),
-            "preproduction");
+            mock(ImageObjects.class));
     try {
       // When
       cleanup.clean(
@@ -52,9 +51,40 @@ class ErasureDiagnosticsTest {
       assertThat(event.getFormattedMessage())
           .doesNotContain("email@", "token-secret", "raw-payload", "photo-bytes");
       assertThat(event.getKeyValuePairs().toString())
-          .contains(
-              "auth0|synthetic", original.toString(), "unavailable_or_uncertain", "preproduction")
+          .contains("auth0|synthetic", original.toString(), "unavailable_or_uncertain")
           .doesNotContain("email@", "token-secret", "raw-payload", "photo-bytes");
+    } finally {
+      logger.detachAppender(events);
+      events.stop();
+    }
+  }
+
+  @Test
+  @DisplayName("Provider cleanup omitted from Local emits no manual-attention diagnostic")
+  void skipsDiagnosticsForIntentionallyUnconfiguredProviders() {
+    // Given
+    Logger logger = (Logger) LoggerFactory.getLogger(OriginalTargetCleanup.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    UUID original = UUID.fromString("00000000-0000-4000-8000-000000000280");
+    OriginalTargetCleanup cleanup =
+        new OriginalTargetCleanup(
+            (issuer, subject) -> Outcome.NOT_CONFIGURED,
+            customer -> Outcome.NOT_CONFIGURED,
+            mock(ImageObjects.class));
+    try {
+      // When
+      cleanup.clean(
+          new OriginalAccountTargets(
+              original,
+              "https://identity.example.invalid/",
+              "auth0|synthetic",
+              List.of(original.toString()),
+              null));
+
+      // Then
+      assertThat(events.list).isEmpty();
     } finally {
       logger.detachAppender(events);
       events.stop();

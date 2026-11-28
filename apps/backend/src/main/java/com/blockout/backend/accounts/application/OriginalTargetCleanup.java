@@ -18,7 +18,6 @@ public class OriginalTargetCleanup {
   private final AccountCleanup.Auth0 auth0;
   private final AccountCleanup.RevenueCat revenueCat;
   private final ImageObjects images;
-  private final String environment;
 
   /**
    * Attempts each known original target once; an exception never suppresses another target. No SQL,
@@ -93,7 +92,6 @@ public class OriginalTargetCleanup {
     reference.put("original_account_id", targets.accountId().toString());
     log.atWarn()
         .addKeyValue("operation", "account_cleanup")
-        .addKeyValue("scope", environment)
         .addKeyValue("provider", provider)
         .addKeyValue("outcome", "manual_attention")
         .addKeyValue("reason", outcome.name().toLowerCase(java.util.Locale.ROOT))

@@ -57,12 +57,10 @@ blockout:
       allowed-origins: []
   accounts:
     cleanup:
-      environment: ${BLOCKOUT_ACCOUNTS_CLEANUP_ENVIRONMENT:disabled}
-      preproduction-connection: ${BLOCKOUT_ACCOUNTS_CLEANUP_PREPRODUCTION_CONNECTION:}
+      auth0-connections: ${BLOCKOUT_ACCOUNTS_CLEANUP_AUTH0_CONNECTIONS:}
       revenue-cat-base-url: https://api.revenuecat.com/v2
       revenue-cat-project-id: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_PROJECT_ID:}
       revenue-cat-secret-key: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_SECRET_KEY:}
-      preproduction-revenue-cat-ids: ${BLOCKOUT_ACCOUNTS_CLEANUP_PREPRODUCTION_REVENUECAT_IDS:}
       connect-timeout: 3s
       read-timeout: 5s
     auth0:

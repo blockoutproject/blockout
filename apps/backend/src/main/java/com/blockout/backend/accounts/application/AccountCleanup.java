@@ -10,6 +10,7 @@ public final class AccountCleanup {
     REMOVED,
     QUEUED,
     ABSENT,
+    NOT_CONFIGURED,
     MISSING_CONFIGURATION,
     MISSING_TARGET,
     UNSAFE_SCOPE,
@@ -19,7 +20,7 @@ public final class AccountCleanup {
      * @return whether this documented outcome needs private manual handling
      */
     public boolean needsAttention() {
-      return this != REMOVED && this != QUEUED && this != ABSENT;
+      return this != REMOVED && this != QUEUED && this != ABSENT && this != NOT_CONFIGURED;
     }
   }
 
@@ -27,7 +28,7 @@ public final class AccountCleanup {
   @FunctionalInterface
   public interface Auth0 {
     /**
-     * Checks environment/identity scope and attempts one delete of the captured principal.
+     * Checks the configured connection scope and attempts one delete of the captured principal.
      *
      * @param issuer captured original issuer
      * @param subject captured original subject
@@ -40,7 +41,7 @@ public final class AccountCleanup {
   @FunctionalInterface
   public interface RevenueCat {
     /**
-     * Attempts one original customer deletion only with safe project/test scope.
+     * Attempts one deletion of the original customer in the configured project.
      *
      * @param customerId known original reference, never the current account mapping
      * @return queued acknowledgment, absence or safe manual-handling category
