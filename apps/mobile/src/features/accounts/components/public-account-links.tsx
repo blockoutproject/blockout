@@ -93,9 +93,7 @@ function PublicLinkAction({
         { opacity: controlOpacity(props.disabled, pressed) },
       ]}
     >
-      <Text style={[styles.label, { color: colors.onDarkAccent }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
     </Pressable>
   );
 }

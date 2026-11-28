@@ -5,13 +5,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { AppVersionLabel } from "./app-version-label";
+import { signInAppearance } from "./sign-in-appearance";
 
 // Visible title-and-athlete bounds, excluding the source images' transparent margins.
 const artworkAspectRatio = 426.4913 / 365.883;
 
 /** Centers the artwork and places the installed version in the gap below it. */
 export function SignInArtwork() {
-  const { colors } = useTheme();
+  const { scheme } = useTheme();
+  const { athlete, ink } = signInAppearance[scheme];
   const [space, setSpace] = useState({ width: 0, height: 0 });
   const [versionHeight, setVersionHeight] = useState(0);
   // Equal gaps keep the artwork centered even when enlarged text needs more room.
@@ -39,6 +41,7 @@ export function SignInArtwork() {
           >
             <Image
               source={require("../../../../assets/accounts/sign-in-title.svg")}
+              tintColor={ink}
               contentFit="contain"
               style={styles.title}
             />
@@ -50,7 +53,7 @@ export function SignInArtwork() {
               style={styles.shadow}
             />
             <Image
-              source={require("../../../../assets/accounts/athlete.png")}
+              source={athlete}
               contentFit="contain"
               style={styles.athlete}
             />
@@ -60,7 +63,7 @@ export function SignInArtwork() {
               onLayout={({ nativeEvent: { layout } }) =>
                 setVersionHeight(layout.height)
               }
-              style={[styles.version, { color: colors.onDarkAccent }]}
+              style={{ color: ink }}
             />
           </View>
         </View>
@@ -80,7 +83,6 @@ const styles = StyleSheet.create({
   },
   gap: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
   artwork: { aspectRatio: artworkAspectRatio },
-  version: { opacity: 0.78 },
   title: {
     position: "absolute",
     left: 0,

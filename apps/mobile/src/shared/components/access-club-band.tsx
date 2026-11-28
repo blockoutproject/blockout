@@ -33,6 +33,11 @@ export const compactAccessBandHeight = backdrop.login.height;
 
 type BandGeometry = (typeof backdrop)[keyof typeof backdrop];
 
+const loginTilePaint = StyleSheet.create({
+  light: { backgroundColor: "#17171713", borderColor: "#17171724" },
+  dark: { backgroundColor: "#FFFFFF1C", borderColor: "#FFFFFF20" },
+});
+
 function ClubRail({
   row,
   geometry,
@@ -48,15 +53,12 @@ function ClubRail({
   compact: boolean;
   reducedMotion: boolean;
 }>) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const { tileSize, rowHeight } = geometry;
   const tileStride = tileSize + tileGap;
   const tileCount = Math.ceil(coverage / tileStride) + 1;
   const tilePaint = compact
-    ? {
-        backgroundColor: `${colors.onDarkAccent}1C`,
-        borderColor: `${colors.onDarkAccent}20`,
-      }
+    ? loginTilePaint[scheme]
     : { backgroundColor: colors.subtle, borderColor: colors.insetSurface };
   const sliding = useAnimatedStyle(() => {
     const cycle = reducedMotion ? row.phase : (progress.get() + row.phase) % 1;

@@ -8,11 +8,12 @@ import { Skeleton } from "@/shared/components/skeleton";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { signInAppearance } from "./sign-in-appearance";
+import { SignInBackdrop } from "./sign-in-backdrop";
 
-// Product Design 8299:3022 / 8299:3096; the athlete may extend beyond the compact hero.
+// Product Design 6673:13217; the athlete may extend beyond the compact hero.
 const heroHeight = 184;
 const sceneAspectRatio = 343 / 176.42;
-const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
 
 /** Shared invitation artwork and explicit account action; optional content sits between the message and action. */
 export interface SignInInvitationCardProps {
@@ -80,7 +81,8 @@ export function SignInInvitationCard({
   loading = false,
   children,
 }: Readonly<SignInInvitationCardProps>) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const { athlete, ink } = signInAppearance[scheme];
   return (
     <View
       style={[
@@ -93,20 +95,17 @@ export function SignInInvitationCard({
         importantForAccessibility="no-hide-descendants"
         style={styles.hero}
       >
-        <Image
-          source={{ uri: `data:image/svg+xml;base64,${btoa(gradient)}` }}
-          style={StyleSheet.absoluteFill}
-          contentFit="fill"
-        />
+        <SignInBackdrop />
         <View style={styles.illustration}>
           <View style={styles.scene}>
             <Image
               source={require("../../../../assets/accounts/invitation-title.svg")}
+              tintColor={ink}
               style={styles.title}
               contentFit="contain"
             />
             <Image
-              source={require("../../../../assets/accounts/athlete.png")}
+              source={athlete}
               style={styles.athlete}
               contentFit="contain"
             />
