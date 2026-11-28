@@ -110,7 +110,7 @@ The native picker owns crop confirmation and export, which may transcode the lib
 
 **Operational evidence:** [OWASP logging guidance](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html) supports purpose-limited event context and protected access, with credential/payload exclusions. F05/F11 authorize only necessary original-target references in private diagnostics and the existing private manual process while their cleanup purpose or another obligation requires them. No log-storage duration or external alert provider is selected. Local diagnostic checks establish neither guaranteed delivery nor actual provider cleanup.
 
-**Limits:** Auth0 supplies no conditional incarnation delete. Manual intervention verifies original targets/current use but does not invent atomic provider guarantees. Customer removal does not remotely revoke all existing SDK instances. Local SQL and synthetic HTTP construction are covered in quickstart; no integrated live-provider/native deletion test has run; [quickstart](quickstart.md#erasure-and-return) defines future qualification.
+**Limits:** Auth0 supplies no conditional incarnation delete. Manual intervention verifies original targets/current use but does not invent atomic provider guarantees. Customer removal does not remotely revoke all existing SDK instances. The [quickstart](quickstart.md#erasure-and-return) defines local SQL, controlled HTTP and live provider qualification for the built revision.
 
 ## HTTP and proof boundaries
 
