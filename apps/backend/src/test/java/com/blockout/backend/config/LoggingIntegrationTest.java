@@ -178,8 +178,7 @@ class LoggingIntegrationTest {
               }
               return Outcome.QUEUED;
             },
-            images,
-            "preproduction");
+            images);
 
     // When
     cleanup.clean(
@@ -194,7 +193,7 @@ class LoggingIntegrationTest {
     JsonMapper mapper = JsonMapper.builder().build();
     JsonNode event = mapper.readTree(output.getOut().strip());
     assertThat(event.path("operation").asText()).isEqualTo("account_cleanup");
-    assertThat(event.path("scope").asText()).isEqualTo("preproduction");
+    assertThat(event.has("scope")).isFalse();
     assertThat(event.path("provider").asText()).isEqualTo(provider);
     assertThat(event.path("outcome").asText()).isEqualTo("manual_attention");
     assertThat(event.path("reason").asText()).isEqualTo("unavailable_or_uncertain");

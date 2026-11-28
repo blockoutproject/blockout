@@ -69,7 +69,11 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
  * Spies pause actual operations for ordering; SQL state establishes effects, not method calls.
  * Spring Security test principals do not qualify real tokens, native sessions or provider cleanup.
  */
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @AutoConfigureMockMvc
 @DisplayName("Atomic original-account erasure")
 class EraseAccountIntegrationTest extends ContributionScenario {

@@ -28,7 +28,7 @@
 
 ## Backend Management API integration
 
-**Decision:** use the official [`auth0-java` 5.4.0](https://github.com/auth0/auth0-java/tree/5.4.0) Management SDK for exact-ID user reads and its typed response models. Spring Security OAuth2 Client retains the standard client-credentials acquisition, in-memory expiry cache and renewal through the environment's native `auth0` registration. SDK models remain inside the account infrastructure adapter; account establishment receives only necessary email. Destructive cleanup retains its separate live linked-identity and connection checks; removing unused establishment evidence does not weaken that boundary.
+**Decision:** use the official [`auth0-java` 5.4.0](https://github.com/auth0/auth0-java/tree/5.4.0) Management SDK for exact-ID reads and deletes. Spring Security OAuth2 Client retains the standard client-credentials acquisition, in-memory expiry cache and renewal through the environment's native `auth0` registration. SDK models remain inside the account infrastructure adapter; account establishment receives only necessary email. Erasure uses the original subject captured from the deleted business account and verifies its issuer before calling Auth0.
 
 **Rationale:** the official SDK owns endpoint construction and provider decoding instead of a handwritten HTTP/JSON projection. Its native `ClientOptions` header supplier accepts Spring's bearer without a second token cache. The 5.4.0 built-in `OAuthTokenSupplier` uses its own static HTTP client with a fixed 30-second call deadline; that path does not inherit the selected token transport's deadlines/redirect policy. The supported header-supplier integration preserves the already selected bounded Spring token client. Management calls use the SDK's supported native OkHttp transport with explicit deadlines, disabled connection retries and redirects; SDK retries and payload logging remain disabled. Maven needs the explicit `okhttp-jvm` compile artifact corresponding to the SDK's 5.2.1 transport dependency; this does not upgrade the workspace or replace the mobile SDK.
 
@@ -36,7 +36,7 @@
 
 ## Native authentication and environment boundary
 
-**Decision:** one Auth0 tenant, distinct application/audience configuration. Production exposes Google/Apple; preproduction only its dedicated Database connection, with native signup. Destructive preproduction cleanup refuses social or cross-connection identities. Use the native SDK's secure credential management and ordinary renewal. Normal browser logout failure leaves its native user authenticated; explicit local clearing is a separate action.
+**Decision:** one Auth0 tenant, distinct application/audience configuration. Production exposes Google and Apple. Preproduction exposes its dedicated email/password connection with native signup. Local sign-in currently shares the preproduction configuration, so local deletion can remove a shared test identity. Use the native SDK's secure credential management and ordinary renewal. Normal browser logout failure leaves its native user authenticated; explicit local clearing is a separate action.
 
 **Rationale:** native signup removes manual test provisioning without a second tenant or an application password form. Signup is connection-wide; the dedicated connection is disabled for production, so no custom Action is needed for this separation. Connection settings are not per-user directory isolation. The installed SDK's combined logout can fail before local clearing, so the application presents that failure honestly and permits retry. Acknowledged erasure uses the native credential manager after withdrawing the erased account. The existing erasure action retries only that local effect on native failure because the server has already completed its part.
 
@@ -110,7 +110,7 @@ The native picker owns crop confirmation and export, which may transcode the lib
 
 **Operational evidence:** [OWASP logging guidance](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html) supports purpose-limited event context and protected access, with credential/payload exclusions. F05/F11 authorize only necessary original-target references in private diagnostics and the existing private manual process while their cleanup purpose or another obligation requires them. No log-storage duration or external alert provider is selected. Local diagnostic checks establish neither guaranteed delivery nor actual provider cleanup.
 
-**Limits:** Auth0 supplies no conditional incarnation delete. Manual intervention verifies original targets/current use but does not invent atomic provider guarantees. Customer removal does not remotely revoke all existing SDK instances. Local SQL and synthetic HTTP construction are covered in quickstart; no integrated live-provider/native deletion test has run; [quickstart](quickstart.md#erasure-and-return) defines future qualification.
+**Limits:** Auth0 supplies no conditional incarnation delete. Manual intervention verifies original targets/current use but does not invent atomic provider guarantees. Customer removal does not remotely revoke all existing SDK instances. The [quickstart](quickstart.md#erasure-and-return) defines local SQL, controlled HTTP and live provider qualification for the built revision.
 
 ## HTTP and proof boundaries
 

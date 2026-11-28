@@ -50,7 +50,11 @@ import org.springframework.transaction.support.TransactionTemplate;
  * are absent.
  */
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @DisplayName("Contribution erasure across sporting and admission boundaries")
 class ContributionErasureBoundaryIntegrationTest extends ContributionScenario {
   private static final String ISSUER = "https://identity.example.invalid/";

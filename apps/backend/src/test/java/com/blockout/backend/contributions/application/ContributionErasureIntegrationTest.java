@@ -29,7 +29,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real F08 commands and F05 erasure retain sporting facts while clearing personal attribution. */
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @DisplayName("Contribution erasure integrity")
 class ContributionErasureIntegrationTest extends ContributionScenario {
   private static final String ISSUER = "https://identity.example.invalid/";

@@ -42,7 +42,11 @@ import org.springframework.test.context.TestPropertySource;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @TestPropertySource(
-    properties = {"server.port=8289", "blockout.accounts.cleanup.environment=disabled"})
+    properties = {
+      "server.port=8289",
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @EnabledIfEnvironmentVariable(named = "BLOCKOUT_CONTRIBUTION_CONSUMERS_TEST", matches = "true")
 @DisplayName("Generated contribution consumers across original-account erasure")
 class ContributionErasureConsumersIntegrationTest extends ContributionScenario {

@@ -38,8 +38,7 @@ class OriginalTargetCleanupTest {
               calls.add(customer);
               return Outcome.QUEUED;
             },
-            images,
-            "preproduction");
+            images);
 
     // When
     cleanup.clean(
@@ -72,8 +71,7 @@ class OriginalTargetCleanupTest {
               calls.add(customer);
               return Outcome.QUEUED;
             },
-            images,
-            "disabled");
+            images);
 
     // When
     cleanup.clean(

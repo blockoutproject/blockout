@@ -65,7 +65,11 @@ import org.springframework.transaction.support.TransactionTemplate;
  * No authorization is replaced.
  */
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @DisplayName("Direct current-grant authorization across owners")
 class DirectAuthorizationIntegrationTest extends ContributionScenario {
   private static final String ISSUER = "https://identity.example.invalid/";

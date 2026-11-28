@@ -13,9 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-/**
- * Native provider transports and explicit disabled-by-default cleanup activation; no startup I/O.
- */
+/** Native provider transports and per-provider cleanup settings; no startup I/O. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(AccountCleanupProperties.class)
 public class AccountCleanupConfiguration {
@@ -54,16 +52,13 @@ public class AccountCleanupConfiguration {
    * Reuses the official shared Management SDK and exact validated environment issuer.
    *
    * @param management optional configured SDK
-   * @param properties explicitly activated scope
    * @param security accepted original issuer
-   * @return scoped Auth0 cleanup boundary
+   * @return Auth0 cleanup for the configured issuer
    */
   @Bean
   AccountCleanup.Auth0 auth0AccountCleanup(
-      Optional<ManagementApi> management,
-      AccountCleanupProperties properties,
-      SecurityProperties security) {
-    return new Auth0AccountCleanup(management, properties, security.issuer().toString());
+      Optional<ManagementApi> management, SecurityProperties security) {
+    return new Auth0AccountCleanup(management, security.issuer().toString());
   }
 
   /**
@@ -89,24 +84,16 @@ public class AccountCleanupConfiguration {
   }
 
   /**
-   * Builds the one post-commit orchestration owner and its safe private environment category.
+   * Builds the post-commit orchestration owner for the configured providers.
    *
    * @param auth0 bounded Auth0 adapter
    * @param revenueCat bounded RevenueCat adapter
    * @param images environment-owned photo objects
-   * @param properties explicit operation environment
    * @return independent original-target attempts with private failure diagnostics
    */
   @Bean
   OriginalTargetCleanup originalTargetCleanup(
-      AccountCleanup.Auth0 auth0,
-      AccountCleanup.RevenueCat revenueCat,
-      ImageObjects images,
-      AccountCleanupProperties properties) {
-    return new OriginalTargetCleanup(
-        auth0,
-        revenueCat,
-        images,
-        properties.environment().name().toLowerCase(java.util.Locale.ROOT));
+      AccountCleanup.Auth0 auth0, AccountCleanup.RevenueCat revenueCat, ImageObjects images) {
+    return new OriginalTargetCleanup(auth0, revenueCat, images);
   }
 }

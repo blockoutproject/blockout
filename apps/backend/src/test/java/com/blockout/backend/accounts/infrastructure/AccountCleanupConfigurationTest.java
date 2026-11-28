@@ -34,8 +34,8 @@ class AccountCleanupConfigurationTest {
           .withUserConfiguration(Settings.class);
 
   @Test
-  @DisplayName("The actual YAML disables destructive cleanup and contains no external targets")
-  void defaultsToDisabled() {
+  @DisplayName("The application YAML leaves RevenueCat cleanup unconfigured")
+  void defaultsToUnconfigured() {
     // Given
     ApplicationContextRunner defaults = context;
 
@@ -45,9 +45,6 @@ class AccountCleanupConfigurationTest {
           // Then
           assertThat(application).hasNotFailed();
           AccountCleanupProperties properties = application.getBean(AccountCleanupProperties.class);
-          assertThat(properties.environment())
-              .isEqualTo(AccountCleanupProperties.Environment.DISABLED);
-          assertThat(properties.preproductionRevenueCatIds()).isEmpty();
           assertThat(properties.revenueCatSecretKey()).isEmpty();
           assertThat(properties.revenueCatProjectId()).isEmpty();
         });
@@ -70,8 +67,8 @@ class AccountCleanupConfigurationTest {
   }
 
   @Test
-  @DisplayName("Native optional SDK wiring stays absent when server registration is missing")
-  void permitsMissingProviderConfiguration() {
+  @DisplayName("Missing Auth0 server registration requires attention at erasure")
+  void reportsMissingAuth0Registration() {
     // Given
     ApplicationContextRunner missing = wired();
 
@@ -121,8 +118,8 @@ class AccountCleanupConfigurationTest {
           assertThat(
                   application
                       .getBean(AccountCleanup.Auth0.class)
-                      .remove("https://identity.example.invalid/", "auth0|synthetic"))
-              .isEqualTo(Outcome.MISSING_CONFIGURATION);
+                      .remove("https://foreign.example.invalid/", "auth0|synthetic"))
+              .isEqualTo(Outcome.UNSAFE_SCOPE);
         });
   }
 

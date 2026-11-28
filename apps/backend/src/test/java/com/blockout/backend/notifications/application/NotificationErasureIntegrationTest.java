@@ -41,7 +41,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 @TestPropertySource(
     properties = {
-      "blockout.accounts.cleanup.environment=disabled",
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key=",
       "blockout.notifications.push.enabled=true",
       "blockout.notifications.push.project-id=00000000-0000-4000-8000-000000000001",
       "blockout.notifications.push.access-token=synthetic-not-a-credential"

@@ -39,7 +39,11 @@ import tools.jackson.databind.ObjectMapper;
  * already-validated JWT claims are controlled; no provider or native networking is exercised.
  */
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "blockout.accounts.cleanup.environment=disabled")
+@TestPropertySource(
+    properties = {
+      "blockout.accounts.cleanup.revenue-cat-project-id=",
+      "blockout.accounts.cleanup.revenue-cat-secret-key="
+    })
 @DisplayName("Integrated contribution HTTP qualification")
 class ContributionQualificationIntegrationTest extends ContributionScenario {
   private static final String ISSUER = "https://identity.example.invalid/";
