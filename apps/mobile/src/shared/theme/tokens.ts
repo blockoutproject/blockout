@@ -189,12 +189,14 @@ export const membershipColors = {
       content: "#201E19",
       border: "#C1AA68",
       text: "#886820",
+      wordmark: "#9E844C",
     },
     dark: {
       fill: "#E2C985",
       content: "#201E19",
       border: "#A99662",
       text: "#E2C985",
+      wordmark: "#CFAE70",
     },
   },
 };

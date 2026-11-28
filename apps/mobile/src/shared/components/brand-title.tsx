@@ -14,7 +14,7 @@ export function BrandTitle({ pro = false }: Readonly<{ pro?: boolean }>) {
     >
       Blockout
       {pro && (
-        <Text style={{ color: membershipColors.pro[scheme].text }}>
+        <Text style={{ color: membershipColors.pro[scheme].wordmark }}>
           {" Pro"}
         </Text>
       )}
