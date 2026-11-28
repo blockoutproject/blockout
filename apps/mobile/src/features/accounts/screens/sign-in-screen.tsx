@@ -1,6 +1,5 @@
 import { Page, PageScrollView } from "@/shared/components/page";
 import { ErrorState } from "@/shared/components/state-card";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ArrowUpRight } from "lucide-react-native";
 import { useEffect, useEffectEvent } from "react";
@@ -21,6 +20,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { SignInArtwork } from "../components/sign-in-artwork";
+import { SignInBackdrop } from "../components/sign-in-backdrop";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
 import type { SupportOrigin } from "@/features/support";
@@ -133,12 +133,7 @@ function SignInJourney({
   return (
     // The hero fits above the reserved band and the legal links stay in the bottom safe area.
     <View testID="sign-in-screen" onLayout={onLayout} style={styles.screen}>
-      <Image
-        source={require("../../../../assets/accounts/sign-in-background.svg")}
-        accessible={false}
-        contentFit="fill"
-        style={StyleSheet.absoluteFill}
-      />
+      <SignInBackdrop />
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
         <View style={styles.actionArea}>
@@ -175,7 +170,7 @@ function SignInJourney({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, overflow: "hidden", backgroundColor: "#232323" },
+  screen: { flex: 1, overflow: "hidden" },
   content: { flexShrink: 0, paddingBottom: tokens.spacing.sm },
   actionArea: {
     minHeight: compactAccessBandHeight,
