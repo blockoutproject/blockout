@@ -14,10 +14,13 @@ const admobAndroidAppId =
   process.env.ADMOB_ANDROID_APP_ID?.trim() ||
   `${googleDemoPublisher}~3347511713`;
 const testStoreApiKey = process.env.REVENUECAT_TEST_STORE_API_KEY;
-const iosApiKey = release ? process.env.REVENUECAT_IOS_API_KEY : undefined;
-const androidApiKey = release
-  ? process.env.REVENUECAT_ANDROID_API_KEY
-  : undefined;
+// The preproduction Test Store client can start without enabling purchases.
+const iosApiKey = previewTestStore
+  ? undefined
+  : process.env.REVENUECAT_IOS_API_KEY;
+const androidApiKey = previewTestStore
+  ? undefined
+  : process.env.REVENUECAT_ANDROID_API_KEY;
 
 // RevenueCat's native SDK rejects Test Store keys in Release builds.
 if (
@@ -38,8 +41,6 @@ if (
     "The preview Test Store client requires a RevenueCat Test Store key.",
   );
 }
-
-const previewTestStoreApiKey = previewTestStore ? testStoreApiKey : undefined;
 
 const easSlug = process.env.EXPO_PROJECT_SLUG;
 // Public build-time identity. Keep the retained EAS default unless an isolated project is explicit.
@@ -246,8 +247,8 @@ const config: ExpoConfig = {
     },
     // Public SDK keys only. Identity association remains with the Pro lifecycle owner.
     revenueCat: {
-      iosApiKey: previewTestStoreApiKey || iosApiKey,
-      androidApiKey: previewTestStoreApiKey || androidApiKey,
+      iosApiKey: testStoreApiKey || iosApiKey,
+      androidApiKey: testStoreApiKey || androidApiKey,
       offeringIdentifier: process.env.REVENUECAT_OFFERING_ID,
     },
   },

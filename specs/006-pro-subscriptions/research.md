@@ -46,7 +46,7 @@ The [explicit-selection implementation](../../apps/mobile/src/features/pro/pro-o
 
 ## Test environments
 
-**Decision**: Keep native sandbox access `Anybody`. Use controlled Test Store accounts in the existing project through the hosted preproduction Debug preview, and real platform sandboxes for release qualification. True local development leaves RevenueCat settings unset.
+**Decision**: Keep native sandbox access `Anybody`. Use controlled Test Store accounts in the existing project through the hosted preproduction Debug preview, and real platform sandboxes for release qualification.
 
 **Rationale**: [Sandbox access](https://www.revenuecat.com/docs/projects/sandbox-access) explains that restrictions apply to both Test Store and native sandboxes, allowing a transaction to be recorded without granting rights to an excluded customer. [Apple App Review](https://developer.apple.com/help/app-review/before-submitting-for-review/configure-in-app-purchases) tests purchases in sandbox. Taken together, an allowlist would risk excluding an unknown reviewer business UUID. Keeping the native default avoids that process; this is an inference from the two documented behaviors, not an Apple recommendation naming RevenueCat.
 

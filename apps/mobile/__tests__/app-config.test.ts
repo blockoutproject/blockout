@@ -150,36 +150,29 @@ it("uses the local native identity and leaves Pro unconfigured without provider 
 });
 
 it.each([
-  { build: "local Debug", variant: undefined, apiKey: undefined },
-  { build: "EAS development", variant: "development", apiKey: undefined },
-  {
-    build: "preproduction Test Store",
-    variant: "preview-test-store",
-    apiKey: "test_synthetic",
-  },
-])(
-  "exposes the permitted RevenueCat SDK keys for $build",
-  ({ variant, apiKey }) => {
-    // Given: all key variables are present in the build shell.
-    if (variant !== undefined) {
-      process.env.APP_VARIANT = variant;
-      process.env.EXPO_PROJECT_SLUG = "synthetic-project";
-    }
-    process.env.REVENUECAT_TEST_STORE_API_KEY = "test_synthetic";
-    process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
-    process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
+  { build: "local Debug", variant: undefined },
+  { build: "EAS development", variant: "development" },
+  { build: "preproduction Test Store", variant: "preview-test-store" },
+])("selects Test Store for both platforms in a $build build", ({ variant }) => {
+  // Given
+  if (variant !== undefined) {
+    process.env.APP_VARIANT = variant;
+    process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+  }
+  process.env.REVENUECAT_TEST_STORE_API_KEY = "test_synthetic";
+  process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
+  process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
 
-    // When
-    const { default: config } =
-      jest.requireActual<typeof import("../app.config")>("../app.config");
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
 
-    // Then
-    expect(config.extra?.revenueCat).toMatchObject({
-      iosApiKey: apiKey,
-      androidApiKey: apiKey,
-    });
-  },
-);
+  // Then
+  expect(config.extra?.revenueCat).toMatchObject({
+    iosApiKey: "test_synthetic",
+    androidApiKey: "test_synthetic",
+  });
+});
 
 it("uses the preproduction identity with purchases unconfigured until Test Store is available", () => {
   // Given: the preproduction environment can provide platform keys for its Release client.

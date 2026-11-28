@@ -30,7 +30,7 @@ description: "Implementation tasks for F09 Pro entitlements and subscription con
 **Purpose**: Consume the existing mobile workspace and selected native SDK pair.
 
 - [x] T001 Add paired `react-native-purchases` and `react-native-purchases-ui` 10.13.0 to `apps/mobile/package.json` and the existing lockfile after F13 T001–T017. Preserve their bundled native versions and the selected Expo SDK 58 / React Native 0.88 / React 19.3.0 stack; reuse Jest Expo/React Native Testing Library without a generic provider adapter, new state framework or direct native dependency override.
-- [x] T002 Declare environment-selected native platform/Test Store key inputs and the explicit existing `default` offering identifier in `apps/mobile/.env.example` and `apps/mobile/app.config.ts`. Keep provider identifiers as deployment configuration, use dedicated Test Store accounts in the existing project through the preproduction Debug preview and retain native sandbox access `Anybody`. Leave RevenueCat settings unset in true local development; never ship a Test Store key in a production candidate. Actual provider changes and production-identity checks belong to T026/T027 and F14, not this setup.
+- [x] T002 Declare environment-selected native platform/Test Store key inputs and the explicit existing `default` offering identifier in `apps/mobile/.env.example` and `apps/mobile/app.config.ts`. Keep provider identifiers as deployment configuration, use dedicated Test Store accounts in the existing project through the preproduction Debug preview and retain native sandbox access `Anybody`. Production candidates use their native platform keys. Actual provider changes and production-identity checks belong to T026/T027 and F14, not this setup.
 
 ---
 

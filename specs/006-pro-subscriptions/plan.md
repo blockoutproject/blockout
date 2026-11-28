@@ -111,7 +111,7 @@ Prototype and Figma retain only the fictitious text placeholder for provider-own
 
 ## Environments and continuity
 
-Keep the existing RevenueCat project and native `Sandbox testing access: Anybody`. True local development leaves RevenueCat SDK and server settings unset. Use dedicated Test Store accounts in the existing project through the preproduction Debug preview. Qualify real Apple/Google sandbox purchases with the corresponding platform keys before release. Production candidates use the native platform keys. The shared project can hold sandbox and production receipts for the same customer. F05 owns exact original-target cleanup and verification of the test account.
+Keep the existing RevenueCat project and native `Sandbox testing access: Anybody`. Use dedicated Test Store accounts in the existing project through the Debug preview against hosted preproduction. Qualify real Apple/Google sandbox purchases with the corresponding platform keys before release. Production candidates use the native platform keys. The shared project can hold sandbox and production receipts for the same customer. F05 owns exact original-target cleanup and verification of the test account.
 
 The existing provider configuration determines Customer Center availability within the paywall journey; pricing eligibility is a time-bounded observation, not a permanent free-service guarantee. Use the existing RevenueCat subscription.
 
