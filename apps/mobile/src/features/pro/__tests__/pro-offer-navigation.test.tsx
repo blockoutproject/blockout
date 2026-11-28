@@ -1,0 +1,616 @@
+import { useLayoutEffect, type PropsWithChildren } from "react";
+import { Text } from "react-native";
+import { Stack, router } from "expo-router";
+import { renderRouter } from "expo-router/testing-library";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import TabsLayout from "@/app/(ordinary)/(tabs)/_layout";
+import { redirectSystemPath } from "@/app/+native-intent";
+import SharedTabLayout, {
+  unstable_settings as sharedTabSettings,
+} from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+import ProfileLayout, {
+  unstable_settings as profileSettings,
+} from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
+import { useBottomContentInset } from "@/shared/components/bottom-content-inset";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { NavigationAccent } from "@/shared/components/navigation-accent";
+import { defaultOffering } from "../test-support/offering";
+import { sheetScreenOptions } from "@/shared/components/sheet";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+  type AccountSession,
+} from "@/features/accounts/session/account-session-provider";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ProProvider, usePro, type ProContext } from "../pro-provider";
+import * as proSessionModule from "../pro-session";
+import { customerInfo, entitlement } from "../test-support/customer-info";
+import { mockPurchases } from "../test-support/native-purchases";
+import { prepareProNativeIO } from "../test-support/pro-harness";
+
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn(async (url: RequestInfo | URL) =>
+    Response.json(
+      String(url).endsWith("/application-access")
+        ? mockApplicationAccessResponse()
+        : mockAccountResponse(),
+    ),
+  ),
+}));
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      extra: {
+        revenueCat: { iosApiKey: "test_public", offeringIdentifier: "default" },
+      },
+    },
+  },
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../test-support/native-purchases").mockPurchases,
+}));
+jest.mock("react-native-purchases-ui", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: { Paywall: () => <Text>Native paywall double</Text> },
+  };
+});
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+// Expose the paint sent to the native indicator without depending on native layout or animation.
+jest.mock("@/shared/components/selection-indicator", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    SelectionIndicator: ({ fill }: { fill: { value: string } }) => (
+      <Text>{`Selected capsule fill: ${fill.value}`}</Text>
+    ),
+  };
+});
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
+const offerName = "Blockout Pro, sans publicité";
+const entityId = "00000000-0000-4000-8000-000000000720";
+const environment = { ...process.env };
+let client = createQueryClient();
+let account: AccountSession;
+let pro: ProContext;
+
+beforeEach(() => {
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  mockPurchases.getOfferings
+    .mockReset()
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
+  client = createQueryClient();
+});
+
+afterEach(async () => {
+  await cleanup();
+  client.clear();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+/** Real session, SDK-state consumption, access query and theme; only native I/O and HTTP are controlled. */
+function JourneyProviders({ children }: Readonly<PropsWithChildren>) {
+  return (
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <ProProvider>{children}</ProProvider>
+            </ActionFeedbackProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+/** Captures public lifecycle commands without replacing the providers or Router behavior under test. */
+function JourneyLayout() {
+  useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
+  const currentAccount = useAccountSession();
+  const currentPro = usePro();
+  useLayoutEffect(() => {
+    account = currentAccount;
+    pro = currentPro;
+  }, [currentAccount, currentPro]);
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="invitation" options={sheetScreenOptions} />
+      <Stack.Screen
+        name="search/(sheets)/filters"
+        options={sheetScreenOptions}
+      />
+    </Stack>
+  );
+}
+
+/** Observes the shared content-clearance contract through a real tab route. */
+function SearchDestination() {
+  const bottom = useBottomContentInset();
+  return (
+    <>
+      <Text>Search destination</Text>
+      <Text>{`Bottom clearance: ${bottom}`}</Text>
+    </>
+  );
+}
+
+/** Keeps the production tab stacks and profile anchor; probes omit unrelated feature reads and forms. */
+async function openJourney(initialUrl = "/search") {
+  await renderRouter(
+    {
+      _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+      "(ordinary)/_layout": JourneyLayout,
+      "+native-intent": { redirectSystemPath },
+      "(ordinary)/(tabs)/_layout": TabsLayout,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
+        default: SharedTabLayout,
+        unstable_settings: sharedTabSettings,
+      },
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": () => <Stack />,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Home destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search": SearchDestination,
+      "(ordinary)/search/(sheets)/filters": () => (
+        <Text>Filter destination</Text>
+      ),
+      "(ordinary)/(tabs)/(notifications)/notifications": () => (
+        <Text>Notifications destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/_layout": {
+        default: ProfileLayout,
+        unstable_settings: profileSettings,
+      },
+      "(ordinary)/(tabs)/(profile)/profile/index": () => (
+        <Text>Profile destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/edit": () => (
+        <Text>Edit destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/erase": () => (
+        <Text>Erase destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]":
+        () => <Text>Club destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]":
+        () => <Text>Pool destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]":
+        () => (
+          <>
+            <Text>Team destination</Text>
+            <NavigationAccent color="#C74750" />
+          </>
+        ),
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
+        () => <Text>Match destination</Text>,
+      "(ordinary)/invitation": () => <Text>Invitation destination</Text>,
+    },
+    { initialUrl, wrapper: JourneyProviders },
+  );
+}
+
+it.each(["/", "/search", "/notifications", "/profile"])(
+  "shows the free-account offer with every visible tab bar at %s without prefetching an offering",
+  async (path) => {
+    // Given: a current authenticated account with SDK-established inactive rights.
+
+    // When
+    await openJourney(path);
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: offerName }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  { root: "/", selected: "Accueil", kind: "clubs" },
+  { root: "/search", selected: "Rechercher", kind: "pools" },
+  { root: "/notifications", selected: "Notifications", kind: "matches" },
+  { root: "/profile", selected: "Profil", kind: "teams" },
+])(
+  "retains $selected and its native Back history on a $kind detail",
+  async ({ root, selected, kind }) => {
+    // Given
+    await openJourney(root);
+    await screen.findByRole("button", { name: offerName });
+
+    // When
+    await act(() => router.push(`/${kind}/${entityId}`));
+
+    // Then
+    expect(screen).toHavePathname(`/${kind}/${entityId}`);
+    expect(
+      screen.getByRole("button", { name: selected, selected: true }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname(root);
+    expect(
+      screen.getByRole("button", { name: selected, selected: true }),
+    ).toBeVisible();
+  },
+);
+
+it.each(["clubs", "pools", "teams", "matches"])(
+  "defaults a direct %s detail to Search and returns to its root",
+  async (kind) => {
+    // Given
+    const path = `/${kind}/${entityId}`;
+
+    // When
+    await openJourney(path);
+
+    // Then
+    await screen.findByRole("button", { name: offerName });
+    expect(screen).toHavePathname(path);
+    expect(
+      screen.getByRole("button", { name: "Rechercher", selected: true }),
+    ).toBeVisible();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname("/search");
+  },
+);
+
+it("opens a rewritten warm sporting link in Search after visiting Home", async () => {
+  // Given: the public system-path adapter and Router remain real; native URL delivery is observed on devices.
+  const user = userEvent.setup();
+  await openJourney("/");
+  await screen.findByRole("button", { name: offerName });
+
+  // When
+  const destination = redirectSystemPath({
+    path: `blockout-local://teams/${entityId}?tab=matches&label=Rives%20Est#standings`,
+    initial: false,
+  });
+  await act(() => router.navigate(destination));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(screen).toHaveSearchParams({
+    teamId: entityId,
+    tab: "matches",
+    label: "Rives Est",
+    "#": "standings",
+  });
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(screen).toHavePathname("/");
+  expect(
+    screen.getByRole("button", { name: "Accueil", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname("/search");
+  expect(screen.getByText("Search destination")).toBeVisible();
+});
+
+it("restores the same sporting detail and tab after dismissing an outer native sheet", async () => {
+  // Given
+  await openJourney("/notifications");
+  await screen.findByRole("button", { name: offerName });
+  await act(() => router.push(`/matches/${entityId}`));
+
+  // When
+  await act(() => router.push("/invitation"));
+
+  // Then
+  expect(screen.getByText("Invitation destination")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(screen).toHavePathname(`/matches/${entityId}`);
+  expect(
+    screen.getByRole("button", { name: "Notifications", selected: true }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+});
+
+it.each([
+  { form: "edit", presentation: "hides", visibleCount: 0 },
+  { form: "erase", presentation: "keeps", visibleCount: 1 },
+])(
+  "$presentation the bar and offer on the dedicated Profile $form form",
+  async ({ form, visibleCount }) => {
+    // Given
+    await openJourney("/profile");
+    await screen.findByRole("button", { name: offerName });
+
+    // When
+    await act(() => router.push(`/profile/${form}`));
+
+    // Then
+    expect(screen).toHavePathname(`/profile/${form}`);
+    expect(
+      screen.queryAllByRole("button", { name: "Rechercher" }),
+    ).toHaveLength(visibleCount);
+    expect(screen.queryAllByRole("button", { name: offerName })).toHaveLength(
+      visibleCount,
+    );
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname("/profile");
+    expect(
+      screen.getByRole("button", { name: "Profil", selected: true }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+  },
+);
+
+it("opens the native paywall from the banner without changing the originating tab", async () => {
+  // Given
+  const user = userEvent.setup();
+  await openJourney();
+  const offer = await screen.findByRole("button", { name: offerName });
+  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+
+  // When
+  await user.press(offer);
+
+  // Then
+  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/search");
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
+});
+
+it.each(["active", "guest", "unavailable"])(
+  "does not show the Pro banner for %s rights",
+  async (state) => {
+    // Given: native identity/SDK I/O supplies this actual provider state.
+    if (state === "guest") {
+      mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    } else if (state === "active") {
+      const active = { "Blockout Pro": entitlement() };
+      mockPurchases.getCustomerInfo.mockResolvedValue(
+        customerInfo({
+          active,
+          all: active,
+          verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+        }),
+      );
+    } else {
+      mockPurchases.getCustomerInfo.mockRejectedValue(new Error("Unavailable"));
+    }
+
+    // When
+    await openJourney(`/teams/${entityId}`);
+    await waitFor(() => expect(pro.state.status).toBe(state));
+
+    // Then
+    expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+    if (state === "guest") {
+      expect(screen.queryByRole("button", { name: "Accueil" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Notifications" }),
+      ).toBeNull();
+      expect(screen.getByRole("button", { name: "Profil" })).toBeVisible();
+    }
+  },
+);
+
+it("retains the bar and offer beneath an existing contextual route", async () => {
+  // Given
+  await openJourney();
+  await screen.findByRole("button", { name: offerName });
+
+  // When
+  await act(() => router.push("/search/filters"));
+
+  // Then
+  expect(await screen.findByText("Filter destination")).toBeVisible();
+  expect(
+    screen.getByRole("button", {
+      name: "Rechercher",
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", {
+      name: offerName,
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
+});
+
+it("removes the free-account offer when SDK rights become active and on local sign-out", async () => {
+  // Given
+  await openJourney();
+  await screen.findByRole("button", { name: offerName });
+  const active = { "Blockout Pro": entitlement() };
+  mockPurchases.getCustomerInfo.mockResolvedValue(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+
+  // When
+  await act(() => proSessionModule.proSession.refresh(account));
+
+  // Then
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+
+  // When
+  const inactive = customerInfo({
+    active: {},
+    all: {},
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
+  await act(() => proSessionModule.proSession.refresh(account));
+  await screen.findByRole("button", { name: offerName });
+  await act(() => account.clearCredentials());
+
+  // Then
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+  expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+});
+
+it("does not encourage a second purchase while payment is pending or paid but unverified", async () => {
+  // Given
+  await openJourney();
+  await screen.findByRole("button", { name: offerName });
+
+  // When
+  await act(() =>
+    proSessionModule.proSession.completeOperation(account, "pending"),
+  );
+
+  // Then
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+
+  // When
+  await act(() =>
+    proSessionModule.proSession.completeOperation(
+      account,
+      "purchased",
+      customerInfo({
+        active: {},
+        all: {},
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    ),
+  );
+
+  // Then
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+});
+
+it.each(["/search/filters", "/invitation"])(
+  "preserves measured page clearance through the %s native presentation",
+  async (destination) => {
+    // Given: native layout measures the whole navigation group; only native geometry is supplied.
+    await openJourney();
+    const offer = await screen.findByRole("button", { name: offerName });
+    // Layout does not bubble natively; dispatch it on the measured host itself.
+    let navigationGroup = offer;
+    while (
+      typeof navigationGroup.props.onLayout !== "function" &&
+      navigationGroup.parent
+    ) {
+      navigationGroup = navigationGroup.parent;
+    }
+    await fireEvent(navigationGroup, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 64 } },
+    });
+    expect(screen.getByText("Bottom clearance: 72")).toBeVisible();
+
+    // When
+    await act(() => router.push(destination));
+
+    // Then: the presenting page keeps its clearance even when native accessibility hides it.
+    expect(
+      screen.getByText("Bottom clearance: 72", { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen.getByText("Bottom clearance: 72")).toBeVisible();
+  },
+);
+
+it("retains the selected Team paint beneath an invitation and clears it when leaving Team", async () => {
+  // Given
+  await openJourney(`/teams/${entityId}`);
+  const fill = "Selected capsule fill: #C74750";
+  expect(await screen.findByText(fill)).toBeVisible();
+
+  // When
+  await act(() => router.push("/invitation"));
+
+  // Then
+  expect(screen.getByText("Invitation destination")).toBeVisible();
+  expect(
+    screen.getByText(fill, { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(await screen.findByText(fill)).toBeVisible();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(await screen.findByText("Search destination")).toBeVisible();
+  expect(screen.queryByText(fill, { includeHiddenElements: true })).toBeNull();
+});

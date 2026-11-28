@@ -5,11 +5,11 @@ description: "Create or review Liquibase XML changelogs, baseline posture and re
 
 # Liquibase schema evolution
 
-Read the owning application's database engine, migration entry point, deployment posture, naming conventions and test/runtime configuration. This skill supplies schema policy; repository files supply paths and actual versions. Do not convert Flyway or another tool merely because this skill is installed.
+Read the owning application's database engine, migration entry point, deployment posture, naming conventions and test/runtime configuration. Use the project's paths and actual versions.
 
 ## Ownership
 
-For a new Liquibase setup use XML and a dedicated migration container/job. Do not run schema creation/update/reset implicitly from application startup. Preserve an existing deployment mechanism until a task explicitly changes it. Separate application and migration credentials where roles are defined.
+For a new Liquibase setup, use XML and an explicit migration step separate from application startup. Use the project's deployment mechanism to run that step. Preserve existing deployment behavior when editing a changelog. Separate application and migration credentials where roles are defined.
 
 Use native XML changes for tables, columns, foreign keys, uniqueness and indexes when supported. Database-specific SQL requires a concrete unsupported schema need, parameter safety where applicable and actual-engine evidence. Preserve object naming and the existing master include pattern.
 

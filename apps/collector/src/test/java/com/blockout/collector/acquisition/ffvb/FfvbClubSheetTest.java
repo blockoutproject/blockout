@@ -1,0 +1,389 @@
+package com.blockout.collector.acquisition.ffvb;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
+import com.blockout.collector.acquisition.application.ProviderResponse;
+import com.blockout.collector.acquisition.application.SportingObservation;
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.apache.hc.core5.http.NameValuePair;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+
+/** Synthetic sheets contain demonstration contacts only; live compatibility belongs to T058. */
+@DisplayName("Covered FFVB club sheets")
+class FfvbClubSheetTest {
+  private static final URI FORM =
+      URI.create("https://www.ffvbbeach.org/ffvbapp/adressier/recherche.php");
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "<form method=post action='rech_aff_club.php'><input name=id_club disabled></form>",
+        "<form method=post action='rech_aff_club.php'><input name=id_club><input name=id_club></form>",
+        "<form method=get action='rech_aff_club.php'><input name=id_club></form>"
+      })
+  @DisplayName("An unusable identity control cannot turn a covered lookup into a directory search")
+  void rejectsUnusableLookup(String form) {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    doReturn(new ProviderResponse(bytes(form), FORM, true)).when(http).page(FORM);
+
+    // When / Then
+    assertThatThrownBy(() -> new FfvbClubSheets(http).read("000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
+    verify(http, never()).post(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("Recognizes published field labels with a trailing colon")
+  void recognizesTrailingColonLabels() {
+    // Given
+    byte[] html = bytes(sheet("000042").replace("</td><td>", " : </td><td>"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "000042");
+
+    // Then
+    assertThat(club.sourceName()).isEqualTo("Synthetic volley");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+  }
+
+  @Test
+  @DisplayName("Uses the published POST action with the exact encountered reference")
+  void followsPublishedForm() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    doReturn(
+            new ProviderResponse(
+                bytes(
+                    "<form method=POST action='current_club.php'><input name=id_club><input name=scope value=current type=hidden></form>"),
+                FORM,
+                true))
+        .when(http)
+        .page(FORM);
+    doReturn(bytes(sheet("000042"))).when(http).post(any(), any(), any());
+    FfvbClubSheets reader = new FfvbClubSheets(http);
+
+    // When
+    SportingObservation.Club result = reader.read("000042");
+
+    // Then
+    ArgumentCaptor<List<NameValuePair>> fields = ArgumentCaptor.captor();
+    verify(http)
+        .post(eq(FORM.resolve("current_club.php")), fields.capture(), eq(StandardCharsets.UTF_8));
+    assertThat(fields.getValue())
+        .anySatisfy(
+            field -> {
+              assertThat(field.getName()).isEqualTo("id_club");
+              assertThat(field.getValue()).isEqualTo("000042");
+            });
+    assertThat(result.sourceName()).isEqualTo("Synthetic volley");
+  }
+
+  @Test
+  @DisplayName("Preserves absent fields, explicit emptiness and malformed proposals independently")
+  void preservesFieldPresence() {
+    // Given
+    byte[] sheet =
+        bytes(
+            sheet("000042")
+                + "<table><tr><td>Email</td><td>invalid-email</td></tr><tr><td>Site web</td><td></td></tr><tr><td>Unrecognized</td><td>ignored</td></tr></table>");
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(sheet, "000042");
+
+    // Then
+    assertThat(club.email().get()).isEqualTo("invalid-email");
+    assertThat(club.website().isPresent()).isTrue();
+    assertThat(club.website().get()).isNull();
+    assertThat(club.phone().isPresent()).isFalse();
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "<html>Service unavailable</html>",
+        "<table><tr><td>Code club</td><td>42</td></tr><tr><td>Nom du club</td><td>Other</td></tr></table>"
+      })
+  @DisplayName("Rejects unqualified or foreign sheets without producing a withdrawal")
+  void rejectsUnqualifiedSheet(String html) {
+    // Given
+    byte[] response = bytes(html);
+
+    // When / Then
+    assertThatThrownBy(() -> FfvbClubSheets.parse(response, "000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Reads the published identity header and club cards without league contacts")
+  void readsPublishedCards() {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.sourceName()).isEqualTo("Synthetic volley");
+    assertThat(club.address().get()).isEqualTo("1 demonstration street");
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.phone().get()).isEqualTo("01 00 00 00 00");
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+    assertThat(club.website().get()).isEqualTo("https://example.test/club");
+  }
+
+  @Test
+  @DisplayName("Keeps every published street line before the final postal municipality row")
+  void readsMultilineAddress() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace(
+                    "<tr><td></td><td>00123 Testville</td></tr>",
+                    "<tr><td></td><td>Demonstration building</td></tr>"
+                        + "<tr><td></td><td>Demonstration district</td></tr>"
+                        + "<tr><td></td><td>00123 Testville</td></tr>"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().get())
+        .isEqualTo("1 demonstration street Demonstration building Demonstration district");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+  }
+
+  @Test
+  @DisplayName(
+      "Published cards preserve empty and invalid proposals while omitted rows stay unknown")
+  void preservesPublishedFieldPresence() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace("01 00 00 00 00", "")
+                .replace(
+                    "<a href=mailto:club@example.test>club@example.test</a>",
+                    "<a href=mailto:invalid>invalid-email</a>")
+                .replace(
+                    "<tr><td><img src=ico_spo_www_rg.png></td><td><a href=https://example.test/club>https://example.test/club</a></td></tr>",
+                    ""));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.phone().isPresent()).isTrue();
+    assertThat(club.phone().get()).isNull();
+    assertThat(club.email().get()).isEqualTo("invalid-email");
+    assertThat(club.website().isPresent()).isFalse();
+  }
+
+  @Test
+  @DisplayName("An omitted street preserves the independent postal municipality and contacts")
+  void preservesOmittedStreet() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace(
+                    "<tr><td><img src=ico_dossier_rg.png></td><td>1 demonstration street</td></tr>",
+                    ""));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"SAINT ETIENNE", "Testville"})
+  @DisplayName("A native empty postcode keeps every word of its independently published city")
+  void preservesEmptyPostcode(String city) {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", " " + city));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isTrue();
+    assertThat(club.postalCode().get()).isNull();
+    assertThat(club.city().get()).isEqualTo(city);
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName(
+      "An inseparable locality preserves independent club fields without guessed components")
+  void preservesUnseparatedLocality() {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", "Testville"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName("An explicitly blank native locality proposes two independent empty fields")
+  void preservesBlankLocality() {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", " "));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isTrue();
+    assertThat(club.postalCode().get()).isNull();
+    assertThat(club.city().isPresent()).isTrue();
+    assertThat(club.city().get()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "An omitted locality never turns the identified street into postal or city proposals")
+  void preservesOmittedLocality() {
+    // Given
+    byte[] html =
+        bytes(publishedSheet("0000042").replace("<tr><td></td><td>00123 Testville</td></tr>", ""));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().get()).isEqualTo("1 demonstration street");
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName(
+      "An incomplete address block cannot infer locality from an unmarked street continuation")
+  void refusesUnattributableAddressBlock() {
+    // Given
+    byte[] html =
+        bytes(publishedSheet("0000042").replace("00123 Testville", "Demonstration building"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName("Two postal-looking rows cannot select a locality or a complete address")
+  void refusesAmbiguousAddressBlock() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace(
+                    "<tr><td></td><td>00123 Testville</td></tr>",
+                    "<tr><td></td><td>00456 Other city</td></tr>"
+                        + "<tr><td></td><td>00123 Testville</td></tr>"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName("A published card for a different textual reference cannot withdraw club data")
+  void rejectsForeignPublishedIdentity() {
+    // Given
+    byte[] html = bytes(publishedSheet("42"));
+
+    // When / Then
+    assertThatThrownBy(() -> FfvbClubSheets.parse(html, "0000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  /**
+   * Reproduces the observed card structure with invented fields, not a retained provider page.
+   *
+   * @param reference published textual club identity
+   * @return attributable cards with unrelated league contacts
+   */
+  private static String publishedSheet(String reference) {
+    return """
+        <table><tr><td colspan=2><div><img src=clubs_pt.png>%s Synthetic volley</div></td></tr>
+        <tr><td><table><tr><td><table>
+          <tr><td colspan=2>Coordonnées</td></tr>
+          <tr><td>Portable</td><td>01 00 00 00 00</td></tr>
+          <tr><td><img src=ico_mail_rg.png></td><td><a href=mailto:club@example.test>club@example.test</a></td></tr>
+          <tr><td><img src=ico_spo_www_rg.png></td><td><a href=https://example.test/club>https://example.test/club</a></td></tr>
+        </table></td><td><table>
+          <tr><td colspan=2>Siège social</td></tr>
+          <tr><td><img src=ico_dossier_rg.png></td><td>1 demonstration street</td></tr>
+          <tr><td></td><td>00123 Testville</td></tr>
+        </table></td></tr></table></td></tr>
+        <tr><td><table><tr><td colspan=5>Ligue Régionale</td></tr>
+          <tr><td><img src=ico_mail_rg.png></td><td>league@example.test</td></tr>
+        </table></td></tr></table>
+        """
+        .formatted(reference);
+  }
+
+  /**
+   * Creates a minimal attributable synthetic sheet, without a directory or source logo.
+   *
+   * @param reference exact identity published in this fixture
+   * @return demonstration sheet with explicit leading-zero postal context
+   */
+  private static String sheet(String reference) {
+    return "<table><tr><td>Code club</td><td>"
+        + reference
+        + "</td></tr><tr><td>Nom du club</td><td>Synthetic volley</td></tr><tr><td>Ville</td><td>Testville</td></tr><tr><td>Code postal</td><td>00123</td></tr></table>";
+  }
+
+  /**
+   * Encodes synthetic HTML using the provider's documented page encoding.
+   *
+   * @param html demonstration document
+   * @return Windows-1252 bytes
+   */
+  private static byte[] bytes(String html) {
+    return html.getBytes(Charset.forName("windows-1252"));
+  }
+}

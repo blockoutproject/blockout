@@ -1,0 +1,38 @@
+# Contracts: live contributions and moderation
+
+The backend supplies the existing [mobile OpenAPI root](../../../contracts/http/mobile/openapi.yaml). F08 owns [contribution paths](../../../contracts/http/mobile/contributions/paths.yaml), [schemas](../../../contracts/http/mobile/contributions/schemas.yaml) and [parameters](../../../contracts/http/mobile/contributions/parameters.yaml); these are canonical sources, not copies owned by this plan directory.
+
+| Boundary              | Provider → consumer                       | Source and effect                                                                                                                                                                                                |
+| --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own contributions     | Backend → signed-in mobile                | Account/match collection and member GET/POST/PATCH; original account scope, eligibility/quotas, private personal proposals and their all-state total.                                                            |
+| Reporting             | Backend → signed-in mobile                | Account/version report GET/POST; first reason and exact-version deduplication, no historical request receipt.                                                                                                    |
+| Moderation            | Backend → authorized mobile               | Match queue, match versions, version decisions/reactivations and reports. One stream-link moderation grant; current actor UUID in commands.                                                                      |
+| Public stream         | F08 backend state → F03 projection/mobile | [MatchDetailResponse](../../../contracts/http/mobile/consultation/schemas.yaml) adds optional streamContributionId exactly when streamUrl is contributive. No private details.                                   |
+| Permission projection | F12/F05 backend → mobile                  | [AccountPermissionsResponse](../../../contracts/http/mobile/access/schemas.yaml) adds moderateStreamLinks, backed by stream-links.moderate. Absence grants nothing.                                              |
+| Account erasure       | F05 → F08 persistence                     | Clear private report reasons before account deletion. Foreign keys clear attribution in the same transaction and preserve counted facts and decisions.                                                           |
+| Notification facts    | F08/F02 → F07 in-process                  | Accepted match/version/public-availability transition and current composition under the match transaction. Required internal effects are atomic; post-commit push remains best effort. No new message transport. |
+
+The optional `activeContribution` is the current exact caller-owned active member, independent of the loaded page and absent for another owner or no active member. It shares the existing read snapshot with context, total and page. The admitted consumers are the signed-in mobile client and generated backend boundary. Current native history exposes no cancellation command and no admitted external pending-cancel consumer was identified. The exact-member PATCH retains active withdrawal only; the pending `cancel` action and `canCancel` capability are absent. Historical `cancelled` state/decision values remain readable.
+
+The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
+
+Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Submission/moderation body revision conflicts reuse the existing 409 problem; exact personal withdrawal has no global-revision input; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
+
+Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. A current authorized `reported:true` for the exact account/version establishes “already reported”, including after a lost POST response, without attributing success to a request. False or failed reads do not establish POST failure; they may precede delayed completion. There is no automatic write retry or exact historical receipt.
+
+F13 owns [dialect, generators and validation](../../003-shared-quality/contracts/README.md). Keep Java server interfaces/DTOs and Orval types/query functions/Zod schemas generated from the same root. Added response fields are compatible with tolerant readers; new operations are additive. Finite enums are named components and new values require deliberate compatibility review. No generated output, runtime, external provider API, generic bulk operation or hypermedia framework is introduced by this boundary.
+
+The delivered submission/member-read operations and own-version PATCH use the `StreamSubmission`
+generation tag, separating their executable Java interface from reporting/moderation
+operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
+unchanged. The personal PATCH retains its exact immutable version UUID without a global-revision input; active
+withdrawal returns the current private member with `Accept-Patch: application/json` and `no-store`.
+
+The executable reporting operations use the `StreamReports` generation tag without changing routes, operation IDs or DTOs. Requests contain only `reason`; whitespace-only reasons receive 422 after normalization. Ordinary admitted usable accounts retain the current reporting right independently of publication quotas. Existing reports return unchanged 200 before activity/threshold evaluation; own-state GET exposes only `reported`. A later explicit retry remains on that account/version, with no automatic replay or special mobile recovery state.
+
+The executable `StreamContributions` interface supplies the private queue, filtered version
+collection, exact member, PATCH decisions, reactivation creation and exact-version report pages.
+The queue additionally supplies optional `seasons`: current canonical labels for all retained
+contribution seasons, including hidden matches, independently of the queue filters. This additive
+projection makes the existing season filter usable with only `stream-links.moderate`; it grants
+neither collection management nor public sporting access. Older responses may omit it.

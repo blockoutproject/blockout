@@ -1,0 +1,49 @@
+package com.blockout.backend.sporting.application.service;
+
+import com.blockout.backend.shared.image.ImageDecoder;
+import com.blockout.backend.shared.image.ImageDecoder.DecodedImage;
+import com.blockout.backend.sporting.application.exception.InvalidSportingImageException;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import java.io.IOException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Bounded content validation outside database transactions, shared by source and manual uploads.
+ */
+@Service
+public class ValidateSportingImage {
+  public static final int MAX_BYTES = 5_242_880;
+  private static final long MAX_DECODED_PIXELS = 4_194_304L;
+
+  /**
+   * Decodes actual PNG/JPEG content outside a write transaction after the caller's grant preflight.
+   * Retains native validation of the original metadata.
+   *
+   * @param bytes original bounded content, never an arbitrary URL
+   * @return immutable original bytes with their detected content type
+   * @throws InvalidSportingImageException for empty, oversized, unsupported or undecodable content
+   */
+  @Transactional(propagation = Propagation.NEVER)
+  public Image validate(byte[] bytes) {
+    if (bytes.length == 0 || bytes.length > MAX_BYTES) {
+      throw new InvalidSportingImageException();
+    }
+    try {
+      DecodedImage image =
+          ImageDecoder.decode(
+              bytes,
+              false,
+              header -> {
+                if ((long) header.width() * header.height() > MAX_DECODED_PIXELS) {
+                  throw new InvalidSportingImageException();
+                }
+              });
+      image.pixels().flush();
+      return new Image(bytes, image.mediaType());
+    } catch (IOException invalid) {
+      throw new InvalidSportingImageException();
+    }
+  }
+}

@@ -1,0 +1,37 @@
+# F07 contract boundaries
+
+## Canonical HTTP source
+
+The backend provides and the mobile consumes the [mobile OpenAPI root](../../../contracts/http/mobile/openapi.yaml). F07 owns its [notification paths](../../../contracts/http/mobile/notifications/paths.yaml), [parameters](../../../contracts/http/mobile/notifications/parameters.yaml) and [schemas](../../../contracts/http/mobile/notifications/schemas.yaml). This directory is a guide, not another editable contract.
+
+| Resource                                                    | Operations and meaning                                                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `/accounts/{accountId}/notifications`                       | GET owner inbox, twenty entries, original date/UUID descending, optional opaque continuation.                      |
+| `/accounts/{accountId}/notifications/{notificationId}`      | GET current retained entry; PATCH read=true only. A repeated read cannot reset state or recreate an expired entry. |
+| `/accounts/{accountId}/push-subscriptions/{subscriptionId}` | PUT complete current connection association; DELETE exact association, absent deletion succeeds.                   |
+
+Every operation checks the usable authenticated owner and F12 admission. Pro/moderation grant no foreign access. Account recreation uses another UUID. A cursor encodes only continuation keys, grants no access and remains usable after its former bound row is removed. Decode ordinary JDK timestamp/UUID spellings without re-encoding certification; generated MVC conversion owns query binding and ignores undeclared parameters. New entries require refresh; all pages apply current age/visibility. No list total or snapshot is promised.
+
+Reuse F03's match summary and division presentation with identical public meaning, without exposing video addresses or private author/moderator data. Notification text is current French presentation; family and creation date remain stable. Enum extension is not assumed compatible. Absence is explicit: nextCursor at end, sporting facts according to their owning schema. None of those absences is a fabricated zero or null.
+
+Requests reject unknown fields and forbidden null; responses validate known fields while allowing additions. Successful private responses and errors use no-store. PATCH advertises the existing atomic JSON document format. No parallel error profile, generic batch API, event endpoint or push delivery-status resource. F13 owns validation/bundling, OpenAPI Generator, Orval/Zod and affected consumer compilation.
+
+## In-process interfaces
+
+| Owner / provider                     | Consumer and agreement                                                                                                                                                                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F02 sporting acceptance              | When either result is final, F07 receives the previous and accepted results, match identity and trusted discovery/reconstruction context within the acceptance transaction. For eligible result composition F07 reads current public-link state under the match lock.                            |
+| F08 accepted contribution transition | F07 receives actual publication/approval/reactivation or availability change. A repeated/failed proposal is not a new event; consumed match categories remain consumed.                                                                                                                          |
+| F06 follows                          | F07 selects distinct eligible account IDs once from both teams and pool. Before sending, a selected account must have a current qualifying follow of the current origins, including a recreated follow; no captured relation UUID, later audience expansion, follow history or new F06 endpoint. |
+| F05 account lifecycle                | F07 checks usable original identities and supplies bounded exact-association logout removal. Existing account foreign keys cascade local erasure to inbox entries and subscriptions.                                                                                                             |
+| F12 admission                        | All private routes use ordinary access rules and explicit authorized bypass. Maintenance suspends new pushes even for operators; creation and purge continue, without catch-up.                                                                                                                  |
+| F03 current consultation             | F07 derives current authorized presentation and navigates through the existing match route. Old pushes after account changes never read the former owner's inbox.                                                                                                                                |
+| F11 / F14                            | F07 preserves private data/retention rules and existing ad navigation; transition imports neither old inbox nor pending V1 sends.                                                                                                                                                                |
+
+These calls are explicit application APIs in one backend, not HTTP APIs between feature modules. They must not pass JPA entities or import another feature's repository. Required F07 writes share the producer transaction; external push happens after commit.
+
+## External provider
+
+Expo owns [its HTTP send/receipt API](https://docs.expo.dev/push-notifications/sending-notifications/). The Expo-listed Java SDK consumes it through one focused F07 adapter, do not copy provider schemas into the mobile OpenAPI. Native SDK request/ticket/receipt types stay inside the adapter. Its provider vocabulary remains local to the adapter. Native SDK events supply permissions, token changes, foreground messages and taps. Registration sends the Expo address obtained for the configured project, not the native APNs/FCM token.
+
+Push data contains only ownerAccountId, notificationId and matchId references needed for safe routing, alongside the sporting title/body. It contains no old video URL or private profile fields. IDs are navigation context, never authority. Outgoing messages omit badge counts. The app does not maintain a tab counter or icon badge; a standard nonblocking native clear requests clearing a previously app-controlled count where supported. System-presented notifications and launcher-owned indicators remain under platform control. Provider acceptance is not a phone receipt. Tokens, addresses and content remain outside logs. The [operations guide](../../../infra/operations/README.md#sporting-push-inputs-and-failure-limits) owns input names and authorized credential activation. No provider schema or delivery-status resource is added to mobile OpenAPI.

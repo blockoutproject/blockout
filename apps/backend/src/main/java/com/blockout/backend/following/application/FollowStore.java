@@ -1,0 +1,58 @@
+package com.blockout.backend.following.application;
+
+import java.util.Set;
+import java.util.UUID;
+
+/** Relation persistence; writes participate in the caller's original-account lock/transaction. */
+public interface FollowStore {
+  /**
+   * Removes this original account's personal data in the caller's erasure transaction. Retained
+   * nonpersonal facts and other owners remain unchanged; acquires no domain root.
+   *
+   * @param accountId original lifecycle protected by its account row lock
+   */
+  void erase(UUID accountId);
+
+  /**
+   * Checks the exact original owner's typed relation, including retained hidden targets.
+   *
+   * @param context original account and target
+   * @return whether the relation currently exists; absence requires no negative-state row
+   */
+  boolean exists(FollowContext context);
+
+  /**
+   * Creates one relation after the caller verified absence under the original account lock.
+   *
+   * @param context locked usable original account and currently viewable target
+   */
+  void add(FollowContext context);
+
+  /**
+   * Removes only this original account's typed relation; absence has no effect.
+   *
+   * @param context locked usable account and exact target
+   */
+  void remove(FollowContext context);
+
+  /**
+   * Reads the confirmed account union for supplied sporting origins from one statement snapshot,
+   * without display-season filtering. Split origin reads must not invent an empty audience during a
+   * committed team/pool turnover.
+   *
+   * @param targets the actual consumer's team/pool origins, possibly empty
+   * @return immutable selected account identities, without captured follow identities
+   */
+  Set<UUID> recipients(Set<FollowContext.Target> targets);
+
+  /**
+   * Checks both follow relation types in one read for an already selected account.
+   *
+   * @param accountId original selected account
+   * @param homeTeamId admitted current home team
+   * @param awayTeamId admitted current away team
+   * @param poolId admitted current pool
+   * @return whether a current relation to any of these origins exists
+   */
+  boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId);
+}

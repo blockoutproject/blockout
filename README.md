@@ -2,13 +2,15 @@
 
 Blockout is a French mobile application for following volleyball teams, calendars and results, with community live links and an optional ad-free Pro offer.
 
-Blockout is a complete V2 rebuild of backend, ingestion and the iOS/Android application, including mobile internals. This repository contains accepted functional specifications, design references and governance. The [F13 technical plan](specs/003-shared-quality/plan.md) records the shared stack, boundaries, contract generation, delivery and operations decisions. Domain contracts and dependent technical plans remain with their owners; no production runtime or application dependencies are initialized.
+Blockout is a complete V2 rebuild of backend, ingestion and the iOS/Android application, including mobile internals. This repository contains accepted functional specifications, design references, governance and the executable V2 workspace. The [F13 technical plan](specs/003-shared-quality/plan.md) records the shared stack, boundaries, contract generation and application quality decisions. Domain implementation and remaining qualification belong to their owning feature lots.
 
 Start with the [constitution](.specify/memory/constitution.md), [agent guidance](AGENTS.md) and [design inputs](AGENTS.md#design-inputs). [GitHub issues](https://github.com/blockoutproject/blockout/issues) own planning requests, dependencies and acceptance. The official Spec Kit planning step decides the stack, architecture and shared contract/codegen approach within the relevant feature scope; dependent plans reference the agreed decisions.
 
+Search for `requestCollection` to follow a manual collection request from mobile through the contract to its backend command. Continue with `getCollectionWork` and `startCollectionCycle` to trace the collector's asynchronous admission and execution. [Source layout](specs/003-shared-quality/plan.md#source-code-repository-root) · [Application use cases](specs/003-shared-quality/plan.md#application-use-case-families) · [F01 passage execution](specs/001-source-acquisition/plan.md#passage-execution) · [Collector-to-sporting qualification](#collector-to-sporting-qualification)
+
 ## Specifications
 
-Specifications own functional vocabulary, requirements and invariants. Directory numbers are stable references, not F-number mappings or implementation order. The standard requirements checklists assess specification quality, not delivered software. Future plans derive from these owners through official Spec Kit procedures; API ownership is independent of feature-plan numbering. User-story priorities distinguish relative product value within the accepted V2 scope; a lower priority does not remove launch obligations or relax security and continuity requirements.
+Specifications own functional vocabulary, requirements and invariants. Directory numbers are stable references, not F-number mappings or implementation order. The standard requirements checklists assess specification quality, not delivered software. Plans derive from these owners through official Spec Kit procedures; API ownership is independent of feature-plan numbering. User-story priorities distinguish relative product value within the accepted V2 scope; a lower priority does not remove launch obligations or relax security and continuity requirements.
 
 | Scope | Owning specification                                                                                 |
 | ----- | ---------------------------------------------------------------------------------------------------- |
@@ -24,7 +26,7 @@ Specifications own functional vocabulary, requirements and invariants. Directory
 | F10   | [Reports and feature suggestions](specs/012-reports-feature-suggestions/spec.md)                     |
 | F11   | [Advertising, privacy and legal](specs/004-advertising-privacy-legal/spec.md)                        |
 | F12   | [Shared administration and access configuration](specs/013-administration-app-configuration/spec.md) |
-| F13   | [Shared quality and operations](specs/003-shared-quality/spec.md)                                    |
+| F13   | [Shared application quality](specs/003-shared-quality/spec.md)                                       |
 | F14   | [V1-to-V2 transition](specs/014-v1-v2-transition/spec.md)                                            |
 
 ## Provenance
@@ -33,13 +35,335 @@ This dedicated repository has independent history and contains no V1 runtime imp
 
 Accepted product/design decisions and V1/V2 continuity remain applicable. Withdrawn technical dossiers, former stack decisions, backups and historical technical discussions are not planning inputs unless the owner explicitly requests their consultation. Technical decisions belong in the official Spec Kit artifacts that own them. The existing agent guidance links the design inputs; no parallel architecture or design dossier is required.
 
+## Contributing
+
+Start from a GitHub issue that describes the expected outcome and links the relevant specification when one applies. For a bug, share the observed behavior and steps to reproduce it with public or synthetic data. Describe any check that needs private access so the maintainer can run it.
+
+Follow the [delivery policy](AGENTS.md#git-delivery) and [code review rules](AGENTS.md#code-review-rules). In the draft PR to `develop`, link the issue, explain where the behavior is fixed and why the scope fits, and record what you verified and any material limits. Use the checks below for the affected application or documentation.
+
 ## Verification
 
-Documentation checks use the pinned formatter without installing application dependencies:
+Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.10.2; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:
 
 ```sh
-npx --yes prettier@3.9.6 --check README.md AGENTS.md "specs/**/*.md" ".github/**/*.{md,yml}" .prettierrc.json
+npm ci --no-audit --no-fund
+npm run verify
 git diff --check
 ```
 
-Validate local links, anchors and source ownership against the final tree. [Documentation CI](.github/workflows/ci.yml) establishes no runtime, provider or visual qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
+`verify` checks formatting, lints/bundles all three OpenAPI roots, regenerates their real Java/mobile consumers and verifies the three applications through ordinary Nx npm/Maven targets. Generated bundles and code stay under ignored `.generated/` and `target/generated-sources/` directories. Generator or generation-configuration changes also require the [targeted reproducibility qualification](specs/003-shared-quality/quickstart.md#contract-boundary). Java runs Checkstyle, Spotless, compilation, startup tests and packaging. Surefire discovers `*Test` (including `*UnitTest`, `*WebMvcTest`, `*JsonTest` and `*SmokeTest`); Failsafe alone discovers `*IntegrationTest` and `*JpaTest` during `verify`. Testcontainers JUnit/PostgreSQL support uses the Spring Boot BOM. The database integration suite uses disposable PostgreSQL 18.6, the local role script and test-only mappings to prove explicit Liquibase execution, validation-only startup and denied application DDL. It requires a running Docker engine. The sporting suite also verifies contextual identities, native uniqueness and item rollback against the migrated F02 tables. Spring-backed database suites import `PostgresTestConfiguration`: the Spring context owns the container, migrations precede application beans and the datasource uses the restricted application role. Use `clean` when moving or renaming test classes; a forced JVM exit after a shutdown timeout remains an unresolved lifecycle failure even if assertions passed.
+
+Root verification runs Prettier once for the whole repository, including mobile. `mobile:verify` runs ESLint, TypeScript, Jest Expo, native-platform JavaScript exports and Expo Doctor. Jest discovers co-located `__tests__/*.test.ts(x)` suites. The generated consumer suite exercises schema validation, error profiles, binary/204 responses, cancellation and timeout at the Fetch boundary; it does not qualify a native networking stack or a business screen. The installed RNTL 14 APIs are asynchronous, including `fireEvent`; await native test stimuli and cleanup. React Native Testing Library is available for meaningful feature tests. Exports prove bundling, not an installed native build.
+
+CI gives collector and mobile separate GitHub-hosted runners and partitions backend integration tests between the `search` package and its complement. Both backend jobs run `verify` with two reusable Failsafe JVMs; JUnit remains sequential within each JVM, and Surefire runs in both jobs. Ordinary local verification stays exhaustive with one Failsafe JVM by default; `-Dbackend.integration.forks=2` opts into two. Pull requests use [Nx affected](https://nx.dev/docs/features/ci-features/affected), with `NX_BASE` set to GitHub's PR base revision and `NX_HEAD` to its checked-out merge commit; integration pushes run every application. These native event values require no revision-selection action or Actions API permission. `nx.json` declares shared configuration inputs, including the parent Maven build, database roles and Redocly configuration, so those changes select their consumers. Repository formatting always runs. The final `verify` job requires both quality and all application jobs to succeed, including when a PR has no affected application. Native GitHub concurrency cancels superseded revisions of the same PR without cancelling integration pushes.
+
+Nx owns the mobile verification dependency graph: generation precedes TypeScript, tests and export, while independent checks can run concurrently within its ordinary process limit. Jest uses two workers by default; an explicit `--runInBand` remains available for focused or cross-process qualification. When inspecting warnings from Codex, append `--reporters=default` to the Jest command: Jest 30.5's automatic agent reporter hides console output from passing suites. npm and Maven dependency caches remain enabled; CI shares no local Nx result cache and connects to no Nx Cloud service.
+
+The shared Query suites exercise read recovery, non-retrying writes, retained authorized data after failed refresh and private-cache separation under [F05's session ownership](specs/005-accounts-identity/plan.md#mobile-session-and-shared-consumers) and [F13's server-read conventions](specs/003-shared-quality/plan.md#frontend-server-read-conventions). The [single editing-form composition](specs/003-shared-quality/plan.md#frontend-form-conventions) owns whole-form read-error masking with the mounted RHF visit and stable native scroller. The [state decisions](specs/003-shared-quality/research.md#frontend-state-ownership) record the current native lifetimes and accepted limits; F07 owns its independent 29-day exclusion. Earlier dated native qualifications retain their original scope, and application tests do not establish provider/device acceptance.
+
+Backend exposes anonymous `GET /health` on its application port through the native Actuator readiness group. Only the aggregate status is public: application/database ready returns 200; down, out-of-service or unknown returns 503. Other Actuator paths, component reads and other probe methods are denied. Native Hikari/JDBC settings bound database waiting; their application-wide effects are described in the [health decision](specs/003-shared-quality/research.md#application-observability). The health suites cover native mappings/security and real unresponsive PostgreSQL. [F12 access qualification](specs/013-administration-app-configuration/quickstart.md) retains its own evidence boundaries.
+
+JWT checks use Spring Security's native resource server, with separate mobile/ingestion audiences and allowed Auth0 clients. Missing or invalid credentials return a safe Problem Details 401 and Bearer challenge; authenticated client/scope refusals return 403. Public contract reads, support submission, health and legal documents keep their intended access. The security suite verifies real signatures against an isolated JWKS server; contract-binding tests isolate authentication filters. Current account, resource, grant and maintenance checks remain with their owning implementations.
+
+For account lifecycle work, use the F05 guide for generated account contracts, disposable PostgreSQL transactions, and compatible native session and profile checks. [F05 verification](specs/005-accounts-identity/quickstart.md#prerequisites)
+
+Useful focused commands:
+
+```sh
+npm run format:check
+npm run lint:contracts
+npx nx show projects
+npx nx show project mobile --json
+npx nx run backend:test
+npx nx run collector:test
+npx nx run mobile:verify
+npx nx run mobile:format-check
+./mvnw -B -ntp -pl apps/backend,apps/collector test -Dtest='Sporting*Test,!*IntegrationTest'
+npm run test --workspace=@blockout/mobile -- --runInBand src/features/sporting-administration/__tests__/sporting-contract.test.ts
+npm run generate
+./mvnw -B -ntp verify
+./mvnw -B -ntp spotless:apply
+```
+
+Validate local links, anchors and source ownership against the final tree. [CI](.github/workflows/ci.yml) retains the `verify` gate and develop-only promotion to main. These checks establish no provider, device, visual or production qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
+
+### Code readability
+
+Use two-space indentation, standard brace spacing (`{ id }`, `if (ready) {`, JSX
+`{label}`), and a blank line between functions and methods. Group related
+instructions and separate logical steps when that helps a reader. Keep
+documentation attached to its declaration.
+Use a plain hyphen (`-`) for app-authored text separators in labels, comments,
+and test descriptions. Preserve the punctuation in values supplied by providers.
+
+Mobile imports stay relative within the same feature or cohesive shared module.
+Use `@/` to cross module boundaries, including routes importing feature screens;
+the single `@/*` alias maps to `./src/*` in `apps/mobile/tsconfig.json` through
+Expo/Metro and Jest Expo's native TypeScript path support. Keep package imports
+and existing paths to generated output or assets outside `src` unchanged.
+Keep shared application code independent of features. Shared integration tests
+can compose features. Route mobile API requests through the shared transport and
+import React Native through its public API.
+
+Prettier retains its 80-column target and standard JSX wrapping. ESLint builds on
+the Expo preset with mandatory braces and spacing between imports and other
+statements, around function/class/export declarations, and between methods.
+Exported overload signatures also receive a separating line. Related fields
+stay together. The mobile lint command fails on warnings as well as errors.
+
+Use kebab-case basenames for mobile source files and preserve Expo Router's
+reserved names and platform or test suffixes. Use PascalCase for TypeScript type
+names. Mark type-only imports with `import type` or inline `type` specifiers.
+
+ESLint checks switch fall-through and case declarations, redundant `else`
+branches and unnecessary ternaries. Keep debug statements out of committed
+mobile files and use `console.warn` or `console.error` for appropriate diagnostics.
+TypeScript ESLint checks explicit `any`, unnecessary assertions, type-check
+directives, thrown values, promises, and exhaustive switches.
+
+Java retains Google Java Format's 100-column style. Checkstyle requires braces
+and separates methods while allowing related fields to stay together. It also
+checks empty catch blocks, `equals`/`hashCode` pairs, reference comparisons with
+string literals, nested assignments, and unintended switch fall-through.
+It also checks lowercase package names, type, method and constant names, one
+top-level type per file with a matching filename, modifier and declaration
+annotation order, and unused local variables.
+Review expression readability, including nested ternaries, and use blank lines
+where they clarify the flow.
+
+XML, generated sources, upstream imports, licenses and protected artwork remain
+excluded from Prettier.
+EditorConfig shares basic editor settings with matching protected-file exceptions.
+
+```sh
+npm run lint            # Mobile ESLint and Java Checkstyle
+npm run style:fix       # Available ESLint fixes, Prettier and Java Spotless
+npm run lint:fix        # ESLint automatic fixes only
+npm run format         # Prettier
+./mvnw -B -ntp spotless:apply # Java formatting
+npm run verify         # Formatting and application checks
+```
+
+Spotless formats Java but does not add braces reported by Checkstyle. Fix remaining
+lint errors directly. There are no custom analyzers, source-text regex or XPath
+checks, arbitrary function-size limits, Git hooks or suppression baselines.
+
+See [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
+[Prettier with linters](https://prettier.io/docs/integrating-with-linters),
+[Stylistic spacing](https://eslint.style/rules/padding-line-between-statements),
+and [Checkstyle package naming](https://checkstyle.org/checks/naming/packagename.html).
+
+### Collector-to-sporting qualification
+
+`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Start the [local S3 endpoint](#local-image-testing) and export its fixture settings in the shell running Maven. The launched backend needs the bucket and region at startup and uses this endpoint for logo operations. Use only synthetic sporting supplier and identity data.
+
+The suites share that runtime and fixture. Their owning quickstarts define reproducible cases and expected outcomes for [F01 partial commits, contextual identities and absence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence) and [F02 generated facts through F03 public reads](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads).
+
+For example, from the repository root, with ports 5484 and 8184 available:
+
+```sh
+POSTGRES_PORT=5484 docker compose -p blockout-collector-sporting up -d --wait postgres
+npm run bundle:contracts
+./mvnw -B -ntp -pl apps/backend package -DskipTests
+LIQUIBASE_URL=jdbc:postgresql://127.0.0.1:5484/blockout \
+LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
+./mvnw -B -ntp -pl apps/backend liquibase:update
+./mvnw -B -ntp -pl apps/collector verify \
+  -Dit.test='CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest,CollectorSportingReadIntegrationTest,CollectorPresentationBoundaryIntegrationTest' \
+  -Dblockout.qualify-collector-sporting=true \
+  -Dqualification.backend-jar="$PWD/apps/backend/target/backend-0.0.0-SNAPSHOT.jar" \
+  -Dqualification.backend-port=8184 \
+  -Dqualification.database-url=jdbc:postgresql://127.0.0.1:5484/blockout \
+  -Dqualification.database-user=blockout_app \
+  -Dqualification.database-password=local-app-only \
+  -Dqualification.migration-user=blockout_migration \
+  -Dqualification.migration-password=local-migration-only
+docker compose -p blockout-collector-sporting stop postgres
+```
+
+Repackage the backend after every backend source change; the suite executes that supplied JAR. Its ignored backend log is `apps/collector/target/collector-sporting-backend.log`. Ordinary module/CI verification compiles the suite but skips execution unless explicitly enabled. [F02's quickstart](specs/002-sporting-data/quickstart.md#collector-to-sporting-boundary) defines the validation scenarios and expected outcomes.
+
+## Local development
+
+CI verifies the applications and their contracts. Backend and collector run on the host against the local infrastructure below; native development clients use the configured local API. The [hosted operations guide](infra/operations/README.md#hosted-v2-environments) describes separate native Dokploy resources, private SHA images, explicit migrations and preview builds. Production preparation does not authorize startup or V1 cutover.
+
+Application diagnostics retain native ECS logging, safe bounded fields, health/readiness and Micrometer metrics. OTLP export is disabled by default. The [application observability boundary](specs/003-shared-quality/plan.md#application-diagnostics-and-health) owns the permitted data; no remote collection, dashboard or alert stack is configured.
+
+### Mobile error filtering
+
+Mobile crash reporting follows the [official Expo/Sentry integration](https://docs.sentry.io/platforms/react-native/guides/expo/): one JavaScript initialization configures the native SDKs, including Android C/C++ crash handling. Reporting is currently disabled in all builds, even when `EXPO_PUBLIC_SENTRY_DSN` is supplied. The public DSN and `EXPO_PUBLIC_SENTRY_ENVIRONMENT` remain build inputs in the [mobile environment file](apps/mobile/.env.example); they do not enable reporting. The JavaScript `beforeSend` filter retains standard error categories, packaged source coordinates and symbolication metadata while excluding free-form context and attachments. Breadcrumbs, replay, tracing, profiling and Sentry Logs are disabled. Native events bypass that JavaScript filter: their [standard Sentry scrubbing controls and limitations](specs/003-shared-quality/research.md#application-observability) must be qualified before activation.
+
+Run the focused tests from the repository root to check the JavaScript filter and the disabled SDK configuration through a controlled device bridge. The tests use synthetic events and a fixture DSN.
+
+```sh
+npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath \
+  src/shared/observability/__tests__/sentry.test.ts \
+  src/shared/observability/__tests__/sentry-native.test.ts
+```
+
+Sentry's Metro/config plugins own source maps and native build integration. Automatic uploads remain disabled by the plugin under [F13's observability decision](specs/003-shared-quality/research.md#application-observability). Future authorized uploads require enabling them and supplying private build variables `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; never expose the token through `EXPO_PUBLIC_` or app configuration. No external reporting activation is part of local verification. No project, credential, paid capability or remote setting is created by repository verification.
+
+### Local PostgreSQL
+
+Compose runs local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432, and an optional OpenSearch service. Applications run on the host. Start the database explicitly:
+
+```sh
+docker compose config --quiet
+docker compose up -d --wait
+```
+
+If port 5432 is occupied, set `POSTGRES_PORT=55432` for the Compose command and use that port in the backend's local JDBC URL.
+
+The named volume retains local data. [Initialization SQL](infra/postgres/init-roles.sql) runs only on an empty volume: `blockout_migration` owns the database/schema, and `blockout_app` has data access without schema creation rights. Compose's fixed passwords are disposable local examples; never reuse them for hosted environments. Configuration edits do not update existing roles. No command here resets volumes. Run migrations separately, supplying the migration role only to that command:
+
+```sh
+LIQUIBASE_URL=jdbc:postgresql://localhost:5432/blockout \
+LIQUIBASE_USERNAME=blockout_migration \
+LIQUIBASE_PASSWORD=local-migration-only \
+npx nx run backend:migrate
+```
+
+The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the current domain creation definitions. Until mandatory data retention, the initial tables, columns, defaults, keys and indexes remain the current baseline. Use a fresh isolated PostgreSQL database to verify changes to that baseline. Hosted preproduction data persists across ordinary deployments under the [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency). Backend startup uses Hibernate validation. Liquibase runs through the migration plugin and integration tests.
+
+Set `BLOCKOUT_IMAGES_BUCKET` and `AWS_REGION` in the backend's local environment. To call AWS from the local backend, use an isolated private bucket and an authorized IAM identity through the [AWS SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html). See the [runtime configuration](infra/operations/README.md#application-image-storage).
+
+### Local image testing
+
+The automated backend tests use an in-process S3 double. To exercise image uploads and reads through a running local backend, start [Adobe S3Mock](https://github.com/adobe/S3Mock#docker-recommended) in a separate terminal. Use a disposable local PostgreSQL database and synthetic images, since the container's objects live only until it stops.
+
+```sh
+docker run --rm -p 127.0.0.1:9090:9090 \
+  -e COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=blockout-local-images \
+  adobe/s3mock:5.2.3
+```
+
+Set the [standard S3 SDK endpoint override](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/endpoint-config.html#environment-variables-for-endpoints) and synthetic signing values in the shell that launches the backend or runs collector-to-sporting qualification. For a standalone backend, load its regular local environment before exporting these fixture settings. Use the loopback IP for path-style bucket addressing.
+
+```sh
+export AWS_ENDPOINT_URL_S3=http://127.0.0.1:9090
+export BLOCKOUT_IMAGES_BUCKET=blockout-local-images AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=local-fixture AWS_SECRET_ACCESS_KEY=local-fixture-only AWS_SESSION_TOKEN=
+```
+
+For standalone testing, run `npx nx run backend:serve` in the configured shell. The mobile app uses that local backend URL. Stop S3Mock with Ctrl+C when the test is done.
+
+### Local search infrastructure
+
+The optional `search` profile runs OpenSearch 3.9.0 on loopback port 9200. With Docker and OpenSSL available, prepare the local TLS and a random backend credential once, then start only this service:
+
+```sh
+bash infra/opensearch/prepare-local.sh
+docker compose --profile search config --quiet
+docker compose --profile search up -d --wait opensearch
+set -a
+. apps/backend/.env.local
+. local/opensearch/backend.env
+set +a
+```
+
+Create `apps/backend/.env.local` from its example first. Spring reads the exported values; it does not read either file automatically. Generated credentials and TLS stay under ignored `local/opensearch/`. Preparation publishes that directory only after all files are ready and refuses to overwrite an existing environment. A failed first preparation can be retried after its temporary files are cleaned automatically. The OpenSearch volume retains its security index and derived data: editing initial YAML does not change an initialized security index.
+
+Compose loads the same generated `local/opensearch/backend.env` through native [env_file](https://docs.docker.com/reference/compose-file/services/#env_file). Its [curl healthcheck](https://curl.se/docs/manpage.html#--user) verifies TLS, the backend credential and [cluster health](https://docs.opensearch.org/latest/api-reference/cluster-api/cluster-health/) at yellow or green, when all primary shards are allocated. This probe establishes engine availability; the application suites below separately verify projection, current data and search behavior.
+
+The local certificates are valid for 365 days. To renew them, stop only this worktree's backend foreground process with Ctrl-C, then run:
+
+```sh
+docker compose --profile search stop opensearch
+bash infra/opensearch/prepare-local.sh --renew-tls
+docker compose --profile search up -d --force-recreate --wait opensearch
+```
+
+The renewal generates a complete fresh CA/node bundle before replacing the three TLS files. It preserves the shared search environment, security configuration, password and data volume. Reload the same environment files in the backend shell and relaunch its [application process](#application-processes) so the SSL transport trusts the new CA. No volume reset is needed. The helpers use native [OpenSSL certificate requests](https://docs.openssl.org/4.0/man1/openssl-req/), [certificate signing](https://docs.openssl.org/4.0/man1/openssl-x509/), explicit [X.509 extensions](https://docs.openssl.org/4.0/man5/x509v3_config/) and [OpenSearch TLS configuration](https://docs.opensearch.org/latest/security/configuration/tls/).
+
+Set `OPENSEARCH_PORT` on Compose and `BLOCKOUT_SEARCH_ENDPOINT` in the backend shell when using another port. Separate worktrees should use their own Compose project (`-p <project>`) and port. No mobile or collector credential is configured. The native backend role is limited to `blockout-local-search-*`; no demo installer or trust-all client is used. Search connection creation is opt-in with `BLOCKOUT_SEARCH_ENABLED=true`; it makes no engine request and installs no search endpoint or scheduler.
+
+The official `opensearch-java` 3.10.0 client uses Apache HttpClient 5, a native Spring SSL bundle and positive connection/request deadlines (defaults 3/5 seconds). After contract generation, run the actual isolated engine qualification under Temurin Java 25:
+
+```sh
+npm run generate
+./mvnw -B -ntp -pl apps/backend verify -Dtest='Discovery*Test' -Dit.test='OpenSearchClientIntegrationTest,OpenSearchPropertiesIntegrationTest'
+```
+
+The integration suite creates its own TLS, credential, mapped port and disposable Testcontainers engine; it requires Docker and OpenSSL but does not require the Compose instance. It checks trust refusal, namespace refusal, native serialization/query, bulk item failures, explicit refresh and atomic aliases. See the [F04 qualification limits](specs/008-search-discovery/quickstart.md#contracts-and-access). Named-search behavior is qualified with the current F02/F03 reads by the `SearchMatchingIntegrationTest`, `SearchCurrentDataIntegrationTest` and `SearchTraversalIntegrationTest` suites. They include native analyzer bounds, current visibility/city checks and generated HTTP traversal beyond 10,000 results. Run the focused suites after contract generation:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest='ReadSearchTest,SearchDocumentsTest,Discovery*Test,OpenSearchEngineTest,Consultation*Test,!*IntegrationTest' -Dit.test='SearchCurrentDataIntegrationTest,SearchMatchingIntegrationTest,SearchTraversalIntegrationTest,OpenSearchClientIntegrationTest,OpenSearchPropertiesIntegrationTest'
+```
+
+Full backend verification remains `npx nx run backend:test`.
+
+The crash/restoration suite runs during ordinary backend verification and reuses the same
+Testcontainers engine and PostgreSQL fixtures, with a separately launched packaged backend.
+After contract generation, run it on its own with Java 25, Docker and OpenSSL:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=ProjectSearchTest,SearchProjectionSchedulerTest \
+  -Dit.test=SearchRestorationIntegrationTest
+```
+
+The suite chooses free ports, prepares its own TLS and disposable credentials, stops the source
+database without removing it, and restores a native custom/gzip dump into independent storage.
+It then rebuilds search and checks current filtered HTTP results and restrictions. Its containers
+are removed on exit; the archive and backend/native-tool logs remain ignored under
+`apps/backend/target/search-restoration-*`. No Compose setup or exported service credentials are
+needed. This local proof establishes search reconstruction and current-data filtering; it does not qualify a hosted environment or provider operations.
+
+### Application processes
+
+Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
+
+```sh
+cp apps/backend/.env.example apps/backend/.env.local
+set -a
+. apps/backend/.env.local
+set +a
+npx nx run backend:serve
+```
+
+```sh
+cp apps/collector/.env.example apps/collector/.env.local
+set -a
+. apps/collector/.env.local
+set +a
+npx nx run collector:serve
+```
+
+Backend starts on port 8080 and requires the configured PostgreSQL connection. Collector starts a non-web process, registers its startup incarnation with the backend once and remains alive until stopped. Start the authenticated backend first: an unconfirmed or refused registration fails collector startup. Provider HTTP clients share bounded capacity per provider; provider adapters and scheduling remain with their owning feature tasks. The collector has no database credentials.
+
+The backend and collector environment examples contain reserved, unconfigured identity inputs. These required inputs must be supplied explicitly; the application has no fallback identity configuration. For an authorized environment, replace the examples with its issuer, distinct audiences/client IDs, token endpoint and private collector secret. The collector uses Boot's client registration and in-memory authorized-client service, with Spring's non-web client-credentials manager/interceptor. It requests `sporting:ingest` and the configured audience, reuses the provider's actual expiry with Spring's normal renewal skew, and bounds token requests through the existing no-retry/no-redirect transport. A refusal or lost business response is not replayed; later explicit calls may obtain new credentials. Actual Auth0 and native sign-in qualification remains with [T042](specs/003-shared-quality/tasks.md).
+
+Expo automatically reads `apps/mobile/.env.local`. Use a separate JDK 21 for Android Gradle/CMake in the mobile terminal; keep Temurin 25 for Maven. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
+
+```sh
+cp apps/mobile/.env.example apps/mobile/.env.local
+npx nx run mobile:android
+# Or, on a Mac with Xcode:
+npx nx run mobile:ios
+# Start Metro for an already installed development build:
+npx nx run mobile:serve
+```
+
+Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. Expo SDK 58 generates the [UIKit scene lifecycle required by Xcode 27](https://expo.dev/changelog/sdk-58) by default; no scene-support opt-in or custom Kotlin compiler plugin is needed. Keep Xcode’s default local signing enabled for runnable simulator builds so its Keychain entitlements are generated.
+
+### Native UI checks
+
+Install [agent-device](https://agent-device.dev/docs/installation) once on each execution host with the platform tools above:
+
+```sh
+npm install --global agent-device@0.21.39
+agent-device doctor
+agent-device --version
+```
+
+The [official skill](.agents/skills/agent-device/SKILL.md) is copied unchanged from [Callstack v0.21.39](https://github.com/callstack/agent-device/tree/v0.21.39/skills/agent-device), with its [MIT license](.agents/skills/agent-device/LICENSE).
+
+Shared native UI follows the [F13 theme and component boundaries](specs/003-shared-quality/plan.md#native-ui-and-approved-design). The [native validation guide](specs/003-shared-quality/quickstart.md#native-ui-and-approved-design) owns Figma comparison and accessibility scenarios.
+
+Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). Interface icons use named components from [`lucide-react-native`](https://lucide.dev/guide/react-native), rendered through the Expo-compatible `react-native-svg`; sizes and colors follow the shared theme. The Blockout logo, photography and outlined artwork remain image assets, independently of interface icons.
+
+Android builds require Android 10 / API 29 through Expo BuildProperties. Native qualification uses this minimum and the latest stable runtime with the real Auth0 browser handoff.
+
+`Blockout Local` uses `com.blockoutproject.blockout.local` as its development-only Android application ID and iOS bundle identifier. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
+
+The [canonical HTTP roots](specs/003-shared-quality/contracts/README.md) cover mobile, ingestion and the legacy update read. Redocly's minimal ruleset checks source structure and references without inferring a product license; generation and current consumer checks run through [verification](#verification). Integrated business and provider qualifications remain with the owning feature tasks.

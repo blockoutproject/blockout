@@ -1,0 +1,188 @@
+package com.blockout.backend.collection.infrastructure.persistence;
+
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionResult;
+import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.shared.mapping.UriMapping;
+import java.util.Objects;
+import java.util.UUID;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Context;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
+
+/** Mechanical persistence projections; interrupted state derives from the current runtime only. */
+@Mapper(config = MappingConfiguration.class, uses = UriMapping.class)
+interface CollectionPersistenceMapper {
+  /**
+   * Detaches one current result.
+   *
+   * @param source persisted independent evidence
+   * @return immutable current evidence with its logical order
+   */
+  @Mapping(target = "observedAt", source = "lastAttemptAt")
+  CollectionResult toView(CollectionResultEntity source);
+
+  /** Detaches scalar evidence from the bounded result query. */
+  CollectionResult toView(CollectionResultRepository.CurrentResult source);
+
+  /**
+   * Stores newer evidence while retaining its stable key.
+   *
+   * @param controlId admitted owner
+   * @param source current evidence computed by the application
+   * @return complete current-state row
+   */
+  @Mapping(target = "lastAttemptAt", source = "source.observedAt")
+  CollectionResultEntity toEntity(UUID controlId, CollectionResult source);
+
+  /**
+   * Replaces current evidence under the control lock without merging a detached copy.
+   *
+   * @param source newer application-approved observation and latest usable success
+   * @param target managed row with the same immutable evidence key
+   */
+  @Mapping(target = "controlId", ignore = true)
+  @Mapping(target = "scopeId", ignore = true)
+  @Mapping(target = "stage", ignore = true)
+  @Mapping(target = "phase", ignore = true)
+  @Mapping(target = "lastAttemptAt", source = "observedAt")
+  void update(CollectionResult source, @MappingTarget CollectionResultEntity target);
+
+  /**
+   * Detaches current registration.
+   *
+   * @param source current registration
+   * @return detached runtime state
+   */
+  CollectionState.Runtime toView(CollectorRuntimeEntity source);
+
+  /**
+   * Detaches current control configuration.
+   *
+   * @param source current control with loaded pending selections
+   * @return detached operational state
+   */
+  CollectionState.Control toView(CollectionControlEntity source);
+
+  /**
+   * Detaches the proposed and accepted source state.
+   *
+   * @param source current supported binding
+   * @return detached candidate/accepted context
+   */
+  CollectionState.Source toView(SourceBindingEntity source);
+
+  /**
+   * Replaces mutable source state, including explicit evidence clearing.
+   *
+   * @param source application-approved state; identity and revision remain persistence-owned
+   * @param target managed binding held by the transaction
+   */
+  void update(CollectionState.Source source, @MappingTarget SourceBindingEntity target);
+
+  /**
+   * Projects current completion without updating obsolete rows.
+   *
+   * @param source current cycle
+   * @param current current incarnation, read under the runtime fence for writes
+   * @return detached context with honest interrupted/completed state
+   */
+  @Mapping(target = "state", source = "source", qualifiedByName = "cycleState")
+  @Mapping(target = "candidate", source = "source", qualifiedByName = "candidate")
+  CollectionState.Cycle toView(CollectionCycleEntity source, @Context UUID current);
+
+  /**
+   * Detaches a frozen nonpersonal reference.
+   *
+   * @param source snapshot row without personal locality
+   * @return frozen identity/configuration
+   */
+  CollectionState.Target toView(CollectionTargetEntity source);
+
+  /**
+   * Creates a snapshot row owned by the admission adapter.
+   *
+   * @param source authorized immutable reference
+   * @return unpersisted snapshot row; adapter assigns its cycle
+   */
+  @Mapping(target = "cycleId", ignore = true)
+  @Mapping(target = "nativeTeamReference", ignore = true)
+  CollectionTargetEntity toEntity(CollectionState.Target source);
+
+  /**
+   * Retains the active role's unchanged database spelling without coupling retained snapshots to
+   * protocol enum removal.
+   *
+   * @param source active admitted role
+   * @return matching retained persistence value
+   */
+  CollectionTargetEntity.Kind persistedKind(CollectionTargetKindEnum source);
+
+  /**
+   * Projects only current roles; retired logo-only snapshots cannot grant new work.
+   *
+   * @param source retained snapshot role
+   * @return matching active role
+   */
+  @ValueMapping(source = "STANDINGS_AFTER_FINAL_SCORE", target = "STANDINGS")
+  @ValueMapping(source = "LOGO", target = MappingConstants.THROW_EXCEPTION)
+  CollectionTargetKindEnum activeKind(CollectionTargetEntity.Kind source);
+
+  /**
+   * Rejects the retired snapshot before mapping it into an active capability. Persistence still
+   * loads the retained row for ordinary lifecycle cleanup.
+   *
+   * @param source retained target, or null
+   * @throws CollectionConflictException when the target uses the retired logo-only capability
+   */
+  @BeforeMapping
+  default void requireActiveKind(CollectionTargetEntity source) {
+    if (source != null && source.getKind() == CollectionTargetEntity.Kind.LOGO) {
+      throw CollectionConflictException.invalidContext();
+    }
+  }
+
+  /**
+   * Derives interruption while preserving accepted completion.
+   *
+   * @param source retained context
+   * @param current current startup
+   * @return accepted completion survives replacement; unfinished old work is interrupted
+   */
+  @Named("cycleState")
+  default CollectionCycleStateEnum state(CollectionCycleEntity source, @Context UUID current) {
+    if (source.getCompletedAt() != null) {
+      return CollectionCycleStateEnum.COMPLETED;
+    }
+    return Objects.equals(source.getIncarnationId(), current)
+        ? CollectionCycleStateEnum.RUNNING
+        : CollectionCycleStateEnum.INTERRUPTED;
+  }
+
+  /**
+   * Exposes candidate data only for validation contexts.
+   *
+   * @param source admitted context
+   * @return validation-only candidate; control passages have none
+   */
+  @Named("candidate")
+  default CollectionState.Candidate candidate(CollectionCycleEntity source) {
+    return source.getSourceBindingId() == null
+        ? null
+        : new CollectionState.Candidate(
+            source.getSourceBindingId(),
+            source.getRevision(),
+            source.getCandidateUrl(),
+            source.getSeasonLabel(),
+            source.getProvider(),
+            source.getOrganizerReference());
+  }
+}

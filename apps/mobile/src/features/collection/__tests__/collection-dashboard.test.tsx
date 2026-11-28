@@ -1,0 +1,1760 @@
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { createQueryClient } from "@/shared/query/query-client";
+import { onlineManager } from "@tanstack/react-query";
+import {
+  getGetCollectionSeasonQueryKey,
+  getGetMyAccountQueryKey,
+  getListCollectionControlsQueryKey,
+  getListCollectionResultsQueryKey,
+  getListCollectionSeasonsQueryKey,
+} from "../../../../.generated/mobile";
+import {
+  cleanup,
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { Alert } from "react-native";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import {
+  CollectionControlScreen,
+  CollectionDashboardScreen,
+} from "../screens/collection-dashboard-screen";
+import { CollectionProviderScreen } from "../screens/collection-provider-screen";
+import {
+  AccountActions,
+  collectionPeer,
+  control,
+  json,
+  refused,
+  renderCollection,
+  result,
+  seasonId,
+} from "../test-support/collection-peer";
+
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({
+    back: mockBack,
+    push: mockPush,
+    setParams: mockSetParams,
+  }),
+  useNavigation: () => mockNavigation,
+  usePreventRemove: jest.fn(),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
+}));
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+const mockPush = jest.fn();
+const mockBack = jest.fn();
+const mockSetParams = jest.fn();
+const mockIsFocused = jest.fn(() => true);
+const mockNavigation = {
+  isFocused: mockIsFocused,
+  addListener: jest.fn(() => jest.fn()),
+};
+const ffvbSuivi = (
+  <CollectionProviderScreen
+    provider="ffvb"
+    seasonId={seasonId}
+    tab="suivi"
+    filters={{}}
+  />
+);
+const environment = { ...process.env };
+let peer: ReturnType<typeof collectionPeer>;
+let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
+beforeEach(() => {
+  jest.useFakeTimers();
+  mockIsFocused.mockReset().mockReturnValue(true);
+  peer = collectionPeer();
+  client = createQueryClient();
+  Object.assign(process.env, {
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|operator187"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
+  mockFetch.mockReset().mockImplementation(peer.reads);
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+});
+afterEach(async () => {
+  await cleanup();
+  onlineManager.setOnline(true);
+  client.clear();
+  privateClient?.clear();
+  // Await pending native/Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+it("does not invent an Error, Empty or active loading before a suspended first collection read runs", async () => {
+  // Given: identity is already usable before the ordinary list is opened offline.
+  const view = await renderCollection(<AccountActions />, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByText("Session : authenticated");
+  await waitFor(() =>
+    expect(privateClient.getQueryData(getGetMyAccountQueryKey())).toBeDefined(),
+  );
+  await act(() => onlineManager.setOnline(false));
+
+  // When
+  await view.rerender(<CollectionDashboardScreen />);
+
+  // Then: a first suspended read has no failure or successful empty result to present.
+  await waitFor(() =>
+    expect(
+      privateClient.getQueryState(getListCollectionSeasonsQueryKey())
+        ?.fetchStatus,
+    ).toBe("paused"),
+  );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucune saison découverte")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(String(url)).pathname.endsWith("/collection-seasons"),
+    ),
+  ).toBe(false);
+
+  // When
+  await act(() => onlineManager.setOnline(true));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/collection-seasons"),
+    ),
+  ).toHaveLength(1);
+});
+
+it("keeps the initial account card mounted for background reading and explicit Retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const background = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? background.promise
+      : peer.reads(url, options),
+  );
+
+  try {
+    // When
+    await act(async () => {
+      void privateClient.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => background.resolve(refused(503)));
+    mockFetch.mockImplementation((url, options) =>
+      String(url).endsWith("/accounts/me")
+        ? retry.promise
+        : peer.reads(url, options),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => retry.resolve(refused(503)));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+
+    // When
+    mockFetch.mockImplementation(peer.reads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("header", { name: "Compétitions" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+  } finally {
+    await act(() => {
+      background.resolve(refused(503));
+      retry.resolve(refused(503));
+    });
+  }
+});
+
+it("reloads empty seasons from their card and recovers a failed read without losing the cached envelope", async () => {
+  // Given
+  let failed = false;
+  let discovered = false;
+  mockFetch.mockImplementation((url, options) => {
+    if (new URL(String(url)).pathname.endsWith("/collection-seasons")) {
+      return Promise.resolve(
+        failed
+          ? refused(503)
+          : json({ items: discovered ? [peer.season] : [] }),
+      );
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByText("Aucune saison découverte");
+
+  // When
+  failed = true;
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune saison découverte")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(
+    privateClient.getQueryData(getListCollectionSeasonsQueryKey()),
+  ).toEqual({ items: [] });
+
+  // When
+  failed = false;
+  discovered = true;
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
+});
+
+it("retries only the seasonless summary while its control stays usable", async () => {
+  // Given
+  const selected = control({ family: "club-sheets", seasonId: undefined });
+  const resultsPath = `/administration/collection-controls/${selected.id}/results`;
+  peer.controls = [selected];
+  const user = userEvent.setup();
+  let failed = true;
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname === resultsPath && failed
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionControlScreen family="club-sheets" />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByRole("button", { name: "Mettre en pause" })).toBeEnabled();
+  mockFetch.mockClear();
+
+  // When
+  failed = false;
+  peer.summary = { ...peer.summary, success: 3 };
+  await user.press(retry);
+
+  // Then
+  expect(await screen.findByLabelText("3 réussites")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(
+    mockFetch.mock.calls.map(([url, options]) => {
+      const { pathname, searchParams } = new URL(String(url));
+      return [options?.method ?? "GET", pathname, searchParams.get("size")];
+    }),
+  ).toEqual([["GET", resultsPath, "1"]]);
+});
+
+it.each([
+  { scope: "season", path: `/administration/collection-seasons/${seasonId}` },
+  { scope: "controls", path: "/administration/collection-controls" },
+])(
+  "keeps the $scope Error Card busy during an explicit initial-read retry",
+  async ({ path }) => {
+    // Given
+    const user = userEvent.setup();
+    const retryRead = Promise.withResolvers<Response>();
+    let retrying = false;
+    mockFetch.mockImplementation((url, options) =>
+      new URL(String(url)).pathname === path
+        ? retrying
+          ? retryRead.promise
+          : Promise.resolve(refused(503))
+        : peer.reads(url, options),
+    );
+    await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    try {
+      // When
+      retrying = true;
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: true }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+      // When
+      await act(async () =>
+        retryRead.resolve(
+          await peer.reads(new URL(path, process.env.EXPO_PUBLIC_API_URL)),
+        ),
+      );
+
+      // Then
+      expect(
+        await screen.findByRole("button", { name: "Mettre en pause" }),
+      ).toBeEnabled();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    } finally {
+      retryRead.resolve(refused(503));
+    }
+  },
+);
+
+it("separates competition seasons from the two seasonless controls", async () => {
+  // Given
+  const user = userEvent.setup();
+  peer.controls = [
+    control({ family: "club-sheets", seasonId: undefined }),
+    control({
+      id: "00000000-0000-4000-8000-000000000191",
+      family: "geocoding",
+      seasonId: undefined,
+    }),
+  ];
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // When
+  await user.press(await screen.findByRole("link", { name: "Fiches clubs" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/collection/clubs/[family]",
+    params: { family: "club-sheets" },
+  });
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
+});
+
+it("announces the pending results section without inventing observed evidence", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/results")
+      ? response.promise
+      : peer.reads(url, options),
+  );
+
+  // When
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des résultats de collecte",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(
+    screen.queryByRole("header", { name: "Résultats actuels" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() =>
+    response.resolve(
+      json({
+        items: [result()],
+        page: 0,
+        hasNext: false,
+        summary: { ...peer.summary, unconfirmed: 1 },
+      }),
+    ),
+  );
+
+  // Then
+  expect(await screen.findByLabelText("1 non confirmé")).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it("replaces the landing menu with its read card until an explicit seasons Retry succeeds", async () => {
+  // Given
+  let unavailable = false;
+  const retryRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    unavailable && new URL(String(url)).pathname.endsWith("/collection-seasons")
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByRole("link", { name: /2026\/2027/ });
+
+  // When
+  unavailable = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("link", { name: /2026\/2027/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Compétitions" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Fiches clubs" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Géocodage" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
+  expect(
+    privateClient.getQueryData(getListCollectionSeasonsQueryKey()),
+  ).toEqual({ items: [peer.season] });
+
+  // When
+  mockFetch.mockClear();
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/collection-seasons")
+      ? retryRead.promise
+      : peer.reads(url, options),
+  );
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Fiches clubs" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
+    "/administration/collection-seasons",
+  );
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
+
+  // When
+  await act(() => retryRead.resolve(json({ items: [peer.season] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Compétitions" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
+});
+
+it("refreshes only reads and retains unconfirmed results while paused", async () => {
+  // Given
+  peer.controls = [control({ enabled: false })];
+  peer.summary = { ...peer.summary, unconfirmed: 1 };
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  expect(await screen.findByLabelText("1 non confirmé")).toBeOnTheScreen();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(screen.getByText("En pause")).toBeOnTheScreen();
+  expect(screen.getByText("Jamais")).toBeOnTheScreen();
+  expect(screen.getByText("Aucun")).toBeOnTheScreen();
+  expect(screen.getByLabelText("1 non confirmé")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
+  expect(screen.queryByText(/classement|classification|mapping/i)).toBeNull();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("allows pausing catalogue refresh before activation while a sporting rerun is unavailable", async () => {
+  // Given
+  peer.season = { ...peer.season, state: "preparing" };
+  peer.controls = [control({ enabled: true })];
+
+  // When
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  ).toBeEnabled();
+  expect(screen.getByText("Saison à activer")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+});
+
+it("leaves native pull progress quiet while dashboard reads are paused and only the account is fetching", async () => {
+  // Given: a loaded dashboard and a separate account read held at the HTTP boundary.
+  const selected = control();
+  peer.controls = [selected];
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByRole("header", { name: "Résultats actuels" });
+  const accountKey = getGetMyAccountQueryKey();
+  const account = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (new URL(String(url)).pathname === accountKey[0]) {
+      await account.promise;
+    }
+    return peer.reads(url, options);
+  });
+
+  try {
+    // When: the user starts a native pull after Query goes offline.
+    await act(async () => {
+      void privateClient.refetchQueries({ queryKey: accountKey });
+      // Deliver Query's batched observer notification before the gesture.
+      await jest.advanceTimersByTimeAsync(1);
+    });
+    await act(() => onlineManager.setOnline(false));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    const pullKeys = [
+      getListCollectionControlsQueryKey({ seasonId }),
+      getListCollectionResultsQueryKey(selected.id, { size: 1 }),
+      getGetCollectionSeasonQueryKey(seasonId),
+    ];
+    for (const queryKey of pullKeys) {
+      expect(privateClient.getQueryState(queryKey)?.fetchStatus).toBe("paused");
+    }
+    expect(privateClient.getQueryState(accountKey)?.fetchStatus).toBe(
+      "fetching",
+    );
+    const refreshControl = screen.getByLabelText("Actualiser les données");
+    expect(refreshControl).not.toBeBusy();
+    expect(refreshControl).toHaveProp("refreshing", false);
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      account.resolve();
+    });
+  }
+});
+
+it.each([202, 200])(
+  "distinguishes accepted pending intent from a confirmed running cycle (%s)",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const running = {
+      id: "00000000-0000-4000-8000-000000000192",
+      state: "running" as const,
+      mode: "manual" as const,
+      startedAt: "2026-10-24T12:00:00Z",
+    };
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "POST") {
+        const accepted = control(
+          status === 202
+            ? { pendingRequestId: running.id }
+            : { cycle: running },
+        );
+        peer.controls = [accepted];
+        return json(accepted, status);
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+
+    // When
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
+
+    // Then
+    expect(
+      await screen.findByText(
+        status === 202 ? "En attente de démarrage" : "Collecte en cours",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryAllByRole("alert", { name: "Relance demandée." }),
+    ).toHaveLength(status === 202 ? 1 : 0);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+    const write = mockFetch.mock.calls.find(
+      ([, options]) => options?.method === "POST",
+    );
+    if (!write) {
+      throw new Error("Missing collection request");
+    }
+    const [url, options] = write;
+    expect(String(url)).toContain(
+      `/collection-controls/${control().id}/requests`,
+    );
+    expect(options?.body).toBeUndefined();
+  },
+);
+
+it.each(["ffvb", "lnv"] as const)(
+  "refreshes the %s execution after a relaunch while its automatic read is still pending",
+  async (provider) => {
+    // Given: the relaunch is accepted and its automatic read is held with the old pending status.
+    const user = userEvent.setup();
+    const selected = control({ family: provider });
+    const requestId = "00000000-0000-4000-8000-000000000192";
+    const pending = { ...selected, pendingRequestId: requestId };
+    const staleRead = Promise.withResolvers<Response>();
+    const controlReadSignals: RequestInit["signal"][] = [];
+    peer.controls = [selected];
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "POST") {
+        peer.controls = [pending];
+        return json(pending, 202);
+      }
+      const request = new URL(String(url));
+      if (
+        options?.method === "GET" &&
+        request.pathname === "/administration/collection-controls" &&
+        request.searchParams.get("seasonId") === seasonId
+      ) {
+        controlReadSignals.push(options.signal);
+        if (peer.controls[0] === pending) {
+          return staleRead.promise;
+        }
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(
+      <CollectionProviderScreen
+        provider={provider}
+        seasonId={seasonId}
+        tab="suivi"
+        filters={{}}
+      />,
+      client,
+    );
+
+    try {
+      await user.press(await screen.findByRole("button", { name: "Relancer" }));
+      const initialReadCount = controlReadSignals.length;
+      await act(async () => nativeAlertAction("Relancer")());
+      await screen.findByText("En attente de démarrage");
+      await waitFor(() =>
+        expect(controlReadSignals).toHaveLength(initialReadCount + 1),
+      );
+      const automaticReadSignal = controlReadSignals[initialReadCount];
+      expect(automaticReadSignal?.aborted).toBe(false);
+
+      // When: the backend starts the cycle and the operator pulls on the same screen.
+      peer.controls = [
+        control({
+          family: provider,
+          cycle: {
+            id: "00000000-0000-4000-8000-000000000193",
+            state: "running",
+            mode: "manual",
+            startedAt: "2026-10-24T12:00:00Z",
+          },
+        }),
+      ];
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+
+      // Then: the explicit read observes the new cycle before the older response is released.
+      expect(await screen.findByText("Collecte en cours")).toBeOnTheScreen();
+      expect(controlReadSignals).toHaveLength(initialReadCount + 2);
+      expect(automaticReadSignal?.aborted).toBe(true);
+    } finally {
+      await act(() => staleRead.resolve(json({ items: [pending] })));
+    }
+
+    expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
+
+it("pauses and resumes the selected control directly against current server state", async () => {
+  // Given
+  const user = userEvent.setup();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      const accepted = control({
+        enabled: !peer.controls[0].enabled,
+      });
+      peer.controls = [accepted];
+      return json(accepted);
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("alert", { name: "Collecte mise en pause." }),
+  ).toBeOnTheScreen();
+
+  // When
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  await user.press(screen.getByRole("button", { name: "Reprendre" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  ).toBeEnabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(
+    screen.getByRole("alert", { name: "Collecte réactivée." }),
+  ).toBeOnTheScreen();
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(writes).toHaveLength(2);
+  expect(writes.map(([url]) => new URL(String(url)).pathname)).toEqual([
+    `/administration/collection-controls/${control().id}/activity`,
+    `/administration/collection-controls/${control().id}/activity`,
+  ]);
+  expect(
+    writes.map(([, options]) => JSON.parse(String(options?.body))),
+  ).toEqual([{ enabled: false }, { enabled: true }]);
+});
+
+it("keeps the activity target after response loss and waits for a later explicit action", async () => {
+  // Given
+  const user = userEvent.setup();
+  let failed = true;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      if (failed) {
+        throw new TypeError("Lost command response");
+      }
+      peer.controls = [control({ enabled: false })];
+      return json(peer.controls[0]);
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByRole("button", { name: "Mettre en pause" });
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+  expect(screen.queryByText("Collecte mise en pause.")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Mettre en pause" })).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("PUT");
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When
+  failed = false;
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(writes).toHaveLength(2);
+  expect(writes.map(([url]) => new URL(String(url)).pathname)).toEqual([
+    `/administration/collection-controls/${control().id}/activity`,
+    `/administration/collection-controls/${control().id}/activity`,
+  ]);
+  expect(
+    writes.map(([, options]) => JSON.parse(String(options?.body))),
+  ).toEqual([{ enabled: false }, { enabled: false }]);
+});
+
+it.each([409, "lost"])(
+  "allows a later explicit attempt after %s without retaining a command lock across visits",
+  async (failure) => {
+    // Given
+    const user = userEvent.setup();
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        if (failure === "lost") {
+          return Promise.reject(new TypeError("lost"));
+        }
+        return Promise.resolve(refused(409));
+      }
+      return peer.reads(url, options);
+    });
+    const view = await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    // When
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
+    await screen.findByRole("alert");
+    expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    peer.controls = [control({})];
+    await view.rerender(<></>);
+    await view.rerender(ffvbSuivi);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled(),
+    );
+    await user.press(screen.getByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
+    await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+    // Then
+    const writes = mockFetch.mock.calls.filter(
+      ([, init]) => init?.method === "POST",
+    );
+    expect(writes).toHaveLength(2);
+    expect(writes[1][1]?.body).toBeUndefined();
+  },
+);
+
+it("refuses a held confirmation after current permission withdrawal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderCollection(
+    <>
+      {ffvbSuivi}
+      <AccountActions />
+    </>,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+
+  // When
+  peer.permissions = { manageSporting: true };
+  await user.press(
+    await screen.findByRole("button", { name: "Actualiser les permissions" }),
+  );
+  await screen.findByText("Une erreur est survenue");
+  await act(async () => nativeAlertAction("Relancer")());
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(0);
+});
+
+it.each(["control", "season"] as const)(
+  "lets the server refuse a captured request after its %s read is denied during credential retrieval",
+  async (scope) => {
+    // Given
+    const user = userEvent.setup();
+    const read = Promise.withResolvers<Response>();
+    const credentials =
+      Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+    const credentialRequested = Promise.withResolvers<void>();
+    const mounted = await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    const refusedPath =
+      scope === "control"
+        ? "/collection-controls"
+        : `/collection-seasons/${seasonId}`;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        return Promise.resolve(refused(403));
+      }
+      if (
+        new URL(String(url)).pathname.endsWith(refusedPath) &&
+        options?.method === "GET"
+      ) {
+        return read.promise;
+      }
+      return peer.reads(url, options);
+    });
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    mockAuth0.getCredentials.mockImplementationOnce(() => {
+      credentialRequested.resolve();
+      return credentials.promise;
+    });
+
+    // When
+    await act(async () => nativeAlertAction("Relancer")());
+    await act(async () => credentialRequested.promise);
+    await act(async () => read.resolve(refused(403)));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    await act(async () =>
+      credentials.resolve(credentialsFor("auth0|operator187")),
+    );
+    await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Relancer" }),
+      ).not.toBeOnTheScreen(),
+    );
+    await mounted.unmount();
+  },
+);
+
+it("ignores an old-session command response without presenting a new success", async () => {
+  // Given
+  const user = userEvent.setup();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST" ? pending.promise : peer.reads(url, options),
+  );
+  await renderCollection(
+    <>
+      {ffvbSuivi}
+      <AccountActions />
+    </>,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: "POST" }),
+    ),
+  );
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Déconnexion" }));
+  await screen.findByText("Session : guest");
+  await act(async () =>
+    pending.resolve(
+      json(
+        control({ pendingRequestId: "00000000-0000-4000-8000-000000000192" }),
+        202,
+      ),
+    ),
+  );
+  await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+  // Then
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
+  expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
+});
+
+it.each(["ffvb", "lnv"] as const)(
+  "opens the %s Bilan from the whole-control outcome summary",
+  async (provider) => {
+    // Given: the page contains one row, while the server reports counts for the whole control.
+    const user = userEvent.setup();
+    peer.controls = [
+      control({
+        family: provider,
+        lastAttemptAt: "2026-10-24T12:00:00Z",
+        lastSuccessAt: "2026-10-23T12:00:00Z",
+      }),
+    ];
+    peer.results = [result()];
+    peer.summary = { success: 6, partial: 2, failed: 3, unconfirmed: 1 };
+    await renderCollection(
+      <CollectionProviderScreen
+        provider={provider}
+        seasonId={seasonId}
+        tab="suivi"
+        filters={{}}
+      />,
+      client,
+    );
+
+    // When
+    await user.press(
+      await screen.findByRole("link", { name: "Voir le bilan" }),
+    );
+
+    // Then
+    expect(
+      screen.getByRole("header", { name: "Résultats actuels" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("12 résultats affichés")).toBeOnTheScreen();
+    expect(screen.getByLabelText("6 réussites")).toBeOnTheScreen();
+    expect(screen.getByLabelText("2 résultats partiels")).toBeOnTheScreen();
+    expect(screen.getByLabelText("3 échecs")).toBeOnTheScreen();
+    expect(screen.getByLabelText("1 non confirmé")).toBeOnTheScreen();
+    expect(screen.getByText("Aucun cycle en cours.")).toBeOnTheScreen();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/collection/[seasonId]/controls/[provider]/bilan",
+      params: { seasonId, provider },
+    });
+    const reads = mockFetch.mock.calls.map(([url]) => new URL(String(url)));
+    const controlReads = reads.filter((url) =>
+      url.pathname.startsWith("/administration/collection-controls"),
+    );
+    expect(controlReads.map((url) => url.pathname)).toEqual([
+      "/administration/collection-controls",
+      `/administration/collection-controls/${peer.controls[0].id}/results`,
+    ]);
+    expect(controlReads[0].searchParams.get("seasonId")).toBe(seasonId);
+    const resultReads = reads.filter((url) =>
+      url.pathname.endsWith("/results"),
+    );
+    expect(
+      resultReads.map((url) => Object.fromEntries(url.searchParams)),
+    ).toEqual([{ page: "0", size: "1" }]);
+  },
+);
+
+it.each([
+  { timing: "before", acknowledgedBeforeNavigation: true },
+  { timing: "after", acknowledgedBeforeNavigation: false },
+])(
+  "preserves the accepted pause and retires its toast when acknowledged $timing leaving Suivi",
+  async ({ acknowledgedBeforeNavigation }) => {
+    // Given: switching provider tabs keeps the Suivi scene mounted.
+    const user = userEvent.setup();
+    const response = Promise.withResolvers<Response>();
+    const accepted = control({ enabled: false });
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        return response.promise;
+      }
+      if (new URL(String(url)).pathname.endsWith("/sources")) {
+        return Promise.resolve(json({ items: [] }));
+      }
+      return peer.reads(url, options);
+    });
+    const view = await renderCollection(ffvbSuivi, client);
+    await layoutNativeTabs();
+    await user.press(
+      await screen.findByRole("button", { name: "Mettre en pause" }),
+    );
+    if (acknowledgedBeforeNavigation) {
+      peer.controls = [accepted];
+      await act(() => response.resolve(json(accepted)));
+      expect(
+        await screen.findByRole("alert", { name: "Collecte mise en pause." }),
+      ).toBeOnTheScreen();
+    }
+
+    // When
+    await view.rerender(
+      <CollectionProviderScreen
+        provider="ffvb"
+        seasonId={seasonId}
+        tab="sources"
+        filters={{}}
+      />,
+    );
+    await screen.findByRole("tab", { name: "Sources", selected: true });
+    if (!acknowledgedBeforeNavigation) {
+      peer.controls = [accepted];
+      await act(() => response.resolve(json(accepted)));
+    }
+
+    // Then
+    expect(
+      screen.queryByRole("alert", { name: "Collecte mise en pause." }),
+    ).not.toBeOnTheScreen();
+    await view.rerender(ffvbSuivi);
+    expect(
+      await screen.findByRole("button", { name: "Reprendre" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("alert", { name: "Collecte mise en pause." }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it("keeps a closed season navigable with no collection command", async () => {
+  // Given
+  peer.season = { ...peer.season, state: "closed" };
+  peer.summary = { ...peer.summary, success: 1 };
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // When
+  await screen.findByText("Saison clôturée - historique conservé");
+
+  // Then
+  expect(screen.queryByRole("button", { name: "Mettre en pause" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Relancer" })).toBeNull();
+  expect(await screen.findByLabelText("1 réussite")).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Voir le bilan" })).toBeOnTheScreen();
+});
+
+it.each([
+  { family: "club-sheets", label: "Fiches clubs", otherFamily: "geocoding" },
+  { family: "geocoding", label: "Géocodage", otherFamily: "club-sheets" },
+] as const)(
+  "uses the selected $family control for commands, whole-control results and Bilan",
+  async ({ family, label, otherFamily }) => {
+    // Given
+    const user = userEvent.setup();
+    const selected = control({
+      family,
+      seasonId: undefined,
+      enabled: false,
+    });
+    const other = control({
+      id: "00000000-0000-4000-8000-000000000191",
+      family: otherFamily,
+      seasonId: undefined,
+    });
+    peer.controls = [other, selected];
+    peer.summary = { ...peer.summary, partial: 2 };
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PUT") {
+        const accepted = { ...selected, enabled: true };
+        peer.controls = [other, accepted];
+        return json(accepted);
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(
+      <CollectionControlScreen family={family} />,
+      client,
+      (cache) => {
+        privateClient = cache;
+      },
+    );
+
+    // When
+    await user.press(await screen.findByRole("button", { name: "Reprendre" }));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Collecte réactivée." }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled();
+    expect(
+      screen.getByRole("header", { name: `Collecte, ${label}` }),
+    ).toBeOnTheScreen();
+    expect(
+      await screen.findByLabelText("2 résultats partiels"),
+    ).toBeOnTheScreen();
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PUT",
+    );
+    expect(writes.map(([url]) => new URL(String(url)).pathname)).toEqual([
+      `/administration/collection-controls/${selected.id}/activity`,
+    ]);
+    const resultReads = mockFetch.mock.calls
+      .map(([url]) => new URL(String(url)))
+      .filter(({ pathname }) => pathname.endsWith("/results"));
+    expect(resultReads.length).toBeGreaterThan(0);
+    for (const read of resultReads) {
+      expect(read.pathname).toBe(
+        `/administration/collection-controls/${selected.id}/results`,
+      );
+      expect(read.searchParams.get("size")).toBe("1");
+    }
+    expect(
+      mockFetch.mock.calls.some(
+        ([url]) =>
+          String(url).includes("seasonId") ||
+          String(url).includes("collection-seasons"),
+      ),
+    ).toBe(false);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(0);
+
+    // When
+    mockPush.mockClear();
+    await user.press(screen.getByRole("link", { name: "Voir le bilan" }));
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/collection/clubs/[family]/bilan",
+      params: { family },
+    });
+  },
+);
+
+it("retains running evidence while pause cancels an unstarted request", async () => {
+  // Given
+  const user = userEvent.setup();
+  peer.controls = [
+    control({ pendingRequestId: "00000000-0000-4000-8000-000000000192" }),
+  ];
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      const accepted = control({
+        enabled: false,
+        cycle: {
+          id: "00000000-0000-4000-8000-000000000193",
+          state: "running",
+          mode: "periodic",
+          startedAt: "2026-10-24T12:00:00Z",
+        },
+      });
+      peer.controls = [accepted];
+      return json(accepted, 200);
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  expect(await screen.findByText("En attente de démarrage")).toBeOnTheScreen();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+
+  // Then
+  expect(await screen.findByText("Mise en pause en cours")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", {
+      name: "Pause demandée. Le cycle en cours se termine.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
+  expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
+});
+
+it.each([
+  { projection: "results", status: 503 },
+  { projection: "control", status: 500 },
+] as const)(
+  "uses scoped Error Card recovery after a failed $projection refresh",
+  async ({ projection, status }) => {
+    // Given
+    let unavailable = false;
+    const failedPath =
+      projection === "results" ? "/results" : "/collection-controls";
+    mockFetch.mockImplementation((url, options) =>
+      unavailable && new URL(String(url)).pathname.endsWith(failedPath)
+        ? Promise.resolve(refused(status))
+        : peer.reads(url, options),
+    );
+    await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await screen.findByRole("header", { name: "Résultats actuels" });
+
+    // When
+    unavailable = true;
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    await screen.findByRole("button", { name: "Réessayer" });
+    expect(
+      screen.queryByRole("header", { name: "Résultats actuels" }),
+    ).not.toBeOnTheScreen();
+    if (projection === "results") {
+      expect(
+        screen.getByRole("button", { name: "Mettre en pause" }),
+      ).toBeEnabled();
+    } else {
+      expect(
+        screen.queryByRole("button", { name: "Mettre en pause" }),
+      ).not.toBeOnTheScreen();
+    }
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    mockFetch.mockClear();
+
+    // When
+    unavailable = false;
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("header", { name: "Résultats actuels" }),
+    ).toBeOnTheScreen();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toMatch(
+      new RegExp(`${failedPath}$`),
+    );
+    expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  },
+);
+
+it("keeps Pause usable during result failure and never treats read Retry as a command", async () => {
+  // Given
+  const user = userEvent.setup();
+  let resultsAvailable = false;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      peer.controls = [control({ enabled: false })];
+      return json(peer.controls[0]);
+    }
+    if (
+      new URL(String(url)).pathname.endsWith("/results") &&
+      !resultsAvailable
+    ) {
+      return refused(503);
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PUT"),
+  ).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When
+  resultsAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByRole("header", { name: "Résultats actuels" });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/results(?:\?|$)/);
+  expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+});
+
+it("retains an accepted activity ACK when its ordinary control reread fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  let unavailable = false;
+  const accepted = control({ enabled: false });
+  const otherProvider = control({
+    id: "00000000-0000-4000-8000-000000000191",
+    family: "lnv",
+  });
+  peer.controls = [control(), otherProvider];
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      peer.controls = [accepted, otherProvider];
+      unavailable = true;
+      return json(accepted);
+    }
+    if (
+      unavailable &&
+      new URL(String(url)).pathname.endsWith("/collection-controls")
+    ) {
+      return refused(503);
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    privateClient.getQueryData(getListCollectionControlsQueryKey({ seasonId })),
+  ).toEqual({ items: [accepted, otherProvider] });
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PUT"),
+  ).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Mettre en pause" }),
+  ).not.toBeOnTheScreen();
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
+    "/administration/collection-controls",
+  );
+  expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+});
+
+it.each([403, 503])(
+  "keeps the control read error after HTTP %i and a late acknowledgment",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const acknowledgement = Promise.withResolvers<Response>();
+    const reconciliation = Promise.withResolvers<Response>();
+    const controlsKey = getListCollectionControlsQueryKey({ seasonId });
+    let controlsReadStatus = 200;
+    let reconciles = false;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        return acknowledgement.promise;
+      }
+      if (
+        controlsReadStatus !== 200 &&
+        new URL(String(url)).pathname === controlsKey[0]
+      ) {
+        return reconciles
+          ? reconciliation.promise
+          : Promise.resolve(refused(controlsReadStatus));
+      }
+      return peer.reads(url, options);
+    });
+    await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await user.press(
+      await screen.findByRole("button", { name: "Mettre en pause" }),
+    );
+    await waitFor(() => expect(privateClient.isMutating()).toBe(1));
+
+    // When
+    controlsReadStatus = status;
+    await act(() => privateClient.refetchQueries({ queryKey: controlsKey }));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+
+    // When
+    controlsReadStatus = 503;
+    reconciles = true;
+    try {
+      await act(() =>
+        acknowledgement.resolve(json(control({ enabled: false }))),
+      );
+      await waitFor(() => {
+        expect(privateClient.isMutating()).toBe(0);
+        expect(privateClient.isFetching()).toBe(1);
+      });
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Reprendre" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("alert", { name: "Collecte mise en pause." }),
+      ).not.toBeOnTheScreen();
+      if (status === 403) {
+        expect(privateClient.getQueryData(controlsKey)).toBeUndefined();
+      }
+    } finally {
+      await act(() => reconciliation.resolve(refused(503)));
+    }
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  },
+);
+
+it("rejects a malformed acknowledgement without inventing success and shows a failed ordinary refresh", async () => {
+  // Given
+  const user = userEvent.setup();
+  let readAvailable = true;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      return Promise.resolve(json({ ...control(), enabled: "invalid" }, 202));
+    }
+    if (
+      !readAvailable &&
+      new URL(String(url)).pathname.endsWith("/collection-controls")
+    ) {
+      return Promise.resolve(refused(503));
+    }
+    return peer.reads(url, options);
+  });
+  await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
+  await screen.findByRole("alert");
+  expect(screen.queryByText("Relance demandée.")).not.toBeOnTheScreen();
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  readAvailable = false;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relancer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
+});
+
+it("invalidates a held native confirmation when its screen is removed", async () => {
+  // Given
+  const user = userEvent.setup();
+  const view = await renderCollection(ffvbSuivi, client, (cache) => {
+    privateClient = cache;
+  });
+  await user.press(await screen.findByRole("button", { name: "Relancer" }));
+
+  // When
+  await view.rerender(<></>);
+  await act(async () => nativeAlertAction("Relancer")());
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(0);
+});
+
+it.each(["settled", "in-flight"])(
+  "does not carry a %s mutation lock into a new control visit",
+  async (timing) => {
+    // Given
+    const user = userEvent.setup();
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        if (timing === "settled") {
+          return Promise.resolve(refused(409));
+        }
+        return response.promise;
+      }
+      return peer.reads(url, options);
+    });
+    const view = await renderCollection(ffvbSuivi, client, (cache) => {
+      privateClient = cache;
+    });
+    await user.press(await screen.findByRole("button", { name: "Relancer" }));
+    await act(async () => nativeAlertAction("Relancer")());
+    // When
+    await view.rerender(<></>);
+    if (timing === "in-flight") {
+      await act(async () => response.resolve(refused(409)));
+    }
+    await view.rerender(ffvbSuivi);
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled(),
+    );
+    expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
+
+it("holds seasonless refresh during a rerun and acknowledges only the accepted request", async () => {
+  // Given
+  const selected = control({ family: "club-sheets", seasonId: undefined });
+  peer.controls = [selected];
+  const user = userEvent.setup();
+  const acknowledgement = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? acknowledgement.promise
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionControlScreen family="club-sheets" />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByRole("link", { name: "Voir le bilan" });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relancer" }));
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => nativeAlertAction("Relancer")());
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled(),
+  );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([, options]) => options?.method === "POST")
+      .map(([url]) => new URL(String(url)).pathname),
+  ).toEqual([`/administration/collection-controls/${selected.id}/requests`]);
+
+  // When
+  const accepted = {
+    ...selected,
+    pendingRequestId: "00000000-0000-4000-8000-000000000192",
+  };
+  peer.controls = [accepted];
+  await act(() => acknowledgement.resolve(json(accepted, 202)));
+
+  // Then
+  expect(await screen.findByText("En attente de démarrage")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Relance demandée." }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+});

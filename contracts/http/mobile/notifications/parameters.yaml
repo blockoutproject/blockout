@@ -1,0 +1,36 @@
+NotificationAccount:
+  name: accountId
+  in: path
+  required: true
+  description: Original owner account identity; must match the usable authenticated account.
+  schema:
+    type: string
+    format: uuid
+    description: Business account identity.
+Notification:
+  name: notificationId
+  in: path
+  required: true
+  description: Owned notification identity; absent, expired or hidden entries are not found.
+  schema:
+    type: string
+    format: uuid
+    description: Personal notification identity.
+Subscription:
+  name: subscriptionId
+  in: path
+  required: true
+  description: Client-created identity for this sign-in association, retained for token changes and replaced on a new sign-in.
+  schema:
+    type: string
+    format: uuid
+    description: Connection association identity.
+NotificationCursor:
+  name: cursor
+  in: query
+  required: false
+  description: Opaque continuation for this owner's inbox; omit to start from the newest entries. Malformed continuations return 400.
+  schema:
+    type: string
+    minLength: 1
+    description: Previously returned nextCursor, never interpreted or constructed by the client.

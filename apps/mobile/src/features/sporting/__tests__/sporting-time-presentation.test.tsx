@@ -1,0 +1,259 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+  type PropsWithChildren,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, act, render, screen } from "@testing-library/react-native";
+import { AppState } from "react-native";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { matchDetail, sportingId } from "../test-support/consultation-data";
+import { MatchSummary } from "../components/match-summary";
+import { MatchScreen } from "../screens/match-screen";
+
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+  useNavigation: () => ({ isFocused: () => true }),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (...args: unknown[]) => mockFetch(...args),
+}));
+const mockFetch = jest.fn();
+const environment = { ...process.env };
+const NativeDateTimeFormat = Intl.DateTimeFormat;
+let deviceZone: string;
+let client: QueryClient;
+let publicClient = createQueryClient();
+
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant public observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
+beforeEach(() => {
+  publicClient = createQueryClient();
+  deviceZone = "Europe/Paris";
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date("2026-09-10T12:00:00Z"));
+  // Only the native default zone is controlled; actual Intl conversion/formatting is exercised.
+  jest.spyOn(Intl, "DateTimeFormat").mockImplementation(
+    (locales, options) =>
+      new NativeDateTimeFormat(locales, {
+        ...options,
+        timeZone: options?.timeZone ?? deviceZone,
+      }),
+  );
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
+  jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  mockFetch.mockReset();
+});
+afterEach(async () => {
+  await cleanup();
+  client?.clear();
+  publicClient.clear();
+  jest.restoreAllMocks();
+  jest.useRealTimers();
+  process.env = { ...environment };
+});
+
+/** Real feature providers; HTTP, native identity and the device's default zone are controlled. */
+function Providers({ children }: Readonly<PropsWithChildren>) {
+  return (
+    <QueryClientProvider client={publicClient}>
+      <ThemeProvider>
+        <ActionFeedbackProvider scopeKey="test">
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <PrivateQueries>
+                <AdvertisingProviders>{children}</AdvertisingProviders>
+              </PrivateQueries>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ActionFeedbackProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+it("renders a readable unchanged date and meaningful unknown-time label", async () => {
+  // Given
+  const match = matchDetail().match;
+  match.schedule = {
+    localDate: "2026-09-20",
+    observedAt: "2026-09-19T12:00:00Z",
+  };
+  deviceZone = "America/New_York";
+  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+  // When
+  await render(<MatchSummary match={match} />, { wrapper: Providers });
+
+  // Then
+  expect(screen.getByText("20 septembre 2026")).toBeOnTheScreen();
+  expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
+  expect(screen.queryByText(/00h00/)).not.toBeOnTheScreen();
+});
+
+it("updates retained match detail to the current phone zone on foreground return", async () => {
+  // Given: the actual screen and generated decoder consume a controlled public match.
+  const detail = matchDetail();
+  detail.match.schedule = {
+    localDate: "2026-09-20",
+    instant: "2026-09-20T00:30:00+02:00",
+    timeZone: "Europe/Paris",
+    observedAt: "2026-09-19T12:00:00Z",
+  };
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      Response.json(
+        new URL(url).pathname.endsWith("/application-access")
+          ? applicationAccessResponse()
+          : detail,
+      ),
+    ),
+  );
+  const events = jest.spyOn(AppState, "addEventListener");
+  await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
+  await screen.findAllByText("20 septembre 2026 à 00h30");
+  const requests = mockFetch.mock.calls.length;
+
+  // When
+  deviceZone = "America/New_York";
+  await act(() => {
+    events.mock.calls.forEach(([event, listener]) => {
+      if (event === "change") {
+        listener("active");
+      }
+    });
+  });
+
+  // Then: formatting uses the current zone while the match owner also rereads on foreground.
+  expect(screen.getAllByText("19 septembre 2026 à 18h30")).toHaveLength(2);
+  expect(screen.queryByText("20 septembre 2026 à 00h30")).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
+});
+
+it.each([
+  { instant: "2026-09-20T00:30:00+02:00", expectedTime: "18h30" },
+  { instant: undefined, expectedTime: "Heure à définir" },
+])(
+  "keeps a contribution's match context informational at $expectedTime",
+  async ({ instant, expectedTime }) => {
+    // Given
+    const match = matchDetail().match;
+    match.schedule = {
+      localDate: "2026-09-20",
+      observedAt: "2026-09-19T12:00:00Z",
+      instant,
+    };
+    mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+    // When
+    await render(
+      <MatchSummary
+        match={match}
+        displayTimeZone="America/New_York"
+        presentation="context"
+      />,
+      { wrapper: Providers },
+    );
+
+    // Then
+    expect(
+      screen.getByRole("header", { name: match.pool.pool.name }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(expectedTime)).toBeOnTheScreen();
+    expect(screen.queryByRole("link")).not.toBeOnTheScreen();
+    expect(screen.queryByText(/septembre/)).not.toBeOnTheScreen();
+  },
+);
+
+it("announces both accepted scores on their team links when set detail is absent", async () => {
+  // Given
+  const match = matchDetail().match;
+  match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 0,
+    observedAt: "2026-09-19T12:00:00Z",
+  };
+  mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
+
+  // When
+  await render(<MatchSummary match={match} />, { wrapper: Providers });
+
+  // Then
+  expect(
+    screen.getByRole("link", { name: "Home - Score domicile : 3" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Away - Score extérieur : 0" }),
+  ).toBeOnTheScreen();
+});
+
+it("does not introduce an empty score section on an upcoming match without accepted result or sets", async () => {
+  // Given
+  const detail = matchDetail();
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      Response.json(
+        new URL(url).pathname.endsWith("/application-access")
+          ? applicationAccessResponse()
+          : detail,
+      ),
+    ),
+  );
+
+  // When
+  await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
+  await screen.findByRole("link", {
+    name: `${detail.match.home.name} - Score domicile : indisponible`,
+  });
+
+  // Then
+  expect(screen.getByText("À venir")).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Score" })).not.toBeOnTheScreen();
+});

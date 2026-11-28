@@ -1,0 +1,1312 @@
+import { useLayoutEffect } from "react";
+import type { PropsWithChildren } from "react";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "../queries/use-application-access";
+import { Alert, Platform } from "react-native";
+import {
+  QueryClientProvider,
+  onlineManager,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  fireEvent,
+} from "@testing-library/react-native";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile";
+import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
+import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
+import MaintenanceRoute from "@/app/(operations)/administration/maintenance";
+
+// Exercise RN’s actual scroll/refresh composition; the preset still owns native host views.
+jest.unmock("react-native/Libraries/Components/ScrollView/ScrollView");
+
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useNavigation: () => ({ isFocused: () => true }),
+  usePreventRemove: () => () => {},
+  useRouter: () => ({ canGoBack: () => true, back: jest.fn() }),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockAccessResponse))
+      : mockFetch(url, options),
+}));
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+let mockAccessResponse = mockApplicationAccessResponse();
+let client: QueryClient;
+let publicClient = createQueryClient();
+const environment = { ...process.env };
+const initial = {
+  active: false,
+  message: "Message préparé",
+  imageUrl: null,
+} satisfies MaintenanceSettingsResponse;
+const account = accountResponse({
+  accountId: "00000000-0000-4000-8000-000000000175",
+  username: "Operator_175",
+  email: "operator@example.invalid",
+  permissions: { manageMaintenance: true },
+});
+let stored: MaintenanceSettingsResponse = { ...initial };
+beforeEach(() => {
+  jest.useFakeTimers();
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  publicClient = createQueryClient();
+  mockAccessResponse = mockApplicationAccessResponse();
+  stored = { ...initial };
+  Object.assign(process.env, {
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|operator"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockFetch
+    .mockReset()
+    .mockImplementation(async (url) =>
+      json(String(url).endsWith("/accounts/me") ? account : stored),
+    );
+});
+afterEach(async () => {
+  await cleanup();
+  client?.clear();
+  publicClient.clear();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+/** Selects the real private client, disables read retries and avoids detached mutation GC timers in these scenarios. */
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
+  const current = useQueryClient();
+  useLayoutEffect(() => {
+    client = current;
+    current.setQueryDefaults([], { retry: false });
+    current.setMutationDefaults([], { gcTime: Infinity });
+  }, [current]);
+  return children;
+}
+
+/** Supplies real Query/session/theme owners; only native credentials and HTTP are controlled. */
+async function renderSettings(content = <MaintenanceSettingsScreen />) {
+  return render(content, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={publicClient}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <PrivateQueries>
+                <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+              </PrivateQueries>
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    ),
+  });
+}
+
+/** Returns a real Fetch representation consumed by the canonical generated schema. */
+function json(value: unknown, status = 200) {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: {
+      "Content-Type":
+        status === 200 ? "application/json" : "application/problem+json",
+    },
+  });
+}
+
+it("shows loading before any known state can be saved", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(json(account))
+      : response.promise,
+  );
+
+  // When
+  await renderSettings();
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).endsWith("/administration/maintenance"),
+      ),
+    ).toBe(true),
+  );
+  expect(
+    screen.getByRole("progressbar", {
+      name: "Chargement des réglages de maintenance",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => response.resolve(json(initial)));
+
+  // Then
+  expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it("keeps the Android draft mounted through failed rereads and same-card retry", async () => {
+  // Given: real RN Android scroll composition and RHF, with native keyboard and HTTP doubles.
+  jest.replaceProperty(Platform, "OS", "android");
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  const reread = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockReturnValueOnce(reread.promise)
+    .mockRejectedValue(new Error("Network unavailable"));
+
+  try {
+    // When: Query pauses the explicit pull instead of starting an HTTP request.
+    await act(() => onlineManager.setOnline(false));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When: the same read resumes and then fails.
+    await act(() => onlineManager.setOnline(true));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    await act(() => reread.reject(new Error("Network unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Message de maintenance"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const retry = Promise.withResolvers<Response>();
+    mockFetch.mockReturnValueOnce(retry.promise);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", {
+        name: "Chargement des réglages de maintenance",
+      }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(async () => retry.reject(new Error("Still unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Réessayer",
+        busy: false,
+        disabled: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Message de maintenance"),
+    ).not.toBeOnTheScreen();
+
+    // When
+    mockFetch.mockImplementation(async (url) =>
+      json(String(url).endsWith("/accounts/me") ? account : stored),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+    ).toBe(false);
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      reread.resolve(json(stored));
+    });
+  }
+});
+it("keeps a failed save editable during its normal settings refresh", async () => {
+  // Given: the form and private Query owner are real; only HTTP is controlled.
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Brouillon conservé",
+  );
+  const refresh = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      throw new TypeError("Lost response");
+    }
+    return refresh.promise;
+  });
+
+  // When
+  try {
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then: a pending refresh neither locks the draft nor repeats the command.
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      client.getQueryState(getGetMaintenanceSettingsQueryKey())?.fetchStatus,
+    ).toBe("fetching");
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      "Brouillon conservé",
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(2);
+  } finally {
+    await act(async () => refresh.resolve(json(initial)));
+    await waitFor(() => {
+      expect(client.isFetching()).toBe(0);
+      expect(publicClient.isFetching()).toBe(0);
+    });
+  }
+});
+
+it("separates content preparation from explicit activation", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH"
+      ? response.promise
+      : Promise.resolve(json(stored)),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  try {
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Enregistrer",
+        busy: true,
+      }),
+    ).toBeDisabled();
+  } finally {
+    // When
+    stored = { ...stored, message: "Mon brouillon" };
+    await act(async () => response.resolve(json(stored)));
+  }
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(
+    await screen.findByRole("button", {
+      name: "Enregistrer",
+      busy: false,
+    }),
+  ).toBeEnabled();
+  const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
+  expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
+    message: "Mon brouillon",
+  });
+  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(false);
+});
+it("keeps an accepted save through a failed ordinary reread without replaying the write", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Accepted content",
+  );
+  const accepted = { ...initial, message: "Accepted content" };
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      return json(accepted);
+    }
+    throw new Error("Read unavailable after acknowledgement");
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : accepted),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Accepted content")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+it.each(["PATCH", "PUT"])(
+  "keeps a required-read error through a delayed %s acknowledgement",
+  async (method) => {
+    // Given: a real mounted form and Query owner, with controlled HTTP responses.
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
+    const acknowledgement = Promise.withResolvers<Response>();
+    const followingRead = Promise.withResolvers<Response>();
+    const accepted =
+      method === "PATCH"
+        ? { ...initial, message: "Mon brouillon" }
+        : { ...initial, active: true };
+    let reads = 0;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      if (options?.method === method) {
+        return acknowledgement.promise;
+      }
+      if (reads++ === 0) {
+        throw new Error("Read unavailable during the write");
+      }
+      return followingRead.promise;
+    });
+
+    // When
+    await user.press(
+      screen.getByRole("button", {
+        name: method === "PATCH" ? "Enregistrer" : "Activer la maintenance",
+      }),
+    );
+    if (method === "PUT") {
+      await act(async () => nativeAlertAction("Activer")());
+    }
+    await act(async () =>
+      client.refetchQueries({
+        queryKey: getGetMaintenanceSettingsQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+
+    try {
+      // When
+      await act(async () => {
+        acknowledgement.resolve(json(accepted));
+        await jest.runOnlyPendingTimersAsync();
+      });
+      await waitFor(() => expect(client.isFetching()).toBe(1));
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByLabelText("Message de maintenance"),
+      ).not.toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === method,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await act(async () => followingRead.resolve(json(accepted)));
+    }
+
+    // Then: successful read recovery restores the accepted or still-editable draft without another write.
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === method),
+    ).toHaveLength(1);
+  },
+);
+
+it("uses refreshed activation state while preserving dirty content", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  stored = { ...stored, active: true };
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByLabelText("Maintenance active")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PUT") {
+      stored = { ...stored, active: false };
+    }
+    return json(stored);
+  });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Désactiver la maintenance" }),
+  );
+  await act(async () => nativeAlertAction("Désactiver")());
+
+  // Then
+  expect(
+    await screen.findByLabelText("Maintenance inactive"),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    active: false,
+  });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+});
+it.each([500, 409])(
+  "locks content during activation and retains its draft after %s",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
+    const imageUrl = "https://assets.example.invalid/draft.png";
+    await user.type(screen.getByLabelText("URL de l’image"), imageUrl);
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PUT") {
+        return response.promise;
+      }
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      return json(stored);
+    });
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Activer la maintenance" }),
+    );
+    await act(async () => nativeAlertAction("Activer")());
+
+    try {
+      // Then
+      expect(
+        await screen.findByRole("button", {
+          name: "Activer la maintenance",
+          busy: true,
+        }),
+      ).toBeDisabled();
+      expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+      expect(screen.getByLabelText("URL de l’image")).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Enregistrer" }),
+      ).toBeDisabled();
+
+      // When
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+      // Then
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === "PATCH",
+        ),
+      ).toHaveLength(0);
+      expect(
+        mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+      ).toHaveLength(1);
+    } finally {
+      // When
+      await act(async () =>
+        response.resolve(
+          json(
+            {
+              type:
+                status === 409
+                  ? "urn:blockout:problem:conflict"
+                  : "about:blank",
+              title: "Refused",
+              status,
+            },
+            status,
+          ),
+        ),
+      );
+    }
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Activer la maintenance",
+        busy: false,
+      }),
+    ).toBeEnabled();
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      "Mon brouillon",
+    );
+    expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
+    expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(
+      imageUrl,
+    );
+    expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+    const activation = mockFetch.mock.calls.find(
+      ([, options]) => options?.method === "PUT",
+    );
+    expect(JSON.parse(String(activation?.[1]?.body))).toEqual({
+      active: true,
+    });
+  },
+);
+it("saves its older dirty message after a newer response while leaving the current image untouched", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  const query = client
+    .getQueryCache()
+    .findAll()
+    .find((q) => q.queryKey.includes(getGetMaintenanceSettingsQueryKey()[0]));
+  if (!query) {
+    throw new Error("The real settings query is missing");
+  }
+  stored = {
+    ...initial,
+    message: "Autre éditeur",
+    imageUrl: "https://assets.example.invalid/current.png",
+  };
+
+  // When
+  await act(async () => {
+    await client.refetchQueries({ queryKey: query.queryKey, exact: true });
+  });
+
+  // Then
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      stored = { ...stored, ...JSON.parse(String(options.body)) };
+      return json(stored);
+    }
+    return String(url).endsWith("/accounts/me") ? json(account) : json(stored);
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(stored.message).toBe("Mon brouillon"));
+  expect(stored.imageUrl).toBe("https://assets.example.invalid/current.png");
+  const write = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    message: "Mon brouillon",
+  });
+});
+
+it("refuses blank text before sending any mutation", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(screen.getByLabelText("Message de maintenance"), "   ");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Saisissez un message de maintenance."),
+  ).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
+    false,
+  );
+});
+it("refuses an invalid image URL without losing the draft", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  await user.type(
+    screen.getByLabelText("URL de l’image"),
+    "http://unsafe.example.invalid/image.png",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Utilisez une URL HTTPS d’image sans identifiant ni suivi personnalisé.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Aperçu de l’image de maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+});
+it("clears the optional image using explicit null", async () => {
+  // Given
+  stored = {
+    ...initial,
+    imageUrl: "https://assets.example.invalid/maintenance.png",
+  };
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = userEvent.setup();
+  await user.clear(screen.getByLabelText("URL de l’image"));
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
+  mockFetch.mockImplementation(async () => json({ ...initial }));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    imageUrl: null,
+  });
+});
+it("finishes local image progress only when the native image is displayed", async () => {
+  // Given: the real form is mounted; jest-expo controls native image events.
+  stored = { ...initial, imageUrl: "https://assets.example.invalid/ready.png" };
+  await renderSettings();
+  const image = await screen.findByRole("image", {
+    name: "Aperçu de l’image de maintenance",
+  });
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+
+  // When
+  await fireEvent(image, "display");
+
+  // Then
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Aperçu de l’image de maintenance" }),
+  ).toBeOnTheScreen();
+});
+
+it.each(["loading", "failed"])(
+  "saves a dirty message while its optional image is %s",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const imageUrl = "https://assets.example.invalid/optional.png";
+    stored = { ...initial, imageUrl };
+    await renderSettings();
+    await user.clear(await screen.findByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Texte enregistré sans attendre l’image",
+    );
+    if (status === "failed") {
+      await fireEvent(
+        screen.getByRole("image", { name: "Aperçu de l’image de maintenance" }),
+        "error",
+        { nativeEvent: { error: "Unavailable" } },
+      );
+    }
+    const accepted = {
+      ...stored,
+
+      message: "Texte enregistré sans attendre l’image",
+    };
+    mockFetch.mockClear().mockImplementation(async () => json(accepted));
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
+
+    // Then: decoding neither removes the URL nor changes the submitted baseline.
+    const write = mockFetch.mock.calls.find(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(JSON.parse(String(write?.[1]?.body))).toStrictEqual({
+      message: "Texte enregistré sans attendre l’image",
+    });
+    expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(
+      imageUrl,
+    );
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      accepted.message,
+    );
+    expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+  },
+);
+
+it("keeps a failed optional preview at its fallback while dirty input and actions remain usable", async () => {
+  // Given: the editable URL is valid, and only native image display fails.
+  const user = userEvent.setup();
+  const imageUrl = "https://assets.example.invalid:8443/broken.png?width=800";
+  stored = { ...initial, imageUrl };
+  await renderSettings();
+  await user.clear(await screen.findByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Texte conservé",
+  );
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+    "error",
+    {
+      nativeEvent: { error: "Unavailable" },
+    },
+  );
+
+  // Then: the optional artwork supplies no visible notice or separate recovery action.
+  expect(
+    await screen.findByRole("image", { name: "Aperçu indisponible" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aperçu indisponible")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer l’aperçu" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(imageUrl);
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Texte conservé",
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+it("starts a fresh draft image preview when a previously failed URL returns", async () => {
+  // Given
+  const user = userEvent.setup();
+  const originalUrl = "https://assets.example.invalid/original.png";
+  stored = { ...initial, imageUrl: originalUrl };
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await fireEvent(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+    "error",
+    {
+      nativeEvent: { error: "Unavailable" },
+    },
+  );
+  expect(
+    await screen.findByRole("image", { name: "Aperçu indisponible" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.clear(screen.getByLabelText("URL de l’image"));
+  await user.type(
+    screen.getByLabelText("URL de l’image"),
+    "https://assets.example.invalid/replacement.png",
+  );
+  await user.clear(screen.getByLabelText("URL de l’image"));
+  await user.type(screen.getByLabelText("URL de l’image"), originalUrl);
+
+  // Then
+  expect(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Aperçu indisponible" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
+});
+
+it.each([403] as const)(
+  "retains the draft after a %s refusal",
+  async (refusal) => {
+    // Given
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
+    const status = refusal;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      if (options?.method !== "PATCH") {
+        return json(stored);
+      }
+      return json(
+        {
+          type: "urn:blockout:problem:forbidden",
+          title: "Refused",
+          status,
+        },
+        status,
+      );
+    });
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(stored).toEqual(initial);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(writes).toHaveLength(2);
+    expect(JSON.parse(String(writes[1][1]?.body))).toMatchObject({
+      message: "Mon brouillon",
+    });
+  },
+);
+
+it("keeps the production route closed until native admission is composed", async () => {
+  // Given
+  const route = <MaintenanceRoute />;
+
+  // When
+  await renderSettings(route);
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+});
+
+it("starts a fresh local draft after unmounting a failed pending save", async () => {
+  // Given
+  const user = userEvent.setup();
+  const response = Promise.withResolvers<Response>();
+  const view = await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      return response.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    return json(stored);
+  });
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // When
+  await view.rerender(<></>);
+  await act(async () => response.reject(new TypeError("Response lost")));
+  await view.rerender(<MaintenanceSettingsScreen />);
+
+  // Then
+  expect(await screen.findByDisplayValue(initial.message)).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relire les réglages" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Fresh choice",
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+it("cancels activation confirmation without changing the saved state", async () => {
+  // Given
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  );
+  await act(async () => nativeAlertAction("Annuler")());
+
+  // Then
+  expect(Alert.alert).toHaveBeenCalledWith(
+    "Activer la maintenance ?",
+    expect.any(String),
+    expect.any(Array),
+    expect.objectContaining({ cancelable: true }),
+  );
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+});
+it("hides the draft during a consumed account outage without revoking matching cached grants", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  const accountQuery = client
+    .getQueryCache()
+    .findAll()
+    .find((query) => query.queryKey.includes("/accounts/me"));
+  if (!accountQuery) {
+    throw new Error("The real current-account query is missing");
+  }
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          503,
+        )
+      : json(stored),
+  );
+
+  // When
+  await act(async () =>
+    client.refetchQueries({ queryKey: accountQuery.queryKey, exact: true }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(client.getQueryData(accountQuery.queryKey)).toEqual(account);
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+});
+
+it("retains its draft when the server refuses a held activation confirmation after a settings read refusal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  );
+  const confirm = nativeAlertAction("Activer");
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(account)
+      : json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        ),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+
+  // When
+  await act(async () => confirm());
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+    ).toHaveLength(1),
+  );
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled(),
+  );
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+it("presents an initial settings refusal with an opaque retryable card and no editable defaults", async () => {
+  // Given
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(account)
+      : json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        ),
+  );
+
+  // When
+  await renderSettings();
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+});

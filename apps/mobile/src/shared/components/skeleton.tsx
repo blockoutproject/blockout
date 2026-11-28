@@ -1,0 +1,35 @@
+import { View, type DimensionValue } from "react-native";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+
+/** Decorative UI Library Skeleton; the owning composition announces the pending read once. */
+export function Skeleton({
+  width = "100%",
+  height = 16,
+  shape = "text",
+  radius,
+}: Readonly<{
+  width?: DimensionValue;
+  height?: DimensionValue;
+  shape?: "text" | "rectangle";
+  /** Image slots supply their semantic media radius; other shapes keep their defaults. */
+  radius?: number;
+}>) {
+  const { colors } = useTheme();
+  return (
+    <View
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width,
+        maxWidth: "100%",
+        height,
+        borderRadius:
+          radius ??
+          (shape === "text" ? tokens.radius.sm : tokens.radius.control),
+        backgroundColor: colors.skeleton,
+      }}
+    />
+  );
+}

@@ -1,0 +1,659 @@
+Seasons:
+  get:
+    operationId: listCollectionSeasons
+    tags:
+      - CollectionSources
+    summary: Read known collection seasons
+    description:
+      Requires current global collection-management permission. Includes preparation, active
+      collection and closed history.
+    responses:
+      "200":
+        description: Known seasons in display order.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonListResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+Season:
+  get:
+    operationId: getCollectionSeason
+    tags:
+      - CollectionSources
+    summary: Read a collection season
+    description:
+      Requires current global collection-management permission. Returns current lifecycle and
+      preparation state.
+    responses:
+      "200":
+        description: Current season lifecycle and preparation state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+Closure:
+  post:
+    operationId: closeCollectionSeason
+    tags:
+      - Collection
+    summary: Close a season definitively
+    description:
+      Requires current global collection-management permission. Requires the exact displayed label.
+      Cancels unstarted work; already-running cycles may finish once. Other seasons and club
+      controls are unchanged. No reopening. A failed or
+      lost response permits explicit manual retry without a verification read.
+    responses:
+      "200":
+        description: Season closed; already admitted work may finish.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CloseCollectionSeasonRequest
+Activation:
+  post:
+    operationId: activateCollectionSeason
+    tags:
+      - CollectionSources
+    summary: Activate collection for a season
+    description:
+      Requires current global collection-management permission. Authorizes periodic sporting
+      collection for eligible pools in the selected season. Catalogues continue refreshing
+      independently. Preserves provider pauses and other seasons. Repeating activation of an
+      active season returns its current state. Closure and an accepted historical request waiting
+      for admission block activation.
+    responses:
+      "200":
+        description: Active season.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+Launch:
+  post:
+    operationId: launchCollectionSources
+    tags:
+      - CollectionSources
+    summary: Launch selected sources (retired)
+    deprecated: true
+    description:
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Activate the whole season through its activation operation.
+    responses:
+      "200":
+        description: Legacy success response from earlier servers.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionSeasonResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/LaunchCollectionSourcesRequest
+Sources:
+  get:
+    operationId: listCollectionSources
+    tags:
+      - CollectionSources
+    summary: Read supported season sources
+    description:
+      Requires current global collection-management permission. Lists official sources and their
+      catalogue health independently of classification and sporting imports.
+    responses:
+      "200":
+        description: Known source bindings and their latest catalogue evidence.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceBindingListResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+  post:
+    operationId: createCollectionSource
+    tags:
+      - CollectionSources
+    summary: Add a source candidate (retired)
+    deprecated: true
+    description:
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Official sources are discovered automatically.
+    responses:
+      "201":
+        description: Legacy success response from earlier servers.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI of the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+              example: /administration/source-bindings/00000000-0000-4000-8000-000000000001
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceBindingResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SeasonId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CreateSourceBindingRequest
+Source:
+  get:
+    operationId: getCollectionSource
+    tags:
+      - CollectionSources
+    summary: Read a source and its complete catalogue
+    description:
+      Requires current global collection-management permission. Returns the retained
+      official reference, observed catalogue health and all discovered catalogue entries
+      independently of pool classification and sporting imports.
+    responses:
+      "200":
+        description: Current source, catalogue evidence and discovered entries.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceCatalogueResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SourceBindingId
+Candidate:
+  put:
+    operationId: setCollectionSourceCandidate
+    tags:
+      - CollectionSources
+    summary: Replace a candidate URL (retired)
+    deprecated: true
+    description:
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Official catalogue references are read-only.
+    responses:
+      "200":
+        description: Legacy success response from earlier servers.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceBindingResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SourceBindingId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/SetSourceCandidateRequest
+Validation:
+  post:
+    operationId: requestCollectionSourceValidation
+    tags:
+      - CollectionSources
+    summary: Request source qualification (retired)
+    deprecated: true
+    description:
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Source discovery qualifies official references automatically.
+    responses:
+      "202":
+        description: Legacy success response from earlier servers.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceBindingResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SourceBindingId
+Confirmation:
+  put:
+    operationId: confirmCollectionSourceSeason
+    tags:
+      - CollectionSources
+    summary: Confirm source attribution (retired)
+    deprecated: true
+    description:
+      Requires current global collection-management permission. Current servers refuse this
+      retired operation with 409. Ordinary discovery requires official seasonal attribution.
+    responses:
+      "200":
+        description: Legacy success response from earlier servers.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceBindingResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/SourceBindingId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ConfirmSourceSeasonRequest
+Controls:
+  get:
+    operationId: listCollectionControls
+    tags:
+      - Collection
+    summary: Read collection controls
+    description:
+      Requires current global collection-management permission. With seasonId returns its competition
+      controls; without it returns the independent club-sheet and geocoding controls.
+    responses:
+      "200":
+        description: Controls for the selected season or the two seasonless families.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionControlListResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: seasonId
+        in: query
+        required: false
+        description: Optional selected season.
+        schema:
+          type: string
+          description: Selected competition season.
+          format: uuid
+Control:
+  get:
+    operationId: getCollectionControl
+    tags:
+      - Collection
+    summary: Read current control state
+    description:
+      Requires current global collection-management permission. Returns desired activity, pending
+      request and confirmed execution independently. No provider call or restart occurs.
+    responses:
+      "200":
+        description: Current activity, pending request and cycle state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionControlResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/ControlId
+Activity:
+  put:
+    operationId: setCollectionActivity
+    tags:
+      - Collection
+    summary: Set collection activity
+    description:
+      Requires current global collection-management permission. Pause cancels pending unstarted
+      collection and drains the current cycle. Resume restores ordinary eligibility without
+      catch-up, source unlocking or request replay. A
+      failed or lost response permits explicit manual retry without a verification read.
+    responses:
+      "200":
+        description: Desired activity saved; pending work cancelled when paused.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionControlResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/ControlId
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/SetCollectionActivityRequest
+Requests:
+  post:
+    operationId: requestCollection
+    tags:
+      - Collection
+    summary: Request one collection passage
+    description:
+      Requires current global collection-management permission. Returns 202 for an accepted or
+      already pending request, 200 for an existing running cycle. Neither adds duplicate work.
+      Activity is checked before returning existing work. Competition scopes require an active
+      season and a provider enabled for ordinary collection. Read the control to observe admission/result; there is
+      no individual pool or club rerun. A failed or lost
+      response permits explicit manual retry without a verification read.
+    responses:
+      "202":
+        description: Collection request accepted or already pending.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionControlResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+      "200":
+        description: Existing running cycle; no additional passage requested.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionControlResponse
+    parameters:
+      - $ref: ./parameters.yaml#/ControlId
+Results:
+  get:
+    operationId: listCollectionResults
+    tags:
+      - CollectionResults
+    summary: Read current scoped results
+    description:
+      Requires the current collection-management grant. Returns one latest result per scope, stage
+      and phase within the selected control's provider and season or seasonless family. Applies
+      combined filters before pagination. The summary covers the entire control regardless of
+      filters or page. Diagnostics exclude private payloads and personal values.
+    responses:
+      "200":
+        description: Current scoped results and retained success/failure evidence.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionResultPageResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/ControlId
+      - $ref: ../../common/parameters.yaml#/Page
+      - $ref: ../../common/parameters.yaml#/PageSize
+      - name: query
+        in: query
+        description:
+          Case- and accent-insensitive search across known scope and source labels and the stage and phase labels.
+          Letter and number sequences form literal terms. Every term must match. Blank means no text filter.
+        schema:
+          $ref: ../../common/scalars.yaml#/SearchQueryText
+      - name: status
+        in: query
+        description: Restrict results to this outcome.
+        schema:
+          $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
+      - name: sourceId
+        in: query
+        description: Restrict results to the given source binding within the selected control.
+        schema:
+          type: string
+          format: uuid
+          description: Authorized source binding identity.
+      - name: stage
+        in: query
+        description: Restrict results to this stage across both phases.
+        schema:
+          $ref: ../../common/collection-enums.yaml#/CollectionStageEnum

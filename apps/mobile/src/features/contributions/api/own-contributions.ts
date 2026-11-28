@@ -1,0 +1,219 @@
+import {
+  hashKey,
+  infiniteQueryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
+import { useLayoutEffect } from "react";
+import {
+  createStreamContribution,
+  listOwnStreamContributions,
+  updateOwnStreamContribution,
+} from "../../../../.generated/mobile";
+import {
+  type CreateStreamContributionRequest,
+  type UpdateOwnStreamContributionRequest,
+  OwnStreamContributionDetailResponse,
+} from "../../../../.generated/schemas/index.zod";
+import { isResourceReadRefused } from "@/shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { withdrawCachedRead } from "@/shared/api/withdraw-cached-read";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
+import { useAccountAvailability } from "@/features/accounts/current-account";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
+import { contributionKeys } from "./contribution-keys";
+
+/**
+ * Applies a current resource refusal to native Query state; later technical failures cannot recover
+ * revoked private data. A failing reader finishes its own transition and must not cancel itself.
+ */
+async function refuseOwnAccess(
+  client: QueryClient,
+  queryKey: QueryKey,
+  error: unknown,
+  source: "reader" | "external",
+) {
+  if (!isResourceReadRefused(error)) {
+    return;
+  }
+  const filters = { queryKey, exact: true };
+  if (source === "external") {
+    await client.cancelQueries(filters);
+  }
+  const query = client.getQueryCache().find(filters);
+  if (query) {
+    withdrawCachedRead(query, error);
+  }
+}
+
+/** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */
+export function useOwnContributionsRead(matchId: string, enabled = true) {
+  const { session, account, usable } = useAccountAvailability();
+  const admission = useOrdinaryRequest();
+  const client = useQueryClient();
+  const actor = { accountId: session.accountId ?? "" };
+  const queryKey = [
+    ...contributionKeys.own(actor, matchId),
+    admission.bypass?.accountId ?? "ordinary",
+  ];
+  const ownHash = hashKey(queryKey);
+  const matchHash = hashKey(useConsultationQueries().match(matchId).queryKey);
+  useLayoutEffect(() => {
+    const cache = client.getQueryCache();
+
+    /** Revokes this original owner's cache before a later public mount can replace the refusal with loading. */
+    function refuseMatch(error: unknown) {
+      const personal = cache.get(ownHash);
+      if (
+        personal &&
+        (personal.state.data !== undefined ||
+          personal.state.fetchStatus === "fetching")
+      ) {
+        void refuseOwnAccess(client, personal.queryKey, error, "external");
+      }
+    }
+
+    const unsubscribe = cache.subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        event.action.type === "error" &&
+        event.query.queryHash === matchHash
+      ) {
+        refuseMatch(event.query.state.error);
+      }
+    });
+    refuseMatch(cache.get(matchHash)?.state.error);
+    return unsubscribe;
+  }, [client, ownHash, matchHash]);
+  const canRetain = admission.admitted && usable;
+
+  /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
+  async function request(signal?: AbortSignal) {
+    const credentials = await session.getCredentials();
+    return admission.request({
+      signal,
+      headers: { Authorization: `Bearer ${credentials.accessToken}` },
+    });
+  }
+
+  const options = infiniteQueryOptions({
+    queryKey,
+    gcTime: 0,
+    refetchOnMount: "always" as const,
+    refetchOnReconnect: false,
+    initialPageParam: 0,
+    queryFn: async ({ signal, pageParam }) => {
+      try {
+        return await listOwnStreamContributions(
+          actor.accountId,
+          matchId,
+          { page: pageParam },
+          await request(signal),
+        );
+      } catch (error) {
+        if (!signal.aborted) {
+          await refuseOwnAccess(client, queryKey, error, "reader");
+        }
+        throw error;
+      }
+    },
+    getNextPageParam: (page) => page.nextPage,
+  });
+  const query = useInfiniteQuery({ ...options, enabled: canRetain && enabled });
+
+  /** Native Query replaces the traversal only after a successful first-page read, retaining all authorized pages on failure. */
+  async function readFirstPage() {
+    await client.cancelQueries({ queryKey, exact: true });
+    return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
+  }
+
+  return {
+    query,
+    queryKey,
+    actor,
+    request,
+    session,
+    account,
+    canRetain,
+    readFirstPage,
+    refuseAccess: (error: unknown) =>
+      refuseOwnAccess(client, queryKey, error, "external"),
+  };
+}
+
+/** The exact selected version remains the target through native confirmation and dispatch. */
+export interface OwnContributionChange {
+  versionId: string;
+  body: UpdateOwnStreamContributionRequest;
+}
+
+/** Current original-account reads and guarded commands; Query owns all request and recovery state. */
+export function useOwnContributions(matchId: string) {
+  const {
+    query,
+    queryKey,
+    actor,
+    request,
+    session,
+    account,
+    canRetain,
+    readFirstPage,
+    refuseAccess,
+  } = useOwnContributionsRead(matchId);
+  const client = useQueryClient();
+  const matchKey = useConsultationQueries().match(matchId).queryKey;
+
+  /** Temporary write failures mark reads stale without making a successful GET a prerequisite for another send. */
+  function settled(_data: unknown, error: unknown) {
+    const refetchType =
+      error &&
+      !(
+        error instanceof ApiError &&
+        error.kind === "http" &&
+        error.status !== 408 &&
+        error.status !== 429 &&
+        (error.status ?? 0) < 500
+      )
+        ? "none"
+        : "active";
+    void client.invalidateQueries({ queryKey, exact: true, refetchType });
+    void client.invalidateQueries({
+      queryKey: matchKey,
+      exact: true,
+      refetchType,
+    });
+  }
+
+  const submit = useMutation({
+    mutationKey: contributionKeys.submit(actor, matchId),
+    mutationFn: async (body: CreateStreamContributionRequest) =>
+      createStreamContribution(actor.accountId, matchId, body, {
+        ...(await request()),
+        schema: OwnStreamContributionDetailResponse,
+      }),
+    onSettled: settled,
+    onError: refuseAccess,
+  });
+  const change = useMutation({
+    mutationKey: contributionKeys.updateOwn(actor, matchId),
+    mutationFn: async ({ versionId, body }: OwnContributionChange) =>
+      updateOwnStreamContribution(actor.accountId, matchId, versionId, body, {
+        ...(await request()),
+        schema: OwnStreamContributionDetailResponse,
+      }),
+    onSettled: settled,
+    onError: refuseAccess,
+  });
+  return {
+    query,
+    submit,
+    change,
+    session,
+    account,
+    canRetain,
+    refresh: readFirstPage,
+  };
+}

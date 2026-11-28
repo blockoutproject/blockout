@@ -1,0 +1,530 @@
+package com.blockout.backend.sporting.application.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
+import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.application.port.SportingStore;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/** Exercises complete correction commits against the migrated PostgreSQL schema. */
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
+@SpringBootTest
+@DisplayName("Atomic sporting classification")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class ClassificationIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
+  private static final UUID ORIGINAL = UUID.fromString("00000000-0000-4000-8000-000000000010");
+  private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000011");
+  @Autowired private ChangeSportingClassification classifications;
+  @Autowired private ReadSportingConfiguration configurationReads;
+  @Autowired private SportingIdentityFixture identities;
+  @Autowired private ReadSportingAcquisition acquisitionReads;
+  @Autowired private ChangeCollectionSeasons seasons;
+  @Autowired private AccountStore accounts;
+  @Autowired private JdbcTemplate sql;
+  @Autowired private SportingStore store;
+  @Autowired private PlatformTransactionManager transactions;
+  private UUID account;
+  private UUID season;
+
+  /**
+   * Recreates synthetic owners and grants without any provider operation.
+   *
+   * @throws Exception if isolated fixture cleanup fails
+   */
+  @BeforeEach
+  void prepareOwners() throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement fixture = connection.createStatement()) {
+      fixture.execute(
+          "TRUNCATE sporting_season, sporting_club, sporting_division, account CASCADE");
+    }
+    sql.update(
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, 'Original', TRUE, '#112233'), (?, 'Target', TRUE, '#445566')",
+        ORIGINAL,
+        TARGET);
+    account =
+        new TransactionTemplate(transactions)
+            .execute(
+                state ->
+                    accounts
+                        .create(
+                            "https://identity.example.invalid/",
+                            "auth0|classification",
+                            "Operator_157",
+                            "operator@example.invalid")
+                        .id());
+    sql.update(
+        "INSERT INTO account_permission(account_id, permission) VALUES (?, 'sporting-classification.manage')",
+        account);
+    season = seasons.getOrCreate(2026L).id();
+  }
+
+  @Test
+  @DisplayName(
+      "Removes acquisition settings without erasing published identities or classification")
+  void preservesPublishedClassification() {
+    // Given
+    PoolView pool = pool("A", "pack", ORIGINAL);
+    MatchView match = match(pool, "Home", "Away");
+    classifications.setPool(account, pool.id(), classification(TARGET));
+
+    // When
+    ClassificationView removed = classifications.setPool(account, pool.id(), null);
+
+    // Then
+    assertThat(removed.setting()).isNull();
+    assertThat(removed.effective()).isNull();
+    assertThat(acquisitionReads.pool(pool.id()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.match(match.id())).contains(match);
+    assertThat(classifications.setPool(account, pool.id(), classification(TARGET)).effective())
+        .isEqualTo(classification(TARGET));
+  }
+
+  @Test
+  @DisplayName(
+      "Refuses the entire pack correction when one team has an incompatible outside participation")
+  void refusesSharedParticipation() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView second = pool("B", "pack", ORIGINAL);
+    PoolView outside = pool("C", "other-pack", ORIGINAL);
+    MatchView shared = match(first, "Shared", "First away");
+    match(outside, "Shared", "Outside away");
+    match(second, "Independent", "Second away");
+    ClassificationView before = configurationReads.pack(account, first.packId());
+
+    // When / Then
+    assertThatThrownBy(
+            () -> classifications.setPack(account, first.packId(), classification(TARGET)))
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error ->
+                assertThat(error.getResourceIds()).contains(outside.id(), shared.homeTeamId()));
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(before);
+    assertThat(acquisitionReads.pool(first.id()).orElseThrow().classification())
+        .isEqualTo(classification(ORIGINAL));
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
+        .isEqualTo(classification(ORIGINAL));
+  }
+
+  @Test
+  @DisplayName("Rejects a target identity collision without merging teams or restoring acquisition")
+  void refusesTargetCollision() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView target = pool("B", "other-pack", TARGET);
+    MatchView existing = match(target, "Home", "Away");
+    match(first, "Home", "Away");
+    ClassificationView before = configurationReads.pool(account, first.id());
+
+    // When / Then
+    assertThatThrownBy(() -> classifications.setPool(account, first.id(), classification(TARGET)))
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error -> assertThat(error.getResourceIds()).contains(existing.homeTeamId()));
+    assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"beta, other-target", "other-original, alpha", "shared alias, shared alias"})
+  @DisplayName("Refuses a correction that collides through a qualified alias")
+  void refusesAliasCollision(String originalAlias, String targetAlias) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView target = pool("B", "other-pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(target, "Beta", "Target away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', ?), (?, ?, 'organizer', 'competition', ?)",
+        original.homeTeamId(),
+        season,
+        originalAlias,
+        existing.homeTeamId(),
+        season,
+        targetAlias);
+    ClassificationView before = configurationReads.pool(account, first.id());
+
+    // When / Then
+    assertThatThrownBy(() -> classifications.setPool(account, first.id(), classification(TARGET)))
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error ->
+                assertThat(error.getResourceIds()).contains(existing.homeTeamId(), first.id()));
+    assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(ORIGINAL));
+    assertThat(acquisitionReads.match(original.id())).contains(original);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
+  }
+
+  @Test
+  @DisplayName("Refuses the whole pack when two corrected teams would share a qualified alias")
+  void refusesAliasesWithinCorrectedPack() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView second = pool("B", "pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(second, "Beta", "Second away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, 'organizer', 'competition', 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        season);
+    ClassificationView before = configurationReads.pack(account, first.packId());
+
+    // When / Then
+    assertThatThrownBy(
+            () -> classifications.setPack(account, first.packId(), classification(ORIGINAL)))
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error ->
+                assertThat(error.getResourceIds())
+                    .contains(
+                        original.homeTeamId(), existing.homeTeamId(), first.id(), second.id()));
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(before);
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.match(original.id())).contains(original);
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"other-organizer, competition", "organizer, other-competition"})
+  @DisplayName("Preserves aliases in distinct qualified contexts during correction")
+  void preservesIndependentAliasContexts(String organizer, String competition) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView target = pool("B", "other-pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(target, "Beta", "Target away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, ?, ?, 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        season,
+        organizer,
+        competition);
+
+    // When
+    classifications.setPool(account, first.id(), classification(TARGET));
+    MatchView observed = match(first, "Shared alias", "First away");
+
+    // Then
+    assertThat(observed).isEqualTo(original);
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"0002, 2026", "0001, 2027"})
+  @DisplayName("Keeps identical aliases independent across clubs or seasons after correction")
+  void preservesIndependentAliasOwners(String otherClub, long otherStartYear) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    MatchView original = match(first, "Alpha", "First away");
+    UUID otherSeason = seasons.getOrCreate(otherStartYear).id();
+    PoolView other =
+        identities.createPool(
+            new PoolKey(
+                CollectionProviderEnum.FFVB,
+                otherSeason,
+                "organizer",
+                "competition",
+                null,
+                null,
+                "B"),
+            "other-pack",
+            "Other pool",
+            classification(TARGET));
+    MatchView existing =
+        identities.identifyMatch(
+            other.id(),
+            "M1",
+            new TeamCandidate(null, "Beta", otherClub, null),
+            new TeamCandidate(null, "Other away", "0009", null));
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, 'organizer', 'competition', 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        otherSeason);
+
+    // When
+    classifications.setPool(account, first.id(), classification(TARGET));
+    MatchView observed = match(first, "Shared alias", "First away");
+
+    // Then
+    assertThat(observed).isEqualTo(original);
+    assertThat(acquisitionReads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.match(existing.id())).contains(existing);
+  }
+
+  @Test
+  @DisplayName(
+      "An older pool draft resolves current pack inheritance when it explicitly clears its override")
+  void appliesCurrentInheritance() {
+    // Given
+    PoolView pool = pool("A", "pack", ORIGINAL);
+    classifications.setPool(account, pool.id(), classification(ORIGINAL));
+    classifications.setPack(account, pool.packId(), classification(TARGET));
+
+    // When
+    ClassificationView saved = classifications.setPool(account, pool.id(), null);
+
+    // Then
+    assertThat(saved.setting()).isNull();
+    assertThat(saved.effective()).isEqualTo(classification(TARGET));
+  }
+
+  @Test
+  @DisplayName("Corrects all inherited pools together while preserving an explicit pool override")
+  void preservesOverride() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView second = pool("B", "pack", ORIGINAL);
+    PoolView override = pool("C", "pack", ORIGINAL);
+    MatchView shared = match(first, "Shared", "First away");
+    match(second, "Shared", "Second away");
+    ClassificationView overridden =
+        classifications.setPool(account, override.id(), classification(ORIGINAL));
+    // When
+    ClassificationView corrected =
+        classifications.setPack(account, first.packId(), classification(TARGET));
+
+    // Then
+    assertThat(corrected.effective()).isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.pool(first.id()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.pool(second.id()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(acquisitionReads.team(shared.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(configurationReads.pool(account, override.id())).isEqualTo(overridden);
+    assertThat(classifications.setPool(account, override.id(), null).effective())
+        .isEqualTo(classification(TARGET));
+  }
+
+  @Test
+  @DisplayName("Refuses duplicate target identities formed entirely within the corrected pack")
+  void refusesNewInternalCollision() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView second = pool("B", "pack", TARGET);
+    match(first, "Same name", "First away");
+    match(second, "Same name", "Second away");
+    ClassificationView pack = configurationReads.pack(account, first.packId());
+    SportingClassification changed =
+        new SportingClassification(TARGET, SportFormatEnum._4X4, SportGenderEnum.MIXED);
+
+    // When / Then
+    assertThatThrownBy(() -> classifications.setPack(account, first.packId(), changed))
+        .isInstanceOf(SportingConflictException.class);
+    assertThat(configurationReads.pack(account, first.packId())).isEqualTo(pack);
+  }
+
+  @Test
+  @DisplayName(
+      "A classification change waits for collection and validates its newly committed participation")
+  void waitsForCollection() throws Exception {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView outside = pool("B", "other-pack", ORIGINAL);
+    match(first, "Shared", "First away");
+    ClassificationView before = configurationReads.pool(account, first.id());
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<?> correction =
+          transaction.execute(
+              state -> {
+                store.lockSeason(season);
+                Future<?> pending =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                change -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  classifications.setPool(
+                                      account, first.id(), classification(TARGET));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                match(outside, "Shared", "Outside away");
+                return pending;
+              });
+
+      // Then
+      assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
+          .hasCauseInstanceOf(SportingConflictException.class);
+      assertThat(configurationReads.pool(account, first.id())).isEqualTo(before);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "A waiting collection resolves identities using the classification committed by the correction")
+  void collectionUsesCorrectedClassification() throws Exception {
+    // Given
+    PoolView pool = pool("A", "pack", ORIGINAL);
+    MatchView match = match(pool, "Home", "Away");
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<MatchView> collection =
+          transaction.execute(
+              state -> {
+                classifications.setPool(account, pool.id(), classification(TARGET));
+                Future<MatchView> pending =
+                    worker.submit(
+                        () ->
+                            transaction.execute(
+                                observation -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  return match(pool, "Home", "Away");
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                return pending;
+              });
+
+      // Then
+      assertThat(collection.get(15, TimeUnit.SECONDS)).isEqualTo(match);
+      assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().classification())
+          .isEqualTo(classification(TARGET));
+    }
+  }
+
+  @Test
+  @DisplayName("Rechecks the current grant after a concurrent withdrawal holding the account lock")
+  void refusesWithdrawnGrant() throws Exception {
+    // Given
+    PoolView pool = pool("A", "pack", ORIGINAL);
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<?> correction =
+          transaction.execute(
+              state -> {
+                sql.queryForObject(
+                    "SELECT id FROM account WHERE id = ? FOR UPDATE", UUID.class, account);
+                Future<?> pending =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                change -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  classifications.setPool(
+                                      account, pool.id(), classification(TARGET));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                sql.update("DELETE FROM account_permission WHERE account_id = ?", account);
+                return pending;
+              });
+
+      // Then
+      assertThatThrownBy(() -> correction.get(15, TimeUnit.SECONDS))
+          .hasCauseInstanceOf(AccessDeniedException.class);
+      assertThat(acquisitionReads.pool(pool.id()).orElseThrow().classification())
+          .isEqualTo(classification(ORIGINAL));
+      assertThat(
+              sql.queryForObject(
+                  "SELECT revision FROM sporting_pool WHERE id = ?", Long.class, pool.id()))
+          .isZero();
+    }
+  }
+
+  /**
+   * Establishes a classified identity with no administrative acquisition setting.
+   *
+   * @param reference native pool reference in the scenario's season
+   * @param pack acquisition grouping reference
+   * @param division accepted classification owner
+   * @return persisted pool with the scenario's initial classification
+   */
+  private PoolView pool(String reference, String pack, UUID division) {
+    return identities.createPool(
+        new PoolKey(
+            CollectionProviderEnum.FFVB, season, "organizer", "competition", null, null, reference),
+        pack,
+        reference,
+        classification(division));
+  }
+
+  /**
+   * Establishes two exact synthetic club/name keys and their participation.
+   *
+   * @param pool encounter's pool and classification owner
+   * @param home exact home team label
+   * @param away exact away team label
+   * @return identified encounter and participant references
+   */
+  private MatchView match(PoolView pool, String home, String away) {
+    return identities.identifyMatch(
+        pool.id(),
+        "M1",
+        new TeamCandidate(null, home, "0001", null),
+        new TeamCandidate(null, away, "0002", null));
+  }
+
+  /**
+   * Supplies the complete scenario-owned classification.
+   *
+   * @param division target division identity
+   * @return complete female six-a-side classification
+   */
+  private SportingClassification classification(UUID division) {
+    return new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.FEMALE);
+  }
+}

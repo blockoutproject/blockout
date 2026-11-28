@@ -1,0 +1,91 @@
+import { ChevronRight } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { membershipColors, tokens } from "@/shared/theme/tokens";
+import { canShowProOffer } from "../pro-offering";
+import { usePro } from "../pro-provider";
+import { useOpenProPaywall } from "../use-open-pro-paywall";
+
+/**
+ * Existing Pro offer pattern 5116:12765. The bottom navigation owns its visibility.
+ * Current eligible inactive SDK state permits this voluntary entry; no offering is read here.
+ */
+export function ProOffer() {
+  const { state } = usePro();
+  const { colors, scheme } = useTheme();
+  const open = useOpenProPaywall();
+  const premium = membershipColors.pro[scheme];
+  if (!canShowProOffer(state)) {
+    return null;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Blockout Pro, sans publicité"
+      onPress={() => void open()}
+      style={({ pressed }) => [
+        styles.offer,
+        {
+          backgroundColor: colors.surface,
+          borderColor: premium.border,
+          boxShadow: colors.cardShadow,
+          opacity: pressed ? tokens.opacity.pressed : 1,
+        },
+      ]}
+    >
+      <View style={styles.brand}>
+        <Text style={[tokens.typography.label, { color: colors.text }]}>
+          Blockout
+        </Text>
+        <Text style={[tokens.typography.label, { color: premium.text }]}>
+          Pro
+        </Text>
+      </View>
+      <View style={styles.benefit}>
+        <Text
+          style={[
+            tokens.typography.label,
+            styles.benefitLabel,
+            { color: colors.text },
+          ]}
+        >
+          Sans publicité
+        </Text>
+        <ChevronRight
+          accessible={false}
+          size={tokens.size.icon.sm}
+          color={colors.icon}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  offer: {
+    minHeight: tokens.touch.minimum,
+    marginHorizontal: tokens.spacing.xs,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.control,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignContent: "center",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  brand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  benefit: {
+    flexDirection: "row",
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: tokens.spacing.sm,
+  },
+  benefitLabel: { flexShrink: 1, textAlign: "right" },
+});

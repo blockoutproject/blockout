@@ -31,6 +31,10 @@
 
 ## Notes
 
-- Rechecked on 2026-10-12 after removing connection reuse, compression and HTTP-validator prescriptions. FR-037 retains bounded provider work, the accepted retry limit and honest failure outcomes; A45 covers these obligations. Transport mechanisms remain technical-planning choices. Historical corpus review is not a new planning gate.
+- Automatic read-only catalog discovery, season activation, the effective pool rules and controlled historical reconstruction have separate acceptance scenarios. The [plan](../plan.md#design-acceptance) records the scoped design compositions. Provider samples and documentation do not establish exhaustive coverage or runtime qualification.
 
-- Reviewed for #42: native alert grouping, five-day reminders and closure remain distinct from positive acquisition/integration recovery evidence. Existing failure thresholds and stage distinctions are preserved.
+- FR-037 retains bounded provider work, the accepted retry limit and honest failure outcomes; A45 covers these obligations. Transport mechanisms remain technical-planning choices. Historical corpus review is not a new planning gate.
+
+- FR-047 and A36 define explicit parent-pool recovery for a failed team logo, including ordinary authorized sporting/image updates and preserved independent coverage. The operation remains before closure; it grants no automatic retry, whole-source rerun requirement or single-image isolation.
+
+- actionable current observations remain distinct from positive affected-scope acquisition/integration recovery evidence. No external notification or reminder policy is selected.

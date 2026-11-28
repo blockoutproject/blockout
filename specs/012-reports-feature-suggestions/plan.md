@@ -1,0 +1,126 @@
+# Implementation Plan: Private support and suggestions
+
+**Spec**: [spec.md](spec.md)
+
+**Input**: [spec.md](spec.md), [F05 identity](../005-accounts-identity/plan.md) and [F11 privacy](../004-advertising-privacy-legal/plan.md).
+
+**Status**: Technical plan with the scoped prototype and Figma approvals recorded below. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) provides runnable validation scenarios and prerequisites.
+
+## Summary
+
+Provide one shared private problem/suggestion form to guests and signed-in people. The existing backend validates the whole multipart submission, creates a private GitHub issue and attaches every selected image through the official CLI. Confirm only a complete case. Otherwise preserve the form and permit explicit retry, accepting rare duplicate issues for manual closure. No mobile receipt lookup or persistent recovery mechanism.
+
+## Technical Context
+
+**Language/Version**: Java 25 / Spring Boot 4.1.1; TypeScript / Expo SDK 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
+
+**Primary Dependencies**: Spring MVC/RestClient, Java ProcessBuilder and ordinary image decoding; official GitHub CLI 2.102.0 available through the host-run backend process's explicit `PATH`. Existing React Hook Form/Zod, TanStack Query and SDK-compatible Expo ImagePicker/ImageManipulator. The CLI is an invoked binary, not a new service or Java SDK.
+
+**Storage**: GitHub private issues and native attachments only. Current mobile draft and private backend temporary files are transient. No SQL ticket table, parallel image store, support backup or migration.
+
+**Testing**: JUnit/Spring MVC with controlled provider/process boundaries; Jest Expo/React Native Testing Library; native image and real private-provider qualification. The actual application and contract verification commands are owned by the repository README.
+
+**Target Platform**: Existing Linux backend, native iOS/Android mobile, GitHub Cloud and a private Discord webhook.
+
+**Project Type**: Mobile application and existing modular backend.
+
+**Performance Goals**: Bounded upload/provider waits, without a latency promise or speculative load/capacity programme.
+
+**Constraints**: Five PNG/JPEG files, each at most 5 MiB after preparation; complete acceptance; confidential storage and diagnostics; no automatic resend, receipt registry, mobile status read, support history or post-confirmation editor. Current global access gates remain effective.
+
+**Scale/Scope**: One intake operation for problems and suggestions, private operator handling and an independent generic signal.
+
+## Constitution Check
+
+Both scoped approvals below satisfy the design prerequisite. The post-design check preserves the distinction between approved experience, implemented behavior and provider qualification.
+
+| Principle         | Application                                                                                                                                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I — Specification | F10 owns the synchronous submission and explicit-retry behavior; current requirements integrate these decisions without session narration.                                                                                                                               |
+| II — Ownership    | F11 owns privacy and data rights requests, F12 global access and F13 common controls/diagnostics. Their affected support-storage statements are reconciled.                                                                                                              |
+| III — Design      | The [approved experience](spec.md#applicable-design-evidence) and its scoped Figma reconciliation were explicitly approved for the affected scope. See [Design and qualification](#design-and-qualification) for the scoped checks.                                      |
+| IV — Contracts    | Extend the canonical mobile root with one multipart operation and shared errors. No copied contract, bespoke encoder or generated-output patch. The quickstart guides generation, compilation and consumer validation; those checks do not qualify the private provider. |
+| V — Simplicity    | Native GitHub issues/attachments, ordinary labels, one HTTP form submission and manual exceptional cleanup. No durable ticket/work registry, background retry or storage synchronization.                                                                                |
+| Prerequisites     | The accepted [F05](../005-accounts-identity/plan.md) and [F11](../004-advertising-privacy-legal/plan.md) plans supply identity/privacy boundaries. Real private-provider configuration and qualification retain their task-specific prerequisites and authorization.     |
+
+## Project Structure
+
+### Documentation
+
+```text
+specs/012-reports-feature-suggestions/
+├── spec.md
+├── plan.md
+├── research.md
+├── data-model.md
+├── contracts/README.md
+└── quickstart.md
+```
+
+### Source code
+
+```text
+apps/backend/   # support validation, GitHub/CLI adapter and independent Discord signal
+apps/mobile/    # shared support form and existing image control
+contracts/http/mobile/support/
+├── paths.yaml
+└── schemas.yaml
+```
+
+Keep F10 inside the existing applications. Generated DTOs stay at the HTTP boundary. There is no collector integration, new deployable or database schema.
+
+## Complete submission and provider boundary
+
+The [common image decoder](../003-shared-quality/plan.md#mapping-and-conversion-boundaries) owns native content detection and decoding only. F10 keeps whole-input validation, its own pre-raster decoded-buffer budget, distinct unsupported/corrupt refusals and exact private originals. This reuse neither implements nor qualifies the provider-submission stages below.
+
+Bind metadata JSON and repeated image parts with Spring MVC. One cohesive `SupportApiMapper` detaches generated requests and maps complete acceptance. The immutable validated snapshot owns metadata, an opaque request UUID and private temporary paths. Content-detected MIME remains local to validation and generated-extension selection; the known private issue number remains a local orchestration value for same-attempt confirmation. Validate all fields/files before any provider call: required nonblank text, reply-email syntax, optional classification, allowlisted context, file count, actual PNG/JPEG type, size and decoding. The canonical schema bounds title, description, reply email and context strings. The owner-approved UTF-16 counting rule in FR-004 matches native Java/Zod length validation; title/reply-email normalization runs during JSON binding before Bean Validation. Reuse these constraints in ordinary form/server validation, without truncating submitted content. Configure Spring multipart limits to 5 MiB per file and 26 MiB per request, including metadata and multipart overhead; verify the local application boundary against this request. Image decoder checks must not trust filename/MIME or allocate without inspecting image dimensions. Use the accepted 64 MiB decoded-buffer budget: reject inputs whose conservative raster and three-row estimate, `8 × width × (height + 3)` bytes, exceeds that budget before native decoding. This bounds admitted image buffers, not total JVM heap usage. A rejected request creates no provider effects.
+
+Ordinary support sends omit Authorization and do not obtain or renew credentials, so failed or expired sign-in cannot prevent sending. Use the existing Spring resource-server chain with public authorization for this operation: a supplied invalid token still returns 401. When personal maintenance bypass is explicitly requested, use the existing F12 header, credentials and admission checks; an active bypass requires a usable account and current permission. No support-specific security chain or credential validator is needed. Treat optional account/target references as declarations, never ownership evidence or permission to query private account details. Minimum-version and other access gates remain unchanged.
+
+Generate one opaque request UUID and include it in the private case. The dedicated repository and labels are fixed server configuration. For a submission with images, create the issue as incomplete through REST, invoke `gh issue edit --attach` for all validated files, then mark complete through the ordinary GitHub label API. Preserve the original title/body and any successfully attached references; do not overwrite them with a stale body when changing labels. With no image, create the case complete directly.
+
+Only after every required attachment and the complete marking succeed may the backend return `201`. A failed or lost final marking response propagates as ordinary failure, without a confirmation read. The retained form permits an explicit manual new send; no backend or mobile recovery lookup is added. No old-attempt search, upload replay, transaction spanning external calls or rollback of uploaded files. A timeout or process interruption can leave partial or complete private effects. Manual closure handles incomplete attempts and exceptional duplicates.
+
+Invoke the pinned official CLI with ProcessBuilder arguments, a server-selected repository/issue reference and generated technical filenames. Credentials come from the process environment, not command arguments. Keep temporary files private and remove them in final cleanup; bound process and HTTP waits and terminate a timed-out child before cleanup. Do not forward raw CLI output or provider bodies into diagnostics. No durable attachment volume or crash-recovery file catalogue.
+
+After complete receipt, attempt the private Discord webhook with `wait=true`, containing only a generic signal and a link to the private request list. Bound the attempt; its failure changes neither acceptance nor the complete marking. F13 diagnostics record safe stage/environment/outcome/reason, excluding contact, content, attachments and credentials. Existing observation handles configuration failures; no support-specific incident engine.
+
+## Mobile and HTTP behavior
+
+The [single F13 form composition](../003-shared-quality/plan.md#frontend-form-conventions) applies only to actual consumed reads. `SupportJourney` observes the existing account cache with `skipToken` for passive contact prefill; no account/context request or blocking read is added. The mounted `SupportVisitProvider` retains RHF text and prepared files across temporary choice routes.
+
+React Hook Form owns the current editable draft; TanStack Query owns the single direct submission mutation, inheriting the existing F13 `createQueryClient` defaults for immediate execution without automatic retry/reconnection replay; Support owns only its immutable send snapshot, credential selection, transport cancellation and current-owner feedback. The form admits zero-to-five ready files; the mutation snapshots the prepared references and metadata before asynchronous I/O. Disable duplicate submission while sending. On ordinary error, retain the form and permit correction/retry. On complete confirmation, offer the existing return action and explain that replies use email. Leaving or restarting proves neither cancellation nor failure; do not restore a receipt or prior submission.
+
+Use the shared image control's existing compact size for Support's empty, prepared and refused image states, following the [approved Support form](#design-and-qualification) and preserving its multiple-image semantics. ImagePicker does not impose square editing; ImageManipulator performs a bounded preparation preserving proportions. A failed or oversized result remains an explicit selection error until replacement/removal, never an omitted file. Native file references are submitted through ordinary FormData rather than base64 JSON. Temporary picker UI retains the form. The first known business UUID binds a provisional draft without clearing it. Losing or replacing a known business UUID, including under the same Auth0 subject, starts a fresh visit. Changing the Auth0 subject also starts a fresh visit. The disposed form and its callbacks cannot change the new visit.
+
+Selected images use the shared passive thumbnails and their field-owned replacement/removal actions, without an enlarged viewer. An invalid choice route keeps the existing card and Close/Back exit to the retained form, with contextual guidance and no fictional read retry.
+
+The [canonical contract](contracts/README.md) owns the exact operation, enum values, fields and responses. The backend supplies one operation to the mobile; GitHub is not exposed as a client API. Existing generated Java/TypeScript clients and validators remain authoritative. No `Location` is invented for a resource with no mobile read route, and no private GitHub URL is returned. The shared unavailable response delegates retry behavior to each operation rather than imposing a read-before-retry on F10.
+
+## Privacy, recovery and shared owners
+
+GitHub is the sole durable support store. Operators need repository access and close issues manually after handling. Any replies use email. Application administrators acquire no GitHub rights. Closing a case does not delete its images; no periodic purge or independent Blockout support backup is organized. PostgreSQL contains none of this content, and GitHub recovery capabilities are the explicit limit.
+
+Requests to delete personal data follow [F11](../004-advertising-privacy-legal/spec.md#rights-and-information). Qualify actual private attachment access before real use.
+
+| Owner   | Reconciliation                                                                                                                                        |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F05/F09 | Session isolation and evidence rules remain unchanged; entered email or account reference authorizes no account or entitlement operation.             |
+| F08/F07 | Support does not count as a link report and creates no personal inbox notification.                                                                   |
+| F11     | Complete acceptance, ordinary explicit retry, private GitHub storage, generic Discord signal and manual rights handling.                              |
+| F12     | Global maintenance/unavailable/update gates retain precedence; ordinary sign-in failure does not prevent support.                                     |
+| F13     | Shared image control and diagnostics retained; support content remains outside application SQL storage and generic reread-after-interruption wording. |
+
+## Design and qualification
+
+The [approved experience](spec.md#applicable-design-evidence) demonstrates ordinary send/error/retry. Existing fields, image interactions, confirmation and visual direction remain. The owner explicitly approved this experience and its Figma reconciliation.
+
+The retained [Support form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1088-454) and [complete-receipt composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1113-756) supply the approved anatomy. The ordinary Support page keeps its Close action and opening context and uses the shared full-width primary button to submit. Existing field, button and dialog properties express sending, ordinary editable retry and abandonment without separate transient-state frames. Use published library controls and the existing support form pattern, without a reopened-operation screen or persistent uncertain-outcome composition. No provider console, support history or receipt lookup is designed.
+
+[Research](research.md) distinguishes documented official capabilities and inspected supplier code from actual integration evidence. [Qualification scenarios](quickstart.md) cover complete/partial uploads, privacy, lost responses, session isolation, native images and multipart generation. Documentation checks do not establish native sending, permissions or runtime compilation. No constitutional exception is requested.
+
+Apply [F13's proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification) at each actual boundary. `SupportGeneratedWebMvcTest` owns handwritten normalization, Unicode-blank refusal and private context allowlisting, `SupportContractTest` zero/five/six-image admission, and `SupportMultipartIntegrationTest` actual local HTTP binding, maximal/over-limit text and supplementary UTF-16, five original files, exact/over-limit 5 MiB files and 26 MiB requests. Retain its generated TypeScript JSON-part/repeated-file integration. Reuse the existing mobile preparation, refusal, count and retained-input tests rather than reproduce their variants in a native matrix.
+
+T049–T051 use representative fictional images on compatible native iOS/Android clients, including simulators/emulators: picker return/cancellation, the permission/refusal path actually applicable to that picker, PNG/JPEG preparation and source conversion, orientation/proportions/legibility, explicit failed-selection correction, passive thumbnails with replacement/removal, reachable final actions and an actual server round trip. A picker that grants access to selected items does not require an artificial general-library permission dialog. Exact 5 MiB native files and a general physical-device matrix are unnecessary; reserve hardware for a named observation that cannot be reproduced on a compatible simulator/emulator. Sample both appearances, narrow layout, enlarged text, ordinary content order and keyboard focus with accessible names/roles/states under F13 FR-030, reusing shared-control evidence without multiplying every state by every condition or adding VoiceOver/TalkBack qualification.
+
+T040 qualifies the [native form states](quickstart.md#explicit-mobile-submission) against the approved compositions and reuses the image observations from T050/T051. T041 owns the [private-provider checks](quickstart.md#private-provider-qualification-matrix) for complete and partial intake, attachment access and the private signal. Real activation requires confirmed confidentiality. T042 combines those results with the business-authorization, diagnostics and F11/F12 checks for A23–A28 and SC-005/SC-006. Reuse each observation while its source, configuration and runtime still apply. T052–T055 retain the wider code, diagnostics, owner-integration and activation review.

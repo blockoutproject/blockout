@@ -1,0 +1,234 @@
+import { waitFor } from "@testing-library/react-native";
+import { createProSession } from "../pro-session";
+import { getProState } from "../pro-state";
+import { canShowProOffer } from "../pro-offering";
+import { purchaseErrorOutcome } from "../pro-operations";
+import { mockPurchases } from "../test-support/native-purchases";
+import { customerInfo, entitlement } from "../test-support/customer-info";
+
+const { PURCHASES_ERROR_CODE } = mockPurchases;
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { revenueCat: { iosApiKey: "test_public" } } },
+  },
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../test-support/native-purchases").mockPurchases,
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+
+const session = {
+  subject: "purchase-A",
+  accountId: "00000000-0000-4000-8000-000000000251",
+};
+const inactive = customerInfo({
+  active: {},
+  all: {},
+  verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+});
+
+beforeEach(() => {
+  mockPurchases.isConfigured.mockReset().mockResolvedValue(true);
+  mockPurchases.logIn
+    .mockReset()
+    .mockResolvedValue({ customerInfo: inactive, created: false });
+  mockPurchases.getCustomerInfo.mockReset().mockResolvedValue(inactive);
+});
+
+it.each([
+  [PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR, "cancelled"],
+  [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, "pending"],
+  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR, "already-owned"],
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR, "failed"],
+])(
+  "maps native error %s to %s without inferring entitlement",
+  (code, expected) => {
+    // Given: native errors, unlike a missing completion, have documented purchase outcomes.
+
+    // When
+    const outcome = purchaseErrorOutcome(code);
+
+    // Then
+    expect(outcome).toBe(expected);
+  },
+);
+
+it("keeps the existing Pro banner eligible after a documented SDK network failure", async () => {
+  // Given
+  const owner = createProSession();
+  owner.setTarget(session);
+  await waitFor(() =>
+    expect(owner.getSnapshot()?.association).toBe("associated"),
+  );
+
+  // When
+  await owner.completeOperation(
+    session,
+    purchaseErrorOutcome(PURCHASES_ERROR_CODE.NETWORK_ERROR),
+  );
+
+  // Then
+  expect(owner.getSnapshot()?.operation).toBe("failed");
+  expect(
+    canShowProOffer(
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
+    ),
+  ).toBe(true);
+});
+
+it("keeps confirmed payment separate from activation when verification is unavailable", async () => {
+  // Given
+  const owner = createProSession();
+  owner.setTarget(session);
+  await waitFor(() =>
+    expect(owner.getSnapshot()?.association).toBe("associated"),
+  );
+  mockPurchases.getCustomerInfo.mockRejectedValue(
+    new Error("private provider data"),
+  );
+
+  // When
+  await owner.completeOperation(session, "purchased", inactive);
+  await owner.refresh(session);
+
+  // Then
+  expect(owner.getSnapshot()?.operation).toBe("purchased");
+  expect(
+    canShowProOffer(
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
+    ),
+  ).toBe(false);
+});
+
+it("accepts the SDK completion's active entitlement immediately and preserves gifts on cancellation", async () => {
+  // Given
+  const owner = createProSession();
+  owner.setTarget(session);
+  await waitFor(() =>
+    expect(owner.getSnapshot()?.association).toBe("associated"),
+  );
+  const active = {
+    "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
+  };
+  const gifted = customerInfo({
+    active,
+    all: active,
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.getCustomerInfo.mockRejectedValue(
+    new Error("read unavailable"),
+  );
+
+  // When
+  await owner.completeOperation(session, "purchased", gifted);
+  await owner.completeOperation(session, "cancelled");
+
+  // Then
+  expect(owner.getSnapshot()?.customerInfo).toBe(gifted);
+  expect(
+    canShowProOffer(
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
+    ),
+  ).toBe(false);
+});
+
+it("rejects old starts and completions across A → guest → A and restarts from native state", async () => {
+  // Given
+  const owner = createProSession();
+  owner.setTarget(session);
+  await waitFor(() =>
+    expect(owner.getSnapshot()?.association).toBe("associated"),
+  );
+
+  // When
+  owner.setTarget({ subject: "guest", accountId: null });
+  await owner.completeOperation(session, "purchased", inactive);
+  const restarted = createProSession();
+  restarted.setTarget({ ...session, subject: "restart-A" });
+  await waitFor(() =>
+    expect(restarted.getSnapshot()?.association).toBe("associated"),
+  );
+
+  // Then
+  expect(owner.getSnapshot()).toBeNull();
+  expect(
+    canShowProOffer(
+      getProState({ status: "authenticated", ...session }, owner.getSnapshot()),
+    ),
+  ).toBe(false);
+  expect(restarted.getSnapshot()?.operation).toBe("idle");
+  expect(restarted.getSnapshot()?.customerInfo).toBe(inactive);
+});
+
+it.each(["purchased", "already-owned", "pending"] as const)(
+  "shows the existing Pro banner after %s was recognized as paid active and then expired",
+  async (operation) => {
+    // Given
+    const owner = createProSession();
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot()?.association).toBe("associated"),
+    );
+    const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+    const paid = customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+
+    // When
+    await owner.completeOperation(session, operation, paid);
+    mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
+    await owner.refresh(session);
+
+    // Then
+    expect(
+      canShowProOffer(
+        getProState(
+          { status: "authenticated", ...session },
+          owner.getSnapshot(),
+        ),
+      ),
+    ).toBe(true);
+  },
+);
+
+it.each(["purchased", "pending", "already-owned"] as const)(
+  "does not resolve %s from an independent gift that later expires",
+  async (operation) => {
+    // Given
+    const owner = createProSession();
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot()?.association).toBe("associated"),
+    );
+    const active = {
+      "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
+    };
+    const gift = customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+
+    // When
+    await owner.completeOperation(session, operation, gift);
+    mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
+    await owner.refresh(session);
+
+    // Then
+    expect(owner.getSnapshot()?.operation).toBe(operation);
+    expect(
+      canShowProOffer(
+        getProState(
+          { status: "authenticated", ...session },
+          owner.getSnapshot(),
+        ),
+      ),
+    ).toBe(false);
+  },
+);

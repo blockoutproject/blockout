@@ -1,0 +1,188 @@
+import {
+  getNotification,
+  getListNotificationsQueryOptions,
+  listNotifications,
+  markNotificationRead,
+  replacePushSubscription,
+} from "../../../../.generated/mobile";
+import {
+  MarkNotificationReadRequest,
+  ListNotificationsParams,
+  MatchSummaryResponse,
+  SportingDivisionResponse,
+  PushSubscriptionResponse,
+} from "../../../../.generated/schemas/index.zod";
+import { createQueryClient } from "@/shared/query/query-client";
+import { notificationResponse } from "../test-support/notification-data";
+
+const id = "00000000-0000-4000-8000-000000000237";
+const originalUrl = process.env.EXPO_PUBLIC_API_URL;
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
+}));
+
+beforeEach(() => {
+  jest.useFakeTimers();
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  mockFetch.mockReset();
+});
+afterEach(async () => {
+  await jest.runOnlyPendingTimersAsync();
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
+});
+
+it.each([
+  "result",
+  "result-with-link",
+  "live-link",
+  "post-result-link",
+] as const)(
+  "admits the finite %s family with additive fields and precise original values",
+  async (family) => {
+    // Given
+    const entry = { ...notificationResponse(), family };
+    mockFetch.mockResolvedValue(
+      Response.json({
+        ...entry,
+        future: true,
+        match: { ...entry.match, future: true },
+      }),
+    );
+
+    // When
+    const result = await getNotification(id, id);
+
+    // Then
+    expect(result).toEqual(entry);
+    expect(result.createdAt).toBe("2026-10-24T01:02:03.123456Z");
+    expect(MatchSummaryResponse.parse(result.match)).toEqual(entry.match);
+    expect(SportingDivisionResponse.parse(result.division)).toEqual(
+      entry.division,
+    );
+    expect(result.match.schedule.instant).toBeUndefined();
+    expect(result.match.result?.homeSets).toBeUndefined();
+  },
+);
+
+it("admits a twenty-entry page into Query and preserves end absence", async () => {
+  // Given
+  const page = {
+    notifications: Array.from({ length: 20 }, () => notificationResponse()),
+    future: true,
+  };
+  mockFetch.mockResolvedValue(Response.json(page));
+  const client = createQueryClient();
+  const options = getListNotificationsQueryOptions(id);
+
+  try {
+    // When
+    const result = await client.fetchQuery(options);
+
+    // Then
+    expect(result.notifications).toHaveLength(20);
+    expect(result.nextCursor).toBeUndefined();
+    expect(client.getQueryData(options.queryKey)).toEqual(result);
+  } finally {
+    client.clear();
+  }
+});
+
+it.each([
+  {},
+  { notifications: null },
+  { notifications: [], nextCursor: null },
+  { notifications: [], nextCursor: "" },
+  { notifications: Array.from({ length: 21 }, () => notificationResponse()) },
+  ...[
+    { family: "future" },
+    { id: "invalid" },
+    { createdAt: "2026-10-24" },
+    { read: null },
+    { read: "true" },
+    { title: null },
+    { match: null },
+    { division: { ...notificationResponse().division, gradient: [] } },
+    { match: { ...notificationResponse().match, category: "future" } },
+  ].map((patch) => ({
+    notifications: [{ ...notificationResponse(), ...patch }],
+  })),
+])("rejects malformed page data before Query success: %j", async (body) => {
+  // Given
+  mockFetch.mockResolvedValue(Response.json(body));
+  const client = createQueryClient();
+  const options = getListNotificationsQueryOptions(id);
+
+  try {
+    // When
+    const result = client.fetchQuery(options);
+
+    // Then
+    await expect(result).rejects.toMatchObject({ kind: "schema" });
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    client.clear();
+  }
+});
+
+it("sends true-only intent and keeps an opaque continuation unmodified", async () => {
+  // Given
+  mockFetch
+    .mockResolvedValueOnce(Response.json(notificationResponse()))
+    .mockResolvedValueOnce(Response.json({ notifications: [] }));
+  const cursor = "date+uuid/opaque=";
+
+  // When
+  await markNotificationRead(
+    id,
+    id,
+    MarkNotificationReadRequest.strict().parse({ read: true }),
+  );
+  await listNotifications(
+    id,
+    ListNotificationsParams.strict().parse({ cursor }),
+  );
+
+  // Then
+  expect(mockFetch.mock.calls[0][1]).toMatchObject({
+    method: "PATCH",
+    body: '{"read":true}',
+  });
+  expect(
+    new URL(String(mockFetch.mock.calls[1][0])).searchParams.get("cursor"),
+  ).toBe(cursor);
+});
+
+it.each([200, 201])(
+  "returns association identities for %s without requiring or echoing a destination",
+  async (status) => {
+    // Given
+    mockFetch.mockResolvedValue(
+      Response.json({ id, installationId: id }, { status }),
+    );
+
+    // When
+    const result = await replacePushSubscription(
+      id,
+      id,
+      {
+        installationId: id,
+        expoPushToken: "synthetic-destination",
+      },
+      { schema: PushSubscriptionResponse },
+    );
+
+    // Then
+    expect(result).toEqual({ id, installationId: id });
+  },
+);

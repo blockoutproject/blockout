@@ -1,0 +1,30 @@
+SportingStartYear:
+  type: integer
+  format: int64
+  minimum: 1900
+  maximum: 9007199254740991
+  description: Sporting season start year, independent of postponed match dates.
+CollectionReadOrdinal:
+  type: integer
+  format: int64
+  minimum: 1
+  maximum: 9007199254740991
+  description: Increasing ordinal allocated before a provider read within one cycle; retained for its integration result.
+SearchQueryText:
+  type: string
+  description: Search text of at most 200 Unicode code points.
+  # Java Pattern and Orval's Unicode RegExp count code points. The lookahead enforces the final boundary even before a newline.
+  pattern: '^[\p{L}\P{L}]{0,200}(?![\p{L}\P{L}])'
+SrgbColor:
+  type: string
+  description: sRGB hexadecimal color.
+  pattern: ^#[0-9A-Fa-f]{6}$
+  example: "#F0AA00"
+ThreeColorGradient:
+  type: array
+  description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+  items:
+    $ref: "#/SrgbColor"
+  minItems: 3
+  maxItems: 3
+  nullable: true

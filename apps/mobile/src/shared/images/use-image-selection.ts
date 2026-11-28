@@ -1,0 +1,145 @@
+import { Paths } from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { deleteOwnedImage } from "./delete-owned-image";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+
+/**
+ * Native selection and the caller's preparation share one operation. Delivered app-cache copies
+ * are borrowed until `onSelect` settles; prepare, copy or read accepted bytes before resolving.
+ * Library/content-provider sources remain borrowed; this owner deletes only returned cache copies.
+ * Key or unmount the owner when its session/resource changes; feature callbacks also guard their identity.
+ */
+export interface ImageSelectionOptions {
+  mode: "crop" | "single" | "multiple";
+  /** Checks current authority/operations before native entry and again before delivering the selected files. */
+  canSelect?: () => boolean;
+  onSelect: (
+    assets: ImagePicker.ImagePickerAsset[],
+    replaceId?: string,
+  ) => void | Promise<void>;
+  /** Remaining native capacity for multiple additions; replacements always select one asset. */
+  selectionLimit?: number;
+}
+
+/** Observable selection owner shared by the field and the form's write exclusion. */
+export interface ImageSelection {
+  select: (replaceId?: string) => void;
+  /** Reads the operation handle before React renders; paired writes use this to exclude a just-started picker. */
+  isPending: () => boolean;
+  pending: boolean;
+}
+
+/** Owns one native selection/preparation loan, rejecting duplicate events before React rerenders. */
+export function useImageSelection({
+  mode,
+  canSelect,
+  onSelect,
+  selectionLimit = 1,
+}: ImageSelectionOptions): ImageSelection {
+  const feedback = useActionFeedback();
+  const active = useRef(false);
+  const current = useRef({ canSelect, onSelect });
+  useLayoutEffect(() => {
+    current.current = { canSelect, onSelect };
+  }, [canSelect, onSelect]);
+  const operation = useRef<Promise<void> | undefined>(undefined);
+  const [pending, setPending] = useState(false);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+
+  /** Cancellation preserves the draft; all completed loans release delivered cache copies, even after unmount. */
+  async function choose(replaceId?: string) {
+    let assets: ImagePicker.ImagePickerAsset[] = [];
+    try {
+      const allowsEditing = mode === "crop";
+      const allowsMultipleSelection =
+        mode === "multiple" && replaceId === undefined;
+      // The image-only system library requires no broad photo permission request.
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        preferredAssetRepresentationMode:
+          ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+        allowsEditing,
+        aspect: allowsEditing ? [1, 1] : undefined,
+        allowsMultipleSelection,
+        selectionLimit: allowsMultipleSelection ? selectionLimit : undefined,
+      });
+      assets = result.assets ?? [];
+      if (
+        active.current &&
+        !result.canceled &&
+        current.current.canSelect?.() !== false
+      ) {
+        if (allowsEditing && assets.length !== 1) {
+          feedback.error();
+          return;
+        }
+        await current.current.onSelect(assets, replaceId);
+      }
+    } catch {
+      feedback.error();
+    } finally {
+      if (active.current) {
+        setPending(false);
+      }
+      assets.forEach(({ uri }) => {
+        if (isPickerCacheCopy(uri)) {
+          deleteOwnedImage(uri);
+        }
+      });
+    }
+  }
+
+  /** Reserves the native operation synchronously; no selection or preparation is queued or replayed. */
+  function select(replaceId?: string) {
+    if (
+      !active.current ||
+      operation.current ||
+      current.current.canSelect?.() === false
+    ) {
+      return;
+    }
+    feedback.clear();
+    setPending(true);
+    const selection = choose(replaceId).finally(() => {
+      if (operation.current === selection) {
+        operation.current = undefined;
+      }
+    });
+    operation.current = selection;
+  }
+
+  return {
+    select,
+    isPending: () => operation.current !== undefined,
+    pending,
+  };
+}
+
+/** Only returned app-cache file copies are owned; native fallback content/library URIs are borrowed. */
+function isPickerCacheCopy(uri: string): boolean {
+  try {
+    const selected = new URL(uri);
+    const cache = new URL(Paths.cache.uri);
+    if (
+      selected.protocol !== "file:" ||
+      selected.host !== cache.host ||
+      selected.search ||
+      selected.hash
+    ) {
+      return false;
+    }
+    const selectedPath = Paths.normalize(decodeURIComponent(selected.pathname));
+    const cachePath = Paths.normalize(
+      decodeURIComponent(cache.pathname),
+    ).replace(/\/$/, "");
+    return selectedPath.startsWith(`${cachePath}/`);
+  } catch {
+    return false;
+  }
+}

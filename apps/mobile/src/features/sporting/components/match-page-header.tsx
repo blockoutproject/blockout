@@ -1,0 +1,71 @@
+import { useContext, type ReactNode } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
+import { PageScrollContext } from "@/shared/components/page-scroll-binding";
+import { PageHeader } from "@/shared/components/page-header";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { matchHeaderLabel } from "../model/match-presentation";
+import { SportingLogo } from "./sporting-identity";
+
+/** Accepted public match facts supply the compact center; contextual actions remain independent. */
+export interface MatchPageHeaderProps {
+  match: MatchSummaryResponse;
+  action?: ReactNode;
+}
+
+/** The ordinary page's existing native offset reveals ordered logos and accepted result context without measuring the summary. */
+export function MatchPageHeader({
+  match,
+  action,
+}: Readonly<MatchPageHeaderProps>) {
+  const offset = useContext(PageScrollContext)?.offset;
+  const { colors } = useTheme();
+  const label = matchHeaderLabel(match);
+  return (
+    <PageHeader
+      title={`${match.home.name} - ${label} - ${match.away.name}`}
+      titleAlignment="center"
+      revealOffset={offset ?? null}
+      action={action}
+    >
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.recap}
+      >
+        <SportingLogo
+          kind="team"
+          identity={match.home}
+          size={28}
+          pendingPlaceholder="skeleton"
+        />
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[styles.label, { color: colors.text }]}
+        >
+          {label}
+        </Text>
+        <SportingLogo
+          kind="team"
+          identity={match.away}
+          size={28}
+          pendingPlaceholder="skeleton"
+        />
+      </View>
+    </PageHeader>
+  );
+}
+
+const styles = StyleSheet.create({
+  recap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: tokens.spacing.sm,
+    maxWidth: "100%",
+  },
+  label: { ...tokens.typography.navigation, flexShrink: 1 },
+});

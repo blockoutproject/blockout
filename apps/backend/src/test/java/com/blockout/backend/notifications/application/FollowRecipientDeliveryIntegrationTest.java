@@ -1,0 +1,496 @@
+package com.blockout.backend.notifications.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.blockout.backend.contributions.application.ModerateContribution;
+import com.blockout.backend.contributions.application.SubmitContribution;
+import com.blockout.backend.contributions.support.ContributionScenario;
+import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Target;
+import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.ReadPersonalCalendar;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
+import com.blockout.backend.generated.mobile.model.NotificationResponse;
+import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
+import com.blockout.backend.notifications.api.NotificationApiMapper;
+import com.blockout.backend.notifications.application.AfterCommitAnnouncements.Ready;
+import com.blockout.backend.notifications.application.PushProvider.Message;
+import com.blockout.backend.notifications.application.PushProvider.Outcome;
+import com.blockout.backend.notifications.application.PushProvider.Status;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
+import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import java.sql.Timestamp;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/** Real F02/F08 producers through F06 selection and F07 sending, with controlled worker and I/O. */
+@SpringBootTest(
+    properties = {
+      "blockout.notifications.push.enabled=true",
+      "blockout.notifications.push.project-id=00000000-0000-4000-8000-000000000001",
+      "blockout.notifications.push.access-token=synthetic-not-a-credential",
+      "blockout.notifications.retention-cron=-",
+      "blockout.notifications.link-announcements-cron=-"
+    })
+@RecordApplicationEvents
+@DisplayName("Actual producer-to-send consumption of current follows")
+class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
+  private static final UUID DESTINATION = UUID.fromString("00000000-0000-4000-8000-000000000090");
+  private static final UUID CONNECTION = UUID.fromString("00000000-0000-4000-8000-000000000091");
+  private static final UUID INSTALLATION = UUID.fromString("00000000-0000-4000-8000-000000000092");
+
+  @Autowired private ReadPersonalCalendar calendar;
+  @Autowired private ReadInbox inbox;
+  @Autowired private NotificationApiMapper inboxTransport;
+  @Autowired private ModerateContribution moderation;
+  @Autowired private ChangePushSubscriptions subscriptions;
+  @Autowired private ApplicationEvents events;
+  @MockitoBean private PushProvider provider;
+
+  @MockitoBean(name = "pushExecutor")
+  private ThreadPoolTaskExecutor executor;
+
+  private List<FollowContext> origins;
+
+  /** Creates three real overlapping follows and one synthetic installation in this suite's DB. */
+  @BeforeEach
+  void prepareRecipient() {
+    origins =
+        List.of(
+            new FollowContext(FOLLOWER, new Target(TargetType.POOL, scope.pool())),
+            new FollowContext(
+                FOLLOWER,
+                new Target(
+                    TargetType.TEAM,
+                    sql.queryForObject(
+                        "SELECT home_team_id FROM sporting_match WHERE id=?",
+                        UUID.class,
+                        matchId))),
+            new FollowContext(
+                FOLLOWER,
+                new Target(
+                    TargetType.TEAM,
+                    sql.queryForObject(
+                        "SELECT away_team_id FROM sporting_match WHERE id=?",
+                        UUID.class,
+                        matchId))));
+    for (FollowContext origin : origins) {
+      follows.replace(origin, true);
+    }
+    sql.update(
+        "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,0)",
+        DESTINATION,
+        CONNECTION,
+        INSTALLATION,
+        FOLLOWER,
+        "ExponentPushToken[synthetic]");
+  }
+
+  @ParameterizedTest
+  @EnumSource(Producer.class)
+  @DisplayName("Overlapping follows send once despite another displayed season")
+  void sendsOneRecipientAcrossDisplaySelections(Producer producer) {
+    // Given
+    UUID otherSeason = otherSeason();
+    CalendarWindow window = new CalendarWindow(CalendarCategoryEnum.UPCOMING, ZoneOffset.UTC, null);
+    ReadPersonalCalendar.Calendar all = calendar.read(FOLLOWER, null, window);
+    ReadPersonalCalendar.Calendar selected = calendar.read(FOLLOWER, otherSeason, window);
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+
+    // When
+    announce(producer);
+    ReadPersonalCalendar.Calendar changed = calendar.read(FOLLOWER, scope.season(), window);
+    calendar.read(FOLLOWER, otherSeason, window);
+    pending().run();
+
+    // Then
+    assertThat(all.hasAvailableFollows()).isTrue();
+    assertThat(selected.hasAvailableFollows()).isFalse();
+    assertThat(changed.hasAvailableFollows()).isTrue();
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactly(FOLLOWER);
+    assertThat(sql.queryForList("SELECT family FROM notification", String.class))
+        .containsExactly(producer == Producer.RESULT ? "PLAIN_RESULT" : "LIVE_LINK");
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER);
+              assertThat(message.matchId()).isEqualTo(matchId);
+            });
+  }
+
+  @Test
+  @DisplayName("Captures only destinations belonging to the selected audience at processing")
+  void capturesCurrentSelectedDestinations() {
+    // Given
+    follow(OTHER);
+    UUID unselectedConnection = UUID.fromString("00000000-0000-4000-8000-000000000093");
+    UUID lateConnection = UUID.fromString("00000000-0000-4000-8000-000000000099");
+    subscriptions.replace(
+        new Registration(unselectedConnection, unselectedConnection, AUTHOR, "Expo[unselected]"));
+    String rotatedAddress = "Expo[rotated-before-capture]";
+    subscriptions.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, rotatedAddress));
+    long revision =
+        sql.queryForObject(
+            "SELECT revision FROM push_subscription WHERE id=?", Long.class, DESTINATION);
+    PushSubscriptionStore.Target rotated =
+        new PushSubscriptionStore.Target(DESTINATION, revision, rotatedAddress);
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+    TransactionTemplate registration = new TransactionTemplate(transactions);
+    registration.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              announce(Producer.RESULT);
+              // Commit an ordinary registration after capture while the producer is still open.
+              registration.executeWithoutResult(
+                  ignored -> {
+                    sql.execute("SET LOCAL lock_timeout = '5s'");
+                    subscriptions.replace(
+                        new Registration(lateConnection, lateConnection, OTHER, "Expo[late]"));
+                  });
+              verifyNoInteractions(executor, provider);
+            });
+    pending().run();
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactlyInAnyOrder(FOLLOWER, OTHER);
+    Ready captured = events.stream(Ready.class).findFirst().orElseThrow();
+    assertThat(captured.targets()).containsExactly(entry(FOLLOWER, List.of(rotated)));
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER);
+              assertThat(message.target()).isEqualTo(rotated);
+            });
+  }
+
+  @Test
+  @DisplayName("A single recipient's destinations span consecutive push batches")
+  void sendsDestinationsAcrossBatchBoundary() {
+    // Given
+    List<UUID> destinations = new ArrayList<>();
+    destinations.add(DESTINATION);
+    List<Object[]> additionalDevices = new ArrayList<>();
+    for (int deviceNumber = 1; deviceNumber <= 100; deviceNumber++) {
+      UUID id = new UUID(0, deviceNumber);
+      destinations.add(id);
+      additionalDevices.add(
+          new Object[] {id, id, id, FOLLOWER, "Expo[extra-" + deviceNumber + "]"});
+    }
+    sql.batchUpdate(
+        "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,0)",
+        additionalDevices);
+    when(provider.send(any()))
+        .thenAnswer(
+            invocation -> {
+              List<Message> batch = invocation.getArgument(0);
+              return Collections.nCopies(batch.size(), new Outcome(Status.UNKNOWN, null));
+            });
+
+    // When
+    announce(Producer.RESULT);
+    ArgumentCaptor<Runnable> work = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor, times(2)).execute(work.capture());
+    work.getAllValues().forEach(Runnable::run);
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactly(FOLLOWER);
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider, times(2)).send(sent.capture());
+    assertThat(sent.getAllValues()).extracting(List::size).containsExactly(100, 1);
+    assertThat(sent.getAllValues().stream().flatMap(List::stream))
+        .allSatisfy(message -> assertThat(message.ownerAccountId()).isEqualTo(FOLLOWER))
+        .extracting(message -> message.target().id())
+        .containsExactlyInAnyOrderElementsOf(destinations);
+  }
+
+  @ParameterizedTest
+  @EnumSource(Producer.class)
+  @DisplayName("A selected recipient who re-follows receives prepared work without renewing facts")
+  void sendsAfterRefollow(Producer producer) {
+    // Given
+    announce(producer);
+    List<UUID> original =
+        sql.queryForList(
+            "SELECT id FROM team_follow UNION ALL SELECT id FROM pool_follow", UUID.class);
+    for (FollowContext origin : origins) {
+      follows.replace(origin, false);
+      follows.replace(origin, true);
+    }
+
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+
+    // When
+    pending().run();
+    if (producer == Producer.RESULT) {
+      result(3, ResultStateEnum.FINAL);
+    } else {
+      due.run();
+    }
+
+    // Then
+    verify(provider).send(any());
+    assertThat(
+            sql.queryForList(
+                "SELECT id FROM team_follow UNION ALL SELECT id FROM pool_follow", UUID.class))
+        .hasSize(3)
+        .doesNotContainAnyElementsOf(original);
+    assertThat(count("notification")).isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT "
+                    + (producer == Producer.RESULT ? "result_processed" : "live_processed")
+                    + " FROM match_announcement WHERE match_id=?",
+                Boolean.class,
+                matchId))
+        .isTrue();
+  }
+
+  @ParameterizedTest
+  @EnumSource(Producer.class)
+  @DisplayName("A selected recipient without a current qualifying follow gets no prepared push")
+  void excludesUnfollowedRecipient(Producer producer) {
+    // Given
+    announce(producer);
+    for (FollowContext origin : origins) {
+      follows.replace(origin, false);
+    }
+
+    // When
+    pending().run();
+
+    // Then
+    verifyNoInteractions(provider);
+    assertThat(count("notification")).isEqualTo(1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Current account or target disappearance cancels pending handoff")
+  void refusesUnavailableOwnerOrTarget(boolean eraseAccount) {
+    // Given
+    announce(Producer.RESULT);
+    if (eraseAccount) {
+      for (FollowContext origin : origins) {
+        follows.replace(origin, false);
+      }
+      sql.update("DELETE FROM account WHERE id=?", FOLLOWER);
+    } else {
+      sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", matchId);
+    }
+
+    // When
+    pending().run();
+
+    // Then
+    verifyNoInteractions(provider);
+  }
+
+  @Test
+  @DisplayName("A retained team relation cannot send after its team leaves the current match")
+  void refusesFormerMatchOrigin() {
+    // Given
+    announce(Producer.RESULT);
+    follows.replace(origins.getFirst(), false);
+    follows.replace(origins.getLast(), false);
+    UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000097");
+    sql.update(
+        "INSERT INTO sporting_team(id,season_id,provider,organizer_reference,competition_reference,native_reference,source_name,comparison_name,club_id,division_id,format,gender) SELECT ?,season_id,provider,organizer_reference,competition_reference,'replacement','Replacement','replacement',club_id,division_id,format,gender FROM sporting_team WHERE id=?",
+        replacement,
+        origins.get(1).target().id());
+    sql.update(
+        "INSERT INTO sporting_participation(id,pool_id,team_id,current) VALUES (?,?,?,TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000098"),
+        scope.pool(),
+        replacement);
+    sql.update("UPDATE sporting_match SET home_team_id=? WHERE id=?", replacement, matchId);
+
+    // When
+    pending().run();
+
+    // Then
+    verifyNoInteractions(provider);
+    assertThat(count("notification")).isEqualTo(1);
+    UUID notification = sql.queryForObject("SELECT id FROM notification", UUID.class);
+    assertThat(inbox.availableMember(new NotificationContext(FOLLOWER), notification))
+        .isPresent()
+        .get()
+        .extracting(entry -> entry.match().home().id())
+        .isEqualTo(replacement);
+    assertThat(sql.queryForList("SELECT team_id FROM team_follow", UUID.class))
+        .containsExactly(origins.get(1).target().id());
+  }
+
+  @ParameterizedTest(name = "Current wording for {3}")
+  @CsvSource({
+    "1, 3, , Score final : 1-3., false",
+    ", , F/P, Résultat particulier : F/P., false",
+    "1, , , Score final : 3-1., true"
+  })
+  @DisplayName("Inbox and push agree after a new result observation and link withdrawal")
+  void sharesCurrentWording(
+      Integer homeSets,
+      Integer awaySets,
+      String specialLabel,
+      String expectedResult,
+      boolean keepsOriginalScore) {
+    // Given
+    moderator(AUTHOR);
+    when(clock.instant()).thenReturn(NOW.minusSeconds(60));
+    SubmitContribution.Outcome active = submit(AUTHOR, "0", "https://youtube.com/advance", true);
+    when(clock.instant()).thenReturn(NOW);
+    result(2, ResultStateEnum.FINAL);
+    Runnable work = pending();
+    NotificationContext owner = new NotificationContext(FOLLOWER);
+    NotificationResponse original =
+        inboxTransport.toDto(inbox.page(owner, null)).getNotifications().getFirst();
+    assertThat(original.getTitle()).contains("Score final : 3-1.", "Un lien a été proposé");
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+
+    // When
+    matches.detail(
+        new MatchObservation(
+            matchId,
+            context(3),
+            mapper.toFacts(
+                new MatchFactsInternalRequest()
+                    .result(
+                        new MatchResultInternalRequest(ResultStateEnum.FINAL)
+                            .homeSets(homeSets)
+                            .awaySets(awaySets)
+                            .specialLabel(specialLabel)))));
+    moderation.change(
+        AUTHOR,
+        matchId,
+        active.version().id(),
+        active.revision(),
+        StreamModerationActionEnum.WITHDRAW);
+    List<NotificationResponse> current =
+        inboxTransport.toDto(inbox.page(owner, null)).getNotifications();
+    work.run();
+
+    // Then
+    assertThat(current).extracting(NotificationResponse::getId).containsExactly(original.getId());
+    String inboxTitle = current.getFirst().getTitle();
+    assertThat(inboxTitle).contains(expectedResult, "Le lien n’est plus proposé.");
+    assertThat(inboxTitle.contains("3-1")).isEqualTo(keepsOriginalScore);
+    ArgumentCaptor<List<Message>> sent = ArgumentCaptor.captor();
+    verify(provider).send(sent.capture());
+    assertThat(sent.getValue())
+        .singleElement()
+        .satisfies(
+            message -> {
+              assertThat(message.text().body()).isEqualTo(inboxTitle);
+              assertThat(message.text().title()).isNotBlank().isNotEqualTo(inboxTitle);
+            });
+    verify(executor).execute(any(Runnable.class));
+  }
+
+  /** Real producer entry points qualified by this suite. */
+  enum Producer {
+    RESULT,
+    PUBLICATION,
+    DUE_LINK
+  }
+
+  /**
+   * Commits through the actual sporting, publication or due-pass owner, without fabricating events.
+   *
+   * @param producer scenario's actual trigger
+   */
+  private void announce(Producer producer) {
+    if (producer == Producer.RESULT) {
+      result(2, ResultStateEnum.FINAL);
+    } else {
+      moderator(AUTHOR);
+      if (producer == Producer.DUE_LINK) {
+        sql.update(
+            "UPDATE sporting_match SET reliable_start=? WHERE id=?",
+            Timestamp.from(NOW.plusSeconds(60)),
+            matchId);
+      }
+      submit(AUTHOR, "0", "https://youtube.com/advance", true);
+      if (producer == Producer.DUE_LINK) {
+        when(clock.instant()).thenReturn(NOW.plusSeconds(90));
+        due.run();
+      }
+    }
+  }
+
+  /**
+   * Retrieves the single actual after-commit batch while keeping its execution under test control.
+   *
+   * @return production sender work captured after the real producer commit
+   */
+  private Runnable pending() {
+    ArgumentCaptor<Runnable> work = ArgumentCaptor.forClass(Runnable.class);
+    verify(executor).execute(work.capture());
+    verifyNoInteractions(provider);
+    return work.getValue();
+  }
+
+  /**
+   * Adds a valid unfollowed catalog season for an actual personal-calendar display selection.
+   *
+   * @return distinct selectable season with no follows
+   */
+  private UUID otherSeason() {
+    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000094");
+    UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000095");
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000096");
+    sql.update(
+        "INSERT INTO sporting_season(id,start_year,label) VALUES (?,2025,'2025/2026')", season);
+    sql.update(
+        "INSERT INTO sporting_pack(id,season_id,provider,organizer_reference,reference) SELECT ?,?,provider,organizer_reference,'other-pack' FROM sporting_pack WHERE id=(SELECT pack_id FROM sporting_pool WHERE id=?)",
+        pack,
+        season,
+        scope.pool());
+    sql.update(
+        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,division_id,format,gender) SELECT ?,?,?,provider,organizer_reference,competition_reference,'other-pool',source_name,division_id,format,gender FROM sporting_pool WHERE id=?",
+        pool,
+        season,
+        pack,
+        scope.pool());
+    return season;
+  }
+}

@@ -1,0 +1,769 @@
+import {
+  cleanup,
+  act,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import {
+  mockAuth0,
+  credentialsFor,
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import { followingFixture } from "../test-support/following-fixture";
+import { FollowerCount } from "../components/follower-count";
+import { TeamScreen } from "@/features/sporting/screens/team-screen";
+import { PoolScreen } from "@/features/sporting/screens/pool-screen";
+import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import { FollowTarget } from "../test-support/follow-target";
+import {
+  SportingActions,
+  type SportingActionsProps,
+} from "@/features/sporting/components/sporting-actions";
+import { useFollowStateQuery } from "../api/use-follow-state-query";
+import type { InfiniteData } from "@tanstack/react-query";
+import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
+import {
+  followStateKey,
+  followerCountKey,
+  followListKey,
+} from "../api/following-keys";
+
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ push: jest.fn() }),
+  useIsFocused: () => true,
+  useNavigation: () => ({ isFocused: () => true }),
+  useLocalSearchParams: () => mockRouteParams,
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
+}));
+const mockFetch = jest.fn<Promise<Response>, [string, RequestInit?]>();
+const team = {
+  type: "team",
+  id: "00000000-0000-4000-8000-000000000227",
+} as const;
+const mockRouteParams = { teamId: team.id, poolId: team.id };
+const season = {
+  id: "00000000-0000-4000-8000-000000000003",
+  label: "2026/2027",
+  startYear: 2026,
+};
+const environment = { ...process.env };
+let fixture: ReturnType<typeof followingFixture>;
+let following = false;
+
+/** Scenario-neutral generated transport; each test explicitly replaces decisive failures or counts. */
+async function transport(url: string, request?: RequestInit) {
+  if (url.endsWith("/application-access")) {
+    return Response.json(applicationAccessResponse());
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(accountResponse());
+  }
+  if (url.endsWith("/follower-count")) {
+    return Response.json({ count: 2 });
+  }
+  if (url.endsWith(`/teams/${team.id}`)) {
+    return Response.json({
+      team: {
+        team: { id: team.id, name: "Volley Démo" },
+        season,
+        classification: {},
+        professional: true,
+      },
+      participations: [],
+    });
+  }
+  const parsed = new URL(url);
+  if (parsed.pathname === "/matches") {
+    return Response.json({
+      category: parsed.searchParams.get("category"),
+      timeZone: parsed.searchParams.get("timeZone"),
+      evaluatedAt: "2026-11-10T12:00:00Z",
+      days: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Response.json({
+      poolId: team.id,
+      availability: "not-published",
+      columns: [],
+      rows: [],
+    });
+  }
+  if (request?.method === "PUT") {
+    following = JSON.parse(String(request.body)).following;
+    return Response.json({ following });
+  }
+  return Response.json({ following });
+}
+
+/** Supplies the same real F06 reader that production sporting routes pass to their action row. */
+function SportingFollowTarget(
+  props: Readonly<Omit<SportingActionsProps, "read">>,
+) {
+  const read = useFollowStateQuery(props.target);
+  return <SportingActions {...props} read={read} />;
+}
+
+beforeEach(() => {
+  jest.useFakeTimers();
+  fixture = followingFixture();
+  following = false;
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "test-client",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|demo"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockFetch.mockReset().mockImplementation(transport);
+});
+afterEach(async () => {
+  await cleanup();
+  fixture.dispose();
+  // Await pending Query batches before restoring the test's real timer environment.
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+it("reports a failed write through shared feedback while preserving the ordinary follow action", async () => {
+  // Given
+  let writes = 0;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      writes++;
+      return Promise.reject(new TypeError("response lost"));
+    }
+    if (url.includes("/team-follows/")) {
+      return Promise.resolve(Response.json({ following: false }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await fixture.render(<SportingFollowTarget target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+
+  // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", {
+      name: "Suivre",
+      selected: false,
+      busy: false,
+    }),
+  ).toBeEnabled();
+  expect(writes).toBe(1);
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, request]) =>
+        url.includes("/team-follows/") && request?.method !== "PUT",
+    ),
+  ).toHaveLength(2);
+  expect(screen.queryByText(/annulé/)).not.toBeOnTheScreen();
+});
+
+it.each([true, false])(
+  "retains confirmed following=%s behind the page card when member and counter rereads fail",
+  async (following) => {
+    // Given
+    const response = Promise.withResolvers<Response>();
+    let accepted = false;
+    let saved = !following;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        return response.promise;
+      }
+      if (
+        accepted &&
+        (url.includes("/team-follows/") || url.endsWith("/follower-count"))
+      ) {
+        return Promise.reject(new TypeError("dependent read failed"));
+      }
+      if (url.includes("/team-follows/")) {
+        return Promise.resolve(Response.json({ following: saved }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await fixture.render(<TeamRoute />);
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    await screen.findByLabelText("2 abonnés");
+    const label = following ? "Suivre" : "Suivi";
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: label })).toBeEnabled(),
+    );
+    const owner = {
+      ...fixture.session,
+      accountId: accountResponse().accountId,
+    };
+
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: label,
+        selected: !following,
+        busy: true,
+      }),
+    ).toBeDisabled();
+    expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
+      following: !following,
+    });
+
+    // When
+    accepted = true;
+    saved = following;
+    await act(async () => response.resolve(Response.json({ following })));
+
+    // Then: confirmation stays in Query while the shared required-read card owns presentation.
+    expect(
+      await screen.findByRole("button", { name: "Réessayer" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: following ? "Suivi" : "Suivre" }),
+    ).not.toBeOnTheScreen();
+    expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
+      following,
+    });
+    expect(fixture.client.getQueryData(followerCountKey(team))).toEqual({
+      count: 2,
+    });
+    expect(
+      mockFetch.mock.calls
+        .filter(([, request]) => request?.method === "PUT")
+        .map(([, request]) => JSON.parse(String(request?.body))),
+    ).toEqual([{ following }]);
+
+    // When: a safe relationship Retry does not repeat the accepted command or repair the count.
+    accepted = false;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.queryByText("Une erreur est survenue")).toBeNull(),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: following ? "Suivi" : "Suivre",
+        selected: following,
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.getByLabelText("Nombre d’abonnés indisponible"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
+  },
+);
+
+it.each(["guest", "other"])(
+  "rejects an old observation after A to %s to A",
+  async (middle) => {
+    // Given
+    const observation = Promise.withResolvers<Response>();
+    let attempted = false;
+    let currentAccount = accountResponse().accountId;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        attempted = true;
+        return Promise.reject(new TypeError("response lost"));
+      }
+      if (url.endsWith("/accounts/me")) {
+        return Promise.resolve(
+          Response.json(accountResponse({ accountId: currentAccount })),
+        );
+      }
+      if (url.includes("/team-follows/") && attempted) {
+        return observation.promise;
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await fixture.render(
+      <SportingFollowTarget target={team} season={season} />,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    const original = { ...fixture.session, accountId: currentAccount };
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(
+          ([url, request]) =>
+            url.includes("/team-follows/") && request?.method !== "PUT",
+        ),
+      ).toHaveLength(2),
+    );
+
+    // When
+    await act(async () => {
+      await fixture.session.clearCredentials();
+    });
+    mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|other"));
+    mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|other"));
+    mockAuth0.saveCredentials.mockResolvedValue();
+    if (middle === "other") {
+      currentAccount = "00000000-0000-4000-8000-000000000099";
+      attempted = false;
+      await act(async () => {
+        await fixture.session.signIn("https://api.example.invalid");
+      });
+      await waitFor(() =>
+        expect(fixture.session.accountId).toBe(currentAccount),
+      );
+      await act(async () => {
+        await fixture.session.clearCredentials();
+      });
+    }
+    currentAccount = original.accountId;
+    attempted = false;
+    mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|demo"));
+    mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|demo"));
+    await act(async () => {
+      await fixture.session.signIn("https://api.example.invalid");
+    });
+    await waitFor(() =>
+      expect(fixture.session.accountId).toBe(original.accountId),
+    );
+    await act(async () => {
+      observation.resolve(Response.json({ following: true }));
+    });
+
+    // Then
+    await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+    expect(
+      await screen.findByRole("button", {
+        name: "Suivre",
+        selected: false,
+        busy: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(fixture.client.getQueryData(followStateKey(original, team))).toEqual(
+      { following: false },
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
+  },
+);
+
+it("rereads only the affected public counter after confirmation without provisional arithmetic", async () => {
+  // Given
+  const write = Promise.withResolvers<Response>();
+  const count = Promise.withResolvers<Response>();
+  const pool = { type: "pool", id: team.id } as const;
+  let confirmed = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      return write.promise;
+    }
+    if (url.endsWith(`/teams/${team.id}/follower-count`) && confirmed) {
+      return count.promise;
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await fixture.render(
+    <>
+      <SportingFollowTarget target={team} season={season} />
+      <FollowerCount target={pool} />
+    </>,
+  );
+  await waitFor(() =>
+    expect(screen.getAllByLabelText("2 abonnés")).toHaveLength(2),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+  // Then
+  expect(screen.getAllByLabelText("2 abonnés")).toHaveLength(2);
+  expect(screen.queryByLabelText("3 abonnés")).not.toBeOnTheScreen();
+
+  // When
+  confirmed = true;
+  following = true;
+  await act(async () => {
+    write.resolve(Response.json({ following: true }));
+  });
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+  await act(async () => {
+    count.resolve(Response.json({ count: 7 }));
+  });
+
+  // Then
+  expect(await screen.findByLabelText("7 abonnés")).toBeOnTheScreen();
+  expect(screen.getByLabelText("2 abonnés")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      url.endsWith(`/teams/${team.id}/follower-count`),
+    ),
+  ).toHaveLength(2);
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      url.endsWith(`/pools/${pool.id}/follower-count`),
+    ),
+  ).toHaveLength(1);
+});
+
+it.each(["team", "pool"] as const)(
+  "keeps current %s follow controls independent from a missing public count",
+  async (type) => {
+    // Given
+    const target = { type, id: team.id };
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith(`/teams/${target.id}`)) {
+        return Promise.resolve(
+          Response.json({
+            team: {
+              team: { id: target.id, name: "Current sporting identity" },
+              season,
+              classification: {},
+              professional: true,
+            },
+            participations: [],
+          }),
+        );
+      }
+      if (url.endsWith(`/pools/${target.id}`)) {
+        return Promise.resolve(
+          Response.json({
+            pool: {
+              pool: { id: target.id, name: "Current sporting identity" },
+              season,
+              classification: {},
+            },
+          }),
+        );
+      }
+      if (url.includes("/matches?")) {
+        return transport(url, request);
+      }
+      if (url.endsWith("/follower-count")) {
+        return Promise.resolve(Response.json({ count: 2 }));
+      }
+      if (url.includes("-follows/")) {
+        return Promise.resolve(Response.json({ following: true }));
+      }
+      return transport(url, request);
+    });
+    const renderFollow = () => (
+      <SportingFollowTarget target={target} season={season} />
+    );
+    await fixture.render(
+      <>
+        {type === "team" ? (
+          <TeamScreen teamId={target.id} renderFollow={renderFollow} />
+        ) : (
+          <PoolScreen poolId={target.id} renderFollow={renderFollow} />
+        )}
+        <FollowTarget target={target} season={season} />
+      </>,
+    );
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    await screen.findByText("Current sporting identity");
+    await screen.findByLabelText("2 abonnés");
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Synthetic HTTP implementation is required");
+    }
+    mockFetch.mockImplementation((url, request) =>
+      url.endsWith("/follower-count")
+        ? Promise.resolve(new Response(null, { status: 404 }))
+        : ordinary(url, request),
+    );
+
+    // When
+    await act(() =>
+      fixture.client.invalidateQueries({
+        queryKey: followerCountKey(target),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(screen.getByText("Current sporting identity")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(
+        screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+  },
+);
+
+it("shows the shared page card when the private opaque member read returns 404", async () => {
+  // Given
+  let memberRefused = false;
+  following = true;
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith(`/teams/${team.id}`)) {
+      return Promise.resolve(
+        Response.json({
+          team: {
+            team: { id: team.id, name: "Public team remains viewable" },
+            season,
+            classification: {},
+            professional: true,
+          },
+          participations: [],
+        }),
+      );
+    }
+    if (url.includes("/team-follows/") && memberRefused) {
+      return Promise.resolve(new Response(null, { status: 404 }));
+    }
+    return transport(url, request);
+  });
+
+  const user = userEvent.setup();
+  await fixture.render(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await screen.findByText("Public team remains viewable");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+
+  // When
+  memberRefused = true;
+  await act(() =>
+    fixture.client.refetchQueries({
+      queryKey: followStateKey(
+        { ...fixture.session, accountId: accountResponse().accountId },
+        team,
+      ),
+      exact: true,
+    }),
+  );
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByText("Public team remains viewable"),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
+  memberRefused = false;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Public team remains viewable"),
+  ).toBeOnTheScreen();
+  expect(await screen.findByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+});
+
+it("keeps a refused count withdrawn when its detail removes the control and the reopened count fails technically", async () => {
+  // Given: the real detail owner unmounts its follow region after the dependent detail refusal.
+  let outcome: "available" | "refused" | "transient" = "available";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith(`/teams/${team.id}`)) {
+      return Promise.resolve(
+        outcome === "refused"
+          ? new Response(null, { status: 404 })
+          : Response.json({
+              team: {
+                team: { id: team.id, name: "Counter recovery team" },
+                season,
+                classification: {},
+                professional: true,
+              },
+              participations: [],
+            }),
+      );
+    }
+    if (url.endsWith("/follower-count")) {
+      if (outcome === "refused") {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      if (outcome === "transient") {
+        return Promise.reject(new TypeError("Synthetic reopened count outage"));
+      }
+      return Promise.resolve(Response.json({ count: 2 }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await fixture.render(
+    <TeamScreen
+      teamId={team.id}
+      renderFollow={() => <FollowerCount target={team} />}
+    />,
+  );
+  await screen.findByLabelText("2 abonnés");
+
+  // When
+  outcome = "refused";
+  await act(async () => {
+    await fixture.client.invalidateQueries({
+      queryKey: followerCountKey(team),
+      exact: true,
+    });
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(screen.queryByText("Counter recovery team")).not.toBeOnTheScreen();
+  expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
+
+  // When
+  outcome = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByLabelText("Nombre d’abonnés indisponible");
+  expect(screen.getByText("Counter recovery team")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("2 abonnés")).not.toBeOnTheScreen();
+  expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
+});
+
+it("keeps personal follow projections independent from an unavailable public counter", async () => {
+  // Given
+  const profile = Promise.withResolvers<Response>();
+  const count = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/accounts/me")) {
+      return profile.promise;
+    }
+    if (url.endsWith("/follower-count")) {
+      return count.promise;
+    }
+    if (url.endsWith(`/teams/${team.id}`)) {
+      return Promise.resolve(
+        Response.json({
+          team: {
+            team: {
+              id: team.id,
+              name: "Profile resolves after public read starts",
+            },
+            season,
+            classification: {},
+            professional: true,
+          },
+          participations: [],
+        }),
+      );
+    }
+    if (url.includes("/team-follows/")) {
+      return Promise.resolve(Response.json({ following: true }));
+    }
+    return transport(url, request);
+  });
+  await fixture.render(
+    <>
+      <TeamScreen
+        teamId={team.id}
+        renderFollow={() => (
+          <SportingFollowTarget target={team} season={season} />
+        )}
+      />
+      <FollowTarget target={team} season={season} />
+    </>,
+  );
+  await screen.findByText("Profile resolves after public read starts");
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),
+    ).toHaveLength(1),
+  );
+  const subject = fixture.session.subject;
+  await act(async () => {
+    profile.resolve(Response.json(accountResponse()));
+  });
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+    ).toHaveLength(2),
+  );
+  const owner = { ...fixture.session, accountId: accountResponse().accountId };
+  const listKey = followListKey(owner, "team");
+  fixture.client.setQueryData(listKey, {
+    pages: [
+      {
+        items: [
+          {
+            team: { id: team.id, name: "Retained identity" },
+            season,
+            classification: {},
+            professional: true,
+          },
+        ],
+      },
+    ],
+    pageParams: [0],
+  });
+
+  // When
+  await act(async () => {
+    count.resolve(new Response(null, { status: 404 }));
+  });
+
+  // Then
+  expect(
+    screen.getByText("Profile resolves after public read starts"),
+  ).toBeOnTheScreen();
+  expect(fixture.session.subject).toBe(subject);
+  await waitFor(() =>
+    expect(
+      screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
+    ).toHaveLength(2),
+  );
+  expect(
+    fixture.client
+      .getQueryData<InfiniteData<ListTeamFollows200>>(listKey)
+      ?.pages.flatMap((page) => page.items),
+  ).toEqual([
+    {
+      team: { id: team.id, name: "Retained identity" },
+      season,
+      classification: {},
+      professional: true,
+    },
+  ]);
+});

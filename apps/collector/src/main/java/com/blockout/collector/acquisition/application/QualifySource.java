@@ -1,0 +1,124 @@
+package com.blockout.collector.acquisition.application;
+
+import com.blockout.collector.acquisition.lnv.LnvAcquisitionException;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery;
+import com.blockout.collector.acquisition.lnv.LnvPage;
+import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
+import java.net.URI;
+import java.time.Clock;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+/** Qualifies the exact admitted candidate and uses the existing one-attempt terminal handoff. */
+@Service
+public class QualifySource {
+  private final ProviderPages lnvHttp;
+  private final DiscoverSeasonSources discovery;
+  private final LnvDiscovery lnv;
+  private final CollectorLifecycle lifecycle;
+  private final Clock clock;
+
+  /** Supported structure and optional published season evidence, without operator confirmation. */
+  public record Evidence(
+      SourceValidationStateEnum state, String seasonEvidence, String reason, URI reasonType) {}
+
+  /**
+   * Binds explicit provider adapters to the existing admission and completion boundaries.
+   *
+   * @param lnvHttp shared LNV budget
+   * @param discovery published FFVB frame and selector traversal
+   * @param lnv native LNV interpreter
+   * @param lifecycle current incarnation and terminal-write policy
+   * @param clock actual read completion time
+   */
+  public QualifySource(
+      @Qualifier("lnvProviderClient") ProviderPages lnvHttp,
+      LnvDiscovery lnv,
+      DiscoverSeasonSources discovery,
+      CollectorLifecycle lifecycle,
+      Clock clock) {
+    this.lnvHttp = lnvHttp;
+    this.discovery = discovery;
+    this.lnv = lnv;
+    this.lifecycle = lifecycle;
+    this.clock = clock;
+  }
+
+  /**
+   * Qualifies the frozen candidate retained by admission and submits its terminal evidence once.
+   *
+   * @param context confirmed candidate capability
+   */
+  public void execute(CollectorLifecycle.AdmittedCycle context) {
+    if (context.getCycle().sourceBindingId() == null) {
+      throw new IllegalArgumentException("Candidate context required");
+    }
+    context.nextReadOrdinal();
+    Evidence evidence = qualify(context.getCycle().candidate());
+    lifecycle.validate(
+        context,
+        new CollectionBackend.Validation(
+            context.getCycle().id(),
+            evidence.state(),
+            clock.instant(),
+            evidence.seasonEvidence(),
+            evidence.reason(),
+            evidence.reasonType()));
+  }
+
+  /**
+   * Interprets a supported candidate, including its final redirected context.
+   *
+   * @param candidate exact expected provider, organizer/championship and season
+   * @return safe terminal evidence; confirmation fills absence only, never contradiction
+   */
+  public Evidence qualify(CollectionBackend.Candidate candidate) {
+    try {
+      return switch (candidate.provider()) {
+        case FFVB -> qualifyFfvb(candidate);
+        case LNV -> qualifyLnv(candidate);
+      };
+    } catch (RuntimeException failure) {
+      return new Evidence(
+          SourceValidationStateEnum.INVALID,
+          null,
+          failure instanceof LnvAcquisitionException
+              ? AcquisitionFailure.reason(failure)
+              : "Unavailable or unsupported source context",
+          AcquisitionFailure.reasonType(failure));
+    }
+  }
+
+  private Evidence qualifyFfvb(CollectionBackend.Candidate candidate) {
+    if (!discovery.hasCompleteFfvbCatalog(
+        candidate.candidateUrl(), candidate.seasonLabel(), candidate.organizerReference())) {
+      return new Evidence(
+          SourceValidationStateEnum.INVALID,
+          null,
+          "Incomplete FFVB catalog",
+          URI.create("urn:blockout:acquisition:structure"));
+    }
+    return new Evidence(SourceValidationStateEnum.QUALIFIED, candidate.seasonLabel(), null, null);
+  }
+
+  private Evidence qualifyLnv(CollectionBackend.Candidate candidate) {
+    ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
+    String season =
+        lnv.candidateSeason(
+            LnvPage.parse(response.body(), response.url()),
+            response.url(),
+            candidate.organizerReference(),
+            candidate.seasonLabel());
+    if (season == null) {
+      return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
+    }
+    if (!season.equals(candidate.seasonLabel())) {
+      return new Evidence(
+          SourceValidationStateEnum.INVALID,
+          season,
+          "Contradictory season evidence",
+          URI.create("urn:blockout:acquisition:context"));
+    }
+    return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null, null);
+  }
+}

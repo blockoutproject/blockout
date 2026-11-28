@@ -1,0 +1,57 @@
+# Data model: Notifications, inbox and push
+
+## Match announcement facts
+
+One F07-owned record keyed by the F02 match UUID holds processed live, result and post-result-link categories, plus composition fixed at result acceptance. These facts contain no account reference, message, score, editorial variant, read state or delivery payload. Use ordinary string enums/booleans for these finite concepts, not an append-only event journal.
+
+- A live announcement consumes only live.
+- Plain result consumes result and fixes plain composition.
+- Enriched result consumes result and post-result-link together and fixes enriched composition.
+- A later qualifying publication consumes post-result-link if still available.
+- Initial discovery/reconstruction is distinguished by trusted F02 context; silent final processing consumes result without emitting a result composition or consuming an otherwise unused post-result allowance. Existing link availability is no new publication; a genuinely later accepted F08 publication may use that allowance. An unchanged observation cannot become a new announcement.
+- Every processed category is recorded even with no recipients. Corrections, hiding/restoration, contribution replacement/reactivation and personal purge cannot clear it.
+
+The shared match lock protects composition and transitions. Hiding does not delete facts. They may leave with actual match erasure under its owner, never with personal account erasure. If a restore lost facts, the accepted exceptional duplicate limit applies; it does not waive erasure/expiry obligations.
+
+## Personal notification
+
+| Field                  | Meaning and constraints                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | UUID, immutable personal entry identity.                                                                                                                            |
+| `accountId`, `matchId` | Existing owner identities; account erasure deletes the entry.                                                                                                       |
+| `family`               | Plain result, enriched result, live link or post-result link; fixed at creation.                                                                                    |
+| `variant`              | Stable selection among the family's French editorial variants. Unknown sporting values use appropriate fallback wording without changing family or inventing facts. |
+| `createdAt`            | Non-null UTC instant of original creation, never reset by reading, correction, visibility or delivery.                                                              |
+| `read`                 | Non-null false initially; only transition is false → true. Repeated true is a no-op.                                                                                |
+
+Unique `(accountId, matchId, family)` supplements consumed match facts. The latter also prevent contradictory plain/enriched result creation and survive personal purge. Index owner/date/UUID for keyset reads and creation time for daily expiry. The initial schema contains no owner/read aggregate index, unread aggregate, earliest-expiry field or synchronized count column. Current keys/indexes are defined directly under [F13’s predeployment baseline](../003-shared-quality/plan.md#runtime-data-and-consistency) and qualified on fresh PostgreSQL.
+
+Current match/pool/team/division/result presentation comes from owner-controlled read projections. No serialized sporting DTO, source document, video URL history, duplicated score or separately synchronized rendered text is stored here. Public viewability is a database predicate before paging. Required internal creation occurs in the sporting transaction; projections of corrections need no per-entry content rewrite.
+
+Server reads/sends exclude entries from 29 days; daily physical deletion includes hidden/read rows, normally removing them before 30. F05 erasure is immediate and supersedes retention. No permanent per-recipient delivery/announcement history remains after purge. Physical retention applies the fixed inclusive `createdAt` cutoff in one transaction, without selected-ID batches, partial-progress records or a per-entry archive. A definite refusal rolls back the pass; an uncertain commit may have applied the whole pass and provides no confirmed deletion count. The next ordinary pass/manual operation safely re-evaluates due rows while logical expiry remains strict. Completed diagnostics describe only confirmed deletion.
+
+## Push subscription
+
+| Field            | Meaning and constraints                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `id`             | UUID created for one sign-in association; new after every new sign-in, including the same account.       |
+| `installationId` | Random installation UUID, independent of account/OS version. Not an authentication secret.               |
+| `accountId`      | Usable original business account UUID, verified from the authenticated request.                          |
+| `expoPushToken`  | Private replaceable destination, scoped to the configured project/environment; never logged.             |
+| `revision`       | Native JPA version used internally to guard stale receipt invalidation. Not a public session identifier. |
+
+Unique installation and destination constraints prevent equivalent active bindings. PUT replaces the complete association and removes conflicting old bindings in one local transaction; affected account rows use sorted locking. An unresolved concurrent uniqueness conflict rolls back without partial reassociation and is retried only at a normal registration occasion. Do not use a new SQL upsert engine. A successful registration advances revision, including unchanged-address re-registration, using native optimistic force increment where necessary. Token rotation retains this connection ID; a new sign-in uses another ID. DELETE removes only the exact owner/association, so a delayed old DELETE cannot remove its replacement.
+
+An old registration already in transit may replace a newer association even after successful disassociation. It can leave the current account without push until its next successful ordinary registration; F05/F07 explicitly accept this transport limit. Obsolete mobile callbacks and still-controllable requests are discarded/cancelled. No client-time ordering, persistent revocation registry or repair loop is claimed. Existing account foreign keys cascade the F05 account delete to owned push subscriptions and inbox entries in the same transaction, preserving other owners' rows.
+
+A receipt invalidates only the native row identity/revision/address captured for that send, using a conditional repository operation or ordinary optimistic version check. JPA generates this private row UUID independently of the public sign-in association ID. Recreating a deleted binding can reset its native version but cannot reuse its former row identity; an old receipt therefore cannot remove that recreation. No row identity or version is echoed publicly, retained after removal or used for authorization. No external call is inside this transaction. The [research](research.md#association-identity-and-native-lifecycle) records the persistence rationale.
+
+## Ephemeral processing and mobile data
+
+The transient event carries the newly created entries and their selected account identities. With push enabled, its destinations group the original private association row IDs, revisions and addresses by selected account. The producer captures them in one read inside its transaction. A registration committed after the capture read adds no destination to the event. Accounts without an association still have their entries. With push disabled, the destination map is empty and the producer skips the read.
+
+Send eligibility reads a current qualifying follow of the current match teams or pool, including a recreated follow for an already selected recipient. The context carries no follow relation IDs. New followers are not added retroactively. Ticket IDs retained for the single delayed receipt check live only in process memory. A restart discards this work; it does not change inbox persistence or trigger replay. These are transient integration values, not additional database entities.
+
+The original principal's private QueryClient holds validated responses by generated account keys and continuation. Server read state is monotone; cached read flags have ordinary eventual freshness through invalidation/refetch, without a local true overlay or member-read acknowledgement protocol. Expired/purged content and data withdrawn after actual private refusal cannot be restored by older responses. Public sporting card/title projections may remain old until their next ordinary inbox read, opening or foreground refresh; destination access uses current server authority. Other sporting queries do not rewrite the inbox. No read journal or complete inbox mirror is added. Ordinary inbox reads, opening and foreground events filter aged local entries, including offline, without an exact-deadline timer. An unchanged page may retain its old projection until then. Logout/account changes clear private queries regardless of best-effort disassociation outcome. A native nonblocking zero clear handles an app-controlled badge left by an earlier version; no count-only account state remains.
+
+The installation and current connection UUIDs are device metadata; the Expo address is obtained through the native SDK. Neither provides account authority, and no retained credential exists solely to clean up a failed logout.

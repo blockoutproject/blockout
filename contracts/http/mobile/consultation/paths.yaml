@@ -1,0 +1,591 @@
+Club:
+  get:
+    operationId: getClub
+    tags:
+      - Consultation
+    summary: Read a club
+    description:
+      Returns effective presentation, permitted contacts, municipality and viewable seasons. Ordinary
+      access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: clubId
+        in: path
+        required: true
+        description: Stable club identity.
+        schema:
+          type: string
+          description: Stable club identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ClubDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+ClubTeams:
+  get:
+    operationId: listClubTeams
+    tags:
+      - Consultation
+    summary: Read teams in a club season
+    description:
+      Returns all viewable teams for the selected club and season; an unknown season is not found. Ordinary
+      access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: clubId
+        in: path
+        required: true
+        description: Stable club identity.
+        schema:
+          type: string
+          description: Stable club identity.
+          format: uuid
+      - name: seasonId
+        in: query
+        required: true
+        description: Selected sporting season.
+        schema:
+          type: string
+          description: Selected season identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ClubTeamsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Team:
+  get:
+    operationId: getTeam
+    tags:
+      - Consultation
+    summary: Read a team
+    description:
+      Returns the team and viewable participations. A professional team may have no club. Ordinary access
+      is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility restrictions
+      always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        description: Stable team identity.
+        schema:
+          type: string
+          description: Stable team identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/TeamDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Pool:
+  get:
+    operationId: getPool
+    tags:
+      - Consultation
+    summary: Read a pool
+    description:
+      Returns public identity, season and accepted competition context. Ordinary access is public; explicit
+      maintenance bypass requires a valid authorized mobile token. Current visibility restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: poolId
+        in: path
+        required: true
+        description: Stable pool identity.
+        schema:
+          type: string
+          description: Stable pool identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PoolDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Standings:
+  get:
+    operationId: getPoolStandings
+    tags:
+      - Consultation
+    summary: Read official pool standings
+    description:
+      Returns the published table or explicit absence/unavailability. No rank or missing statistic is
+      calculated. Ordinary access is public; explicit maintenance bypass requires a valid authorized mobile token.
+      Current visibility restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: poolId
+        in: path
+        required: true
+        description: Stable pool identity.
+        schema:
+          type: string
+          description: Stable pool identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PoolStandingsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Participants:
+  get:
+    operationId: listPoolParticipants
+    tags:
+      - Consultation
+    summary: Read pool participants
+    description:
+      Returns all viewable participants independently of standings, with only reliable club locations.
+      Ordinary access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: poolId
+        in: path
+        required: true
+        description: Stable pool identity.
+        schema:
+          type: string
+          description: Stable pool identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PoolParticipantsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Matches:
+  get:
+    operationId: listMatches
+    tags:
+      - Consultation
+    summary: Read a sporting calendar
+    description:
+      Supply exactly one clubId, teamId or poolId. A club requires seasonId; other selectors forbid it.
+      Returns seven complete nonempty days at most. Preserve category, timeZone and selector for nextDay continuation.
+      Empty dates are skipped. Concurrent moves may be absent until refresh; deduplicate appended match identities.
+      Ordinary access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: clubId
+        in: query
+        required: false
+        description: Club selector; exactly one resource selector is required.
+        schema:
+          type: string
+          description: Club identity.
+          format: uuid
+      - name: teamId
+        in: query
+        required: false
+        description: Team selector; exactly one resource selector is required.
+        schema:
+          type: string
+          description: Team identity.
+          format: uuid
+      - name: poolId
+        in: query
+        required: false
+        description: Pool selector; exactly one resource selector is required.
+        schema:
+          type: string
+          description: Pool identity.
+          format: uuid
+      - name: seasonId
+        in: query
+        required: false
+        description: Required with clubId, forbidden otherwise.
+        schema:
+          type: string
+          description: Club sporting season.
+          format: uuid
+      - $ref: ./parameters.yaml#/Category
+      - $ref: ./parameters.yaml#/TimeZone
+      - $ref: ./parameters.yaml#/NextDay
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MatchCalendarResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Match:
+  get:
+    operationId: getMatch
+    tags:
+      - Consultation
+    summary: Read a match
+    description:
+      Returns current sporting facts and eligible document actions. Dateless or hidden matches are unavailable.
+      Ordinary access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: matchId
+        in: path
+        required: true
+        description: Stable match identity.
+        schema:
+          type: string
+          description: Stable match identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MatchDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Document:
+  get:
+    operationId: getMatchDocument
+    tags:
+      - Sporting
+    summary: Read a match PDF
+    description:
+      Relays a qualified document without an archive. Information needs no result; scoresheet/statistics
+      require a definitive result and statistics is professional only. A missing/ineligible reference is not found;
+      a failed supplier read is unavailable. No arbitrary provider URL is accepted. Ordinary access is public; explicit
+      maintenance bypass requires a valid authorized mobile token. Current visibility restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: matchId
+        in: path
+        required: true
+        description: Stable match identity.
+        schema:
+          type: string
+          description: Stable match identity.
+          format: uuid
+      - name: documentKind
+        in: path
+        required: true
+        description: Official document use.
+        schema:
+          $ref: ./schemas.yaml#/MatchDocumentKindEnum
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/pdf:
+            schema:
+              type: string
+              description: Binary resource bytes.
+              format: binary
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+ClubLogo:
+  get:
+    operationId: getClubLogo
+    tags:
+      - Consultation
+    summary: Read the effective club logo
+    description:
+      Returns the current effective image for this visible resource; missing images are not found. Ordinary
+      access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: clubId
+        in: path
+        required: true
+        description: Stable club identity.
+        schema:
+          type: string
+          description: Stable club identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          image/png:
+            schema:
+              type: string
+              description: Binary resource bytes.
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              description: JPEG image bytes.
+              format: binary
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+TeamLogo:
+  get:
+    operationId: getTeamLogo
+    tags:
+      - Consultation
+    summary: Read current team artwork
+    description:
+      Returns the selected current image for this visible team; missing images are not found. The default
+      effective selection includes the manual override. The automatic selection ignores that override
+      and resolves accepted LNV artwork for professional teams, then the optional club fallback; other
+      teams use their club fallback. Ordinary
+      access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        description: Stable team identity.
+        schema:
+          type: string
+          description: Stable team identity.
+          format: uuid
+      - name: selection
+        in: query
+        required: false
+        description: Current artwork selection; automatic ignores the team's manual image without changing it.
+        schema:
+          $ref: ../sporting/schemas.yaml#/TeamLogoSelectionEnum
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          image/png:
+            schema:
+              type: string
+              description: Binary resource bytes.
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              description: JPEG image bytes.
+              format: binary
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+DivisionLogo:
+  get:
+    operationId: getDivisionLogo
+    tags:
+      - Consultation
+    summary: Read the effective division logo
+    description:
+      Returns the current effective image for this visible resource; missing images are not found. Ordinary
+      access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
+      restrictions always apply.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: divisionId
+        in: path
+        required: true
+        description: Stable division identity.
+        schema:
+          type: string
+          description: Stable division identity.
+          format: uuid
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          image/png:
+            schema:
+              type: string
+              description: Binary resource bytes.
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              description: JPEG image bytes.
+              format: binary
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable

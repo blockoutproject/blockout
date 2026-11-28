@@ -1,0 +1,587 @@
+import {
+  DocumentReader,
+  documentRead,
+  documentReaders,
+  documentFiles,
+  documentWrite,
+} from "../test-support/native-document-files";
+import type { ReactElement } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { AccessibilityInfo, Pressable, Text, View } from "react-native";
+import Pdf from "react-native-pdf";
+import {
+  mockAuth0,
+  credentialsFor,
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import {
+  ConsultationProviders,
+  consultationPublicClient,
+} from "../test-support/consultation-providers";
+import {
+  consultationResponse,
+  matchDetail,
+  sportingId,
+} from "../test-support/consultation-data";
+import { MatchScreen } from "../screens/match-screen";
+
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ back: jest.fn(), push: mockPush, canGoBack: () => true }),
+  useNavigation: () => ({ isFocused: () => true }),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (...args: unknown[]) => mockFetch(...args),
+}));
+jest.mock(
+  "expo-file-system",
+  () =>
+    jest.requireActual("../test-support/native-document-files")
+      .nativeDocumentFiles,
+);
+const mockFetch = jest.fn();
+const mockPush = jest.fn();
+const environment = { ...process.env };
+let client: QueryClient;
+let publicClient: QueryClient;
+let detail = matchDetail();
+
+/** Captures the actual session-owned private Query client for current-authority rereads. */
+function captureClient(current: QueryClient) {
+  client = current;
+}
+
+/** Renders actual generated transport, access, session, advertising and shared UI owners. */
+function renderPage(content: ReactElement) {
+  return render(content, {
+    wrapper: ({ children }) => (
+      <ConsultationProviders
+        publicClient={publicClient}
+        onClient={captureClient}
+      >
+        {children}
+      </ConsultationProviders>
+    ),
+  });
+}
+
+/** Uses only synthetic generated HTTP results; no application hook or lifecycle is replaced. */
+function reads(url: string) {
+  if (url.includes("/documents/")) {
+    return Promise.resolve(
+      new Response("%PDF-1.7\nsynthetic\n%%EOF", {
+        headers: { "Content-Type": "application/pdf" },
+      }),
+    );
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Promise.resolve(Response.json(accountResponse()));
+  }
+  return consultationResponse(url, detail);
+}
+
+const originalReader = Object.getOwnPropertyDescriptor(
+  globalThis,
+  "FileReader",
+);
+
+beforeEach(() => {
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: DocumentReader,
+  });
+  documentReaders.length = 0;
+  documentRead.mockClear();
+  jest.useFakeTimers();
+  publicClient = consultationPublicClient();
+  detail = {
+    ...matchDetail(),
+    venueName: "Gymnase fictif",
+    documents: [
+      {
+        kind: "information",
+        url: `/matches/${sportingId}/documents/information`,
+      },
+    ],
+  };
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
+  mockFetch.mockReset().mockImplementation(reads);
+  documentFiles.length = 0;
+  documentWrite.mockReset();
+  jest
+    .mocked(Pdf)
+    .mockImplementation((props) => (
+      <View
+        testID="native-pdf"
+        onTouchEnd={() =>
+          props.onError?.(new Error("Synthetic decoder failure"))
+        }
+      />
+    ));
+});
+afterEach(async () => {
+  if (originalReader) {
+    Object.defineProperty(globalThis, "FileReader", originalReader);
+  }
+  await cleanup();
+  client?.clear();
+  publicClient.clear();
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+it.each([
+  {
+    venue: "with a known venue",
+    venueName: "Gymnase fictif",
+    category: "upcoming",
+    accessibleName: "Lieu : Gymnase fictif",
+  },
+  {
+    venue: "without a known venue",
+    venueName: undefined,
+    category: "upcoming",
+    accessibleName: "Lieu : Fiche d’information",
+  },
+  {
+    venue: "after completion without a definitive result",
+    venueName: "Gymnase fictif",
+    category: "completed",
+    accessibleName: "Lieu : Gymnase fictif",
+  },
+] as const)(
+  "opens the local-only PDF $venue and releases it when returning to the same match",
+  async ({ venueName, category, accessibleName }) => {
+    // Given
+    detail.venueName = venueName;
+    detail.match.category = category;
+    const user = userEvent.setup();
+    await renderPage(<MatchScreen matchId={sportingId} />);
+
+    // When
+    await user.press(await screen.findByRole("link", { name: accessibleName }));
+    await screen.findByTestId("native-pdf");
+
+    // Then
+    expect(jest.mocked(Pdf).mock.lastCall?.[0].source).toEqual({
+      uri: documentFiles[0].uri,
+    });
+    expect(documentFiles[0].uri).toMatch(/^file:\/\/\//);
+    expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    );
+
+    // Then
+    expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+    expect(documentFiles[0].exists).toBe(false);
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+  },
+);
+
+it("opens the venue sheet and the scoresheet from the same completed match", async () => {
+  // Given
+  detail.match.category = "completed";
+  detail.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 1,
+    observedAt: "2026-10-25T18:00:00Z",
+  };
+  detail.documents.push({
+    kind: "scoresheet",
+    url: `/matches/${sportingId}/documents/scoresheet`,
+  });
+  const user = userEvent.setup();
+  await renderPage(<MatchScreen matchId={sportingId} />);
+
+  // When
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Fiche d’information" }),
+  ).toBeOnTheScreen();
+  expect(await screen.findByTestId("native-pdf")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer le document" }));
+  await user.press(
+    screen.getByRole("link", { name: "Document : Feuille de match" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Feuille de match" }),
+  ).toBeOnTheScreen();
+  expect(await screen.findByTestId("native-pdf")).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.map(([url]) => url)).toContain(
+    `https://api.example.invalid/matches/${sportingId}/documents/scoresheet`,
+  );
+});
+
+it.each([
+  { reducedMotion: false, animation: "slide" },
+  { reducedMotion: true, animation: "none" },
+])(
+  "requests the native PDF presentation animation $animation",
+  async ({ reducedMotion, animation }) => {
+    // Given: the real theme reads the controlled system accessibility setting.
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    await renderPage(<MatchScreen matchId={sportingId} />);
+
+    // When
+    await userEvent.press(
+      await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+    );
+
+    // Then: Jest can verify the native host configuration; the simulator owns the transition.
+    const hosts = screen.container.queryAll((node) => node.type === "Modal");
+    expect(hosts).toHaveLength(1);
+    expect(hosts[0]).toHaveProp("animationType", animation);
+  },
+);
+
+it("keeps ordinary failure retry explicit and preserves the match reporting context", async () => {
+  // Given
+  const user = userEvent.setup();
+  let pdfReads = 0;
+  mockFetch.mockImplementation((url: string) =>
+    url.includes("/documents/") && ++pdfReads === 1
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : reads(url),
+  );
+  await renderPage(<MatchScreen matchId={sportingId} />);
+
+  // When
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(pdfReads).toBe(1);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(documentFiles).toHaveLength(1));
+  await act(() =>
+    jest
+      .mocked(Pdf)
+      .mock.lastCall?.[0].onLoadComplete?.(1, documentFiles[0].uri, {
+        width: 600,
+        height: 800,
+      }),
+  );
+  await screen.findByTestId("native-pdf");
+  expect(pdfReads).toBe(2);
+  await user.press(
+    screen.getByRole("button", {
+      name: "Signaler un problème avec le document",
+    }),
+  );
+  expect(mockPush).toHaveBeenCalledWith(
+    expect.objectContaining({
+      params: expect.objectContaining({
+        targetId: sportingId,
+        targetType: "match",
+      }),
+    }),
+  );
+  expect(documentFiles.every((file) => !file.exists)).toBe(true);
+});
+
+it.each(["initial", "retry"])(
+  "cancels a closed %s opening and rejects its obsolete successful completion",
+  async (opening) => {
+    // Given
+    const user = userEvent.setup();
+    const pending = Promise.withResolvers<Response>();
+    let signal: AbortSignal | undefined;
+    let documentReads = 0;
+    mockFetch.mockImplementation((url: string, request: RequestInit) => {
+      if (!url.includes("/documents/")) {
+        return reads(url);
+      }
+      if (++documentReads === 1 && opening === "retry") {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      signal = request.signal ?? undefined;
+      return pending.promise;
+    });
+    await renderPage(<MatchScreen matchId={sportingId} />);
+    await user.press(
+      await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+    );
+    if (opening === "retry") {
+      await user.press(
+        await screen.findByRole("button", { name: "Réessayer" }),
+      );
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: true }),
+      ).toBeDisabled();
+    } else {
+      expect(
+        screen.getByRole("progressbar", { name: "Chargement du document" }),
+      ).toBeOnTheScreen();
+    }
+    expect(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    ).toBeEnabled();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    );
+    await act(async () =>
+      pending.resolve(await reads("/documents/information")),
+    );
+
+    // Then
+    expect(signal?.aborted).toBe(true);
+    expect(documentFiles).toHaveLength(0);
+    expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+  },
+);
+
+it("releases a decoder failure before explicit retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+  const native = await screen.findByTestId("native-pdf");
+
+  // When: the native renderer owns decode failure; no real PDF compatibility is claimed.
+  await fireEvent(native, "touchEnd");
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(documentFiles[0].exists).toBe(false);
+});
+
+it("retains the reader card through a renewed failed download and native decode", async () => {
+  // Given: transport and native callbacks are controlled; the file and reader owners are real.
+  const user = userEvent.setup();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    url.includes("/documents/")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : reads(url),
+  );
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  mockFetch.mockImplementation((url: string) =>
+    url.includes("/documents/") ? pending.promise : reads(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement du document" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Fermer le document" }),
+  ).toBeEnabled();
+
+  // When
+  await act(() => pending.resolve(new Response(null, { status: 503 })));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+  // When: the next download succeeds, while the PDF decoder has not completed.
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(documentFiles).toHaveLength(1));
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+  // When
+  await act(() =>
+    jest
+      .mocked(Pdf)
+      .mock.lastCall?.[0].onLoadComplete?.(1, documentFiles[0].uri, {
+        width: 600,
+        height: 800,
+      }),
+  );
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByTestId("native-pdf")).toBeOnTheScreen();
+});
+
+it("withdraws an active document on a current match refusal and never reopens it after recovery", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+  await screen.findByTestId("native-pdf");
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith(`/matches/${sportingId}`)
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : reads(url),
+  );
+
+  // When
+  await act(() =>
+    client.invalidateQueries({ queryKey: [`/matches/${sportingId}`] }),
+  );
+
+  // Then
+  await waitFor(() => expect(documentFiles[0].exists).toBe(false));
+  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(reads);
+  await act(() =>
+    client.invalidateQueries({ queryKey: [`/matches/${sportingId}`] }),
+  );
+  await screen.findByText("Home");
+  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+});
+
+/** An explicit SDK account switch exercises the real private-tree replacement. */
+function SwitchAccount() {
+  const session = useAccountSession();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Switch account"
+      onPress={() => void session.signIn("document-test")}
+    >
+      <Text>Switch account</Text>
+    </Pressable>
+  );
+}
+
+it("cancels a pending PDF when the SDK principal replaces the private tree", async () => {
+  // Given
+  const pending = Promise.withResolvers<Response>();
+  let signal: AbortSignal | undefined;
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|first"));
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|second"));
+  mockAuth0.saveCredentials.mockResolvedValue(undefined);
+  mockFetch.mockImplementation((url: string, request: RequestInit) => {
+    if (!url.includes("/documents/")) {
+      return reads(url);
+    }
+    signal = request.signal ?? undefined;
+    return pending.promise;
+  });
+  const user = userEvent.setup();
+  await renderPage(
+    <>
+      <SwitchAccount />
+      <MatchScreen matchId={sportingId} />
+    </>,
+  );
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+
+  // When
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|second"));
+  await user.press(
+    screen.getByRole("button", {
+      name: "Switch account",
+      includeHiddenElements: true,
+    }),
+  );
+  await act(async () => pending.resolve(await reads("/documents/information")));
+
+  // Then
+  await waitFor(() => expect(signal?.aborted).toBe(true));
+  expect(documentFiles).toHaveLength(0);
+  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+});
+
+it("releases the original file when navigation selects another match without automatically opening its document", async () => {
+  // Given
+  const user = userEvent.setup();
+  const page = await renderPage(<MatchScreen matchId={sportingId} />);
+  await user.press(
+    await screen.findByRole("link", { name: "Lieu : Gymnase fictif" }),
+  );
+  await screen.findByTestId("native-pdf");
+  const otherId = "00000000-0000-4000-8000-000000000260";
+  detail = {
+    ...detail,
+    venueName: "Autre gymnase",
+    match: { ...detail.match, id: otherId },
+    documents: [
+      { kind: "information", url: `/matches/${otherId}/documents/information` },
+    ],
+  };
+
+  // When
+  await page.rerender(<MatchScreen matchId={otherId} />);
+
+  // Then
+  await screen.findByRole("link", { name: /Lieu.*Autre gymnase/ });
+  expect(documentFiles[0].exists).toBe(false);
+  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+});

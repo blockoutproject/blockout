@@ -1,0 +1,209 @@
+package com.blockout.backend.sporting.infrastructure;
+
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+/** Native Spring Data access to the sporting pool owner. */
+interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
+  /**
+   * Projects accepted contextual identity and classification without acquisition collections.
+   *
+   * @param ids exact already admitted pool identities
+   * @return detached current pool values
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.application.model.SportingViews$PoolView(
+        p.id,
+        NEW com.blockout.backend.sporting.application.model.PoolKey(
+          p.provider, p.season.id, p.organizerReference, p.competitionReference,
+          p.tourReference, p.groupReference, p.reference),
+        p.pack.id, p.sourceName,
+        NEW com.blockout.backend.sporting.application.model.SportingClassification(
+          p.division.id, p.format, p.gender))
+      FROM PoolEntity p WHERE p.id IN :ids
+      """)
+  List<PoolView> findViews(Set<UUID> ids);
+
+  /**
+   * Projects names-only presentation without inventing a pool artwork concept.
+   *
+   * @param ids exact selected pools
+   * @return scalar current presentation facts
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
+        p.id, p.sourceName, p.manualName, p.manualShortName, NULL,
+        FALSE, FALSE, NULL, FALSE)
+      FROM PoolEntity p WHERE p.id IN :ids
+      """)
+  List<SportingPresentationRow> findPresentations(Set<UUID> ids);
+
+  /** Loads current FFVB pools and their packs within the selected source. */
+  @Query(
+      """
+      SELECT p FROM PoolEntity p JOIN FETCH p.pack pack
+      WHERE pack.season.id = :seasonId AND pack.provider = :provider
+        AND pack.organizerReference = :organizerReference AND p.catalogEligible = TRUE
+      ORDER BY pack.reference, pack.id, p.sourceName, p.id
+      """)
+  List<PoolEntity> cataloguePools(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /** Selects each phase once, ordered by the first group in the former source-name order. */
+  @Query(
+      """
+      SELECT p.reference
+      FROM PoolEntity p
+      WHERE p.season.id = :seasonId AND p.provider = :provider
+        AND p.organizerReference = :organizerReference AND p.catalogEligible = TRUE
+      GROUP BY p.reference
+      ORDER BY MIN(p.sourceName), p.reference
+      """)
+  List<String> cataloguePhaseReferences(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /** Reads all current source-season members for complete catalogue reconciliation. */
+  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /**
+   * Selects qualified pools after the visited identity boundary despite concurrent division
+   * changes.
+   *
+   * @param seasonId locked canonical season
+   * @param provider binding provider
+   * @param initialImport permits qualified historical references absent from the current catalog
+   * @param organizerReference binding root
+   * @param afterId exclusive last visited identity, or null to start
+   * @param page first page limiting the next batch
+   * @return only current catalog pools with complete, active effective acquisition classification
+   */
+  @Query(
+      """
+      SELECT p FROM PoolEntity p JOIN FETCH p.pack pack
+      JOIN DivisionEntity d ON d.id = COALESCE(p.setting.settingDivisionId, pack.setting.settingDivisionId)
+      WHERE p.season.id = :seasonId AND p.provider = :provider AND p.organizerReference = :organizerReference
+      AND (:afterId IS NULL OR p.id > :afterId)
+      AND (:initialImport = TRUE OR p.catalogEligible = TRUE) AND d.active = TRUE
+      AND (p.calendarUrl IS NOT NULL OR p.standingsUrl IS NOT NULL)
+      ORDER BY p.id
+      """)
+  List<PoolEntity> acquisitionPools(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      boolean initialImport,
+      UUID afterId,
+      Pageable page);
+
+  /**
+   * Resolves the immutable season reference without loading a pool into the persistence context.
+   *
+   * @param id existing pool identity
+   * @return canonical season to lock before reading current sporting state
+   */
+  @Query("SELECT p.season.id FROM PoolEntity p WHERE p.id = :id")
+  Optional<UUID> findSeasonId(UUID id);
+
+  /**
+   * Finds the full native key while preserving absent optional context.
+   *
+   * @param key complete contextual native key
+   * @return matching pool, including absent tour/group
+   */
+  @Query(
+      """
+      SELECT p FROM PoolEntity p WHERE p.provider = :#{#key.provider} AND p.season.id = :#{#key.seasonId}
+      AND p.organizerReference = :#{#key.organizerReference} AND p.competitionReference = :#{#key.competitionReference}
+      AND p.reference = :#{#key.reference}
+      AND p.tourReference IS NOT DISTINCT FROM :#{#key.tourReference}
+      AND p.groupReference IS NOT DISTINCT FROM :#{#key.groupReference}
+      """)
+  Optional<PoolEntity> findByKey(PoolKey key);
+
+  /**
+   * Returns all scopes affected by a pack correction.
+   *
+   * @param packId native grouping
+   * @return its current pools, including overrides
+   */
+  List<PoolEntity> findByPackId(UUID packId);
+
+  /** Canonical current pool eligibility for queries using the pool alias p. */
+  String VISIBLE = SportingVisibilityPredicates.POOL;
+
+  /**
+   * Reads visibility facts without hydrating presentation or acquisition state.
+   *
+   * @param id exact pool identity
+   * @return current restrictions, or empty when unknown
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.PoolVisibilityRow(
+        p.catalogEligible, p.calendarEmpty, d.id, d.active)
+      FROM PoolEntity p LEFT JOIN p.division d WHERE p.id = :id
+      """)
+  Optional<PoolVisibilityRow> findVisibility(UUID id);
+
+  /**
+   * Selects canonical seasons from currently visible pools without loading their cards.
+   *
+   * @return distinct seasons in descending start-year and ascending UUID order
+   */
+  @Query(
+      "SELECT DISTINCT s FROM PoolEntity p JOIN p.season s WHERE "
+          + VISIBLE
+          + " ORDER BY s.startYear DESC, s.id")
+  List<SeasonEntity> findVisibleSeasons();
+
+  String SEARCH_SELECT =
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
+        p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
+        NULL, NULL)
+      FROM PoolEntity p WHERE
+      """
+          + VISIBLE;
+
+  @Query(SEARCH_SELECT + " AND p.id IN :ids ORDER BY p.id")
+  List<SportingSearchRow> findSearchInputs(Set<UUID> ids);
+
+  @Query(SEARCH_SELECT + " ORDER BY p.id")
+  List<SportingSearchRow> findSearchInputs(Pageable page);
+
+  /**
+   * Reads qualified aliases for selected pools.
+   *
+   * @param ids bounded pool identities
+   * @return owner-keyed alias facts
+   */
+  @Query(
+      """
+      SELECT NEW com.blockout.backend.sporting.infrastructure.SportingAliasRow(
+        p.id, a.seasonId, a.organizerReference, a.competitionReference, a.comparisonName)
+      FROM PoolEntity p JOIN p.aliases a WHERE p.id IN :ids
+      """)
+  List<SportingAliasRow> findAliases(Set<UUID> ids);
+
+  /**
+   * Finds affected owners including hidden resources requiring index removal.
+   *
+   * @param divisions changed divisions, possibly empty
+   * @param seasons changed seasons, possibly empty
+   * @return dependent pool identities
+   */
+  @Query(
+      "SELECT p.id FROM PoolEntity p WHERE p.division.id IN :divisions OR p.season.id IN :seasons")
+  List<UUID> findProjectionDependents(Set<UUID> divisions, Set<UUID> seasons);
+}

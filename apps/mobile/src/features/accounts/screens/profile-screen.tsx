@@ -1,0 +1,235 @@
+import { homeHref } from "@/shared/native/home-href";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+  type PageScrollViewProps,
+} from "@/shared/components/page";
+import { useRouter } from "expo-router";
+import { SquarePen } from "lucide-react-native";
+import { IconButton } from "@/shared/components/icon-button";
+import type { ReactNode } from "react";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { useProfilePhoto } from "../api/use-profile-editing";
+import { StyleSheet, Text, View } from "react-native";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { AdministrationEntry } from "@/features/access/entry";
+import { useCurrentAccount } from "../api/use-current-account";
+import { useProfileRefresh } from "../api/use-profile-refresh";
+import { ProfileLegalLinks } from "../components/public-account-links";
+import { AppVersionLabel } from "../components/app-version-label";
+import { ProfileLoading } from "../components/profile-loading";
+import { profileReadFeedback } from "../components/profile-read-feedback";
+import { ProfileIdentity } from "../components/profile-identity";
+import { useContextualSignIn } from "../hooks/use-contextual-sign-in";
+import { ProfileSignIn } from "../components/profile-sign-in";
+import { ProfileSupportAction } from "../components/profile-support-action";
+import { useAccountSession } from "../session/account-session-provider";
+import { PageHeader } from "@/shared/components/page-header";
+
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+
+/** Ordinary account overview; route-owned account controls and membership retain their independent authorities. */
+export interface ProfileScreenProps {
+  admitted: boolean;
+  proEntry: ReactNode;
+}
+
+/** Admits the authorized account overview independently of its optional photo; account/session failures own whole-page recovery. */
+export function ProfileScreen({
+  admitted,
+  proEntry,
+}: Readonly<ProfileScreenProps>) {
+  const session = useAccountSession();
+  const account = useCurrentAccount();
+  const router = useRouter();
+  const feedback = useActionFeedback();
+
+  /** Uses SDK browser logout; cancellation preserves the signed-in account and safe retry feedback. */
+  async function signOut() {
+    feedback.clear();
+    try {
+      await session.signOut();
+      router.replace(homeHref);
+    } catch {
+      feedback.error();
+    }
+  }
+
+  const { colors } = useTheme();
+  const { saving, refresh } = useProfileRefresh(account);
+  const signIn = useContextualSignIn(admitted);
+  const showInvitation = admitted && signIn.visible;
+  const connected = session.status === "authenticated" && !showInvitation;
+  const blockingContent = showInvitation
+    ? null
+    : profileReadFeedback({
+        admitted,
+        session,
+        account,
+        loadingContent: <ProfileLoading />,
+      });
+  if (blockingContent) {
+    return (
+      <Page
+        header={
+          <ProfileHeader
+            onEdit={
+              admitted && connected && account.data
+                ? () => router.push("/profile/edit")
+                : undefined
+            }
+          />
+        }
+      >
+        <PageScrollView>{blockingContent}</PageScrollView>
+      </Page>
+    );
+  }
+  return (
+    <ProfileContent
+      key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
+      refreshControl={
+        connected ? (
+          <DataRefreshControl
+            enabled={!saving}
+            fetching={account.isFetching}
+            onRefresh={refresh}
+          />
+        ) : undefined
+      }
+      account={connected ? (account.data ?? undefined) : undefined}
+      disabled={!account.isSuccess}
+      onEdit={() => router.push("/profile/edit")}
+      onSignIn={signIn.start}
+      signingIn={signIn.pending}
+    >
+      <AdministrationEntry />
+      <View style={styles.group}>
+        <Text
+          accessibilityRole="header"
+          style={[tokens.typography.label, { color: colors.secondaryText }]}
+        >
+          Informations légales
+        </Text>
+        <ProfileLegalLinks />
+      </View>
+      <View style={styles.group}>
+        <Text
+          accessibilityRole="header"
+          style={[tokens.typography.label, { color: colors.secondaryText }]}
+        >
+          Mon compte
+        </Text>
+        {proEntry}
+      </View>
+      {connected && (
+        <View style={styles.actions}>
+          <Button
+            label="Se déconnecter"
+            variant="secondary"
+            fullWidth
+            onPress={() => void signOut()}
+            loading={session.operation === "signing-out"}
+          />
+          <Button
+            label="Supprimer mon compte"
+            variant="destructive"
+            fullWidth
+            disabled={!account.isSuccess}
+            onPress={() => router.push("/profile/erase")}
+          />
+        </View>
+      )}
+      <AppVersionLabel style={{ color: colors.secondaryText }} />
+    </ProfileContent>
+  );
+}
+
+/** Keeps known account content and native refresh usable while its independent photo read loads or fails. */
+function ProfileContent({
+  refreshControl,
+  account,
+  disabled,
+  onEdit,
+  onSignIn,
+  signingIn,
+  children,
+}: Readonly<{
+  refreshControl: PageScrollViewProps["refreshControl"];
+  account?: AccountResponse;
+  disabled: boolean;
+  onEdit: () => void;
+  onSignIn: () => void;
+  signingIn: boolean;
+  children: ReactNode;
+}>) {
+  const photo = useProfilePhoto(
+    account?.accountId ?? "",
+    !!account?.hasPhoto && !disabled,
+  );
+  return (
+    <Page
+      header={
+        <ProfileHeader
+          onEdit={account ? onEdit : undefined}
+          disabled={disabled}
+        />
+      }
+    >
+      <PageScrollView refreshControl={refreshControl}>
+        <PageContent>
+          {account ? (
+            <ProfileIdentity account={account} photo={photo} />
+          ) : (
+            <ProfileSignIn onSignIn={onSignIn} loading={signingIn} />
+          )}
+          {children}
+        </PageContent>
+      </PageScrollView>
+    </Page>
+  );
+}
+
+/** Shared profile chrome keeps authorized account editing beside support, independently of optional media readiness. */
+function ProfileHeader({
+  onEdit,
+  disabled = false,
+}: Readonly<{
+  onEdit?: () => void;
+  disabled?: boolean;
+}>) {
+  const { colors } = useTheme();
+  return (
+    <PageHeader
+      title="Mon profil"
+      back={false}
+      action={
+        <>
+          {onEdit && (
+            <IconButton
+              label="Modifier mon profil"
+              onPress={onEdit}
+              disabled={disabled}
+            >
+              <SquarePen
+                accessible={false}
+                size={tokens.size.icon.lg}
+                color={colors.icon}
+              />
+            </IconButton>
+          )}
+          <ProfileSupportAction />
+        </>
+      }
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
+  group: { gap: tokens.spacing.md },
+});

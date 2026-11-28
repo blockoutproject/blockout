@@ -1,0 +1,490 @@
+package com.blockout.backend.search.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import com.blockout.backend.generated.mobile.model.SportFormatEnum;
+import com.blockout.backend.generated.mobile.model.SportGenderEnum;
+import com.blockout.backend.search.application.SearchEngine.Candidate;
+import com.blockout.backend.search.application.SearchEngine.Position;
+import com.blockout.backend.sporting.application.ReadSportingResources;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import com.blockout.backend.sporting.application.service.ReadSportingData;
+import com.blockout.backend.testsupport.InMemoryS3;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import jakarta.persistence.EntityManagerFactory;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestReporter;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * Exercises the real PostgreSQL reads with deliberately stale indexed cities. Spies record which
+ * identities reach the F02 eligibility and F03 presentation boundaries.
+ */
+@SpringBootTest
+@DisplayName("Current search hydration")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class SearchCurrentDataIntegrationTest {
+  private static final Image ARTWORK = new Image(new byte[] {1}, "image/png");
+  @Autowired private PostgreSQLContainer database;
+  @Autowired JdbcTemplate sql;
+  @Autowired HydrateSearch hydration;
+  @Autowired EntityManagerFactory entityManagerFactory;
+  @Autowired InMemoryS3 images;
+  @MockitoSpyBean ReadSportingData owners;
+  @MockitoSpyBean ReadSportingResources consultation;
+
+  /** Clears only this suite's disposable database before each independent fixture. */
+  @BeforeEach
+  void clearFixtures() throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement statement = connection.createStatement()) {
+      statement.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"corrected", "absent", "restricted"})
+  @DisplayName("Skips presentation when the only candidate has a stale city")
+  void omitsStaleCity(String change) {
+    // Given
+    UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, 'Eagles', 'Lyon')",
+        id,
+        id.toString());
+    switch (change) {
+      case "corrected" ->
+          sql.update(
+              "UPDATE sporting_club SET municipality_mode = 'MANUAL', municipality_manual = 'Paris' WHERE id = ?",
+              id);
+      case "absent" ->
+          sql.update("UPDATE sporting_club SET municipality_mode = 'HIDDEN' WHERE id = ?", id);
+      case "restricted" ->
+          sql.update("UPDATE sporting_club SET municipality_restricted = TRUE WHERE id = ?", id);
+      default -> throw new IllegalArgumentException();
+    }
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.CLUB, "eagles", null, null, null, null, false);
+
+    // When
+    Map<UUID, SearchPage.Summary> current =
+        hydration.current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")), 1);
+
+    // Then
+    assertThat(current).isEmpty();
+    verifyNoInteractions(consultation);
+  }
+
+  @Test
+  @DisplayName("Returns the current public identity and logo of a club without teams")
+  void hydratesCurrentClub() {
+    // Given
+    UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, municipality, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Old source', 'Current Eagles', 'Lyon', ?, ?, 'image/png')",
+        id,
+        id.toString(),
+        images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+        ARTWORK.sha256());
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.CLUB, "old", null, null, null, null, false);
+
+    // When
+    SearchPage.Club club =
+        hydration
+            .current(context, List.of(new Candidate(new Position(1.0, id), "Lyon")), 1)
+            .get(id)
+            .club();
+
+    // Then
+    assertThat(club.club().id()).isEqualTo(id);
+    assertThat(club.club().name()).isEqualTo("Current Eagles");
+    assertThat(club.club().logoUrl()).isEqualTo("/clubs/" + id + "/logo");
+    assertThat(club.city()).isEqualTo("Lyon");
+    verify(consultation, never()).club(id);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {2018, 2040})
+  @DisplayName("Preserves clubless professional identity across published past and future seasons")
+  void hydratesProfessionalTeam(int year) {
+    // Given
+    Fixture fixture = insertProfessionalTeam(year);
+    SearchContext context =
+        new SearchContext(
+            SearchContext.Resource.TEAM,
+            "eagles",
+            fixture.season(),
+            fixture.division(),
+            SportFormatEnum._6X6,
+            SportGenderEnum.FEMALE,
+            false);
+
+    // When
+    SearchPage.Summary summary =
+        hydration
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1)
+            .get(fixture.team());
+
+    // Then
+    assertThat(summary.team().team().id()).isEqualTo(fixture.team());
+    assertThat(summary.team().season().startYear()).isEqualTo(year);
+    assertThat(summary.team().professional()).isTrue();
+    assertThat(summary.team().club()).isNull();
+    verify(consultation, never()).team(fixture.team());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"participation", "division", "pool"})
+  @DisplayName("Omits teams whose current participation, division or pool becomes unavailable")
+  void respectsCurrentRestrictions(String restriction) {
+    // Given
+    Fixture fixture = insertProfessionalTeam(2026);
+    switch (restriction) {
+      case "participation" ->
+          sql.update(
+              "UPDATE sporting_participation SET current = FALSE WHERE team_id = ?",
+              fixture.team());
+      case "division" ->
+          sql.update(
+              "UPDATE sporting_division SET active = FALSE WHERE id = ?", fixture.division());
+      case "pool" ->
+          sql.update(
+              "UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", fixture.pool());
+      default -> throw new IllegalArgumentException();
+    }
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.TEAM, "eagles", null, null, null, null, false);
+
+    // When
+    Map<UUID, SearchPage.Summary> result =
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
+
+    // Then
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Rechecks exact filters against current classification")
+  void respectsCurrentFilter() {
+    // Given
+    Fixture fixture = insertProfessionalTeam(2026);
+    SearchContext context =
+        new SearchContext(
+            SearchContext.Resource.TEAM,
+            "eagles",
+            fixture.season(),
+            fixture.division(),
+            null,
+            SportGenderEnum.MALE,
+            false);
+
+    // When
+    Map<UUID, SearchPage.Summary> result =
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
+
+    // Then
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("A verified club attachment supplies current context without changing team identity")
+  void attachesClub() {
+    // Given
+    Fixture fixture = insertProfessionalTeam(2026);
+    UUID club = UUID.fromString("00000000-0000-4000-8000-000000000060");
+    sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, 'Club Eagles', 'Lyon')",
+        club,
+        club.toString());
+    sql.update("UPDATE sporting_team SET club_id = ? WHERE id = ?", club, fixture.team());
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.TEAM, "eagles", null, null, null, null, false);
+
+    // When
+    Map<UUID, SearchPage.Summary> stale =
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.team()), null)), 1);
+    SearchPage.Summary current =
+        hydration
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.team()), "Lyon")), 1)
+            .get(fixture.team());
+
+    // Then
+    assertThat(stale).isEmpty();
+    assertThat(current.team().team().id()).isEqualTo(fixture.team());
+    assertThat(current.team().club().id()).isEqualTo(club);
+  }
+
+  @Test
+  @DisplayName("An unknown current pool classification cannot satisfy a stale exact filter")
+  void omitsUnknownClassification() {
+    // Given
+    Fixture fixture = insertProfessionalTeam(2026);
+    sql.update(
+        "UPDATE sporting_pool SET format = NULL, gender = NULL WHERE id = ?", fixture.pool());
+    SearchContext context =
+        new SearchContext(
+            SearchContext.Resource.POOL,
+            "synthetic",
+            fixture.season(),
+            fixture.division(),
+            SportFormatEnum._6X6,
+            null,
+            false);
+
+    // When
+    Map<UUID, SearchPage.Summary> result =
+        hydration.current(
+            context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)), 1);
+
+    // Then
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Preserves unknown current pool classification when no exact filter is requested")
+  void hydratesUnknownClassification() {
+    // Given
+    Fixture fixture = insertProfessionalTeam(2026);
+    sql.update(
+        "UPDATE sporting_pool SET format = NULL, gender = NULL WHERE id = ?", fixture.pool());
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.POOL, "synthetic", null, null, null, null, false);
+
+    // When
+    SearchPage.Summary result =
+        hydration
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)), 1)
+            .get(fixture.pool());
+
+    // Then
+    assertThat(result.pool().pool().id()).isEqualTo(fixture.pool());
+    assertThat(result.pool().classification().format()).isNull();
+    assertThat(result.pool().classification().gender()).isNull();
+  }
+
+  @ParameterizedTest
+  @CsvSource({"CLUB, 2", "TEAM, 6", "POOL, 5"})
+  @DisplayName(
+      "Composes only the leading admitted candidates in native rank order with bounded SQL reads")
+  void readsLeadingSummariesInBatches(
+      SearchContext.Resource resource, int maxStatements, TestReporter reporter) {
+    // Given: distinct parents prevent the persistence context from hiding per-parent reads.
+    List<Candidate> candidates = new ArrayList<>();
+    Set<UUID> candidateIds = new HashSet<>();
+    Set<UUID> expectedSummaryIds = new HashSet<>();
+    for (int number = 1; number <= 200; number++) {
+      int score = 201 - number;
+      String suffix = String.format("%012d", score);
+      UUID id = UUID.fromString("10000000-0000-4000-8000-" + suffix);
+      candidates.add(new Candidate(new Position(score, id), null));
+      candidateIds.add(id);
+      if (number == 2) {
+        continue; // The index still contains this missing owner.
+      }
+      if (number <= 22) {
+        expectedSummaryIds.add(id);
+      }
+      if (resource == SearchContext.Resource.CLUB) {
+        sql.update(
+            "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Source', 'Current', ?, ?, 'image/png')",
+            id,
+            id.toString(),
+            images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+            ARTWORK.sha256());
+      } else {
+        UUID season = UUID.fromString("20000000-0000-4000-8000-" + suffix);
+        UUID division = UUID.fromString("30000000-0000-4000-8000-" + suffix);
+        UUID pack = UUID.fromString("40000000-0000-4000-8000-" + suffix);
+        UUID pool =
+            resource == SearchContext.Resource.POOL
+                ? id
+                : UUID.fromString("50000000-0000-4000-8000-" + suffix);
+        int year = 2000 + number;
+        sql.update(
+            "INSERT INTO sporting_season(id, start_year, label) VALUES (?, ?, ?)",
+            season,
+            year,
+            year + "/" + (year + 1));
+        sql.update(
+            "INSERT INTO sporting_division(id, name, active, color) VALUES (?, ?, TRUE, '#112233')",
+            division,
+            "Synthetic division " + number);
+        sql.update(
+            "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'LNV', 'synthetic', ?)",
+            pack,
+            season,
+            pack.toString());
+        sql.update(
+            "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, manual_name, division_id, format, gender) VALUES (?, ?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', 'Current', ?, '_6X6', 'FEMALE')",
+            pool,
+            season,
+            pack,
+            pool.toString(),
+            division);
+        if (resource == SearchContext.Resource.TEAM) {
+          UUID club = number == 20 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
+          if (club != null) {
+            sql.update(
+                "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo_key, logo_sha256, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, ?, 'image/png')",
+                club,
+                club.toString(),
+                "Current club " + number,
+                images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+                ARTWORK.sha256());
+          }
+          sql.update(
+              "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, club_id, division_id, format, gender, source_logo_key, source_logo_sha256, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, ?, '_6X6', 'FEMALE', ?, ?, 'image/png')",
+              id,
+              season,
+              id.toString(),
+              id.toString(),
+              club,
+              division,
+              images.putImage(ARTWORK.bytes(), ARTWORK.mediaType()),
+              ARTWORK.sha256());
+          sql.update(
+              "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+              id,
+              id,
+              pool);
+        }
+      }
+    }
+    SearchContext context = new SearchContext(resource, "source", null, null, null, null, false);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      hydration.current(context, candidates.subList(0, 1), 1);
+      long singleReads = statistics.getPrepareStatementCount() - before;
+
+      // When
+      before = statistics.getPrepareStatementCount();
+      Map<UUID, SearchPage.Summary> current = hydration.current(context, candidates, 21);
+      long batchReads = statistics.getPrepareStatementCount() - before;
+      reporter.publishEntry(
+          Map.of(
+              "resource", resource.name(),
+              "singleCandidateStatements", Long.toString(singleReads),
+              "twoHundredCandidateStatements", Long.toString(batchReads)));
+
+      // Then
+      verify(owners).searchEligibility(resource.getSportingKind(), candidateIds);
+      assertThat(current.keySet()).isEqualTo(expectedSummaryIds);
+      assertThat(batchReads).isEqualTo(singleReads).isLessThanOrEqualTo(maxStatements);
+      SearchPage.Summary first = current.get(candidates.getFirst().position().id());
+      switch (resource) {
+        case CLUB -> {
+          verify(consultation).clubIdentities(expectedSummaryIds);
+          assertThat(first.club().club().name()).isEqualTo("Current");
+          assertThat(first.club().club().logoUrl()).endsWith("/logo");
+        }
+        case TEAM -> {
+          verify(consultation).teamSummaries(expectedSummaryIds);
+          assertThat(first.team().team().name()).isEqualTo("Current");
+          assertThat(first.team().team().logoUrl()).endsWith("/logo?selection=automatic");
+          assertThat(first.team().season().startYear()).isEqualTo(2001);
+          assertThat(first.team().club().name()).isEqualTo("Current club 1");
+          assertThat(first.team().club().logoUrl()).endsWith("/logo");
+          SearchPage.Summary clubless = current.get(candidates.get(19).position().id());
+          assertThat(clubless.team().season().startYear()).isEqualTo(2020);
+          assertThat(clubless.team().club()).isNull();
+          assertThat(clubless.team().team().logoUrl()).endsWith("/logo?selection=automatic");
+        }
+        case POOL -> {
+          verify(consultation).poolSummaries(expectedSummaryIds);
+          assertThat(first.pool().pool().name()).isEqualTo("Current");
+          assertThat(first.pool().season().startYear()).isEqualTo(2001);
+        }
+      }
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  /**
+   * Inserts a committed viewable professional team and pool into the disposable database under the
+   * scenario's sporting year and classification.
+   *
+   * @param year canonical sporting start year used by this scenario
+   * @return stable identities of the current synthetic participation graph
+   */
+  private Fixture insertProfessionalTeam(int year) {
+    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000010");
+    UUID division = UUID.fromString("00000000-0000-4000-8000-000000000020");
+    UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000030");
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000040");
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000050");
+    sql.update(
+        "INSERT INTO sporting_season(id, start_year, label) VALUES (?, ?, ?)",
+        season,
+        year,
+        year + "/" + (year + 1));
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, ?, TRUE, '#112233')",
+        division,
+        "Synthetic " + division);
+    sql.update(
+        "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'LNV', 'synthetic', ?)",
+        pack,
+        season,
+        pack.toString());
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, division_id, format, gender) VALUES (?, ?, ?, 'LNV', 'synthetic', 'competition', ?, 'Synthetic pool', ?, '_6X6', 'FEMALE')",
+        pool,
+        season,
+        pack,
+        pool.toString(),
+        division);
+    sql.update(
+        "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, division_id, format, gender) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Eagles', 'eagles', ?, '_6X6', 'FEMALE')",
+        team,
+        season,
+        team.toString(),
+        division);
+    sql.update(
+        "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000070"),
+        team,
+        pool);
+    return new Fixture(team, pool, division, season);
+  }
+
+  /** Explicit identities of the synthetic current participation graph. */
+  private record Fixture(UUID team, UUID pool, UUID division, UUID season) {}
+}

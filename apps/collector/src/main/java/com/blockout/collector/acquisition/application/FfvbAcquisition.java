@@ -1,0 +1,59 @@
+package com.blockout.collector.acquisition.application;
+
+import java.net.URI;
+import java.time.Instant;
+import org.jsoup.nodes.Document;
+
+/**
+ * Explicit FFVB boundary; a passage reads each shared resource once before interpreting its scopes.
+ */
+public interface FfvbAcquisition {
+  /**
+   * Identifies the full resource shared by admitted calendar and standings targets.
+   *
+   * @param target admitted source context
+   * @return full-calendar URL, without changing its native scope parameters
+   * @throws FfvbAcquisitionException when the full source reference cannot be constructed
+   */
+  URI resourceUrl(CollectionBackend.Target target);
+
+  /**
+   * Reads one resource after the passage has allocated its logical order.
+   *
+   * @param url full resource URL
+   * @return resource retained only while its selected targets are processed
+   * @throws FfvbAcquisitionException when origin admission, capacity or source acquisition fails
+   */
+  Resource read(URI url);
+
+  /**
+   * Reuses a decoded discovery page only while its already admitted scopes are consumed.
+   *
+   * @param page read-only source document
+   * @param url final source URL
+   * @param observedAt actual response completion time
+   * @return transient resource without another page request
+   */
+  Resource fromPage(Document page, URI url, Instant observedAt);
+
+  /** One sequentially consumed HTML resource and optional export, discarded after its scopes. */
+  interface Resource {
+    /**
+     * Interprets a selected calendar, sharing the export with other scopes of this resource.
+     *
+     * @param target admitted pool context
+     * @return interpreted calendar with the actual export completion time
+     * @throws FfvbAcquisitionException when the context or export is unavailable or uninterpretable
+     */
+    ProviderObservation<SportingObservation.Calendar> calendar(CollectionBackend.Target target);
+
+    /**
+     * Interprets an independent official table from the already-read HTML.
+     *
+     * @param target admitted pool context
+     * @return official publication with the original HTML completion time
+     * @throws FfvbAcquisitionException when the source context or table cannot be interpreted
+     */
+    ProviderObservation<SportingObservation.Standings> standings(CollectionBackend.Target target);
+  }
+}

@@ -5,19 +5,19 @@ description: "Implement or review Expo Router and React Native features, native 
 
 # React Native and Expo
 
-Read the accepted specification, local platform/design authority, actual Expo/React Native versions, route tree and providers. Specifications own future intent; current source/tests describe delivered behavior. Installing this skill does not authorize framework upgrades, extra platform targets or a migration of existing form libraries.
+Read the requested behavior and the project's Expo and React Native versions, route tree and relevant providers.
 
 ## Routing and feature ownership
 
 Keep Expo Router files thin: routes, layouts, navigation, redirects and top-level composition. Business feature screens live outside the route tree. Use the existing feature owners; do not require a container or screen hook for simple behavior.
 
-Keep native/provider constants and payloads in their adapters. Follow shared React conventions for feature state, forms, effects and generated contracts; this skill concentrates on native responsibilities. Session, token storage and authorization decisions come from the project's accepted identity architecture, not a portable provider profile.
+Keep native/provider constants and payloads in their adapters. Follow comparable features for state, forms, effects and API calls. Use the project's session and token-storage mechanisms when the feature requires them.
 
 ## Native UI and tokens
 
-Follow the project's design authority and prerequisites for the affected scope. When Figma is authoritative, implement its approved semantic tokens and components; passing tests do not establish visual fidelity. This skill does not require Figma for projects that have not selected it. Keep one narrow theme/token public API; primitive palette values and implementation details remain private. Safe-area insets, keyboard dimensions and measured device sizes are runtime values, not design tokens.
+Reuse the project's components and any approved theme tokens. Read safe-area insets, keyboard dimensions and device sizes at runtime.
 
-Use `StyleSheet.create` for stable named styles. Small dynamic values may stay inline where clearer. Do not introduce NativeWind, Tailwind, CSS, a styling runtime, style factories or generated style code. Use flex, gap and container padding; use `useWindowDimensions` only for actual viewport-dependent layouts, not fixed module-load device dimensions.
+Use `StyleSheet.create` for stable named styles. Small dynamic values may stay inline where clearer. Use flex, gap and container padding. Read `useWindowDimensions` for layouts that depend on the current viewport.
 
 Preserve safe-area ownership through the navigation container and configured safe-area provider. Use a virtualized list for unbounded data and a ScrollView for bounded static/form content. Keep row work cheap, keys stable and subscriptions narrow. Use the existing supported list component rather than installing another by default.
 
@@ -35,4 +35,4 @@ Expose role, accessible name, state and useful hints. Support screen-reader navi
 
 Run configured formatting, lint, typecheck and mobile tests. Run Expo Doctor for changed dependencies/configuration, and the relevant native build/launch for modules, provider adapters, routing or platform-specific behavior. Compare visual changes to the project's accepted design references at the required platform/theme/state and viewport; JavaScript tests prove neither visual fidelity nor native behavior. Report unavailable native/design evidence explicitly.
 
-Mechanics: [Expo Router](https://docs.expo.dev/router/introduction/) and [React Native accessibility](https://reactnative.dev/docs/accessibility). Feature structure, StyleSheet and form choices are personal conventions.
+Mechanics: [Expo Router](https://docs.expo.dev/router/introduction/) and [React Native accessibility](https://reactnative.dev/docs/accessibility). Feature structure and StyleSheet usage are personal conventions.

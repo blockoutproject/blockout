@@ -1,0 +1,385 @@
+import { controlOpacity } from "@/shared/components/control-styles";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useSettingsSaveFeedback } from "./use-settings-save-feedback";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { applicationVersionsValues } from "./application-versions-values";
+import { toApplicationVersionsRequest } from "../api/application-versions-request";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { applicationUpdateMessage } from "../application-update-message";
+import { Check } from "lucide-react-native";
+import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
+import { useState } from "react";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
+import { Button } from "@/shared/components/button";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { type useApplicationVersionsSettings } from "../api/use-application-versions-settings";
+import {
+  applicationVersionsSchema,
+  raisesMinimum,
+  type ApplicationVersionsValues,
+} from "../schemas/application-versions-schema";
+import { ApplicationVersionsPreview } from "../screens/access-gate-screen";
+
+/** Keeps one local draft; background reads preserve its editable values. */
+export interface ApplicationVersionsFormProps {
+  settings: ApplicationVersionsResponse;
+  editing: ReturnType<typeof useApplicationVersionsSettings>;
+  disabled?: boolean;
+}
+
+/** Publishes atomic dirty-field changes without changing maintenance or replaying commands. */
+export function ApplicationVersionsForm({
+  settings,
+  editing,
+  disabled = false,
+}: Readonly<ApplicationVersionsFormProps>) {
+  const session = useAccountSession();
+  const { colors, reducedMotion } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1;
+  const [expanded, setExpanded] = useState({ ios: false, android: false });
+  const [preview, setPreview] = useState(false);
+  const [acknowledged, setAcknowledged] = useState<string>();
+  const { control, handleSubmit, reset } = useForm<ApplicationVersionsValues>({
+    resolver: zodResolver(applicationVersionsSchema),
+    defaultValues: applicationVersionsValues(settings),
+  });
+  const { isDirty, dirtyFields, defaultValues } = useFormState({
+    control,
+  });
+  const disablePrevention = useDiscardChanges(isDirty, () => reset());
+  const actionFeedback = useSettingsSaveFeedback(disablePrevention);
+  const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
+    useWatch({
+      control,
+      name: [
+        "ios.minimumVersion",
+        "ios.storeUrl",
+        "android.minimumVersion",
+        "android.storeUrl",
+        "message",
+      ],
+    });
+  const current: ApplicationVersionsValues = {
+    ios: { minimumVersion: iosMinimum, storeUrl: iosStore },
+    android: { minimumVersion: androidMinimum, storeUrl: androidStore },
+    message,
+  };
+  const raised = raisesMinimum(current, defaultValues);
+  const storeChoice = JSON.stringify([current.ios, current.android]);
+  const checked = acknowledged === storeChoice;
+  const busy = disabled || editing.content.isPending;
+
+  /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
+  function submit(draft: ApplicationVersionsValues) {
+    if (busy || (raised && !checked)) {
+      return;
+    }
+    actionFeedback.clear();
+    editing.content.mutate(toApplicationVersionsRequest(draft, dirtyFields), {
+      onSuccess(accepted) {
+        actionFeedback.saved(() => {
+          reset(applicationVersionsValues(accepted));
+          setAcknowledged(undefined);
+        });
+      },
+      onError: () => actionFeedback.error(),
+    });
+  }
+
+  const previewPlatform = Platform.OS === "ios" ? "ios" : "android";
+  const previewStoreUrl = applicationVersionsSchema.safeParse(current).success
+    ? current[previewPlatform].storeUrl || null
+    : null;
+  return (
+    <View style={styles.form}>
+      <View style={styles.platforms}>
+        {(["ios", "android"] as const).map((platform) => {
+          const ios = platform === "ios";
+          const name = ios ? "iOS" : "Android";
+          const open = expanded[platform];
+          return (
+            <View
+              key={platform}
+              style={[
+                styles.platformCard,
+                (largeText || expanded.ios || expanded.android) &&
+                  styles.expandedCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={name}
+                accessibilityState={{ expanded: open }}
+                onPress={() => setExpanded({ ...expanded, [platform]: !open })}
+                style={({ pressed }) => [
+                  styles.disclosure,
+                  { opacity: pressed ? tokens.opacity.pressed : 1 },
+                ]}
+              >
+                <Text style={[styles.platform, { color: colors.text }]}>
+                  {name}
+                </Text>
+                <Text style={[styles.minimum, { color: colors.secondaryText }]}>
+                  {current[platform].minimumVersion || "Aucun minimum"}
+                </Text>
+                <DisclosureChevron expanded={open} />
+              </Pressable>
+              <View
+                style={[styles.fields, !open && styles.hidden]}
+                accessibilityElementsHidden={!open}
+                importantForAccessibility={
+                  open ? "auto" : "no-hide-descendants"
+                }
+              >
+                <View style={styles.form}>
+                  <Controller
+                    control={control}
+                    name={`${platform}.minimumVersion`}
+                    render={({ field, fieldState }) => (
+                      <TextField
+                        ref={field.ref}
+                        label={`Version minimale ${name}`}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!busy}
+                        error={fieldState.error?.message}
+                        helper="Facultatif. Trois nombres, par exemple 2.10.0. Videz le champ pour retirer le minimum."
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`${platform}.storeUrl`}
+                    render={({ field, fieldState }) => (
+                      <TextField
+                        ref={field.ref}
+                        label={
+                          ios ? "URL App Store iOS" : "URL Google Play Android"
+                        }
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        inputMode="url"
+                        editable={!busy}
+                        error={fieldState.error?.message}
+                        helper="Lien requis si une version minimale est imposée."
+                      />
+                    )}
+                  />
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <Surface>
+        <View style={styles.form}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.heading, { color: colors.text }]}
+          >
+            Contenu affiché
+          </Text>
+          <Controller
+            control={control}
+            name="message"
+            render={({ field, fieldState }) => (
+              <TextField
+                ref={field.ref}
+                label="Message commun"
+                multiline
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
+                editable={!busy}
+                error={fieldState.error?.message}
+                helper={
+                  current.message.trim()
+                    ? "Facultatif. Videz le champ pour utiliser le message standard."
+                    : applicationUpdateMessage
+                }
+              />
+            )}
+          />
+          {raised && (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel="J’ai vérifié que la version requise est disponible sur chaque store concerné."
+              accessibilityState={{ checked, disabled: busy }}
+              disabled={busy}
+              onPress={() => setAcknowledged(checked ? undefined : storeChoice)}
+              style={({ pressed }) => [
+                styles.acknowledgement,
+                { opacity: controlOpacity(busy, pressed) },
+              ]}
+            >
+              <View
+                style={[
+                  styles.check,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: checked ? colors.text : colors.surface,
+                  },
+                ]}
+              >
+                {checked && (
+                  <Check
+                    accessible={false}
+                    size={tokens.size.icon.md}
+                    color={colors.canvas}
+                  />
+                )}
+              </View>
+              <Text
+                style={[styles.acknowledgementText, { color: colors.text }]}
+              >
+                J’ai vérifié que la version requise est disponible sur chaque
+                store concerné.
+              </Text>
+            </Pressable>
+          )}
+          {isDirty && (
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: colors.secondaryText },
+              ]}
+            >
+              Modifications non enregistrées
+            </Text>
+          )}
+          <View style={styles.actions}>
+            <View style={[styles.action, largeText && styles.expandedCard]}>
+              <Button
+                fullWidth
+                variant="secondary"
+                label="Aperçu"
+                onPress={() => {
+                  actionFeedback.clear();
+                  setPreview(true);
+                }}
+                disabled={busy}
+              />
+            </View>
+            <View style={[styles.action, largeText && styles.expandedCard]}>
+              <Button
+                fullWidth
+                label="Enregistrer"
+                disabled={busy || !isDirty || (raised && !checked)}
+                loading={editing.content.isPending}
+                onPress={() =>
+                  void handleSubmit(submit, (errors) =>
+                    setExpanded({
+                      ios: !!errors.ios || expanded.ios,
+                      android: !!errors.android || expanded.android,
+                    }),
+                  )()
+                }
+              />
+            </View>
+          </View>
+        </View>
+      </Surface>
+      <Modal
+        visible={preview}
+        animationType={reducedMotion ? "none" : "slide"}
+        onRequestClose={() => setPreview(false)}
+      >
+        <SafeAreaProvider>
+          {/* Native modal surfaces own their overlay; iOS retains children through dismissal, so closing resets callbacks immediately. */}
+          <ActionFeedbackProvider
+            key={preview ? "open" : "closed"}
+            scopeKey={session.subject ?? "guest"}
+          >
+            <ApplicationVersionsPreview
+              message={current.message.trim() || null}
+              storeUrl={previewStoreUrl}
+              onClose={() => setPreview(false)}
+            />
+          </ActionFeedbackProvider>
+        </SafeAreaProvider>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  form: { gap: tokens.layout.form.gap },
+  platforms: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  platformCard: {
+    flexBasis: 160,
+    flexGrow: 1,
+    borderRadius: tokens.radius.panel,
+    borderWidth: tokens.border.thin,
+  },
+  expandedCard: { flexBasis: "auto", width: "100%" },
+  fields: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.lg,
+  },
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.layout.actions.gap,
+  },
+  action: { flexBasis: 128, flexGrow: 1 },
+  disclosure: {
+    padding: tokens.spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    minHeight: tokens.touch.minimum,
+  },
+  platform: tokens.typography.strong,
+  minimum: {
+    ...tokens.typography.metadata,
+    flex: 1,
+    textAlign: "right",
+  },
+  hidden: { display: "none" },
+  acknowledgement: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+    minHeight: tokens.touch.minimum,
+  },
+  acknowledgementText: { ...tokens.typography.body, flex: 1 },
+  check: {
+    width: tokens.size.icon.md,
+    height: tokens.size.icon.md,
+    borderRadius: tokens.radius.sm,
+    borderWidth: tokens.border.thin,
+  },
+});
+
+/** Keeps the first-read platform and action widths aligned with the closed editor. */
+export const applicationVersionsLayout = {
+  platforms: styles.platforms,
+  platformCard: styles.platformCard,
+  expandedCard: styles.expandedCard,
+  disclosure: styles.disclosure,
+  actions: styles.actions,
+  action: styles.action,
+};

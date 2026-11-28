@@ -1,0 +1,102 @@
+package com.blockout.backend.sporting.application.port;
+
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
+import com.blockout.backend.sporting.application.model.SportingIndexInput;
+import com.blockout.backend.sporting.application.model.SportingSearchEligibility;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.SportingVisibility;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+/** Current public eligibility and immutable projection inputs, independent of any search index. */
+public interface SportingReadStore {
+  /**
+   * Resolves all current restrictions, without deleting retained facts.
+   *
+   * @param kind resource owner kind
+   * @param id stable identity from a direct link, follow or index
+   * @return current decision, empty only for an unknown identity
+   */
+  Optional<SportingVisibility> visibility(Kind kind, UUID id);
+
+  /**
+   * Resolves a bounded private match selection without one visibility lookup per row.
+   *
+   * @param ids retained match identities
+   * @return current owner restrictions keyed by existing match identity
+   */
+  java.util.Map<UUID, SportingVisibility> matchVisibilities(Set<UUID> ids);
+
+  /**
+   * Resolves current public team links within one pool without hydrating search presentation.
+   *
+   * @param poolId retained official-table scope
+   * @return visible current participant identities, empty for an unknown or hidden pool
+   */
+  Set<UUID> viewablePoolTeamIds(UUID poolId);
+
+  /**
+   * Selects distinct seasons containing currently viewable resources of one sporting kind.
+   *
+   * @param kind TEAM or POOL; other resource kinds have no sporting filter choices
+   * @return canonical seasons ordered by descending start year, then UUID
+   */
+  List<SeasonView> viewableSeasons(Kind kind);
+
+  /**
+   * Selects distinct seasons from currently viewable teams without hydrating search inputs.
+   *
+   * @param clubId exact retained organization
+   * @return canonical seasons newest first; closure alone never hides history
+   */
+  List<SeasonView> viewableClubSeasons(UUID clubId);
+
+  /**
+   * Selects every currently viewable team in an exact club season. The caller retains the admitted
+   * club and season in the same read transaction for subsequent presentation mapping.
+   *
+   * @param clubId exact retained organization
+   * @param seasonId exact canonical season without fallback
+   * @return detached team identities; their owner presentation remains readable in this transaction
+   */
+  List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId);
+
+  /**
+   * Resolves current viewable participations without hydrating search aliases or terms.
+   *
+   * @param teamId exact seasonal team
+   * @return current visible pool identities in stable UUID order
+   */
+  List<UUID> viewableTeamPoolIds(UUID teamId);
+
+  /** Reads the authorized city and exact filter values of currently visible candidates. */
+  List<SportingSearchEligibility> searchEligibility(Kind kind, Set<UUID> ids);
+
+  /**
+   * Reads currently visible identities with their qualified aliases and division terms for
+   * indexing.
+   */
+  List<SportingIndexInput> indexInputs(Kind kind, Set<UUID> ids);
+
+  /**
+   * Pages current eligible identities for a consumer-owned rebuild.
+   *
+   * @param kind club/team/pool index kind
+   * @param page zero-based page in stable UUID order
+   * @param size page size from 1 through 200
+   * @return bounded current inputs; an empty page ends traversal
+   */
+  List<SportingIndexInput> indexInputs(Kind kind, int page, int size);
+
+  /**
+   * Expands owner scopes in batches, including hidden retained identities needing index removal.
+   *
+   * @param scopes changed owner scopes
+   * @return club/team/pool identities and dependents, without public values
+   */
+  Set<Scope> projectionDependents(Set<Scope> scopes);
+}

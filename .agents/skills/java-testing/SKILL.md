@@ -5,7 +5,7 @@ description: "Write and select JUnit Jupiter, Spring MVC/JPA, Testcontainers and
 
 # Java Testing Policy
 
-Read this reference before adding or changing backend Java tests. This policy selects Maven with Surefire/Failsafe for new work; use repository-pinned configuration. Installing it does not authorize a build-tool migration.
+Use the module's build and existing test tasks. Select the smallest test boundary that exercises the changed behavior.
 
 ## Goal
 
@@ -13,8 +13,8 @@ Protect supported behavior, service boundaries, generated-contract integration, 
 freezing incidental implementation details. Prefer small readable tests; every test must fail for a meaningful
 regression. Do not test a surface only because it exists in generated code, deleted legacy code, or architecture prose.
 
-Tests are part of the same delivery as the behavior they protect. Test-first development is optional; a regression
-fix starts with a failing reproduction whenever practical.
+Tests are part of the same delivery as the behavior they protect. Follow the project’s required test order and
+workflow. A regression fix starts with a failing reproduction whenever practical.
 
 ## Test Kinds And Names
 
@@ -24,13 +24,10 @@ fix starts with a failing reproduction whenever practical.
 - `*IntegrationTest`: full Spring, real database/container, transaction, repository, or infrastructure behavior.
 - `*SmokeTest`: small startup or implemented runtime-entrypoint proof.
 
-Bind adopted suffixes explicitly to Maven Surefire or Failsafe so every suite runs in its intended phase. Use
-Failsafe for `*IntegrationTest`; a test that the build does not discover is not evidence. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases.
+Use names and locations the module's test tasks discover. In a Maven module using Surefire and Failsafe, verify the includes for each phase. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases. Combine `// When / Then` when an assertion naturally executes the action; keep an intermediate value only when it clarifies the scenario.
 
 Mirror production packages under the test source root selected by the repository instructions. Use suffixes rather than
-`unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. If a name needs
-`and`, split the test unless both assertions form one observable outcome. Add `@DisplayName` to touched classes, nested
-groups, and test methods.
+`unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. One observable outcome may require several assertions; split unrelated scenarios, not names containing `and`. Add `@DisplayName` to changed test classes, nested groups and methods.
 
 Document non-obvious test contracts and shared helpers. Descriptive names and `@DisplayName` are sufficient for straightforward scenarios. Keep one-off test
 data and doubles inside the owning test. Add the configured shared data, doubles, framework, or container test-support
@@ -46,8 +43,8 @@ testing boundary.
 
 ## JUnit And Mockito
 
-- Use JUnit Jupiter and AssertJ consistently with the module.
-- Use Mockito for observable collaborator boundaries, not to reproduce implementation line by line.
+- Use JUnit Jupiter and the module's existing assertion library.
+- When the module uses Mockito, mock only collaborators whose observable behavior matters to the scenario.
 - Stub only interactions needed by the scenario. Avoid lenient global setup and reset-heavy shared mocks.
 - Verify an interaction only when it is behavior, such as a write, publication, or forbidden dependency call.
 - Use an argument captor only when the delivered value is clearer than exposed internal state.
@@ -55,7 +52,7 @@ testing boundary.
 
 ## Selection
 
-- Construct pure services, mappers, parsers, validators, policies, factories, and small adapters directly.
+- Choose tests for changed behavior, not one suite per production class. Direct construction suits pure decisions, parsers and meaningful mapping branches. A trivial accessor, constructor, generated method or mock-return delegation needs no separate unit test when existing boundary evidence already covers the behavior.
 - Use `@MockitoBean` when a supported Spring version must replace a bean in a test context; do not introduce
   deprecated `@MockBean` in that setup. Do not upgrade an older module incidentally to adopt an annotation.
 - Use integration tests when transactions, schema migrations, database-specific behavior, repository queries,
@@ -77,7 +74,7 @@ testing boundary.
 - Unit-test pure decisions and orchestration with direct construction and narrow collaborators.
 - Integration-test transactional services when retry semantics, locks, repositories, or atomic writes are the
   behavior.
-- For application orchestration, replace the application-owned persistence port. An infrastructure test may replace its repository collaborator only when the tested decision is independent from persistence semantics.
+- Replace the existing collaborator at the tested decision boundary, whether a repository or a justified port. Do not create a production interface solely to mock it. A repository double cannot prove persistence or transaction semantics.
 - Assert emitted commands, writes, and events by meaningful fields rather than brittle whole-object equality when
   owner-managed fields are irrelevant.
 - Test failure propagation and no-write behavior where a rejection must remain atomic.
@@ -89,8 +86,7 @@ testing boundary.
 - Do not parse migration sources in unit tests as a schema oracle. Prefer startup/repository integration and focused
   source inspection.
 - Do not add test-only production mappings or eager loading to make assertions easier.
-- Use Testcontainers with the supported engine family and a compatible version. Reuse one maintained database
-  container setup within the module; do not start a new container for each method. Do not replace supported-database
+- When using Testcontainers, reuse the module's maintained setup for the supported engine family. Do not replace supported-database
   semantics with an in-memory database.
 - Let the configured migration mechanism initialize the schema; do not hand-create a divergent test schema.
 
@@ -108,7 +104,7 @@ testing boundary.
 
 ### Messaging And HTTP Clients
 
-- Test consumer mapping, delegation, acknowledgement, retry, and rejection at the narrowest meaningful layer.
+- Test owned consumer mapping, acknowledgement, retry and rejection at the narrowest meaningful layer; omit tests that only restate delegation.
 - Test publisher payload mapping and routing metadata without asserting framework internals.
 - Use a controlled HTTP server or adapter fake for serialization, status mapping, timeout, and dependency errors.
 - Never call production or uncontrolled external services.
@@ -150,7 +146,7 @@ testing boundary.
 
 - Run the narrowest targeted test while developing.
 - Run the owning module suite before completion.
-- Run affected consumers and integration suites for changed transport, build, persistence or runtime boundaries. Run the full reactor when impact cannot be bounded or repository checks require it.
+- Run affected consumers and integration suites for changed transport, build, persistence or runtime boundaries. Run the full build when impact cannot be bounded or repository checks require it.
 - Run configured database-integration evidence when the contract depends on database behavior.
 - Run the repository formatting commands declared by the repository build configuration before the final check.
 - Report tests intentionally skipped and why, especially when Docker/Testcontainers is unavailable.
@@ -160,10 +156,10 @@ Use explicit Java types in all handwritten tests, resources and loops; do not us
 
 ## Readable scenarios and reusable data
 
-The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
+The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Parameterize input variants of the same behavior with native JUnit sources and identifiable invocations; keep boundary values explicit and distinct behaviors separate. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
 
 Keep scenario-defining values explicit and UUIDs stable when asserted or persisted. Keep simple values inline. Use targeted typed factories for rich valid objects that are actually reused, with explicit overrides for the scenario's decisive fields. Search existing factories before adding one, and share only identical meaning at the narrowest owner. A private helper may name one coherent step, and a public boundary may have one consumer; neither permits speculative test DSLs, generic object mothers or automatic reflection-based object graphs.
 
-Use Datafaker when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Keep boundary cases explicit and parameterized. Small tests do not require a data library, and installing this skill does not add dependencies.
+When tests already use Datafaker for secondary values, seed it per test and construct objects explicitly. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
 
-Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show a unit test, an integration boundary and a rich typed factory, not a new test framework. No new E2E infrastructure is introduced by this policy.
+Consult the [test examples](references/examples.md) when deciding how to prove a service rejection or exercise a uniqueness constraint at the database flush boundary. No new E2E infrastructure is introduced by this policy.

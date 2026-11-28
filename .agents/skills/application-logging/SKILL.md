@@ -51,17 +51,13 @@ numbers, and provider families. Never log:
 
 ## Java
 
-- Use SLF4J through the configured Java logging stack, normally Lombok `@Slf4j` in handwritten classes.
-- Keep structured output on stdout. For Spring Boot applications using ECS, use native structured logging support
-  instead of a custom JSON encoder. Use Micrometer for metrics and observations through the existing registry;
-  do not build a parallel telemetry facade. Preserve the configured format and sinks.
-- Metric tags use bounded dimensions such as operation, outcome and dependency. Never use user, resource, event or
-  customer identifiers as metric labels. Reuse the configured Prometheus/Grafana integration when present.
-- Use parameterized messages and the configured structured-field API. Do not concatenate values into messages.
+- Use the module's configured logger and its parameterized messages or structured-field API.
+- Preserve the configured format and sinks. When changing structured output, use the logging backend's supported
+  field encoding. Check the fields as rendered by the configured sink.
+- If the same operation already emits metrics, keep labels bounded to dimensions such as operation, outcome and dependency.
+  Keep individual user, resource and event identifiers out of metric labels.
 - Keep stable machine field names and operation values consistent within a service. Existing snake_case log field names
   are observability protocol fields, not API JSON, and remain valid.
-- Preserve the configured output and sink contract. Do not add local files, telemetry, remote sinks, appenders,
-  correlation middleware, or monitoring dependencies without a dedicated task.
 
 ## Python applications
 
@@ -87,6 +83,3 @@ numbers, and provider families. Never log:
 - Confirm the chosen layer owns the outcome and no adjacent duplicate exists.
 - Assert logs only when the log itself is supported behavior; otherwise test the state, result, or adapter operation.
 - Run impacted tests, format/type checks, and the repository diff-hygiene check.
-
-Official references: [Spring Boot logging](https://docs.spring.io/spring-boot/reference/features/logging.html) and
-[observability](https://docs.spring.io/spring-boot/reference/actuator/observability.html).

@@ -1,0 +1,286 @@
+import {
+  SearchToolbar,
+  searchToolbarMinHeight,
+} from "@/shared/components/search-toolbar";
+import { hashKey } from "@tanstack/react-query";
+import { useIsFocused, useRouter } from "expo-router";
+import { Eraser, Search } from "lucide-react-native";
+import { SupportFlagAction } from "@/features/support";
+import { useSearchVisit } from "../forms/search-visit";
+import { reconcileSearchFilters } from "../model/search-filters";
+import { Page } from "@/shared/components/page";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { useContentReveal } from "@/shared/components/content-reveal";
+import { Button } from "@/shared/components/button";
+import { hasReadError } from "@/shared/components/read-feedback";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { Keyboard, StyleSheet, View } from "react-native";
+
+import { searchSchema, type SearchValues } from "../schemas/search-schema";
+import { searchValues } from "../forms/search-values";
+import { tokens } from "@/shared/theme/tokens";
+import { SearchField } from "@/shared/components/search-field";
+
+import {
+  createDiscoveryContext,
+  type DiscoveryResource,
+} from "../api/discovery-context";
+import {
+  useDiscoveryQuery,
+  useSearchExamplesQuery,
+} from "../api/use-discovery-query";
+import { SearchScene } from "../components/search-scene";
+import { SearchResultsPreview } from "../components/search-results";
+
+const searchTabs = [
+  { id: "team", label: "Équipes" },
+  { id: "pool", label: "Poules" },
+  { id: "club", label: "Clubs" },
+] as const;
+
+/**
+ * Public discovery with shared text and current examples cached per tab/filter context.
+ * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
+ * Native end events continue the selected focused context. Initial/complete read failures use the scoped card;
+ * next-page failures retain rows and controls with footer Retry. Query retains accepted pages; an old empty response
+ * cannot establish current absence. There is no refresh gesture or additional background read trigger.
+ * Generated Unicode validation rejects over-limit text without truncating the user's draft.
+ * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
+ * Voluntary card selection uses F03's UUID navigation and the single F11 transition owner.
+ */
+export function SearchScreen() {
+  const visit = useSearchVisit();
+  const { resetVisit } = visit;
+  // The shared modal provider outlives this route; only a genuine unmount ends its visit, not a tab switch or sheet.
+  useEffect(() => resetVisit, [resetVisit]);
+  const router = useRouter();
+  const [resource, setResource] = useState<DiscoveryResource>("team");
+  const focused = useIsFocused();
+  // A criteria reset replaces the scroller; the tab has only one initial presentation.
+  const reveal = {
+    team: useContentReveal(focused && resource === "team"),
+    pool: useContentReveal(focused && resource === "pool"),
+    club: useContentReveal(focused && resource === "club"),
+  };
+  const { control, reset, setFocus } = useForm<SearchValues>({
+    defaultValues: searchValues(),
+    resolver: zodResolver(searchSchema),
+    mode: "onChange",
+  });
+  const sporting = resource === "club" ? undefined : visit[resource];
+  const filters = sporting?.filters;
+  const text = useWatch({ control, name: "q" });
+  const examples = !/[^\p{White_Space}]/u.test(text);
+  const searchable = !examples && searchSchema.safeParse({ q: text }).success;
+  // Invalid drafts remain editable; generated request validation receives only a valid inactive input.
+  const queryText = searchable ? text : "";
+  const textKey = searchable
+    ? hashKey(createDiscoveryContext("club", { q: queryText }).queryKey)
+    : undefined;
+  const teamQuery = useDiscoveryQuery(
+    "team",
+    { q: queryText, ...visit.team.filters },
+    resource === "team" && searchable && !!visit.team.filters,
+  );
+  const poolQuery = useDiscoveryQuery(
+    "pool",
+    { q: queryText, ...visit.pool.filters },
+    resource === "pool" && searchable && !!visit.pool.filters,
+  );
+  const clubQuery = useDiscoveryQuery(
+    "club",
+    { q: queryText },
+    resource === "club" && searchable,
+  );
+  const teamExamples = useSearchExamplesQuery(
+    "team",
+    { ...visit.team.filters },
+    resource === "team" && examples && !!visit.team.filters,
+  );
+  const poolExamples = useSearchExamplesQuery(
+    "pool",
+    { ...visit.pool.filters },
+    resource === "pool" && examples && !!visit.pool.filters,
+  );
+  const clubExamples = useSearchExamplesQuery(
+    "club",
+    {},
+    resource === "club" && examples,
+  );
+  const exampleQueries = {
+    team: teamExamples,
+    pool: poolExamples,
+    club: clubExamples,
+  };
+  const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
+  const failed =
+    (examples
+      ? hasReadError(exampleQueries[resource])
+      : hasReadError(queries[resource]) &&
+        !queries[resource].isFetchNextPageError) ||
+    (!!sporting && !filters && hasReadError(sporting.query));
+  const placeholder = {
+    club: "Rechercher un club…",
+    team: "Rechercher une équipe…",
+    pool: "Rechercher une poule…",
+  }[resource];
+
+  function hasChangedFilters(target: DiscoveryResource) {
+    if (target === "club") {
+      return false;
+    }
+    const { filters: applied, query } = visit[target];
+    return (
+      !!applied &&
+      (applied.seasonId !== query.data?.seasons[0]?.id ||
+        !!applied.divisionId ||
+        !!applied.format ||
+        !!applied.gender)
+    );
+  }
+
+  /** Clearing resets the editable query and validation without altering the selected resource tab. */
+  function clearSearch() {
+    reset(searchValues());
+  }
+
+  /** The empty-state action resets the shared text and this resource's sporting filters. */
+  function clearCriteria(target: DiscoveryResource) {
+    clearSearch();
+    const selection = target === "club" ? undefined : visit[target];
+    if (selection?.query.data) {
+      selection.apply(reconcileSearchFilters(undefined, selection.query.data));
+    }
+  }
+
+  return (
+    <Page fullBleed>
+      <PagedTabs
+        selected={resource}
+        onSelect={(id) => {
+          if (id === "team" || id === "pool" || id === "club") {
+            setResource(id);
+          }
+        }}
+        tabs={searchTabs.map(({ id, label }) => {
+          const selection = id === "club" ? undefined : visit[id];
+          // Editing text does not replace an unresolved catalogue or its Retry.
+          const criteria = hashKey([
+            id === "club" || selection?.filters ? textKey : undefined,
+            selection?.listFilterKey,
+          ]);
+          const canClear = !examples || hasChangedFilters(id);
+          let emptyDescription = "Essayez un autre nom.";
+          if (examples) {
+            emptyDescription = canClear
+              ? "Effacez les critères pour élargir la recherche."
+              : "Saisissez un nom pour lancer une recherche.";
+          }
+          return {
+            id,
+            label,
+            resetKey: criteria,
+            preview:
+              searchable || examples ? (
+                <SearchResultsPreview resource={id} examples={examples} />
+              ) : undefined,
+            content: (
+              <SearchScene
+                resource={id}
+                active={resource === id}
+                reveal={reveal[id]}
+                searchable={searchable}
+                query={queries[id]}
+                exampleQuery={exampleQueries[id]}
+                examples={examples}
+                emptyDescription={emptyDescription}
+                emptyAction={
+                  canClear ? (
+                    <Button
+                      label="Effacer les critères"
+                      leadingIcon={Eraser}
+                      onPress={() => clearCriteria(id)}
+                    />
+                  ) : (
+                    <Button
+                      label="Rechercher"
+                      leadingIcon={Search}
+                      onPress={() => setFocus("q")}
+                    />
+                  )
+                }
+              />
+            ),
+          };
+        })}
+        tabBarMinHeight={
+          tokens.touch.minimum + tokens.spacing.sm + searchToolbarMinHeight
+        }
+        renderTabBar={(tabBar) => (
+          <>
+            <View style={styles.navigation}>
+              <View style={styles.tabs}>{tabBar}</View>
+              <SupportFlagAction
+                origin={{ screen: "search" }}
+                beforeOpen={() => Keyboard.dismiss()}
+              />
+            </View>
+            <SearchToolbar
+              filter={
+                resource !== "club" && !failed
+                  ? {
+                      active: hasChangedFilters(resource),
+                      onPress: () => {
+                        visit.setEditing(resource);
+                        visit.draft.reset(visit[resource].filters ?? {});
+                        void visit[resource].query.refetch();
+                        router.push("/search/filters");
+                      },
+                    }
+                  : undefined
+              }
+            >
+              <Controller
+                control={control}
+                name="q"
+                render={({ field, fieldState }) => (
+                  <SearchField
+                    ref={field.ref}
+                    label="Rechercher"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    onClear={clearSearch}
+                    placeholder={placeholder}
+                    error={
+                      fieldState.invalid
+                        ? "La recherche est limitée à 200 caractères."
+                        : undefined
+                    }
+                    returnKeyType="search"
+                    autoCorrect={false}
+                  />
+                )}
+              />
+            </SearchToolbar>
+          </>
+        )}
+      />
+    </Page>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Product Design 916:2892: the shared reporting action sits beside the resource tabs.
+  navigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+    paddingTop: tokens.spacing.sm,
+    paddingRight: tokens.spacing.screen,
+  },
+  tabs: { flex: 1, minWidth: 0 },
+});

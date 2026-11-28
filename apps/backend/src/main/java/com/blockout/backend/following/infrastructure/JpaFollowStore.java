@@ -1,0 +1,81 @@
+package com.blockout.backend.following.infrastructure;
+
+import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Target;
+import com.blockout.backend.following.application.FollowStore;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** JPA adapter for independent team/pool associations; never hydrates another owner's entities. */
+@Repository
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+public class JpaFollowStore implements FollowStore {
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void erase(UUID accountId) {
+    teams.erase(accountId);
+    pools.erase(accountId);
+  }
+
+  private final TeamFollowRepository teams;
+  private final PoolFollowRepository pools;
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean exists(FollowContext context) {
+    return switch (context.target().type()) {
+      case TEAM -> teams.existsByAccountIdAndTeamId(context.accountId(), context.target().id());
+      case POOL -> pools.existsByAccountIdAndPoolId(context.accountId(), context.target().id());
+    };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void add(FollowContext context) {
+    switch (context.target().type()) {
+      case TEAM -> teams.save(new TeamFollowEntity(context.accountId(), context.target().id()));
+      case POOL -> pools.save(new PoolFollowEntity(context.accountId(), context.target().id()));
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void remove(FollowContext context) {
+    switch (context.target().type()) {
+      case TEAM -> teams.deleteByAccountIdAndTeamId(context.accountId(), context.target().id());
+      case POOL -> pools.deleteByAccountIdAndPoolId(context.accountId(), context.target().id());
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<UUID> recipients(Set<Target> targets) {
+    Set<UUID> teamIds = new HashSet<>();
+    Set<UUID> poolIds = new HashSet<>();
+    for (Target target : targets) {
+      switch (target.type()) {
+        case TEAM -> teamIds.add(target.id());
+        case POOL -> poolIds.add(target.id());
+      }
+    }
+    if (targets.isEmpty()) {
+      return Set.of();
+    }
+    return Set.copyOf(teams.findRecipientAccounts(teamIds, poolIds));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean followsMatch(UUID accountId, UUID homeTeamId, UUID awayTeamId, UUID poolId) {
+    return teams.followsMatch(accountId, homeTeamId, awayTeamId, poolId);
+  }
+}

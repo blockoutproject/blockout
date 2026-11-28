@@ -1,0 +1,124 @@
+package com.blockout.backend.collection.application.service;
+
+import com.blockout.backend.access.application.ActionAuthorization;
+import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
+import com.blockout.backend.collection.application.model.CollectionState.ControlView;
+import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Current operator intent; admission alone starts work, and pause never interrupts admitted work.
+ */
+@Service
+@RequiredArgsConstructor
+public class ChangeCollectionControls {
+  private final CollectionStore store;
+  private final ReadCollectionConfiguration configurationReads;
+  private final ChangeCollectionSeasons seasons;
+  private final ActionAuthorization authorization;
+
+  /**
+   * Replaces desired eligibility; pause cancels pending intent, while resume recreates none.
+   *
+   * @param accountId current operator checked under its account lock
+   * @param id independent control
+   * @param enabled desired ordinary eligibility
+   * @return current state; matching no-op preserves the revision
+   * @throws AccessDeniedException if the current operator lacks the collection grant
+   * @throws CollectionConflictException if the lifecycle refuses the change
+   */
+  @Transactional
+  public ControlView setActivity(UUID accountId, UUID id, boolean enabled) {
+    store.lockRuntime();
+    UUID seasonId = store.controlSeason(id);
+    CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
+    Control control = store.lockControl(id);
+    authorization.require(accountId, Permission.MANAGE_COLLECTION);
+    CollectionLifecycle.requireOpen(season);
+    if (enabled) {
+      requireOrdinarySource(control, season);
+    }
+    if (control.enabled() == enabled && (enabled || control.requestId() == null)) {
+      return configurationReads.controlView(control);
+    }
+    CollectionRevision.requireAdvance(control.revision());
+    return configurationReads.controlView(
+        store.setControlIntent(
+            id,
+            enabled,
+            enabled ? control.requestId() : null,
+            enabled ? control.requestedMode() : null));
+  }
+
+  /**
+   * Accepts one ordinary family request after checking current authorization and eligibility.
+   *
+   * @param accountId current operator, never retained as a future actor session
+   * @param id selected family
+   * @return existing running work or a single pending intent, distinguished by its application
+   *     outcome; acceptance promises no start time
+   * @throws AccessDeniedException if the current operator lacks the collection grant
+   * @throws CollectionConflictException if current eligibility refuses the request
+   */
+  @Transactional
+  public RequestOutcome request(UUID accountId, UUID id) {
+    store.lockRuntime();
+    UUID seasonId = store.controlSeason(id);
+    CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
+    Control control = store.lockControl(id);
+    authorization.require(accountId, Permission.MANAGE_COLLECTION);
+    CollectionLifecycle.requireOpen(season);
+    if (!control.enabled() || !CollectionLifecycle.activeOrSeasonless(season)) {
+      throw new CollectionConflictException("conflict");
+    }
+    requireOrdinarySource(control, season);
+    ControlView current = configurationReads.controlView(control);
+    if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING) {
+      return new RequestOutcome(current, true);
+    }
+    if (control.requestId() != null) {
+      return new RequestOutcome(current, false);
+    }
+    CollectionRevision.requireAdvance(control.revision());
+    return new RequestOutcome(
+        configurationReads.controlView(
+            store.setControlIntent(id, true, UUID.randomUUID(), CollectionModeEnum.MANUAL)),
+        false);
+  }
+
+  /**
+   * Reports whether a request found admitted work or retained one pending intent.
+   *
+   * @param view current authorized control state
+   * @param running whether this request returned already running work instead of pending intent
+   */
+  public record RequestOutcome(ControlView view, boolean running) {}
+
+  /**
+   * Keeps the ordinary control unavailable for a provider with only historical references.
+   *
+   * @param control locked competition family or seasonless control
+   * @param season locked canonical season, or null for seasonless controls
+   * @throws CollectionConflictException if the family has no ordinary catalogue in this season
+   */
+  private void requireOrdinarySource(Control control, CollectionSeasonView season) {
+    if (season == null) {
+      return;
+    }
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider == null || !store.hasOrdinarySources(season.id(), provider)) {
+      throw new CollectionConflictException("conflict");
+    }
+  }
+}

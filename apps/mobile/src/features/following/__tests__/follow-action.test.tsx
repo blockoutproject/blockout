@@ -1,0 +1,1706 @@
+import {
+  useLayoutEffect,
+  type PropsWithChildren,
+  useEffect,
+  type ReactNode,
+  type ReactElement,
+} from "react";
+import {
+  useQueryClient,
+  QueryClientProvider,
+  onlineManager,
+} from "@tanstack/react-query";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { Text } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import {
+  ApplicationAccessProvider,
+  useApplicationAccess,
+} from "@/features/access/queries/use-application-access";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "@/features/accounts/session/account-session-provider";
+import type { AccountSession } from "@/features/accounts";
+import {
+  mockAuth0,
+  credentialsFor,
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { FollowTarget } from "../test-support/follow-target";
+import { FollowerCount } from "../components/follower-count";
+import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import PoolRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
+import {
+  followStateKey,
+  followListKey,
+  personalCalendarKey,
+  followOptionsKey,
+  followerCountKey,
+} from "../api/following-keys";
+
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ push: mockPush }),
+  useIsFocused: () => true,
+  useNavigation: () => ({ isFocused: () => true }),
+  useLocalSearchParams: () => mockRouteParams,
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
+}));
+const mockPush = jest.fn();
+const mockFetch = jest.fn<Promise<Response>, [string, RequestInit?]>();
+const accountId = "00000000-0000-4000-8000-000000000001";
+const team = {
+  type: "team",
+  id: "00000000-0000-4000-8000-000000000002",
+} as const;
+const pool = { type: "pool", id: team.id } as const;
+const mockRouteParams = { teamId: team.id, poolId: pool.id };
+const season = {
+  id: "00000000-0000-4000-8000-000000000003",
+  label: "2026/2027",
+  startYear: 2026,
+};
+const profile = accountResponse({
+  accountId,
+  username: "Demo",
+  email: "demo@example.invalid",
+});
+const mockFollowStates = new Map<string, boolean>();
+let publicClient = createQueryClient();
+let client = publicClient;
+// Failure presentation is isolated here; native retry defaults have their own Query suite.
+client.setQueryDefaults([], { retry: false });
+let session: AccountSession;
+let access: ReturnType<typeof useApplicationAccess>;
+const environment = { ...process.env };
+
+/** Captures the real session API; private query cleanup is the same root-owned binding as production. */
+function SessionProbe({ children }: Readonly<{ children: ReactNode }>) {
+  const current = useAccountSession();
+  const currentAccess = useApplicationAccess();
+  useEffect(() => {
+    session = current;
+    access = currentAccess;
+  }, [current, currentAccess]);
+  return children;
+}
+
+/** Real gesture, Query, theme, F12 and F05 providers; native I/O, route focus, viewport and HTTP are controlled. */
+async function renderFollowing(children: ReactElement) {
+  return render(children, {
+    wrapper: ({ children }) => (
+      <GestureHandlerRootView>
+        <QueryClientProvider client={publicClient}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>
+                <PrivateQueries>
+                  <AccountFeedbackProvider>
+                    <SessionProbe>{children}</SessionProbe>
+                  </AccountFeedbackProvider>
+                </PrivateQueries>
+              </AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    ),
+  });
+}
+
+/** Default synthetic transport uses the actual generated validation and explicit member replacement. */
+async function transport(url: string, request?: RequestInit) {
+  if (url.endsWith("/application-access")) {
+    return Response.json(applicationAccessResponse());
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(profile);
+  }
+  if (url.endsWith(`/teams/${team.id}`)) {
+    return Response.json({
+      team: {
+        team: { id: team.id, name: "Volley Démo" },
+        season,
+        classification: {},
+        professional: true,
+      },
+      participations: [],
+    });
+  }
+  if (url.endsWith(`/pools/${pool.id}`)) {
+    return Response.json({
+      pool: {
+        ...matchDetail().match.pool,
+        pool: { id: pool.id, name: "Phase 01" },
+        season,
+      },
+    });
+  }
+  const parsed = new URL(url);
+  if (parsed.pathname === "/matches") {
+    return Response.json({
+      category: parsed.searchParams.get("category"),
+      timeZone: parsed.searchParams.get("timeZone"),
+      evaluatedAt: "2026-11-10T12:00:00Z",
+      days: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Response.json({
+      poolId: pool.id,
+      availability: "not-published",
+      columns: [],
+      rows: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/follower-count")) {
+    return Response.json({ count: 2 });
+  }
+  if (request?.method === "PUT") {
+    const state = JSON.parse(String(request.body));
+    mockFollowStates.set(url, state.following);
+    return Response.json(state);
+  }
+  return Response.json({ following: mockFollowStates.get(url) ?? false });
+}
+
+beforeEach(() => {
+  mockFollowStates.clear();
+  publicClient = createQueryClient();
+  client = publicClient;
+  // Failure presentation is isolated here; native retry defaults have their own Query suite.
+  client.setQueryDefaults([], { retry: false });
+  // TanStack's documented Jest setting avoids waiting for inactive-cache collection timers.
+  client.setDefaultOptions({
+    queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
+    mutations: { ...client.getDefaultOptions().mutations, gcTime: Infinity },
+  });
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "test-client",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|demo"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockFetch.mockReset().mockImplementation(transport);
+  mockPush.mockReset();
+});
+afterEach(async () => {
+  await cleanup();
+  client.clear();
+  publicClient.clear();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+  jest.useRealTimers();
+});
+
+it("keeps the confirmed state visible while each control owns its pending action", async () => {
+  // Given
+  const response = Promise.withResolvers<void>();
+  mockFetch.mockImplementation((url, request) =>
+    request?.method === "PUT" && url.includes("team-follows")
+      ? response.promise.then(() => {
+          mockFollowStates.set(url, true);
+          return Response.json({ following: true });
+        })
+      : transport(url, request),
+  );
+  const user = userEvent.setup();
+  await renderFollowing(
+    <>
+      <FollowTarget target={team} season={season} />
+      <FollowTarget target={team} season={season} />
+      <FollowTarget target={pool} season={season} />
+    </>,
+  );
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+    ).toHaveLength(3),
+  );
+
+  // When
+  await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivre",
+      selected: false,
+      busy: true,
+    }),
+  ).toBeDisabled();
+  expect(
+    screen.getAllByRole("button", { name: "Suivre", disabled: false }),
+  ).toHaveLength(2);
+  expect(
+    client.getQueryData(followStateKey({ ...session, accountId }, team)),
+  ).toEqual({
+    following: false,
+  });
+
+  // When
+  await user.press(
+    screen.getAllByRole("button", { name: "Suivre", disabled: false })[0],
+  );
+  await act(async () => response.resolve());
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getAllByRole("button", { name: "Suivi", busy: false }),
+    ).toHaveLength(2),
+  );
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, request]) =>
+        url.includes("team-follows") && request?.method === "PUT",
+    ),
+  ).toHaveLength(2);
+});
+
+it("invites a guest without retaining a command to replay after authentication", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("guest"));
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Suivre" }));
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/sign-in-invitation",
+    params: { reason: "follow" },
+  });
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|demo"));
+  mockAuth0.saveCredentials.mockResolvedValue();
+  // When
+  await act(async () => {
+    await session.signIn("https://api.example.invalid");
+  });
+  // Then
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+});
+
+it("suspends personal following after initial account failure without duplicating account recovery", async () => {
+  // Given
+  jest.useFakeTimers();
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : transport(url, request),
+  );
+  await renderFollowing(
+    <>
+      <Text>Public sport</Text>
+      <FollowTarget target={team} season={season} />
+    </>,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+
+  // When
+  await waitFor(() =>
+    expect(
+      client.getQueryState(getGetMyAccountQueryKey())?.error,
+    ).toMatchObject({
+      status: 503,
+    }),
+  );
+  await act(async () => jest.runOnlyPendingTimersAsync());
+
+  // Then
+  expect(screen.getByText("Public sport")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("team-follows")),
+  ).toHaveLength(0);
+});
+
+it.each(["team", "pool"] as const)(
+  "composes the %s route with its exact target and sporting season",
+  async (type) => {
+    // Given
+    const user = userEvent.setup();
+    await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    await screen.findByText(type === "team" ? "Volley Démo" : "Phase 01");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes(`/${type}-follows/`) && request?.method !== "PUT",
+      ),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Suivi",
+        selected: true,
+        busy: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("2026/2027")).toBeOnTheScreen();
+    expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .filter(([, request]) => request?.method === "PUT")
+        .map(([url]) => new URL(url).pathname),
+    ).toEqual([`/accounts/${accountId}/${type}-follows/${team.id}`]);
+  },
+);
+
+it.each(["team", "pool"] as const)(
+  "distinguishes a failed initial %s member read from false and retries the common page",
+  async (type) => {
+    // Given
+    let available = false;
+    mockFetch.mockImplementation((url, request) =>
+      url.includes(`${type}-follows`) && !available
+        ? Promise.resolve(Response.json({ following: "false" }))
+        : transport(url, request),
+    );
+    const user = userEvent.setup();
+    await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    await waitFor(() => expect(session.status).toBe("authenticated"));
+
+    // When
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    // Then
+    expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+
+    // When
+    available = true;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes(`${type}-follows/`) && request?.method !== "PUT",
+      ),
+    ).toHaveLength(2);
+  },
+);
+
+it("rereads a temporarily hidden target when its public page is reopened after restoration", async () => {
+  // Given
+  let hidden = true;
+  mockFetch.mockImplementation((url, request) =>
+    url.includes("team-follows") && hidden
+      ? Promise.resolve(new Response(null, { status: 404 }))
+      : transport(url, request),
+  );
+  const rendered = await renderFollowing(
+    <FollowTarget target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(
+      client.getQueryState(followStateKey({ ...session, accountId }, team))
+        ?.status,
+    ).toBe("error"),
+  );
+  expect(
+    await screen.findByRole("button", { name: "Indisponible", disabled: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await rendered.rerender(<Text>Another page</Text>);
+  hidden = false;
+  await rendered.rerender(<FollowTarget target={team} season={season} />);
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("team-follows")),
+  ).toHaveLength(2);
+});
+
+it("keeps the confirmed member state when returning from an explicit maintenance bypass", async () => {
+  // Given
+  let maintenance = false;
+  let following = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/application-access")) {
+      return Promise.resolve(
+        Response.json({
+          ...applicationAccessResponse(),
+          maintenance: {
+            active: maintenance,
+            message: null,
+            imageUrl: null,
+          },
+        }),
+      );
+    }
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json({
+          ...profile,
+          permissions: { ...profile.permissions, bypassMaintenance: true },
+        }),
+      );
+    }
+    if (url.includes("team-follows")) {
+      if (request?.method === "PUT") {
+        following = JSON.parse(String(request.body)).following;
+      }
+      return Promise.resolve(Response.json({ following }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  maintenance = true;
+  await act(async () => {
+    await access.retry();
+    access.requestBypass(session, true);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+
+  // When
+  maintenance = false;
+  await act(async () => {
+    await access.retry();
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+  // Then
+  await screen.findByRole("button", { name: "Suivre", busy: false });
+  const writes = mockFetch.mock.calls.filter(
+    ([, request]) => request?.method === "PUT",
+  );
+  expect(
+    writes.map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: false }]);
+  expect(
+    new Headers(writes[0][1]?.headers).get("Blockout-Maintenance-Bypass"),
+  ).toBe("true");
+  expect(
+    new Headers(writes[1][1]?.headers).has("Blockout-Maintenance-Bypass"),
+  ).toBe(false);
+});
+
+it("invalidates after the initiating control unmounts and reads current truth on return", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) =>
+    request?.method === "PUT" ? response.promise : transport(url, request),
+  );
+  const user = userEvent.setup();
+  const rendered = await renderFollowing(
+    <FollowTarget target={team} season={season} />,
+  );
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const owner = { ...session, accountId };
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await rendered.rerender(<Text>Another page</Text>);
+  await act(async () => {
+    for (const [url, request] of mockFetch.mock.calls) {
+      if (url.includes("team-follows") && request?.method !== "PUT") {
+        mockFollowStates.set(url, true);
+      }
+    }
+    response.resolve(Response.json({ following: true }));
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(
+      client.getQueryState(followStateKey(owner, team))?.isInvalidated,
+    ).toBe(true),
+  );
+  await rendered.rerender(<FollowTarget target={team} season={season} />);
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivi",
+      selected: true,
+      busy: false,
+    }),
+  ).toBeEnabled();
+});
+
+it("resets owned selections and invalidates options/count without touching another owner", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const owner = { ...session, accountId };
+  const listKey = followListKey(owner, "team", { seasonId: season.id });
+  const calendarKey = personalCalendarKey(owner, {
+    category: "completed",
+    timeZone: "Europe/Paris",
+    seasonId: season.id,
+  });
+  const optionsKey = followOptionsKey(owner);
+  const bypassOptionsKey = followOptionsKey(owner, true);
+  const countKey = followerCountKey(team);
+  client.setQueryData(listKey, {
+    pages: ["former page", "continuation"],
+    pageParams: [0, 1],
+  });
+  client.setQueryData(calendarKey, {
+    pages: ["former calendar"],
+    pageParams: [undefined],
+  });
+  client.setQueryData(optionsKey, { seasons: [season] });
+  client.setQueryData(bypassOptionsKey, { seasons: [season] });
+  client.setQueryData(countKey, { count: 7 });
+  const otherKey = followListKey(
+    { ...owner, accountId: "00000000-0000-4000-8000-000000000099" },
+    "team",
+  );
+  client.setQueryData(otherKey, "other owner");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Suivi", busy: false });
+
+  // Then
+  expect(client.getQueryData(listKey)).toBeUndefined();
+  expect(client.getQueryData(calendarKey)).toBeUndefined();
+  expect(client.getQueryData(otherKey)).toBe("other owner");
+  expect(client.getQueryState(optionsKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(bypassOptionsKey)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(countKey)?.isInvalidated).toBe(true);
+});
+
+it.each([true, false])(
+  "retains confirmed following=%s and accepts the next explicit command after account 503",
+  async (following) => {
+    // Given
+    jest.useFakeTimers();
+    let saved = !following;
+    let accountUnavailable = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/accounts/me") && accountUnavailable) {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      if (url.includes("/team-follows/")) {
+        if (request?.method === "PUT") {
+          saved = JSON.parse(String(request.body)).following;
+        }
+        return Promise.resolve(Response.json({ following: saved }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowTarget target={team} season={season} />);
+    const initialLabel = following ? "Suivre" : "Suivi";
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: initialLabel })).toBeEnabled(),
+    );
+    await user.press(screen.getByRole("button", { name: initialLabel }));
+    const confirmedLabel = following ? "Suivi" : "Suivre";
+    await screen.findByRole("button", { name: confirmedLabel, busy: false });
+    const owner = { ...session, accountId };
+
+    // When
+    accountUnavailable = true;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(
+      screen.getByRole("button", {
+        name: confirmedLabel,
+        selected: following,
+        busy: false,
+      }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
+    expect(client.getQueryData(followStateKey(owner, team))).toEqual({
+      following,
+    });
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
+
+    // When: only a new deliberate press sends the inverse state while the account read still fails.
+    await user.press(screen.getByRole("button", { name: confirmedLabel }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: initialLabel,
+          selected: !following,
+          busy: false,
+        }),
+      ).toBeEnabled(),
+    );
+    expect(
+      mockFetch.mock.calls
+        .filter(([, request]) => request?.method === "PUT")
+        .map(([, request]) => JSON.parse(String(request?.body))),
+    ).toEqual([{ following }, { following: !following }]);
+  },
+);
+
+it.each([401, 403, 404])(
+  "withdraws personal following after account %i and does not restore it after account 503",
+  async (status) => {
+    // Given
+    jest.useFakeTimers();
+    let accountStatus = 200;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/accounts/me") && accountStatus !== 200) {
+        return Promise.resolve(new Response(null, { status: accountStatus }));
+      }
+      if (url.includes("/team-follows/")) {
+        return Promise.resolve(Response.json({ following: true }));
+      }
+      return transport(url, request);
+    });
+    await renderFollowing(
+      <>
+        <Text>Independent public sport</Text>
+        <FollowTarget target={team} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+    );
+
+    // When
+    accountStatus = status;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
+    expect(screen.getByText("Independent public sport")).toBeOnTheScreen();
+
+    // When
+    accountStatus = 503;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+  },
+);
+
+it.each([401, 403, 404])(
+  "withdraws only the refused relationship after member %i until its successful read retry",
+  async (status) => {
+    // Given
+    jest.useFakeTimers();
+    let memberStatus = 200;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.includes("/team-follows/") && memberStatus !== 200) {
+        return Promise.resolve(new Response(null, { status: memberStatus }));
+      }
+      if (url.includes("-follows/")) {
+        return Promise.resolve(Response.json({ following: true }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(
+      <>
+        <TeamRoute />
+        <FollowTarget target={pool} season={season} />
+      </>,
+    );
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+    const owner = { ...session, accountId };
+    const key = followStateKey(owner, team);
+    mockFetch.mockClear();
+
+    // When
+    memberStatus = status;
+    await act(async () => {
+      await client.refetchQueries({ queryKey: key, exact: true });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(client.getQueryData(followStateKey(owner, pool))).toEqual({
+      following: true,
+    });
+
+    // When
+    memberStatus = 503;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await screen.findByRole("button", {
+      name: "Réessayer",
+      busy: false,
+    });
+    await waitFor(() =>
+      expect(client.getQueryState(key)?.error).toMatchObject({ status: 503 }),
+    );
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
+
+    // When
+    memberStatus = 200;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+    expect(
+      mockFetch.mock.calls
+        .filter(([url]) => url.endsWith(`/team-follows/${team.id}`))
+        .map(([, request]) => request?.method),
+    ).toEqual(["GET", "GET", "GET"]);
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+  },
+);
+
+it("shows page Retry progress only after its explicit press while retaining the known relation", async () => {
+  // Given
+  jest.useFakeTimers();
+  const reread = Promise.withResolvers<Response>();
+  let response: "ready" | "error" | "pending" = "ready";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.includes("/team-follows/")) {
+      if (response === "pending") {
+        return reread.promise;
+      }
+      return Promise.resolve(
+        response === "error"
+          ? new Response(null, { status: 503 })
+          : Response.json({ following: true }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+  response = "error";
+  await act(async () => {
+    await client.refetchQueries({ queryKey: key, exact: true });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // When: a background reread has no initiating compact action.
+  response = "pending";
+  let backgroundRead: Promise<void>;
+  await act(async () => {
+    backgroundRead = client.refetchQueries({ queryKey: key, exact: true });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
+
+  // When: the deliberate read joins that current request without replaying a write.
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+  ).toHaveLength(3);
+
+  // When
+  await act(async () => {
+    reread.resolve(Response.json({ following: true }));
+    await backgroundRead;
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull(),
+  );
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+});
+
+it("keeps a paused page Retry available and resumes its known relationship read once", async () => {
+  // Given: a real relationship read fails after confirming an authorized state.
+  jest.useFakeTimers();
+  const reread = Promise.withResolvers<Response>();
+  let response: "ready" | "error" | "pending" = "ready";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.includes("/team-follows/")) {
+      if (response === "pending") {
+        return reread.promise;
+      }
+      return Promise.resolve(
+        response === "error"
+          ? new Response(null, { status: 503 })
+          : Response.json({ following: true }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  response = "error";
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: followStateKey({ ...session, accountId }, team),
+      exact: true,
+    });
+    await jest.runOnlyPendingTimersAsync();
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+  await act(() => onlineManager.setOnline(false));
+
+  try {
+    // When: Query suspends an explicit Retry without issuing a transport request.
+    response = "pending";
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Suivi" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+    ).toHaveLength(2);
+
+    // When: another safe press joins the suspended attempt, then connectivity returns.
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+    ).toHaveLength(2);
+    await act(() => onlineManager.setOnline(true));
+
+    // Then: only the resumed explicit read owns busy, with no mutation replay.
+    await screen.findByRole("button", {
+      name: "Réessayer",
+      busy: true,
+    });
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+      ).toHaveLength(3),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+
+    // When
+    await act(async () => {
+      reread.resolve(Response.json({ following: true }));
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Réessayer" }),
+      ).not.toBeOnTheScreen(),
+    );
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  } finally {
+    await act(async () => {
+      onlineManager.setOnline(true);
+      reread.resolve(Response.json({ following: true }));
+    });
+  }
+});
+
+it("keeps a late write on its original UUID when the same principal receives a replacement account", async () => {
+  // Given
+  jest.useFakeTimers();
+  const replacementId = "00000000-0000-4000-8000-000000000099";
+  let currentAccountId = accountId;
+  let replacementFollowing = false;
+  const originalWrite = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json({ ...profile, accountId: currentAccountId }),
+      );
+    }
+    if (url.includes(`/accounts/${accountId}/team-follows/`)) {
+      return request?.method === "PUT"
+        ? originalWrite.promise
+        : Promise.resolve(Response.json({ following: false }));
+    }
+    if (url.includes(`/accounts/${replacementId}/team-follows/`)) {
+      if (request?.method === "PUT") {
+        replacementFollowing = JSON.parse(String(request.body)).following;
+      }
+      return Promise.resolve(
+        Response.json({ following: replacementFollowing }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const subject = session.subject;
+  const originalClient = client;
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Suivre", busy: true });
+
+  // When
+  currentAccountId = replacementId;
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+    await jest.runOnlyPendingTimersAsync();
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", {
+        name: "Suivre",
+        selected: false,
+        busy: false,
+      }),
+    ).toBeEnabled(),
+  );
+  await act(async () => {
+    originalWrite.resolve(Response.json({ following: true }));
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  expect(session.subject).toBe(subject);
+  expect(session.accountId).toBe(replacementId);
+  expect(client).toBe(originalClient);
+  expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+  expect(
+    client.getQueryData(
+      followStateKey({ ...session, accountId: replacementId }, team),
+    ),
+  ).toEqual({ following: false });
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([url]) => new URL(url).pathname),
+  ).toEqual([`/accounts/${accountId}/team-follows/${team.id}`]);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([url]) => new URL(url).pathname),
+  ).toEqual([
+    `/accounts/${accountId}/team-follows/${team.id}`,
+    `/accounts/${replacementId}/team-follows/${team.id}`,
+  ]);
+});
+
+it("retains the independent public audience when the same principal receives a replacement account", async () => {
+  // Given
+  jest.useFakeTimers();
+  const replacementId = "00000000-0000-4000-8000-000000000099";
+  let currentAccountId = accountId;
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(
+          Response.json({ ...profile, accountId: currentAccountId }),
+        )
+      : transport(url, request),
+  );
+  await renderFollowing(
+    <FollowTarget
+      target={team}
+      season={season}
+      audience={<FollowerCount target={team} />}
+    />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  await screen.findByLabelText("2 abonnés");
+
+  // When
+  currentAccountId = replacementId;
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  await waitFor(() => expect(session.accountId).toBe(replacementId));
+  expect(screen.getByLabelText("2 abonnés")).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),
+  ).toHaveLength(1);
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+});
+
+it.each([true, false])(
+  "keeps the prior state after a definite refusal of following=%s and repeats only on explicit press",
+  async (following) => {
+    // Given
+    const refusal = Promise.withResolvers<Response>();
+    let writes = 0;
+    let saved = !following;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        if (++writes === 1) {
+          return refusal.promise;
+        }
+        saved = following;
+        return Promise.resolve(Response.json({ following }));
+      }
+      return url.includes("team-follows")
+        ? Promise.resolve(Response.json({ following: saved }))
+        : transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowTarget target={team} season={season} />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
+    const label = following ? "Suivre" : "Suivi";
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: label })).toBeEnabled(),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: label,
+        selected: !following,
+        busy: true,
+      }),
+    ).toBeDisabled();
+    expect(
+      client.getQueryData(followStateKey({ ...session, accountId }, team)),
+    ).toEqual({
+      following: !following,
+    });
+    expect(writes).toBe(1);
+
+    // When
+    await act(async () => refusal.resolve(new Response(null, { status: 400 })));
+    await screen.findByText(TECHNICAL_ERROR);
+
+    // Then
+    expect(writes).toBe(1);
+    expect(screen.getByRole("button", { name: label })).toBeEnabled();
+
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
+
+    // Then
+    await screen.findByRole("button", {
+      name: following ? "Suivi" : "Suivre",
+      busy: false,
+    });
+    expect(writes).toBe(2);
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes("team-follows") && request?.method !== "PUT",
+      ),
+    ).toHaveLength(3);
+  },
+);
+
+it("uses ordinary failure feedback and the displayed state for a new action after a lost response", async () => {
+  // Given
+  let saved = false;
+  let writes = 0;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      saved = JSON.parse(String(request.body)).following;
+      return ++writes === 1
+        ? Promise.reject(new TypeError("response lost"))
+        : Promise.resolve(Response.json({ following: saved }));
+    }
+    return url.includes("team-follows")
+      ? Promise.resolve(Response.json({ following: saved }))
+      : transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+  // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivi",
+      selected: true,
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Suivi confirmé|État actuel/),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, request]) =>
+        url.includes("team-follows") && request?.method !== "PUT",
+    ),
+  ).toHaveLength(2);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivre",
+      selected: false,
+      busy: false,
+    }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: false }]);
+});
+
+it.each([403, 404])(
+  "restores the follow action after a refused %i write and a successful member read without replay",
+  async (status) => {
+    // Given
+    let writes = 0;
+    let current = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        writes += 1;
+        if (writes === 1) {
+          // Another control established the relationship while this request was refused.
+          current = true;
+          return Promise.resolve(new Response(null, { status }));
+        }
+        current = JSON.parse(String(request.body)).following;
+        return Promise.resolve(Response.json({ following: current }));
+      }
+      if (url.includes("team-follows")) {
+        return Promise.resolve(Response.json({ following: current }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowTarget target={team} season={season} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+    );
+    expect(writes).toBe(1);
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes("team-follows") && request?.method !== "PUT",
+      ),
+    ).toHaveLength(2);
+
+    // When: a new gesture acts on the current confirmed state, not the refused desired value.
+    await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    expect(writes).toBe(2);
+    expect(
+      JSON.parse(
+        String(
+          mockFetch.mock.calls.filter(
+            ([, request]) => request?.method === "PUT",
+          )[1][1]?.body,
+        ),
+      ),
+    ).toEqual({ following: false });
+  },
+);
+
+it("keeps a refused member withdrawn after a delayed successful write until an ordinary read succeeds", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  let member: "available" | "refused" | "transient" = "available";
+  let following = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      return response.promise;
+    }
+    if (url.includes("team-follows")) {
+      if (member === "refused") {
+        return Promise.resolve(new Response(null, { status: 403 }));
+      }
+      if (member === "transient") {
+        return Promise.reject(new TypeError("member read failed"));
+      }
+      return Promise.resolve(Response.json({ following }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  member = "refused";
+  await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Réessayer",
+    busy: false,
+  });
+  expect(client.getQueryData(key)).toBeUndefined();
+
+  // When
+  member = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.error).toMatchObject({ kind: "network" }),
+  );
+  expect(client.getQueryData(key)).toBeUndefined();
+
+  // When
+  following = true;
+  await act(async () => response.resolve(Response.json({ following })));
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Réessayer",
+    busy: false,
+  });
+  expect(client.getQueryData(key)).toBeUndefined();
+  expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+
+  // When
+  member = "available";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Suivi", selected: true }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+it("keeps an authoritatively refused follow withdrawn through a failed read and remount", async () => {
+  // Given
+  let member: "available" | "refused" | "transient" = "available";
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      member = "refused";
+      return Promise.reject(new TypeError("Synthetic lost acknowledgement"));
+    }
+    if (url.includes("team-follows")) {
+      if (member === "refused") {
+        return Promise.resolve(new Response(null, { status: 403 }));
+      }
+      if (member === "transient") {
+        return Promise.reject(new TypeError("Synthetic member outage"));
+      }
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  const rendered = await renderFollowing(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Réessayer" });
+  member = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", {
+    name: "Réessayer",
+    busy: false,
+  });
+  await rendered.rerender(<Text>Another page</Text>);
+  await rendered.rerender(<TeamRoute />);
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Réessayer",
+    busy: false,
+  });
+  expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+
+  // When
+  member = "available";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+it("retains ordinary failure feedback when the refreshed member read is cancelled", async () => {
+  // Given
+  const observation = Promise.withResolvers<Response>();
+  let attempted = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      attempted = true;
+      return Promise.reject(new TypeError("response lost"));
+    }
+    if (url.includes("team-follows") && attempted) {
+      return observation.promise;
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.fetchStatus).toBe("fetching"),
+  );
+  let reread: Promise<void>;
+  await act(async () => {
+    reread = client.refetchQueries(
+      { queryKey: key, exact: true },
+      { cancelRefetch: false },
+    );
+  });
+  const reads = mockFetch.mock.calls.filter(
+    ([url, request]) =>
+      url.includes("team-follows") && request?.method !== "PUT",
+  );
+  await act(async () => {
+    await client.cancelQueries({ queryKey: key, exact: true });
+    observation.resolve(Response.json({ following: true }));
+    await reread;
+  });
+
+  // Then
+  expect(reads).toHaveLength(2);
+  expect(reads[1][1]?.signal?.aborted).toBe(true);
+  expect(client.getQueryData(key)).toEqual({ following: false });
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+it.each(["guest", "other", "same"] as const)(
+  "keeps a late original mutation out of the current native scope after switching to %s",
+  async (destination) => {
+    // Given
+    const response = Promise.withResolvers<Response>();
+    let currentAccountId = accountId;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        return response.promise;
+      }
+      if (url.endsWith("/accounts/me")) {
+        return Promise.resolve(
+          Response.json({ ...profile, accountId: currentAccountId }),
+        );
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowTarget target={team} season={season} />);
+    await waitFor(() => expect(session.status).toBe("authenticated"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    const owner = { ...session, accountId };
+    {
+      await user.press(screen.getByRole("button", { name: "Suivre" }));
+      await waitFor(() =>
+        expect(
+          mockFetch.mock.calls.filter(
+            ([, request]) => request?.method === "PUT",
+          ),
+        ).toHaveLength(1),
+      );
+
+      // When
+      await act(async () => {
+        await session.clearCredentials();
+        if (destination !== "guest") {
+          currentAccountId =
+            destination === "same"
+              ? accountId
+              : "00000000-0000-4000-8000-000000000099";
+          const credentials = credentialsFor(`auth0|${destination}`);
+          mockAuth0.webAuth.mockResolvedValue(credentials);
+          mockAuth0.getCredentials.mockResolvedValue(credentials);
+          mockAuth0.saveCredentials.mockResolvedValue();
+          await session.signIn("https://api.example.invalid");
+        }
+        response.resolve(Response.json({ following: true }));
+      });
+
+      // Then
+      await waitFor(() => expect(client.isMutating()).toBe(0));
+      await waitFor(() =>
+        expect(session.status).toBe(
+          destination === "guest" ? "guest" : "authenticated",
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+      );
+      expect(client.getQueryData(followStateKey(owner, team))).toEqual(
+        destination === "same" ? { following: false } : undefined,
+      );
+      expect(screen.queryByText(/Suivi confirmé/)).not.toBeOnTheScreen();
+    }
+  },
+);
+
+it("suspends the canonical confirmed relation when its maintenance bypass is cleared", async () => {
+  // Given: the confirmed relationship is shared, while admission belongs to the current intent.
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/application-access")) {
+      return Promise.resolve(
+        Response.json({
+          ...applicationAccessResponse(),
+          maintenance: {
+            active: true,
+            message: null,
+            imageUrl: null,
+          },
+        }),
+      );
+    }
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json({
+          ...profile,
+          permissions: { ...profile.permissions, bypassMaintenance: true },
+        }),
+      );
+    }
+    if (url.includes("team-follows")) {
+      return Promise.resolve(Response.json({ following: true }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowTarget target={team} season={season} />);
+  await waitFor(() => expect(session.status).toBe("authenticated"));
+  await waitFor(() => expect(session.accountId).toBe(accountId));
+  await act(async () => {
+    access.requestBypass(session, true);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+
+  // When
+  await act(async () => access.clearBypass());
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+  // Then: retained display data cannot authorize a new write.
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toEqual([]);
+});
+
+/** Captures the real private client while the fixture retains its separate public-cache owner for cleanup. */
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
+  const privateClient = useQueryClient();
+  // Configure deterministic failure presentation before child Query observers mount.
+  privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
+  privateClient.setMutationDefaults([], { gcTime: Infinity });
+  useLayoutEffect(() => {
+    client = privateClient;
+  }, [privateClient]);
+  return children;
+}

@@ -7,8 +7,8 @@ description: "Test Expo and React Native behavior with jest-expo and React Nativ
 
 Read this before adding or changing Expo mobile tests, test selectors, mocks, or component behavior protected by Jest.
 
-Tests belong to the feature delivery. Test-first development is optional; a regression fix starts with a failing
-reproduction whenever practical. Use visible `// Given`, `// When` and `// Then` comments and blank lines between phases.
+Tests belong to the feature delivery. Follow the project’s required test order and workflow. A regression fix starts
+with a failing reproduction whenever practical. Use visible `// Given`, `// When` and `// Then` comments and blank lines between phases.
 
 ## Test Stack And Responsibilities
 
@@ -18,9 +18,7 @@ reproduction whenever practical. Use visible `// Given`, `// When` and `// Then`
   directory.
 - Test observable rendering, interaction, navigation intent, request construction, cache behavior, and error recovery.
   Do not assert component internals, private hooks, implementation call order, style objects, or large snapshots.
-- Jest proves behavior, not visual fidelity or native provider behavior. Figma comparison and explicit captures on the
-  platforms declared by the repository design authority prove appearance; runtime and provider smokes remain separate
-  evidence.
+- Exercise native provider behavior on the target platform. Compare rendered screens with the project's design reference when appearance is in scope.
 - Add a test when behavior can regress and the assertion protects a user or boundary. Do not manufacture tests for
   passive markup or implementation details to increase a coverage number.
 
@@ -62,8 +60,8 @@ add IDs to every nested view or expose implementation structure through selector
   render state and invoke explicit commands; they do not construct global clients or reach into native modules directly.
 - Extract normalization, formatting, validation, or update logic into a pure function only when it is meaningful on its
   own or actively reused. Keep a simple expression in the component instead of creating a test-only helper.
-- Let TanStack Query own remote state and the established providers own application state. Do not mirror state or add
-  effects merely to make assertions easier.
+- Exercise remote data through the feature's existing data layer. Keep application state in its established providers.
+  Do not mirror state or add effects merely to make assertions easier.
 - Prefer small named components for distinct user-visible states over one component with many unrelated modes. Keep
   ordinary `disabled`, `loading`, and selection state explicit and simple.
 - Do not add production branches for Jest, test-only props, service locators, dependency-injection containers, mock
@@ -79,8 +77,9 @@ add IDs to every nested view or expose implementation structure through selector
   same setup is genuinely reused.
 - Use deterministic transport examples. Freeze or stub time only when time affects visible behavior, and restore timers
   and spies after each test.
-- Await asynchronous rendering and supported user interactions. Use `findBy*` or `waitFor` for state that appears later;
-  do not add sleeps or leave unresolved `act` scopes.
+- Follow the APIs documented for the installed React Native Testing Library version. Await operations that return
+  promises, including rendering, updates, interactions and cleanup. Use `findBy*` or `waitFor` for state that appears
+  later; do not add sleeps or leave unresolved `act` scopes.
 - Assert loading, success, empty, error, retry, disabled, and optimistic rollback states when the touched flow owns them.
 - Keep tests independent of real credentials, production data, network availability, and external provider sessions.
 - Test pure schemas, mappers, formatters and view-model derivation directly. Test a custom hook separately only when
@@ -90,10 +89,9 @@ add IDs to every nested view or expose implementation structure through selector
 
 ## Visual And Runtime Evidence
 
-- Do not add pixel snapshots, screenshot assertions inside Jest, duplicated Figma fixtures, or a second UI test
-  framework. A snapshot may cover a small stable serialized value only when that value is the behavior under test.
+- Use Jest snapshots only for small stable serialized values whose representation is itself under test.
 - Follow the project's visual acceptance requirements for the affected scope; this skill adds no design approval gate.
-- Compare visual changes with the accepted design reference (exact nodes when Figma is used) at the platform, viewport,
+- Compare visual changes with the accepted design reference at the platform, viewport,
   theme, authentication mode and state selected by the project. Record unavailable evidence instead of fabricating it.
 - Run the narrow test while developing. Before publishing a mobile slice, run the formatting, lint, typecheck, complete
   test, and diff commands declared by the repository build configuration. Run affected consumers and integration proofs when shared contracts or provider boundaries change.
@@ -106,16 +104,16 @@ Native Testing Library guidance for
 [user-focused queries](https://callstack.github.io/react-native-testing-library/docs/guides/how-to-query) and
 [realistic interactions](https://callstack.github.io/react-native-testing-library/docs/api/events/user-event).
 
-For affected data/form behavior, prove dirty values survive background refetch, failed validation never enters the successful query cache, and submission failures preserve editable values. Do not add a test-only state mirror.
+When the flow refetches during editing, verify that dirty values survive the refresh. If it caches remote data, verify that invalid responses never enter the cache as successful results. When testing submission failures, check that the form's values remain editable.
 
 ## Readable scenarios and reusable data
 
-The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
+The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Parameterize input variants of the same behavior with native Jest tables and identifiable case names; keep boundary values explicit and distinct behaviors separate. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
 
 Keep simple values inline. Use targeted typed factories for rich valid objects that are actually reused, with explicit overrides for the scenario's decisive fields. Search existing factories before adding one, and share only identical meaning at the narrowest owner. A private helper may name one coherent step, and a public boundary may have one consumer; neither permits speculative test DSLs, generic object mothers or automatic reflection-based object graphs.
 
-Use `@faker-js/faker` when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Keep boundary cases explicit and parameterized. Small tests do not require a data library, and installing this skill does not add dependencies.
+If the project's fixtures generate secondary values, seed them per test and keep scenario-defining values explicit. Control the clock for time-sensitive data.
 
-Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show a unit test, an integration boundary and a rich typed factory, not a new test framework. No new E2E infrastructure is introduced by this policy.
+Consult the [test examples](references/examples.md) when you need an example of testing a failed form submission or building a typed factory with explicit scenario values. No new E2E infrastructure is introduced by this policy.
 
 Focused architecture tests may protect important dependency boundaries. Avoid tests that assert source spelling or incidental file layout rather than the boundary itself.

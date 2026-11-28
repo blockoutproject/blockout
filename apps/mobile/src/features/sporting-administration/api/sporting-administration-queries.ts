@@ -1,0 +1,130 @@
+import { isResourceReadRefused } from "@/shared/api/access-denied";
+import { queryOptions, type QueryFunctionContext } from "@tanstack/react-query";
+import {
+  getClubPresentation,
+  getTeamPresentation,
+  getPoolPresentation,
+  getDivision,
+  listDivisions,
+  getPackClassification,
+  getPoolClassification,
+  getGetClubPresentationQueryKey,
+  getGetTeamPresentationQueryKey,
+  getGetPoolPresentationQueryKey,
+  getGetDivisionQueryKey,
+  getListDivisionsQueryKey,
+  getGetPackClassificationQueryKey,
+  getGetPoolClassificationQueryKey,
+} from "../../../../.generated/mobile";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
+
+/** Current sporting authority prepares credentials and rechecks the action grant for every execution. */
+export interface SportingQueryAuthority {
+  enabled: boolean;
+  request(signal?: AbortSignal): Promise<ApiFetchOptions>;
+}
+
+/** Uses the current principal for each read and leaves refusal handling with the cache's owner. */
+export function createSportingReader(
+  authority: SportingQueryAuthority,
+  withdraw = markEditorReadRefused,
+) {
+  return async function read<T>(
+    context: QueryFunctionContext,
+    execute: (options: ApiFetchOptions) => Promise<T>,
+  ) {
+    try {
+      return await execute(await authority.request(context.signal));
+    } catch (error) {
+      if (context.signal.aborted) {
+        throw new ApiError("cancelled");
+      }
+      if (isResourceReadRefused(error)) {
+        withdraw(context);
+      }
+      throw error;
+    }
+  };
+}
+
+// A late mutation acknowledgement must not reinstate a refused editor.
+function markEditorReadRefused({ client, queryKey }: QueryFunctionContext) {
+  client.setQueryData(queryKey, null, {
+    updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
+  });
+}
+
+/** Canonical generated DTO reads; editor-specific projections belong to Query select. */
+export function createSportingAdministrationQueries(
+  authority: SportingQueryAuthority,
+) {
+  const read = createSportingReader(authority);
+
+  return {
+    /** The complete division list supplies lifecycle navigation and custom classification choices. */
+    divisions: () => {
+      const params = { includeInactive: true };
+      return queryOptions<Awaited<ReturnType<typeof listDivisions>> | null>({
+        queryKey: getListDivisionsQueryKey(params),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => listDivisions(params, options)),
+      });
+    },
+    /** One division DTO is shared by presentation and lifecycle consumers. */
+    division: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getDivision>> | null>({
+        queryKey: getGetDivisionQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getDivision(id, options)),
+      }),
+    /** Original club presentation uses the generated query owner without a cache-specific wrapper. */
+    clubPresentation: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getClubPresentation>> | null>({
+        queryKey: getGetClubPresentationQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getClubPresentation(id, options)),
+      }),
+    /** Original team presentation includes effective and automatic artwork selection. */
+    teamPresentation: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getTeamPresentation>> | null>({
+        queryKey: getGetTeamPresentationQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getTeamPresentation(id, options)),
+      }),
+    /** Pool presentation remains distinct from sporting classification and public consultation. */
+    poolPresentation: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getPoolPresentation>> | null>({
+        queryKey: getGetPoolPresentationQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getPoolPresentation(id, options)),
+      }),
+    /** Pack classification retains one generated key for all correction consumers. */
+    packClassification: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getPackClassification>> | null>({
+        queryKey: getGetPackClassificationQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getPackClassification(id, options)),
+      }),
+    /** Pool classification retains the same read shape as its atomic command response. */
+    poolClassification: (id: string) =>
+      queryOptions<Awaited<ReturnType<typeof getPoolClassification>> | null>({
+        queryKey: getGetPoolClassificationQueryKey(id),
+        enabled: authority.enabled,
+        gcTime: 0,
+        queryFn: (context) =>
+          read(context, (options) => getPoolClassification(id, options)),
+      }),
+  };
+}

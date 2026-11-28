@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Initial sporting schema. -->
+  <changeSet id="sporting-identities" author="blockout">
+    <createTable tableName="sporting_season">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="collection_state" type="VARCHAR(255)" defaultValue="PREPARING"><constraints nullable="false"/></column>
+      <column name="collection_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="start_year" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_division">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="active" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="color" type="VARCHAR(7)"><constraints nullable="false"/></column>
+      <column name="gradient_start" type="VARCHAR(7)"/>
+      <column name="gradient_middle" type="VARCHAR(7)"/>
+      <column name="gradient_end" type="VARCHAR(7)"/>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
+      <column name="logo_media_type" type="VARCHAR(255)"/>
+    </createTable>
+    <createTable tableName="sporting_club">
+      <column name="municipality" type="TEXT"></column>
+      <column name="postal_code" type="TEXT"></column>
+      <column name="locality_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="geocoded_revision" type="BIGINT"></column>
+      <column name="municipality_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="true"/></column>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
+      <column name="logo_bucket" type="TEXT"/>
+      <column name="logo_media_type" type="VARCHAR(255)"></column>
+      <column name="latitude" type="DOUBLE PRECISION"></column>
+      <column name="longitude" type="DOUBLE PRECISION"></column>
+      <column name="detail_cycle_order" type="BIGINT"></column>
+      <column name="detail_read_ordinal" type="BIGINT"></column>
+      <column name="locality_cycle_order" type="BIGINT"></column>
+      <column name="locality_read_ordinal" type="BIGINT"></column>
+      <column name="detail_observed_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="detail_published_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="address" type="TEXT"></column>
+      <column name="address_manual" type="TEXT"></column>
+      <column name="address_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="address_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="municipality_manual" type="TEXT"></column>
+      <column name="municipality_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="postal_code_manual" type="TEXT"></column>
+      <column name="postal_code_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="postal_code_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="email" type="TEXT"></column>
+      <column name="email_manual" type="TEXT"></column>
+      <column name="email_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="email_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="phone" type="TEXT"></column>
+      <column name="phone_manual" type="TEXT"></column>
+      <column name="phone_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="phone_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="website" type="TEXT"></column>
+      <column name="website_manual" type="TEXT"></column>
+      <column name="website_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="website_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_pack">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="setting_division_id" type="UUID"/>
+      <column name="setting_format" type="VARCHAR(255)"/>
+      <column name="setting_gender" type="VARCHAR(255)"/>
+    </createTable>
+    <createTable tableName="sporting_pool">
+      <column name="calendar_url" type="TEXT"></column>
+      <column name="standings_url" type="TEXT"></column>
+      <column name="calendar_empty" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="catalog_eligible" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="pack_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="tour_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="group_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="division_id" type="UUID"><constraints nullable="true"/></column>
+      <column name="format" type="VARCHAR(255)"><constraints nullable="true"/></column>
+      <column name="gender" type="VARCHAR(255)"><constraints nullable="true"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="setting_division_id" type="UUID"/>
+      <column name="setting_format" type="VARCHAR(255)"/>
+      <column name="setting_gender" type="VARCHAR(255)"/>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="manual_short_name" type="TEXT"></column>
+      <column name="calendar_cycle_order" type="BIGINT"/>
+      <column name="calendar_read_ordinal" type="BIGINT"/>
+      <column name="completed_cycle_order" type="BIGINT"/>
+      <column name="completed_read_ordinal" type="BIGINT"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pack_setting_division"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_setting_division"/>
+    <createTable tableName="sporting_team">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="native_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="club_id" type="UUID"><constraints nullable="true"/></column>
+      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="manual_short_name" type="TEXT"></column>
+      <column name="logo_key" type="TEXT"/>
+      <column name="logo_sha256" type="VARCHAR(64)"/>
+      <column name="logo_media_type" type="VARCHAR(255)"></column>
+      <column name="source_logo_key" type="TEXT"/>
+      <column name="source_logo_sha256" type="VARCHAR(64)"/>
+      <column name="source_logo_media_type" type="VARCHAR(255)"></column>
+      <column name="logo_cycle_order" type="BIGINT"></column>
+      <column name="logo_read_ordinal" type="BIGINT"></column>
+      <column name="logo_observed_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="logo_published_at" type="TIMESTAMP WITH TIME ZONE"></column>
+    </createTable>
+    <createTable tableName="sporting_participation">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="current" type="BOOLEAN"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_match">
+      <column name="present" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+      <column name="detail_url" type="TEXT"></column>
+      <column name="reliable_start" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="home_team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="away_team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="local_date" type="DATE"><constraints nullable="true"/></column>
+      <column name="accepted_cycle_order" type="BIGINT"/>
+      <column name="accepted_read_ordinal" type="BIGINT"/>
+      <column name="local_time" type="VARCHAR(5)"/>
+      <column name="time_zone" type="VARCHAR(255)"/>
+      <column name="schedule_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="schedule_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="result_state" type="VARCHAR(255)"/>
+      <column name="home_sets" type="INT"/>
+      <column name="away_sets" type="INT"/>
+      <column name="special_label" type="VARCHAR(255)"/>
+      <column name="uninterpreted_result" type="TEXT"/>
+      <column name="venue_name" type="TEXT"/>
+      <column name="venue_address" type="TEXT"/>
+      <column name="professional_stream_url" type="TEXT"/>
+      <column name="scoresheet_url" type="TEXT"/>
+      <column name="statistics_url" type="TEXT"/>
+      <column name="document_season_label" type="TEXT"/>
+      <column name="document_organizer_reference" type="TEXT"/>
+      <column name="document_match_code" type="TEXT"/>
+      <column name="result_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="result_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="referees_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_club_alias">
+      <column name="club_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_club_alias" columnNames="club_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_club_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_club_alias" baseColumnNames="club_id" referencedTableName="sporting_club" referencedColumnNames="id" constraintName="fk_club_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_club_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_club_alias_season"/>
+    <createTable tableName="sporting_team_alias">
+      <column name="team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_team_alias" columnNames="team_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_team_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_team_alias" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_team_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_team_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_team_alias_season"/>
+    <createTable tableName="sporting_pool_alias">
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_pool_alias" columnNames="pool_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_pool_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool_alias" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_pool_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pool_alias_season"/>
+    <createTable tableName="sporting_division_term">
+      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="term" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_division_term" columnNames="division_id, term" constraintName="pk_division_term"/>
+    <addForeignKeyConstraint baseTableName="sporting_division_term" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_division_term_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pack_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pool_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="pack_id" referencedTableName="sporting_pack" referencedColumnNames="id" constraintName="fk_pool_pack_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_division_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_team_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="club_id" referencedTableName="sporting_club" referencedColumnNames="id" constraintName="fk_team_club_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_team_division_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_participation" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_participation_team_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_participation" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_participation_pool_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_match_pool_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="home_team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_match_home_team_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="away_team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_match_away_team_id"/>
+    <addUniqueConstraint tableName="sporting_season" columnNames="start_year" constraintName="uk_season_identity"/>
+    <addUniqueConstraint tableName="sporting_club" columnNames="provider, reference" constraintName="uk_club_identity"/>
+    <addUniqueConstraint tableName="sporting_pack" columnNames="provider, season_id, organizer_reference, reference" constraintName="uk_pack_identity"/>
+    <addUniqueConstraint tableName="sporting_participation" columnNames="team_id, pool_id" constraintName="uk_participation_identity"/>
+    <addUniqueConstraint tableName="sporting_match" columnNames="pool_id, reference" constraintName="uk_match_identity"/>
+    <!-- Scope reads use these parent keys; the native-identity indexes lead with other columns. -->
+    <createIndex tableName="sporting_pool" indexName="ix_pool_pack">
+      <column name="pack_id"/>
+    </createIndex>
+    <createIndex tableName="sporting_participation" indexName="ix_participation_pool">
+      <column name="pool_id"/>
+    </createIndex>
+    <createIndex tableName="sporting_division" indexName="uk_division_name" unique="true">
+      <column name="lower(name)" computed="true"/>
+    </createIndex>
+    <!-- Liquibase's native unique/index changes do not express PostgreSQL NULLS NOT DISTINCT
+         or partial indexes. These preserve optional context and the two actual team keys. -->
+    <sql dbms="postgresql"><![CDATA[
+      CREATE UNIQUE INDEX uk_pool_identity ON sporting_pool
+        (provider, season_id, organizer_reference, competition_reference, tour_reference, group_reference, reference)
+        NULLS NOT DISTINCT;
+      CREATE UNIQUE INDEX uk_team_ffvb ON sporting_team
+        (season_id, club_id, division_id, format, gender, comparison_name) WHERE provider = 'FFVB';
+      CREATE UNIQUE INDEX uk_team_lnv ON sporting_team
+        (season_id, organizer_reference, competition_reference, native_reference) WHERE provider = 'LNV';
+      ALTER TABLE sporting_team ADD CONSTRAINT ck_team_ffvb_club CHECK (provider != 'FFVB' OR club_id IS NOT NULL);
+      ALTER TABLE sporting_team ADD CONSTRAINT ck_team_lnv_reference CHECK (provider != 'LNV' OR native_reference IS NOT NULL);
+      ALTER TABLE sporting_match ADD CONSTRAINT ck_match_distinct_teams CHECK (home_team_id != away_team_id);
+    ]]></sql>
+  </changeSet>
+
+  <changeSet id="sporting-ingestion" author="blockout">
+    <createTable tableName="sporting_catalog">
+      <column name="source_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="read_ordinal" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="observed_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="provider_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="complete" type="BOOLEAN"/>
+      <column name="last_complete_read_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <createTable tableName="sporting_catalog_phase">
+      <column name="source_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="phase_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="label" type="VARCHAR(255)"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_catalog_phase" columnNames="source_id,phase_reference" constraintName="pk_sporting_catalog_phase"/>
+    <addForeignKeyConstraint baseTableName="sporting_catalog_phase" baseColumnNames="source_id" referencedTableName="sporting_catalog" referencedColumnNames="source_id" constraintName="fk_sporting_catalog_phase_source" onDelete="CASCADE"/>
+  </changeSet>
+  <changeSet id="sporting-match-details" author="blockout">
+    <createTable tableName="sporting_match_set">
+      <column name="match_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="set_index" type="INT"><constraints nullable="false"/></column>
+      <column name="home" type="INT"><constraints nullable="false"/></column>
+      <column name="away" type="INT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_match_set" columnNames="match_id,set_index" constraintName="pk_sporting_match_set"/>
+    <addForeignKeyConstraint baseTableName="sporting_match_set" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_sporting_match_set_match"/>
+    <createTable tableName="sporting_match_referee">
+      <column name="match_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="referee_index" type="INT"><constraints nullable="false"/></column>
+      <column name="name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_match_referee" columnNames="match_id,referee_index" constraintName="pk_sporting_match_referee"/>
+    <addForeignKeyConstraint baseTableName="sporting_match_referee" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_sporting_match_referee_match"/>
+  </changeSet>
+  <changeSet id="sporting-standings" author="blockout">
+    <createTable tableName="sporting_standings">
+      <column name="pool_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="read_ordinal" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="publication_state" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="observed_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="provider_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="table_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="table_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_standings" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_standings_pool"/>
+    <createTable tableName="sporting_standing_column">
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="column_index" type="INT"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_standing_column" columnNames="pool_id,column_index" constraintName="pk_standing_column"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_column" baseColumnNames="pool_id" referencedTableName="sporting_standings" referencedColumnNames="pool_id" constraintName="fk_standing_column_table"/>
+    <createTable tableName="sporting_standing_row">
+      <column name="id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="row_index" type="INT"/>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="native_team_reference" type="TEXT"/>
+      <column name="position" type="INT"/>
+      <column name="team_id" type="UUID"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="pool_id" referencedTableName="sporting_standings" referencedColumnNames="pool_id" constraintName="fk_standing_row_table"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_standing_row_team"/>
+    <!-- A table read/replacement must locate its rows without scanning other pools' standings. -->
+    <createIndex tableName="sporting_standing_row" indexName="ix_standing_row_pool">
+      <column name="pool_id"/>
+    </createIndex>
+    <createTable tableName="sporting_standing_statistic">
+      <column name="row_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+      <column name="value" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_standing_statistic" columnNames="row_id,label" constraintName="pk_standing_statistic"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_statistic" baseColumnNames="row_id" referencedTableName="sporting_standing_row" referencedColumnNames="id" constraintName="fk_standing_statistic_row"/>
+  </changeSet>
+</databaseChangeLog>

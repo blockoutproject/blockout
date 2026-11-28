@@ -1,0 +1,18 @@
+import type { FieldNamesMarkedBoolean } from "react-hook-form";
+import type { ChangeMaintenanceRequest } from "../../../../.generated/schemas/index.zod";
+import type { MaintenanceValues } from "../schemas/maintenance-schema";
+
+/** Encodes only dirty content; an empty dirty image is null, while untouched fields stay absent. */
+export function toMaintenanceRequest(
+  values: MaintenanceValues,
+  dirty: FieldNamesMarkedBoolean<MaintenanceValues>,
+): ChangeMaintenanceRequest {
+  const body: ChangeMaintenanceRequest = {};
+  if (dirty.message) {
+    body.message = values.message;
+  }
+  if (dirty.imageUrl) {
+    body.imageUrl = values.imageUrl === "" ? null : values.imageUrl;
+  }
+  return body;
+}

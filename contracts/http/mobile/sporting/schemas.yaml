@@ -1,0 +1,687 @@
+SportingResourceKindEnum:
+  title: SportingResourceKindEnum
+  type: string
+  description: >-
+    Club and team resources with presentation editors.
+  enum:
+    - club
+    - team
+TeamLogoSelectionEnum:
+  title: TeamLogoSelectionEnum
+  type: string
+  description: Select the current effective team artwork or its automatic fallback independently of manual customization.
+  default: effective
+  enum:
+    - effective
+    - automatic
+ContactModeEnum:
+  title: ContactModeEnum
+  type: string
+  description: Independent durable management mode for one field.
+  enum:
+    - source
+    - manual
+    - hidden
+SetClassificationRequest:
+  title: SetClassificationRequest
+  type: object
+  description:
+    Desired pack default or complete pool override; null removes that setting. This is
+    a scoped atomic correction, not a list of partial pool patches.
+  additionalProperties: false
+  properties:
+    classification:
+      $ref: "#/AcquisitionClassificationRequest"
+  required:
+    - classification
+MappingStatusEnum:
+  title: MappingStatusEnum
+  type: string
+  description: >-
+    Whether all, some or none of the current pools have an effective acquisition classification.
+    A pack with no current pools is all when it has a default and none otherwise.
+  enum:
+    - all
+    - some
+    - none
+MappingPoolModeEnum:
+  title: MappingPoolModeEnum
+  type: string
+  description: Inherited uses the pack default; custom uses the pool's complete override.
+  enum:
+    - inherited
+    - custom
+MappingFilterDimensionEnum:
+  title: MappingFilterDimensionEnum
+  type: string
+  description: Source or season choices for the mapping pack filters.
+  enum:
+    - source
+    - season
+MappingLabelText:
+  type: string
+  description: Established catalogue, source, season or division display label capped at 256 Unicode code points.
+  # Count code points in Java Pattern and Orval's Unicode RegExp, including before a final newline.
+  pattern: '^[\p{L}\P{L}]{0,256}(?![\p{L}\P{L}])'
+MappingPackPageResponse:
+  title: MappingPackPageResponse
+  type: object
+  description: >-
+    A page of matching packs ordered by catalogue label and UUID. Concurrent changes can affect
+    later pages.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Matching pack entries in page order.
+      maxItems: 200
+      items:
+        $ref: "#/MappingPackResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based pack page.
+    hasNext:
+      type: boolean
+      description: Whether another pack page was available at read time.
+  required:
+    - items
+    - page
+    - hasNext
+MappingPackResponse:
+  title: MappingPackResponse
+  type: object
+  description: A discovered pack with source and season context, default and aggregate status.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Stable catalogue pack UUID, also used for classification operations.
+    label:
+      $ref: "#/MappingLabelText"
+    sourceId:
+      type: string
+      format: uuid
+      description: Stable source binding UUID for this pack's provider, organizer and season.
+    sourceLabel:
+      $ref: "#/MappingLabelText"
+    seasonId:
+      type: string
+      format: uuid
+      description: Stable qualified season UUID.
+    seasonLabel:
+      $ref: "#/MappingLabelText"
+    defaultClassification:
+      $ref: "#/MappingClassificationResponse"
+    status:
+      $ref: "#/MappingStatusEnum"
+    poolCount:
+      type: integer
+      minimum: 0
+      description: Total current pools in this pack, independent of index filters and pool pages.
+    classifiedPoolCount:
+      type: integer
+      minimum: 0
+      description: >-
+        Current pools with an effective classification from their own override or the pack default,
+        independent of index filters and pool pages.
+  required:
+    - id
+    - label
+    - sourceId
+    - sourceLabel
+    - seasonId
+    - seasonLabel
+    - defaultClassification
+    - status
+    - poolCount
+    - classifiedPoolCount
+MappingPackDetailResponse:
+  title: MappingPackDetailResponse
+  type: object
+  description: >-
+    A pack and one page of all its current pools, ordered by catalogue label and UUID.
+    Concurrent catalogue changes can affect later pages.
+  additionalProperties: true
+  properties:
+    pack:
+      $ref: "#/MappingPackResponse"
+    items:
+      type: array
+      description: Current pool entries in page order.
+      maxItems: 200
+      items:
+        $ref: "#/MappingPoolResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based pool page within this pack.
+    hasNext:
+      type: boolean
+      description: Whether another pool page was available at read time.
+  required:
+    - pack
+    - items
+    - page
+    - hasNext
+MappingPoolResponse:
+  title: MappingPoolResponse
+  type: object
+  description: A current child pool with its inheritance mode and effective acquisition setting.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Stable catalogue pool UUID, also used for classification operations.
+    label:
+      $ref: "#/MappingLabelText"
+    mode:
+      $ref: "#/MappingPoolModeEnum"
+    effectiveClassification:
+      $ref: "#/MappingClassificationResponse"
+  required:
+    - id
+    - label
+    - mode
+    - effectiveClassification
+MappingClassificationResponse:
+  title: MappingClassificationResponse
+  type: object
+  description: >-
+    Complete acquisition classification with a displayable division name. Null represents a pack
+    without a default or a pool without an effective acquisition classification.
+  nullable: true
+  additionalProperties: true
+  properties:
+    divisionId:
+      type: string
+      format: uuid
+      description: Stable division UUID.
+    divisionName:
+      $ref: "#/MappingLabelText"
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - divisionId
+    - divisionName
+    - format
+    - gender
+MappingFilterOptionPageResponse:
+  title: MappingFilterOptionPageResponse
+  type: object
+  description: >-
+    A page of authorized choices, sources ordered by label and UUID and seasons ordered newest
+    first by qualified start year. Concurrent catalogue changes can affect later pages.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Available choices for the requested filter.
+      maxItems: 200
+      items:
+        $ref: "#/MappingFilterOptionResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based page of source or season options.
+    hasNext:
+      type: boolean
+      description: Whether another page of options was available at read time.
+  required:
+    - items
+    - page
+    - hasNext
+MappingFilterOptionResponse:
+  title: MappingFilterOptionResponse
+  type: object
+  description: One established source or season choice.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: UUID accepted by the corresponding sourceId or seasonId filter.
+    label:
+      $ref: "#/MappingLabelText"
+  required:
+    - id
+    - label
+ClassificationDetailResponse:
+  title: ClassificationDetailResponse
+  type: object
+  description: >-
+    Current pack or pool setting, effective acquisition classification. The
+    effective value governs collection; it does not describe the retained classification of
+    already published sporting data.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Pack or pool identity.
+      format: uuid
+    setting:
+      $ref: "#/AcquisitionClassificationResponse"
+    effective:
+      $ref: "#/AcquisitionClassificationResponse"
+  required:
+    - id
+    - setting
+    - effective
+NamePresentationResponse:
+  title: NamePresentationResponse
+  type: object
+  description:
+    Names independent of identity. Effective values include eligible source and manual
+    precedence.
+  additionalProperties: true
+  properties:
+    sourceName:
+      type: string
+      description: Current attributable source label.
+      nullable: true
+    effectiveName:
+      type: string
+      description: Current display name.
+    manualName:
+      type: string
+      description: Current full/display name customization; null means the automatic name applies.
+      nullable: true
+    effectiveShortName:
+      type: string
+      description: Team/pool short name if available; omitted for a club.
+    manualShortName:
+      type: string
+      description:
+        Independent team/pool short customization; null means the automatic name applies; omitted for
+        a club.
+      nullable: true
+  required:
+    - sourceName
+    - effectiveName
+    - manualName
+LogoPresentationResponse:
+  title: LogoPresentationResponse
+  type: object
+  description:
+    Effective artwork projection. URLs designate backend-controlled image delivery subject
+    to current access rules; provider URLs are not public proxies.
+  additionalProperties: true
+  properties:
+    effectiveUrl:
+      type: string
+      description: Resolved valid image URL; null represents the ordinary missing-artwork state.
+      format: uri-reference
+      nullable: true
+    manualUrl:
+      type: string
+      description: Current manual image, if any.
+      format: uri-reference
+      nullable: true
+    automaticUrl:
+      type: string
+      description: >-
+        Current team fallback, independent of manual artwork: LNV then the associated club for
+        professionals, or the club for other teams. Null for a club, a division or when no fallback is
+        available.
+      format: uri-reference
+      nullable: true
+  required:
+    - effectiveUrl
+    - manualUrl
+    - automaticUrl
+SportingPresentationResponse:
+  title: SportingPresentationResponse
+  type: object
+  description: >-
+    Club or team names, effective and manual logo values. Team club
+    associations are not editable through this projection.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+    kind:
+      $ref: "#/SportingResourceKindEnum"
+    names:
+      $ref: "#/NamePresentationResponse"
+    logo:
+      $ref: "#/LogoPresentationResponse"
+  required:
+    - id
+    - kind
+    - names
+    - logo
+SetClubPresentationRequest:
+  title: SetClubPresentationRequest
+  type: object
+  description: Set the manual club display name and logo action; source values, contacts and identity remain unchanged.
+  additionalProperties: false
+  properties:
+    manualName:
+      type: string
+      description:
+        Null restores the current automatic name. Empty string is invalid; whitespace-only
+        input is rejected.
+      nullable: true
+      minLength: 1
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - manualName
+    - logoAction
+SetTeamPresentationRequest:
+  title: SetTeamPresentationRequest
+  type: object
+  description:
+    Set independent team name customizations and the manual logo action. Clearing one field
+    never implicitly clears another.
+  additionalProperties: false
+  properties:
+    manualName:
+      type: string
+      description: Null restores current automatic full name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    manualShortName:
+      type: string
+      description: Null restores current automatic short name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - manualName
+    - manualShortName
+    - logoAction
+SetPoolPresentationRequest:
+  title: SetPoolPresentationRequest
+  type: object
+  description: Set independent pool full/short name customizations; no image or logo action.
+  additionalProperties: false
+  properties:
+    manualName:
+      type: string
+      description: Null restores current automatic full name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    manualShortName:
+      type: string
+      description: Null restores current automatic short name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+  required:
+    - manualName
+    - manualShortName
+PoolPresentationResponse:
+  title: PoolPresentationResponse
+  type: object
+  description: Current pool name presentation.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+    names:
+      $ref: "#/NamePresentationResponse"
+  required:
+    - id
+    - names
+ContactFieldRequest:
+  title: ContactFieldRequest
+  type: object
+  description:
+    One desired contact mode. value is required and nonempty only for manual; forbidden
+    for source or hidden. No history of former values.
+  additionalProperties: false
+  properties:
+    mode:
+      $ref: "#/ContactModeEnum"
+    value:
+      type: string
+      description: Manual value validated for this field and current privacy rules.
+      minLength: 1
+  required:
+    - mode
+ContactFieldResponse:
+  title: ContactFieldResponse
+  type: object
+  description:
+    Authorized current value and management mode. Privacy-restricted values remain null
+    even in manual mode.
+  additionalProperties: true
+  properties:
+    mode:
+      $ref: "#/ContactModeEnum"
+    effectiveValue:
+      type: string
+      description: Currently permitted value; null means absent.
+      nullable: true
+    sourceValue:
+      type: string
+      description: Currently eligible source value; null means absent/restricted.
+      nullable: true
+    manualValue:
+      type: string
+      description: Currently eligible manual value; null outside manual mode or when restricted.
+      nullable: true
+  required:
+    - mode
+    - effectiveValue
+    - sourceValue
+    - manualValue
+SetClubContactsRequest:
+  title: SetClubContactsRequest
+  type: object
+  description:
+    Set desired state only for supplied fields. Omitted fields are unchanged. At least
+    one field is required. This application/json change document replaces
+    each supplied field mode atomically; it is not JSON Merge Patch or JSON Patch. Null field
+    objects are invalid; use source or hidden mode instead.
+  additionalProperties: false
+  properties:
+    address:
+      $ref: "#/ContactFieldRequest"
+    city:
+      $ref: "#/ContactFieldRequest"
+    postalCode:
+      $ref: "#/ContactFieldRequest"
+    email:
+      $ref: "#/ContactFieldRequest"
+    phone:
+      $ref: "#/ContactFieldRequest"
+    website:
+      $ref: "#/ContactFieldRequest"
+ClubContactsResponse:
+  title: ClubContactsResponse
+  type: object
+  description: Current independently managed club contacts; no personal data in error details or diagnostics.
+  additionalProperties: true
+  properties:
+    clubId:
+      type: string
+      description: Stable club identity.
+      format: uuid
+    address:
+      $ref: "#/ContactFieldResponse"
+    city:
+      $ref: "#/ContactFieldResponse"
+    postalCode:
+      $ref: "#/ContactFieldResponse"
+    email:
+      $ref: "#/ContactFieldResponse"
+    phone:
+      $ref: "#/ContactFieldResponse"
+    website:
+      $ref: "#/ContactFieldResponse"
+  required:
+    - clubId
+    - address
+    - city
+    - postalCode
+    - email
+    - phone
+    - website
+CreateDivisionRequest:
+  title: CreateDivisionRequest
+  type: object
+  description: >-
+    Name, colors and logo action used when creating an active division.
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      $ref: ../../common/scalars.yaml#/SrgbColor
+    gradient:
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - name
+    - color
+    - gradient
+    - logoAction
+SetDivisionPresentationRequest:
+  title: SetDivisionPresentationRequest
+  type: object
+  description: >-
+    Division name, colors and logo action; activity remains
+    unchanged.
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      $ref: ../../common/scalars.yaml#/SrgbColor
+    gradient:
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - name
+    - color
+    - gradient
+    - logoAction
+DivisionResponse:
+  title: DivisionResponse
+  type: object
+  description: Division identity, presentation and independent lifecycle.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable division identity.
+      format: uuid
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      $ref: ../../common/scalars.yaml#/SrgbColor
+    gradient:
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
+    logo:
+      $ref: "#/LogoPresentationResponse"
+    active:
+      type: boolean
+      description: Explicit lifecycle state; presentation writes never change it.
+  required:
+    - id
+    - name
+    - color
+    - gradient
+    - logo
+    - active
+DivisionListResponse:
+  title: DivisionListResponse
+  type: object
+  description:
+    Administrative selection list; all matching configured divisions, ordered by case-folded
+    name then UUID. No pagination is needed for this configuration list.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Divisions matching includeInactive.
+      items:
+        $ref: "#/DivisionResponse"
+  required:
+    - items
+SetDivisionActivityRequest:
+  title: SetDivisionActivityRequest
+  type: object
+  description: Explicit lifecycle command separate from presentation. Never deletes sporting history.
+  additionalProperties: false
+  properties:
+    active:
+      type: boolean
+      description:
+        Desired activity; lifting inactivity leaves independent hiding/eligibility reasons
+        intact.
+  required:
+    - active
+LogoActionEnum:
+  title: LogoActionEnum
+  type: string
+  description: Desired logo behavior within the single editor save.
+  enum:
+    - keep
+    - replace
+    - automatic
+AcquisitionClassificationRequest:
+  title: AcquisitionClassificationRequest
+  type: object
+  description: >-
+    Null removes this pack default or pool override. A pool then inherits its pack default, if
+    any. Missing acquisition classification does not erase the classification of published
+    data.
+  additionalProperties: false
+  properties:
+    divisionId:
+      type: string
+      description: Active division for a new assignment.
+      format: uuid
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - divisionId
+    - format
+    - gender
+  nullable: true
+AcquisitionClassificationResponse:
+  title: AcquisitionClassificationResponse
+  type: object
+  description: Complete acquisition classification; null means unavailable. The setting field holds the pack default or pool override; effective holds the current inherited value.
+  additionalProperties: true
+  properties:
+    divisionId:
+      type: string
+      description: Division identity.
+      format: uuid
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - divisionId
+    - format
+    - gender
+  nullable: true

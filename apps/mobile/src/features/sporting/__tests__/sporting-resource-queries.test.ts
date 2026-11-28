@@ -1,0 +1,108 @@
+import { createConsultationQueries } from "../api/consultation-queries";
+import { createQueryClient } from "@/shared/query/query-client";
+import { sportingId, matchDetail } from "../test-support/consultation-data";
+
+const mockFetch = jest.fn();
+// Native decoding is controlled; generated HTTP requests, cancellation and Query caching remain real.
+jest.mock("@/shared/api/binary-image-preview", () => ({
+  binaryImagePreview: jest.fn(async () => "data:image/png;base64,c3ludGhldGlj"),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (...args: unknown[]) => mockFetch(...args),
+}));
+const originalUrl = process.env.EXPO_PUBLIC_API_URL;
+beforeEach(() => {
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  mockFetch.mockReset();
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
+});
+
+/** Uses real session and admission preparation while controlling only the network boundary. */
+function publicQueries() {
+  const session = { subject: null, accountId: null };
+  return createConsultationQueries(
+    session,
+    { request: (options) => options },
+    jest.fn(),
+  );
+}
+
+it("keeps automatic and effective logo selections in distinct generated query entries", async () => {
+  // Given
+  const queries = publicQueries();
+  const client = createQueryClient();
+  mockFetch.mockResolvedValue(
+    new Response("synthetic-image", {
+      headers: { "Content-Type": "image/png" },
+    }),
+  );
+  try {
+    // When
+    const result = await client.query(
+      queries.teamLogo(sportingId, "automatic"),
+    );
+
+    // Then
+    expect(result).toBe("data:image/png;base64,c3ludGhldGlj");
+    expect(mockFetch.mock.calls[0][0]).toContain("selection=automatic");
+    expect(queries.teamLogo(sportingId, "automatic").queryKey).not.toEqual(
+      queries.teamLogo(sportingId, "effective").queryKey,
+    );
+  } finally {
+    client.clear();
+  }
+});
+
+it.each(["team", "pool"] as const)(
+  "rejects an invalid %s representation before successful cache admission",
+  async (kind) => {
+    // Given
+    const client = createQueryClient();
+    const queries = publicQueries();
+    const options =
+      kind === "team" ? queries.team(sportingId) : queries.pool(sportingId);
+    mockFetch.mockResolvedValue(Response.json({ [kind]: { id: sportingId } }));
+    try {
+      // When
+      const result =
+        kind === "team"
+          ? client.query(queries.team(sportingId))
+          : client.query(queries.pool(sportingId));
+
+      // Then
+      await expect(result).rejects.toMatchObject({ kind: "schema" });
+      expect(client.getQueryData(options.queryKey)).toBeUndefined();
+    } finally {
+      client.clear();
+    }
+  },
+);
+
+it("accepts an owner date without inventing a missing source time zone", async () => {
+  // Given
+  const client = createQueryClient();
+  const body = matchDetail();
+  const schedule = { ...body.match.schedule };
+  delete schedule.timeZone;
+  mockFetch.mockResolvedValue(
+    Response.json({ ...body, match: { ...body.match, schedule } }),
+  );
+  try {
+    // When
+    const result = await client.query(publicQueries().match(sportingId));
+
+    // Then
+    expect(result.match.schedule.localDate).toBe("2026-10-25");
+    expect(result.match.schedule.timeZone).toBeUndefined();
+    expect(result.match.schedule.instant).toBeUndefined();
+  } finally {
+    client.clear();
+  }
+});

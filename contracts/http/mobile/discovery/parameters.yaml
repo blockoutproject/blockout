@@ -1,0 +1,50 @@
+Query:
+  name: q
+  in: query
+  required: false
+  description:
+    Text to match. Absent, empty or whitespace-only text selects examples.
+    Nonempty text selects paginated search without truncation or a separate term limit.
+  schema:
+    $ref: ../../common/scalars.yaml#/SearchQueryText
+Cursor:
+  name: cursor
+  in: query
+  required: false
+  description: Opaque native position for nonempty-text traversal; reuse with the same criteria. Cross-context reuse can skip results and grants no access. Forbidden for examples.
+  schema:
+    type: string
+    description: Value returned by nextCursor; clients must not interpret or construct it.
+    minLength: 1
+DiscoverySeason:
+  name: seasonId
+  in: query
+  required: false
+  description: Restrict to this season; omission includes all viewable seasons. Unknown or ineligible identities yield no matches.
+  schema:
+    type: string
+    description: Stable sporting season identity.
+    format: uuid
+Division:
+  name: divisionId
+  in: query
+  required: false
+  description: Restrict to this active division; omission adds no division filter. Unknown or inactive identities yield no matches.
+  schema:
+    type: string
+    description: Stable division identity.
+    format: uuid
+Format:
+  name: format
+  in: query
+  required: false
+  description: Exact sporting format; omission adds no format filter.
+  schema:
+    $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+Gender:
+  name: gender
+  in: query
+  required: false
+  description: Exact sporting gender classification; omission adds no gender filter.
+  schema:
+    $ref: ../../common/sporting-enums.yaml#/SportGenderEnum

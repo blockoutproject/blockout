@@ -1,0 +1,528 @@
+package com.blockout.backend.access.infrastructure;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.blockout.backend.access.application.AccessSettingsStore;
+import com.blockout.backend.access.application.ReadAccessConfiguration;
+import com.blockout.backend.access.application.UpdateAccessSettings;
+import com.blockout.backend.access.application.UpdateAccessSettings.MaintenanceChange;
+import com.blockout.backend.access.application.UpdateAccessSettings.PlatformChange;
+import com.blockout.backend.access.application.UpdateAccessSettings.VersionChange;
+import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
+import com.blockout.backend.access.domain.ApplicationVersionSettings;
+import com.blockout.backend.access.domain.InvalidAccessSettingsException;
+import com.blockout.backend.access.domain.MaintenanceSettings;
+import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/** Migrated PostgreSQL, actual JPA versions, account locks and proxied application transactions. */
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
+@DisplayName("Atomic access settings PostgreSQL persistence")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class AccessSettingsIntegrationTest {
+  @Autowired private JdbcTemplate sql;
+  @Autowired private UpdateAccessSettings updates;
+  @Autowired private ReadAccessConfiguration reads;
+  @Autowired private AccessSettingsStore store;
+  @Autowired private AccountStore accounts;
+  @Autowired private PlatformTransactionManager transactions;
+  @Autowired private EntityManagerFactory entityManagerFactory;
+  private TransactionTemplate transaction;
+  private UUID first;
+  private UUID second;
+
+  /** Restores only this container's fixture rows without resetting a database or schema. */
+  @BeforeEach
+  void prepareEditors() {
+    transaction = new TransactionTemplate(transactions);
+    sql.update("DELETE FROM account");
+    sql.update(
+        "UPDATE access_settings SET revision=0, active=false, message='Prepared', image_url=NULL WHERE id='maintenance'");
+    sql.update(
+        "UPDATE access_settings SET revision=0, message=NULL, ios_minimum_version=NULL, ios_store_url=NULL, android_minimum_version=NULL, android_store_url=NULL WHERE id='versions'");
+    first =
+        transaction.execute(
+            s ->
+                accounts
+                    .create(
+                        "https://identity.example.invalid/",
+                        "auth0|first",
+                        "First_175",
+                        "first@example.invalid")
+                    .id());
+    second =
+        transaction.execute(
+            s ->
+                accounts
+                    .create(
+                        "https://identity.example.invalid/",
+                        "auth0|second",
+                        "Second_175",
+                        "second@example.invalid")
+                    .id());
+    sql.update(
+        "INSERT INTO account_permission(account_id,permission) VALUES (?, 'maintenance.manage'), (?, 'application-versions.manage'), (?, 'maintenance.manage'), (?, 'application-versions.manage')",
+        first,
+        first,
+        second,
+        second);
+  }
+
+  @Test
+  @DisplayName("Refuses a settings write without its application transaction")
+  void requiresWriteTransaction() {
+    // Given
+    MaintenanceSettings changed = new MaintenanceSettings(true, "Changed", null);
+
+    // When / Then
+    assertThatThrownBy(() -> store.saveMaintenance(changed))
+        .isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(store.maintenance()).isEqualTo(new MaintenanceSettings(false, "Prepared", null));
+  }
+
+  @Test
+  @DisplayName("Seeds exactly two independently versioned fixed groups")
+  void readsFixedGroups() {
+    // Given
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.clear();
+
+    // When
+    ReadAccessConfiguration.Snapshot result = reads.read();
+
+    // Then
+    assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+    assertThat(result.maintenance().active()).isFalse();
+    assertThat(result.versions().ios().minimumVersion()).isNull();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM access_settings", Long.class)).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Reads protected settings while an account profile change holds its row lock")
+  void readsDuringAccountChange() {
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      transaction.executeWithoutResult(
+          state -> {
+            // Given
+            sql.queryForObject("SELECT id FROM account WHERE id = ? FOR UPDATE", UUID.class, first);
+
+            // When
+            Future<ReadAccessConfiguration.Snapshot> read =
+                worker.submit(
+                    () ->
+                        new ReadAccessConfiguration.Snapshot(
+                            reads.maintenance(first), reads.versions(first)));
+
+            // Then
+            try {
+              ReadAccessConfiguration.Snapshot result = read.get(15, TimeUnit.SECONDS);
+              assertThat(result.maintenance().message()).isEqualTo("Prepared");
+              assertThat(result.versions().message()).isNull();
+            } catch (Exception failure) {
+              throw new IllegalStateException(
+                  "Protected read waited for the account lock", failure);
+            }
+          });
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = Permission.class,
+      names = {"MANAGE_MAINTENANCE", "MANAGE_APPLICATION_VERSIONS"})
+  @DisplayName("Refuses a private settings group after its current grant is withdrawn")
+  void refusesReadAfterWithdrawal(Permission permission) {
+    // Given
+    assertThat(reads.maintenance(first).message()).isEqualTo("Prepared");
+    assertThat(reads.versions(first).message()).isNull();
+    sql.update(
+        "DELETE FROM account_permission WHERE account_id = ? AND permission = ?",
+        first,
+        permission.getValue());
+
+    // When
+    ThrowingCallable read =
+        permission == Permission.MANAGE_MAINTENANCE
+            ? () -> reads.maintenance(first)
+            : () -> reads.versions(first);
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Saving content retains activation and leaves the versions group untouched")
+  void preservesActivation(boolean active) {
+    // Given
+    updates.activate(first, active);
+
+    // When
+    MaintenanceSettings saved =
+        updates.changeMaintenance(
+            first,
+            new MaintenanceChange(
+                "  New message  ",
+                JsonNullable.of("https://assets.example.invalid/maintenance.png")));
+
+    // Then
+    assertThat(saved.active()).isEqualTo(active);
+    assertThat(saved.message()).isEqualTo("New message");
+    assertThat(reads.versions(first).message()).isNull();
+    assertThat(reads.read().maintenance().message()).isEqualTo("New message");
+  }
+
+  @Test
+  @DisplayName(
+      "An older maintenance draft replaces only its submitted content under current grants")
+  void appliesOlderMaintenanceDraft() {
+    // Given
+    MaintenanceChange older = content("Older draft");
+    updates.changeMaintenance(first, content("Newer saved value"));
+    updates.activate(first, true);
+
+    // When
+    MaintenanceSettings saved = updates.changeMaintenance(second, older);
+
+    // Then
+    assertThat(saved.message()).isEqualTo("Older draft");
+    assertThat(saved.active()).isTrue();
+    assertThat(reads.maintenance(first)).isEqualTo(saved);
+  }
+
+  @Test
+  @DisplayName("Null clears only the image and omission keeps the content")
+  void clearsOptionalImage() {
+    // Given
+    updates.changeMaintenance(
+        first,
+        new MaintenanceChange(null, JsonNullable.of("https://assets.example.invalid/a.png")));
+
+    // When
+    MaintenanceSettings saved =
+        updates.changeMaintenance(first, new MaintenanceChange(null, JsonNullable.of(null)));
+
+    // Then
+    assertThat(saved.imageUrl()).isNull();
+    assertThat(saved.message()).isEqualTo("Prepared");
+    assertThat(saved.active()).isFalse();
+  }
+
+  @Test
+  @DisplayName("Validates the entire resulting versions group before any write")
+  void rejectsPartialInvalidResult() {
+    // Given
+    VersionChange valid =
+        new VersionChange(
+            new PlatformChange(
+                JsonNullable.of("2.10.0"),
+                JsonNullable.of("https://apps.apple.com/fr/app/blockout/id123")),
+            null,
+            JsonNullable.of("Update"));
+    ApplicationVersionSettings saved = updates.changeVersions(first, valid);
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                updates.changeVersions(
+                    first,
+                    new VersionChange(
+                        new PlatformChange(JsonNullable.undefined(), JsonNullable.of(null)),
+                        new PlatformChange(
+                            JsonNullable.of("3.0.0"),
+                            JsonNullable.of(
+                                "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
+                        JsonNullable.of(null))))
+        .isInstanceOf(InvalidAccessSettingsException.class);
+    assertThat(reads.versions(first)).isEqualTo(saved);
+  }
+
+  @Test
+  @DisplayName("An older disjoint platform edit preserves the currently saved other platform")
+  void preservesDisjointPlatforms() {
+    // Given
+    VersionChange olderAndroid =
+        new VersionChange(
+            null,
+            new PlatformChange(
+                JsonNullable.of("3.0.0"),
+                JsonNullable.of(
+                    "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
+            JsonNullable.undefined());
+    updates.changeVersions(
+        first,
+        new VersionChange(
+            new PlatformChange(
+                JsonNullable.of("2.0.0"), JsonNullable.of("https://apps.apple.com/app/id123")),
+            null,
+            JsonNullable.of("Current shared message")));
+
+    // When
+    ApplicationVersionSettings saved = updates.changeVersions(second, olderAndroid);
+
+    // Then
+    assertThat(saved.ios().minimumVersion()).isEqualTo("2.0.0");
+    assertThat(saved.android().minimumVersion()).isEqualTo("3.0.0");
+    assertThat(saved.message()).isEqualTo("Current shared message");
+  }
+
+  @Test
+  @DisplayName("Concurrent same-group writes retain native JPA optimistic exclusion")
+  void excludesConcurrentCommit() throws Exception {
+    // Given
+    CyclicBarrier loaded = new CyclicBarrier(2);
+
+    // When
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      Future<?> a = workers.submit(() -> concurrentContent(first, "First", loaded));
+      Future<?> b = workers.submit(() -> concurrentContent(second, "Second", loaded));
+      int accepted = 0;
+      int conflicts = 0;
+      for (Future<?> result : java.util.List.of(a, b)) {
+        try {
+          result.get(15, TimeUnit.SECONDS);
+          accepted++;
+        } catch (ExecutionException failure) {
+          assertThat(failure.getCause()).isInstanceOf(OptimisticLockingFailureException.class);
+          conflicts++;
+        }
+      }
+      // Then
+      assertThat(accepted).isEqualTo(1);
+      assertThat(conflicts).isEqualTo(1);
+    }
+    assertThat(
+            sql.queryForObject(
+                "SELECT revision FROM access_settings WHERE id = 'maintenance'", Long.class))
+        .isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Concurrent independent-group writes both succeed")
+  void permitsIndependentGroups() throws Exception {
+    // Given
+    CyclicBarrier loaded = new CyclicBarrier(2);
+
+    // When
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      Future<?> maintenance =
+          workers.submit(
+              () ->
+                  transaction.executeWithoutResult(
+                      s -> {
+                        store.maintenance();
+                        awaitBoth(loaded);
+                        updates.changeMaintenance(first, content("Independent"));
+                      }));
+      Future<?> versions =
+          workers.submit(
+              () ->
+                  transaction.executeWithoutResult(
+                      s -> {
+                        store.versions();
+                        awaitBoth(loaded);
+                        updates.changeVersions(
+                            second,
+                            new VersionChange(null, null, JsonNullable.of("Independent update")));
+                      }));
+      maintenance.get(15, TimeUnit.SECONDS);
+      versions.get(15, TimeUnit.SECONDS);
+    }
+
+    // Then
+    assertThat(
+            sql.queryForObject(
+                "SELECT revision FROM access_settings WHERE id = 'maintenance'", Long.class))
+        .isEqualTo(1);
+    assertThat(reads.versions(first).message()).isEqualTo("Independent update");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"maintenance", "versions"})
+  @DisplayName("A missing group is unavailable instead of synthesized defaults")
+  void refusesMissingSettings(String group) {
+    // Given
+    sql.update("DELETE FROM access_settings WHERE id=?", group);
+    try {
+      // When / Then
+      assertThatThrownBy(reads::read).isInstanceOf(AccessSettingsUnavailableException.class);
+    } finally {
+      // Restore the disposable fixture for the next method without rerunning migrations.
+      sql.update(
+          "INSERT INTO access_settings(id, revision, active, message) VALUES (?,0,?,?)",
+          group,
+          group.equals("maintenance") ? false : null,
+          group.equals("maintenance") ? "Prepared" : null);
+    }
+  }
+
+  @Test
+  @DisplayName("Invalid stored configuration fails closed even when maintenance is inactive")
+  void refusesInvalidStoredSettings() {
+    // Given
+    sql.update("UPDATE access_settings SET message='   ' WHERE id='maintenance'");
+
+    // When / Then
+    assertThatThrownBy(reads::read).isInstanceOf(AccessSettingsUnavailableException.class);
+  }
+
+  @Test
+  @DisplayName("A revoked original editor cannot change settings")
+  void refusesRevokedEditor() {
+    // Given
+    sql.update("DELETE FROM account_permission WHERE account_id=?", first);
+
+    // When / Then
+    assertThatThrownBy(() -> updates.changeMaintenance(first, content("Refused")))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThat(reads.maintenance(second).message()).isEqualTo("Prepared");
+  }
+
+  @Test
+  @DisplayName("A manual withdrawal ordered first refuses the blocked settings mutation")
+  void refusesWaitingEditorAfterWithdrawal() throws Exception {
+    // Given
+    CompletableFuture<Integer> mutationPid = new CompletableFuture<>();
+
+    // When
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<?> mutation =
+          transaction.execute(
+              state -> {
+                sql.queryForObject(
+                    "SELECT id FROM account WHERE id = ? FOR UPDATE", UUID.class, first);
+                Future<?> pending =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                write -> {
+                                  mutationPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  updates.changeMaintenance(
+                                      first, content("Refused after withdrawal"));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, mutationPid);
+                sql.update(
+                    "DELETE FROM account_permission WHERE account_id = ? AND permission = 'maintenance.manage'",
+                    first);
+                return pending;
+              });
+
+      // Then
+      assertThatThrownBy(() -> mutation.get(15, TimeUnit.SECONDS))
+          .hasCauseInstanceOf(AccessDeniedException.class);
+      assertThat(reads.maintenance(second).message()).isEqualTo("Prepared");
+    }
+  }
+
+  @Test
+  @DisplayName("An authorized settings mutation commits before a waiting withdrawal")
+  void completesEditorBeforeWithdrawal() throws Exception {
+    // Given
+    CompletableFuture<Integer> withdrawalPid = new CompletableFuture<>();
+
+    // When
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<?> withdrawal =
+          transaction.execute(
+              state -> {
+                updates.changeMaintenance(first, content("Accepted before withdrawal"));
+                Future<?> pending =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                revoke -> {
+                                  withdrawalPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  sql.queryForObject(
+                                      "SELECT id FROM account WHERE id = ? FOR UPDATE",
+                                      UUID.class,
+                                      first);
+                                  sql.update(
+                                      "DELETE FROM account_permission WHERE account_id = ? AND permission = 'maintenance.manage'",
+                                      first);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, withdrawalPid);
+                return pending;
+              });
+      withdrawal.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(reads.maintenance(second).message()).isEqualTo("Accepted before withdrawal");
+      assertThatThrownBy(() -> updates.activate(first, true))
+          .isInstanceOf(AccessDeniedException.class);
+    }
+  }
+
+  /**
+   * Loads the old managed state in both transactions before either attempts its application write.
+   *
+   * @param editor independently authorized fixture account
+   * @param message desired competing content
+   * @param loaded barrier retaining both original revisions before either write
+   */
+  private void concurrentContent(UUID editor, String message, CyclicBarrier loaded) {
+    transaction.executeWithoutResult(
+        s -> {
+          store.maintenance();
+          awaitBoth(loaded);
+          updates.changeMaintenance(editor, content(message));
+        });
+  }
+
+  /**
+   * Establishes a deterministic overlapping transaction window without sleeps.
+   *
+   * @param barrier both transactions' rendezvous after loading the old revision
+   */
+  private static void awaitBoth(CyclicBarrier barrier) {
+    try {
+      barrier.await(10, TimeUnit.SECONDS);
+    } catch (Exception failure) {
+      throw new IllegalStateException("Concurrent fixture failed", failure);
+    }
+  }
+
+  /**
+   * Keeps desired content explicit while omitting the optional image.
+   *
+   * @param message desired content for the scenario
+   * @return a content-only command retaining stored media
+   */
+  private static MaintenanceChange content(String message) {
+    return new MaintenanceChange(message, JsonNullable.undefined());
+  }
+}

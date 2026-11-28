@@ -1,0 +1,11 @@
+MaintenanceBypass:
+  name: Blockout-Maintenance-Bypass
+  in: header
+  required: false
+  description:
+    Explicit temporary personal bypass intent. Only true requests bypass; it still requires a valid mobile
+    token, usable account and current bypass permission. It grants no business permission or minimum-version exception.
+    Omit for ordinary use.
+  schema:
+    type: boolean
+    default: false

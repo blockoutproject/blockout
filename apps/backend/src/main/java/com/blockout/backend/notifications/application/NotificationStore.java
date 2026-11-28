@@ -1,0 +1,63 @@
+package com.blockout.backend.notifications.application;
+
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
+import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/** F07 announcement facts, personal allocations and live candidate selection. */
+public interface NotificationStore {
+  /**
+   * Selects active-link matches whose live allowance has not been consumed in a short read
+   * transaction. The caller rechecks current eligibility under the sporting locks.
+   *
+   * @param afterId exclusive last visited match UUID, or null for the first page
+   * @param limit maximum page size
+   * @return candidate identities in database UUID order
+   */
+  List<UUID> liveLinkCandidates(UUID afterId, int limit);
+
+  /**
+   * Deletes all personal rows at the inclusive cutoff across owners/read/visibility states. The
+   * caller owns one retention transaction; facts and installation associations are untouched.
+   *
+   * @param cutoff inclusive original creation cutoff, calculated once for this pass
+   * @return affected row count; successful return alone does not establish commit
+   */
+  int deleteExpired(Instant cutoff);
+
+  /**
+   * Applies only true to an exact still-retained allocation after sporting and account locks.
+   * Repetition succeeds; a removed row is never recreated.
+   *
+   * @param owner locked original owner
+   * @param id exact personal allocation
+   * @param now retention evaluation instant
+   * @return whether the exact retained allocation still exists
+   */
+  boolean markRead(NotificationContext owner, UUID id, Instant now);
+
+  /**
+   * Reads minimal allowances after the caller holds the shared F02 match lock.
+   *
+   * @param matchId locked sporting identity
+   * @return persisted facts, or unconsumed facts when absent
+   */
+  MatchAnnouncementFacts facts(UUID matchId);
+
+  /**
+   * Persists monotone consumed facts even when no recipient exists; failures must propagate.
+   *
+   * @param facts facts computed under the retained match lock
+   */
+  void saveFacts(MatchAnnouncementFacts facts);
+
+  /**
+   * Inserts one unread personal entry under its original account lock; failures abort this match.
+   * An existing UUID must fail rather than merge into a retained entry or reset its read state.
+   *
+   * @param entry immutable allocation with no copied sporting text
+   */
+  void create(Entry entry);
+}

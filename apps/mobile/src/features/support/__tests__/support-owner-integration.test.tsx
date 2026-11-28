@@ -1,0 +1,809 @@
+import type { ComponentType } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, Text, type AppStateStatus } from "react-native";
+import {
+  act,
+  cleanup,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { focusManager, onlineManager } from "@tanstack/react-query";
+import { Stack, router } from "expo-router";
+import { renderRouter } from "expo-router/testing-library";
+import RootLayout from "@/app/_layout";
+import AccessRoute from "@/app/access";
+import NotFoundRoute from "@/app/+not-found";
+import OnboardingRoute from "@/app/onboarding";
+import OperationsLayout from "@/app/(operations)/_layout";
+import AdministrationRoute from "@/app/(operations)/administration";
+import ProfileRoute from "@/app/(ordinary)/(tabs)/(profile)/profile/index";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportRoute from "@/app/(recovery)/support/index";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import EntryRoute from "@/app/index";
+import type { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
+
+// Root, F14 initialization, Auth0 JS, F05/Query, F12 guards, RHF and generated transport are real.
+// Only native SDK/storage/manifest/rendering and Fetch I/O are controlled.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("expo-application", () => ({ nativeApplicationVersion: "2.9.0" }));
+jest.mock("expo-constants", () => {
+  const actual = jest.requireActual("expo-constants");
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      ...actual.default,
+      expoConfig: {
+        ...actual.default.expoConfig,
+        extra: {
+          ...actual.default.expoConfig?.extra,
+          router: { sitemap: false },
+        },
+      },
+    },
+  };
+});
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
+}));
+
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+const supportHttp = jest.fn<Promise<Response>, [RequestInit?]>();
+const accountHttp = jest.fn<Promise<Response>, []>();
+const accessHttp = jest.fn<Promise<Response>, []>();
+const environment = { ...process.env };
+const targetId = "00000000-0000-4000-8000-000000000298";
+let access = applicationAccessResponse();
+let account = accountResponse();
+
+beforeEach(async () => {
+  jest.useFakeTimers();
+  Object.assign(process.env, {
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "support-owner-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "support-owner-test",
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+  });
+  await AsyncStorage.clear();
+  await AsyncStorage.multiSet([
+    ["blockout:v2-initialized", "true"],
+    ["blockout:v2-discovery-complete", "true"],
+  ]);
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|A"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset();
+  access = applicationAccessResponse();
+  account = accountResponse();
+  accessHttp.mockReset().mockImplementation(async () => Response.json(access));
+  accountHttp
+    .mockReset()
+    .mockImplementation(async () => Response.json(account));
+  supportHttp
+    .mockReset()
+    .mockResolvedValue(Response.json({ requestId: targetId }, { status: 201 }));
+  mockFetch.mockReset().mockImplementation(async (url, options) => {
+    const path = new URL(String(url)).pathname;
+    if (path === "/application-access") {
+      return accessHttp();
+    }
+    if (path === "/accounts/me") {
+      return accountHttp();
+    }
+    if (path === "/support-requests") {
+      return supportHttp(options);
+    }
+    if (path === `/matches/${targetId}`) {
+      return Response.json({}, { status: 404 });
+    }
+    throw new Error(`Unexpected test destination: ${path}`);
+  });
+});
+afterEach(async () => {
+  await cleanup();
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
+  jest.restoreAllMocks();
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  process.env = { ...environment };
+});
+
+/** Mounts production public/operational root guards and F10 destinations; the ordinary business Stack remains a focused fixture. */
+async function openRoute(path: string) {
+  const view = await renderRouter(
+    {
+      _layout: () => <RootLayout />,
+      index: EntryRoute,
+      access: AccessRoute,
+      "+not-found": NotFoundRoute,
+      onboarding: OnboardingRoute,
+      "(ordinary)/_layout": () => <Stack />,
+      "(recovery)/_layout": RecoveryLayout,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Ordinary home</Text>
+      ),
+      "(ordinary)/profile": ProfileRoute,
+      "(recovery)/sign-in": SignInRoute,
+      "(ordinary)/matches/[matchId]": MatchRoute,
+      "(recovery)/support/_layout": SupportLayout,
+      "(recovery)/support/index": SupportRoute,
+      "(recovery)/support/choice": SupportChoiceRoute,
+      "(operations)/_layout": OperationsLayout,
+      "(operations)/administration/index": AdministrationRoute,
+      "(operations)/administration/maintenance": () => null,
+      "(operations)/administration/application-versions": () => null,
+      "(operations)/administration/classification/[kind]/[id]": () => null,
+      "(operations)/administration/mapping/index": () => null,
+      "(operations)/administration/mapping/[packId]": () => null,
+      "(operations)/administration/mapping/filters": () => null,
+      "(operations)/administration/divisions/index": () => null,
+      "(operations)/administration/divisions/[id]": () => null,
+      "(operations)/administration/divisions/new": () => null,
+      "(operations)/administration/presentation/[kind]/[id]": () => null,
+      "(operations)/collection": () => null,
+    },
+    { initialUrl: path },
+  );
+  // Complete native Query read recovery, including account 503 and unavailable cold-start checks.
+  await act(async () => jest.advanceTimersByTimeAsync(8_000));
+  return view;
+}
+
+/** Fills actual user-editable fields; the scenario chooses classification and explicitly sends. */
+async function fillForm() {
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Titre"), "Demande fictive");
+  await user.type(
+    screen.getByLabelText("Description"),
+    "Je déclare le compte de Camille et un achat, sans preuve.",
+  );
+  await user.clear(screen.getByLabelText("E-mail de réponse"));
+  await user.type(
+    screen.getByLabelText("E-mail de réponse"),
+    "declared@example.invalid",
+  );
+  return user;
+}
+
+/** Reads metadata from the generated client's native multipart part, without a substitute serializer. */
+async function sentMetadata(): Promise<SubmitSupportRequest> {
+  const body = supportHttp.mock.calls[0][0]?.body as FormData;
+  return JSON.parse(await (body.get("metadata") as Blob).text());
+}
+
+/** Delivers a native foreground event to the production observers registered during the test. */
+function mockForegroundEvent() {
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((event, listener) => {
+      if (event === "change") {
+        listeners.add(listener);
+      }
+      return { remove: () => listeners.delete(listener) };
+    });
+  return () => act(() => listeners.forEach((listener) => listener("active")));
+}
+
+it("closes Assistance from its header and returns to the originating profile", async () => {
+  // Given
+  await openRoute("/profile");
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Assistance et suggestions" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("DEPUIS CET ÉCRAN")).toBeOnTheScreen();
+  expect(screen.getByText("Profil")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen).toHavePathname("/profile");
+  expect(
+    await screen.findByRole("header", { name: "Mon profil" }),
+  ).toBeOnTheScreen();
+});
+
+it("closes an invalid choice route back to the retained draft without a fictional retry", async () => {
+  // Given
+  await openRoute("/support");
+  const user = await fillForm();
+
+  // When
+  await act(() => router.push("/support/choice?field=unknown"));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Ce choix n’est pas disponible. Fermez cette fenêtre pour revenir au formulaire.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(supportHttp).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen).toHavePathname("/support");
+  expect(screen.getByDisplayValue("Demande fictive")).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("declared@example.invalid"),
+  ).toBeOnTheScreen();
+});
+
+it.each(["guest", "signed-in", "profile-unavailable"])(
+  "keeps the Profile help entry and ordinary sending available to %s without acquiring action credentials",
+  async (identity) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(identity !== "guest");
+    if (identity === "profile-unavailable") {
+      accountHttp.mockResolvedValue(Response.json({}, { status: 503 }));
+    }
+    await openRoute("/profile");
+    if (identity === "profile-unavailable") {
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+    } else if (identity === "signed-in") {
+      expect(await screen.findByText(account.username)).toBeOnTheScreen();
+    }
+    const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
+    const requestsBeforeSupport = mockFetch.mock.calls.length;
+    const user = userEvent.setup();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+    await screen.findByLabelText("Titre");
+    expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue(
+      identity === "signed-in" ? account.email : "",
+    );
+    await fillForm();
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer la demande" }),
+    );
+
+    // Then
+    await screen.findByRole("header", { name: "Demande reçue" });
+    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(
+      credentialsBeforeSupport,
+    );
+    const headers = new Headers(supportHttp.mock.calls[0][0]?.headers);
+    expect(headers.has("Authorization")).toBe(false);
+    expect(headers.has("Blockout-Maintenance-Bypass")).toBe(false);
+    expect(
+      mockFetch.mock.calls
+        .slice(requestsBeforeSupport)
+        .map(([url]) => new URL(String(url)).pathname),
+    ).toEqual(["/support-requests"]);
+    expect(await sentMetadata()).toMatchObject({
+      kind: "problem",
+      replyEmail: "declared@example.invalid",
+      context: { screen: "Profil" },
+    });
+    expect((await sentMetadata()).context.accountId).toBe(
+      identity === "signed-in" ? account.accountId : undefined,
+    );
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(mockAuth0.saveCredentials).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps the open Support draft when the signed-in account first becomes known", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const firstAccount = Promise.withResolvers<Response>();
+  accountHttp.mockReturnValueOnce(firstAccount.promise);
+  await openRoute("/support");
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Titre"), "Commencé avant la lecture");
+
+  // When
+  await act(() => firstAccount.resolve(Response.json(account)));
+
+  // Then
+  await screen.findByDisplayValue(account.email);
+  expect(screen.getByLabelText("Titre")).toHaveDisplayValue(
+    "Commencé avant la lecture",
+  );
+  expect(supportHttp).not.toHaveBeenCalled();
+});
+
+it.each(["directly", "after a confirmed absence"])(
+  "discards the old draft and ignores its late receipt when the same subject gets a replacement account %s",
+  async (replacement) => {
+    // Given: the original account has sent a request whose acknowledgement is still outstanding.
+    const foreground = mockForegroundEvent();
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    const oldReceipt = Promise.withResolvers<Response>();
+    supportHttp.mockReturnValueOnce(oldReceipt.promise);
+    await openRoute("/support");
+    await screen.findByDisplayValue(account.email);
+    const user = await fillForm();
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer la demande" }),
+    );
+    await waitFor(() => expect(supportHttp).toHaveBeenCalledTimes(1));
+    expect((await sentMetadata()).context.accountId).toBe(account.accountId);
+
+    // When: foreground refreshes only the business identity; Auth0 keeps the same subject.
+    if (replacement === "after a confirmed absence") {
+      accountHttp.mockResolvedValueOnce(
+        Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      );
+      await foreground();
+      await waitFor(() =>
+        expect(screen.getByLabelText("Titre")).toHaveDisplayValue(""),
+      );
+    }
+    account = accountResponse({
+      accountId: "00000000-0000-4000-8000-000000000002",
+      email: "replacement@example.invalid",
+    });
+    await foreground();
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByLabelText("Titre")).toHaveDisplayValue(""),
+    );
+    expect(screen.getByLabelText("Description")).toHaveDisplayValue("");
+    await waitFor(() =>
+      expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue(
+        account.email,
+      ),
+    );
+
+    // When: the old server response arrives after the new owner has started a draft.
+    await user.type(screen.getByLabelText("Titre"), "Nouvelle demande");
+    await act(async () => {
+      oldReceipt.resolve(
+        Response.json({ requestId: targetId }, { status: 201 }),
+      );
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    // Then
+    expect(screen.getByLabelText("Titre")).toHaveDisplayValue(
+      "Nouvelle demande",
+    );
+    expect(screen.queryByRole("header", { name: "Demande reçue" })).toBeNull();
+    expect(supportHttp).toHaveBeenCalledTimes(1);
+  },
+);
+
+it("sends a suggestion after actual hosted sign-in failure with only safe failure metadata", async () => {
+  // Given
+  mockAuth0.webAuth.mockRejectedValue(
+    new Error(
+      "password=synthetic-secret token=synthetic-token raw-provider-output",
+    ),
+  );
+  await openRoute("/sign-in");
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+  await screen.findByRole("alert", { name: "Une erreur est survenue." });
+  const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
+
+  // When
+  await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
+  await screen.findByLabelText("Titre");
+  await fillForm();
+  await user.press(
+    screen.getByRole("button", { name: "Nature de la demande" }),
+  );
+  await user.press(
+    await screen.findByRole("radio", { name: "Suggérer une amélioration" }),
+  );
+  expect(
+    screen.getByText("Décrivez votre besoin et l’amélioration souhaitée."),
+  ).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Sujet (facultatif)" }));
+  await user.press(await screen.findByRole("radio", { name: "Sans sujet" }));
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then
+  await screen.findByRole("header", { name: "Demande reçue" });
+  const metadata = await sentMetadata();
+  expect(metadata.kind).toBe("suggestion");
+  expect(metadata).not.toHaveProperty("subject");
+  expect(metadata.context).toMatchObject({
+    screen: "Connexion",
+    action: "Connexion",
+    signInFailure: {
+      method: "hosted",
+      stage: "authentication",
+      reason: "unavailable",
+    },
+  });
+  expect(JSON.stringify(metadata)).not.toMatch(
+    /synthetic-secret|synthetic-token|raw-provider-output/,
+  );
+  expect(metadata.context).not.toHaveProperty("accountId");
+  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(
+    credentialsBeforeSupport,
+  );
+  expect(
+    new Headers(supportHttp.mock.calls[0][0]?.headers).has("Authorization"),
+  ).toBe(false);
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) =>
+        options?.method === "GET" ||
+        (options?.method === "POST" && options?.body instanceof FormData),
+    ),
+  ).toBe(true);
+});
+
+it("retains the inaccessible match UUID and editable sporting subject without inventing target details", async () => {
+  // Given
+  await openRoute(`/matches/${targetId}`);
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      `https://api.example.invalid/matches/${targetId}`,
+      expect.anything(),
+    ),
+  );
+  await act(async () => jest.advanceTimersByTimeAsync(8_000));
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  );
+  await screen.findByLabelText("Titre");
+  expect(
+    screen.getByRole("button", { name: "Sujet (facultatif)" }),
+  ).toHaveAccessibilityValue({ text: "données sportives" });
+  await user.press(screen.getByRole("button", { name: "Sujet (facultatif)" }));
+  await user.press(await screen.findByRole("radio", { name: "autre" }));
+  await fillForm();
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then
+  await screen.findByRole("header", { name: "Demande reçue" });
+  const metadata = await sentMetadata();
+  expect(metadata.subject).toBe("other");
+  expect(metadata.context).toEqual({
+    screen: "Match",
+    action: "Consultation de la cible",
+    target: { type: "match", id: targetId },
+    platform: "ios",
+    appVersion: "2.9.0",
+  });
+  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method !== "GET"),
+  ).toHaveLength(1);
+});
+
+it("treats guest contact and account declarations as content, without identity or permission effects", async () => {
+  // Given: untrusted URL declarations cannot establish an account or a target name.
+  await openRoute(
+    `/support?originScreen=pro&accountId=${targetId}&name=Camille&targetName=Invented&token=synthetic-token`,
+  );
+  const user = await fillForm();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then
+  await screen.findByRole("header", { name: "Demande reçue" });
+  const metadata = await sentMetadata();
+  expect(metadata).toMatchObject({
+    subject: "pro-subscription",
+    replyEmail: "declared@example.invalid",
+    description: "Je déclare le compte de Camille et un achat, sans preuve.",
+  });
+  expect(metadata.context).toEqual({
+    screen: "Pro",
+    platform: "ios",
+    appVersion: "2.9.0",
+  });
+  expect(accountHttp).not.toHaveBeenCalled();
+  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.saveCredentials).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname),
+  ).toEqual(["/application-access", "/support-requests"]);
+});
+
+it.each(["maintenance", "mandatory-update", "access-unavailable"])(
+  "keeps entries and direct form/choice routes behind %s even for an operator",
+  async (gate) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    account.permissions = { manageMaintenance: true, bypassMaintenance: true };
+    if (gate === "maintenance") {
+      access.maintenance = {
+        active: true,
+        message: "Maintenance",
+        imageUrl: null,
+      };
+    }
+    if (gate === "mandatory-update") {
+      access.versions.ios = {
+        minimumVersion: "2.10.0",
+        storeUrl: "https://apps.apple.com/app/id123",
+      };
+    }
+    if (gate === "access-unavailable") {
+      accessHttp.mockResolvedValue(Response.json({}, { status: 503 }));
+    }
+
+    // When
+    await openRoute("/support?originScreen=profile");
+
+    // Then
+    expect(screen).toHavePathname("/access");
+    if (gate === "access-unavailable") {
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(
+        screen.getByRole("header", {
+          name:
+            gate === "maintenance"
+              ? "Blockout est en maintenance"
+              : "Mets Blockout à jour.",
+        }),
+      ).toBeOnTheScreen();
+    }
+    expect(screen.queryByLabelText("Titre")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Besoin d’aide ?" }),
+    ).toBeNull();
+    expect(screen.queryByRole("link", { name: "Besoin d’aide ?" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Signaler un problème" }),
+    ).toBeNull();
+
+    // When
+    await act(() => router.push("/support/choice?field=kind"));
+    expect(screen).toHavePathname("/access");
+    expect(
+      screen.queryByRole("radio", { name: "Suggérer une amélioration" }),
+    ).toBeNull();
+    await act(() => router.push("/profile"));
+
+    // Then
+    expect(screen).toHavePathname("/access");
+    expect(screen.queryByLabelText("Titre")).toBeNull();
+    expect(
+      screen.queryByRole("radio", { name: "Suggérer une amélioration" }),
+    ).toBeNull();
+    expect(supportHttp).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  },
+);
+
+/** Enters F12's actual administration route and requests personal bypass through its visible action. */
+async function chooseBypass() {
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(
+    await screen.findByRole("button", {
+      name: "Accéder à l’application pendant la maintenance",
+    }),
+  );
+  await screen.findByText("Ordinary home");
+  await act(() => router.push("/support"));
+  await screen.findByLabelText("Titre");
+  return user;
+}
+
+it("uses existing credentials and the shared header only after explicitly choosing personal bypass", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account.permissions = { bypassMaintenance: true };
+  access.maintenance = {
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  await openRoute("/support");
+  const user = await chooseBypass();
+  const credentialsBeforeSend = mockAuth0.getCredentials.mock.calls.length;
+  await fillForm();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then
+  await screen.findByRole("header", { name: "Demande reçue" });
+  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(
+    credentialsBeforeSend + 1,
+  );
+  const headers = new Headers(supportHttp.mock.calls[0][0]?.headers);
+  expect(headers.get("Authorization")).toBe("Bearer test-access-token");
+  expect(headers.get("Blockout-Maintenance-Bypass")).toBe("true");
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(access.maintenance.active).toBe(true);
+});
+
+it.each([401, 403])(
+  "drops personal bypass after the server refuses its current credentials/grant (%i)",
+  async (status) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    account.permissions = { bypassMaintenance: true };
+    access.maintenance = {
+      active: true,
+      message: "Maintenance",
+      imageUrl: null,
+    };
+    supportHttp.mockResolvedValue(Response.json({}, { status }));
+    await openRoute("/support");
+    const user = await chooseBypass();
+    await fillForm();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer la demande" }),
+    );
+
+    // Then
+    await screen.findByRole("header", { name: "Blockout est en maintenance" });
+    expect(screen.queryByLabelText("Titre")).toBeNull();
+    expect(screen.queryByText("Demande reçue")).toBeNull();
+    expect(supportHttp).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    await act(() => router.push("/support"));
+    expect(screen).toHavePathname("/access");
+  },
+);
+
+it.each(["NO_CREDENTIALS", "NO_REFRESH_TOKEN"])(
+  "refuses bypass sending when the native manager reports %s",
+  async (code) => {
+    // Given
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    account.permissions = { bypassMaintenance: true };
+    access.maintenance = {
+      active: true,
+      message: "Maintenance",
+      imageUrl: null,
+    };
+    await openRoute("/support");
+    const user = await chooseBypass();
+    await fillForm();
+    mockAuth0.getCredentials.mockRejectedValue({
+      name: "CredentialsManagerError",
+      code,
+      message: "Synthetic credential refusal",
+    });
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer la demande" }),
+    );
+
+    // Then
+    await screen.findByRole("header", { name: "Blockout est en maintenance" });
+    expect(supportHttp).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  },
+);
+
+it("removes an already bypassed support form after foreground grant withdrawal", async () => {
+  // Given
+  const foreground = mockForegroundEvent();
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account.permissions = { bypassMaintenance: true };
+  access.maintenance = {
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  await openRoute("/support");
+  await chooseBypass();
+  await fillForm();
+  account = accountResponse();
+
+  // When: foreground rereads the account owner, independently of the public configuration.
+  await foreground();
+
+  // Then
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await act(() => router.push("/support"));
+  expect(screen).toHavePathname("/access");
+  expect(screen.queryByLabelText("Titre")).toBeNull();
+  expect(supportHttp).not.toHaveBeenCalled();
+});
+
+it("enforces the current minimum after a refusal-triggered complete recheck", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account.permissions = { bypassMaintenance: true };
+  access.maintenance = {
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  await openRoute("/support");
+  const user = await chooseBypass();
+  await fillForm();
+  access.versions.ios = {
+    minimumVersion: "2.10.0",
+    storeUrl: "https://apps.apple.com/app/id123",
+  };
+  supportHttp.mockResolvedValue(new Response(null, { status: 503 }));
+
+  // When: an explicit ordinary request refusal invalidates the complete public check.
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then: maintenance still presents first and an outdated operator cannot bypass it.
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Accès administrateur" }),
+    ).toBeNull(),
+  );
+  expect(accessHttp).toHaveBeenCalledTimes(2);
+  await act(() => router.push("/support"));
+  expect(screen).toHavePathname("/access");
+  expect(screen.queryByLabelText("Titre")).toBeNull();
+  expect(supportHttp).toHaveBeenCalledTimes(1);
+});

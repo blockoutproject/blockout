@@ -5,24 +5,22 @@ description: "Organize and verify Figma libraries, product screens, journeys and
 
 # Figma design governance
 
-Repository instructions and the accepted issue identify the canonical design files. Resolve their actual links before acting; this portable skill owns no file IDs or product screen list.
+Identify the target Figma file or nodes from the request and the project's designated design sources.
 
 ## Design Authority
 
-- Accepted specifications own future observable product and design intent, for a whole application release or an evolution.
+- Confirm the intended change from the accepted request and any design requirements it cites.
 - Preserve the navigation, behavior and visual direction approved in the designated inputs. If a prototype is the accepted input, Figma formalizes that experience; it does not independently select a different direction.
-- The designated UI library owns approved reusable variables, styles, foundations, icons, and components.
-- The designated product design file owns approved product patterns and representative screen states composed from published designated UI library instances.
-- Repository design tokens are controlled, versioned implementation projections of approved designated UI library values. They are not a separately maintained visual authority.
+- Use the project's existing owners for reusable variables, styles and components. When a shared library is published, use its instances. Components owned by the current file can be instanced locally.
+- Keep product patterns and representative screen states in the file that owns the design. Follow the project's source of truth for token values.
 - Current source code, tests, and archived Figma files are evidence of delivered behavior or appearance, not authority for a new visual direction.
 
 ## File Rules
 
-- Keep `Cover` limited to file identity, ownership, status, and links to the accepted specification.
-- Keep reusable foundations and components in the designated UI library with deterministic names, Auto Layout, published variables and styles, documented variants, and accessibility annotations.
-- Keep approved reusable product compositions in the Product Design `Patterns` page and representative journey evidence in its design pages.
-- Keep unresolved visual directions and experiments in `Explorations`. They do not become authoritative until explicitly approved.
-- Use live published instances for reusable UI. Never detach an instance or redraw a foundation or component already owned by the designated UI library.
+- Where the file has a cover, keep it limited to identity, ownership, status and source links.
+- Keep reusable foundations and components at their established owner. Use consistent names, Auto Layout, shared variables and styles, and meaningful variant contracts.
+- Follow the file's organization for reusable patterns and journeys. Keep unresolved explorations separate from approved work.
+- Keep instances linked to their main components. Reuse existing foundations and components.
 - Keep documentation-only canvas helpers private, generic, and visually separate from product components.
 
 ## Product Screen Organization
@@ -54,7 +52,7 @@ durable product boundary: audience, workspace, domain, or lifecycle area.
 - Use one durable product page per meaningful boundary when that boundary is
   expected to accumulate related journeys over time.
 - Use sections within that page for journeys.
-- Use frames within a journey for screens and scenario coverage.
+- Use frames within a journey for distinct representative screen compositions.
 - Do not create one page per screen by default.
 - Do not create a generic `Flows` page by default. A page name must communicate
   a durable product boundary, not merely an artifact type.
@@ -64,17 +62,16 @@ durable product boundary: audience, workspace, domain, or lifecycle area.
 - Keep status tracking outside the page taxonomy. Page names must describe
   product structure, not transient maturity such as draft or shipped.
 
-### Document journeys and screens consistently
+### Keep journeys readable
 
-Each journey section must use the private linked documentation presentation
-components available in the file and state:
+Reuse the existing journey section and its clear names. Keep the source at the
+existing file or journey entry; do not repeat it in screen notes. Add a short note
+only for an interaction or constraint that the composition cannot show. Coverage
+tables, approval history, qualification logs and delivery status belong in the
+project's existing review record. Do not create canvas documentation merely to
+satisfy this skill.
 
-- the user or system context;
-- the intended outcome;
-- the authoritative source, such as an issue or specification;
-- the relevant viewport, theme, state, and accessibility coverage.
-
-Use deterministic names:
+For new nodes, follow the file's naming convention. When none exists, use:
 
 - `Journey / <domain> / <outcome>`
 - `Screen / <domain> / <journey> / <scenario>`
@@ -85,19 +82,24 @@ Do not create screen variants merely to catalogue every screen.
 
 ### Compose and promote deliberately
 
-Product screens must be composed from live published designated UI library instances
-and approved Pattern instances where they fit. Never detach instances.
+Compose screens from instances of the existing components and approved patterns where they fit.
 
-Promote a composition from a product screen to `Patterns` only when it has a
+Promote a screen composition to a shared pattern only when it has a
 clear reusable contract and serves, or is expected to serve, multiple independent
 journeys. Keep domain-specific copy, data, and navigation in the product screen.
 
 ### Cover scenarios proportionately
 
-For each journey, explicitly select the relevant viewport, theme, state,
-keyboard/focus, touch-target, loading, empty, validation, permission, failure,
-and recovery coverage. Do not multiply variants mechanically when they do not
-change behavior, layout, or a meaningful visual contract.
+Represent the requested success, loading, empty and error states where their
+composition differs. Each represented composition must be faithful in layout,
+typography, spacing, tokens and actions. Different actions must remain clear even
+when their messages share a layout.
+
+Do not create a frame for each error message, scroll position, theme combination
+or transient button state. Reuse the component's existing properties for states
+such as a busy action. Add a composition only when it conveys a distinct visual
+contract needed for the requested review; a short interaction note can explain a
+transition without drawing its intermediate positions. There is no frame quota.
 
 ### Maintain an idempotent file structure
 
@@ -106,21 +108,22 @@ Before creating a page, section, screen, or pattern:
 1. Inspect the existing product boundary and naming conventions.
 2. Reuse or extend the existing destination when it fits.
 3. Create a new destination only when the boundary is genuinely new.
-4. Move approved work out of `Explorations` rather than duplicating it.
+4. Move approved explorations to their durable destination and preserve links.
 5. Preserve links between journey screens, approved patterns, and their sources.
 
 ## Evidence Rules
 
-- Cite the exact accepted or clarified specification snapshot and relevant acceptance criteria.
+- Identify the accepted input and criteria for the work under review. Link its revision when one exists.
 - Group specifications only when they form one coherent journey or shared pattern.
 - Record exact Figma node links and screenshots for downstream planning.
-- Cover the supported platforms, every supported theme, required widths, relevant interaction and failure states, keyboard behavior, focus, touch targets, text scaling, safe areas, and reduced motion.
+- Verify the changed compositions and applicable requested themes, widths and interactions. Shared tokens and components carry unchanged combinations; do not redraw a qualification matrix in the product file.
+- Keep native observations of keyboard/focus, touch, text scaling, safe areas, motion and SDK behavior at their actual qualification boundary. Figma frames do not prove runtime behavior.
 - Treat unpublished experiments, detached instances, stale library versions, and unresolved synchronization differences as invalid downstream evidence.
 
 ## Scope and review
 
-Read the project's constitution and accepted request for prerequisites, design authorities and approval scope. In a Spec Kit project, its official procedures own specification and technical planning; this skill introduces no additional phase or gate.
+Confirm the requested scope, target nodes and applicable review criteria before editing. When translating an approved prototype, preserve its interactions and visual direction. If a component cannot express a required state, raise that specific gap with its owner.
 
-Identify the target files, relevant specification, journeys/components and evidence before editing. Reuse the designated library before composing Product Design with its published instances. Preserve accepted prototype interactions and visual direction when translating them. Raise a conflict with accepted intent or a missing library capability instead of detaching instances or silently redesigning the product.
+Stop when the requested compositions express the accepted intent and meet the project's review criteria.
 
-Only certify the platforms, themes and states requested and actually reviewed. Record exact nodes, revision information where available, scope and remaining limitations. A file's existence, a passing test or approval of another scope does not approve the current result. Limited file maintenance does not require unrelated design exploration.
+Only certify the platforms, themes and states requested and actually reviewed. Record exact nodes, revision information where available, scope and remaining limitations in the existing review record. A file's existence, a passing test or approval of another scope does not approve the current result. Limited file maintenance does not require unrelated design exploration.

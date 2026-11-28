@@ -1,0 +1,179 @@
+package com.blockout.backend.contributions.support;
+
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
+import static org.mockito.Mockito.when;
+
+import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
+import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
+import com.blockout.backend.contributions.application.ContributionStore;
+import com.blockout.backend.contributions.application.ReadOwnContributions;
+import com.blockout.backend.contributions.application.SubmitContribution;
+import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.notifications.application.ProcessDueLinkAnnouncements;
+import com.blockout.backend.sporting.api.SportingObservationMapper;
+import com.blockout.backend.sporting.application.model.CalendarObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.sporting.support.SportingIngestionFixture;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import java.net.URI;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * Shared real F01/F02/F05/F06/F07/F08 scenario with controlled time. Each concrete suite owns its
+ * Spring context, which closes its datasource before PostgreSQL after the class. This fixture
+ * resets the calling suite's migrated database before each scenario.
+ */
+@Import({PostgresTestConfiguration.class, SportingIdentityFixture.class})
+@SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+public abstract class ContributionScenario {
+  protected static final Instant NOW = Instant.parse("2026-10-24T12:00:00Z");
+  protected static final UUID AUTHOR = UUID.fromString("00000000-0000-4000-8000-000000000003");
+  protected static final UUID FOLLOWER = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  protected static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
+  @Autowired protected PostgreSQLContainer database;
+  @Autowired protected JdbcTemplate sql;
+  @Autowired protected ChangeCollectionSeasons seasons;
+  @Autowired protected SportingIdentityFixture identities;
+  @Autowired protected AdmitCollectionCycle cycles;
+  @Autowired protected RegisterCollectorRuntime runtimes;
+  @Autowired protected AcceptCalendar calendars;
+  @Autowired protected AcceptMatchObservation matches;
+  @Autowired protected SportingObservationMapper mapper;
+  @Autowired protected SubmitContribution submissions;
+  @Autowired protected ReadOwnContributions reads;
+  @Autowired protected ContributionStore contributions;
+  @Autowired protected FollowState follows;
+  @Autowired protected ProcessDueLinkAnnouncements due;
+  @Autowired protected PlatformTransactionManager transactions;
+  @MockitoBean protected Clock clock;
+  protected SportingIngestionFixture.Scope scope;
+  protected UUID matchId;
+
+  /** Establishes actual admitted matches and original accounts without a provider request. */
+  @BeforeEach
+  void establishScenario() throws Exception {
+    when(clock.instant()).thenReturn(NOW);
+    SportingIngestionFixture.reset(database);
+    sql.update("DELETE FROM account");
+    scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
+    calendars.accept(
+        scope.pool(),
+        new CalendarObservation(
+            context(1),
+            true,
+            List.of(candidate("M1", "Home", LocalDate.of(2026, 10, 24))),
+            List.of(),
+            List.of()));
+    matchId = sql.queryForObject("SELECT id FROM sporting_match WHERE reference='M1'", UUID.class);
+    sql.update(
+        "UPDATE sporting_match SET reliable_start=?,local_time='14:00',time_zone='Europe/Paris' WHERE id=?",
+        Timestamp.from(NOW),
+        matchId);
+    for (UUID account : List.of(AUTHOR, FOLLOWER, OTHER)) {
+      sql.update(
+          "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', ?, ?, 'synthetic@example.invalid')",
+          account,
+          account.toString(),
+          account.toString().replace("-", ""));
+    }
+  }
+
+  /**
+   * Submits the visible explicit version intent; tests keep addresses/revisions at call sites.
+   *
+   * @param owner original acting account
+   * @param revision explicit viewed match revision
+   * @param address explicit scenario address
+   * @param moderator whether the request uses the administrative publication route
+   * @return actual transactional command outcome
+   */
+  protected SubmitContribution.Outcome submit(
+      UUID owner, String revision, String address, boolean moderator) {
+    return submissions.submit(owner, matchId, revision, URI.create(address), moderator);
+  }
+
+  /**
+   * Establishes one current confirmed pool follow through the real F06 owner.
+   *
+   * @param owner original recipient account
+   */
+  protected void follow(UUID owner) {
+    follows.replace(
+        new FollowContext(
+            owner, new FollowContext.Target(FollowContext.TargetType.POOL, scope.pool())),
+        true);
+  }
+
+  /**
+   * Applies a real designated-source result observation, with explicit source order.
+   *
+   * @param ordinal explicit later supplier read order
+   * @param state explicit source finality, or null for qualified withdrawal
+   */
+  protected void result(long ordinal, ResultStateEnum state) {
+    matches.detail(
+        new MatchObservation(
+            matchId,
+            context(ordinal),
+            mapper.toFacts(
+                new MatchFactsInternalRequest()
+                    .result(
+                        state == null
+                            ? null
+                            : new MatchResultInternalRequest(state).homeSets(3).awaySets(1)))));
+  }
+
+  /**
+   * Grants the exact complete stream capability as a controlled persisted rights fixture.
+   *
+   * @param owner original acting account
+   */
+  protected void moderator(UUID owner) {
+    sql.update(
+        "INSERT INTO account_permission(account_id,permission) VALUES (?,'stream-links.moderate')",
+        owner);
+  }
+
+  /**
+   * Supplies ordered attributable observations, never a fabricated cycle authorization.
+   *
+   * @param ordinal explicit read order within the actually admitted cycle
+   * @return attributable synthetic observation context
+   */
+  protected MatchObservation.Context context(long ordinal) {
+    return new MatchObservation.Context(scope.cycle().id(), ordinal, NOW, null);
+  }
+
+  /**
+   * Reads current row counts from fixed local test table names, joining any caller transaction.
+   *
+   * @param table fixed table owned by this test's disposable schema
+   * @return current row count
+   */
+  protected long count(String table) {
+    return sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);
+  }
+}

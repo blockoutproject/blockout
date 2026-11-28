@@ -1,0 +1,91 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "max_ngram_diff": 799,
+    "analysis": {
+      "tokenizer": {
+        "bounded_standard": {
+          "type": "standard",
+          "max_token_length": 1024
+        }
+      },
+      "filter": {
+        "prefixes": {
+          "type": "edge_ngram",
+          "min_gram": 1,
+          "max_gram": 800,
+          "preserve_original": true
+        }
+      },
+      "analyzer": {
+        "whole_words": {
+          "type": "custom",
+          "tokenizer": "bounded_standard",
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "word_prefixes": {
+          "type": "custom",
+          "tokenizer": "bounded_standard",
+          "filter": ["lowercase", "asciifolding", "prefixes"]
+        }
+      },
+      "normalizer": {
+        "folded": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "seasonId": {
+        "type": "keyword"
+      },
+      "divisionId": {
+        "type": "keyword"
+      },
+      "format": {
+        "type": "keyword"
+      },
+      "gender": {
+        "type": "keyword"
+      },
+      "names": {
+        "type": "text",
+        "analyzer": "whole_words",
+        "copy_to": ["words", "prefixes"],
+        "fields": {
+          "exact": {
+            "type": "keyword",
+            "normalizer": "folded"
+          }
+        }
+      },
+      "context": {
+        "type": "text",
+        "analyzer": "whole_words",
+        "copy_to": ["words", "prefixes"]
+      },
+      "city": {
+        "type": "text",
+        "analyzer": "whole_words",
+        "copy_to": ["words", "prefixes"]
+      },
+      "words": {
+        "type": "text",
+        "analyzer": "whole_words"
+      },
+      "prefixes": {
+        "type": "text",
+        "analyzer": "word_prefixes",
+        "search_analyzer": "whole_words"
+      }
+    }
+  }
+}

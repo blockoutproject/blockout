@@ -1,0 +1,67 @@
+import type {
+  SportingSeasonResponse,
+  SupportTargetRequest,
+} from "../../../../.generated/schemas/index.zod";
+import { SupportFlagAction } from "@/features/support";
+import { StyleSheet, View } from "react-native";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import {
+  FollowControl,
+  FollowerCount,
+  type FollowStateRead,
+  type FollowingTarget,
+} from "@/features/following";
+
+/** Current public target/season; F06 owns the private relationship and independent public count. */
+export interface SportingActionsProps {
+  target: FollowingTarget;
+  season: SportingSeasonResponse;
+  contextColor?: string;
+  /** The route shares this same reader with F03's initial composition. */
+  read: FollowStateRead;
+}
+
+/** F06 keeps the shared action/audience row stable inside the identity card and resets only its private control state. */
+export function SportingActions(props: Readonly<SportingActionsProps>) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.actions, { borderTopColor: colors.border }]}>
+      <FollowControl
+        target={props.target}
+        season={props.season}
+        read={props.read}
+        contextColor={props.contextColor}
+        audience={<FollowerCount target={props.target} />}
+      />
+    </View>
+  );
+}
+
+/** Attempted navigation identity; no successful detail read or invented public name is required. */
+export interface SportingSupportActionProps {
+  target: SupportTargetRequest;
+}
+
+/** Keeps the shared support form reachable from every existing sporting detail state. */
+export function SportingSupportAction({
+  target,
+}: Readonly<SportingSupportActionProps>) {
+  return (
+    <SupportFlagAction
+      origin={{
+        screen: target.type,
+        targetType: target.type,
+        targetId: target.id,
+      }}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  actions: {
+    minHeight: tokens.touch.minimum,
+    borderTopWidth: tokens.border.thin,
+    paddingTop: tokens.spacing.md,
+  },
+});

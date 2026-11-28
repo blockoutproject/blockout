@@ -1,0 +1,254 @@
+---
+description: "Implementation tasks for F09 Pro entitlements and subscription continuity"
+---
+
+# Tasks: F09 Pro entitlements and subscription continuity
+
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
+
+**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). Shared implementation comes from the bounded F13/F05 prerequisites below. Provider and continuity qualifications retain their task-specific prerequisites and evidence limits.
+
+**Tests**: The specification explicitly requests A01–A30 and SC-001–009 qualifications. Automated behavior tests precede their implementation and must fail meaningfully first. Prepare manual/native cases before their associated setup; execute them only on authorized accounts/environments with actual prerequisites. Mocks, Test Store and document checks are distinct evidence.
+
+**Organization**: Setup and foundation precede one phase per specification story, in priority order. F09 consumes native entitlement state and supplies narrow current-account presentation to F11/app chrome. It implements no backend rights service, HTTP operation, database model, generic billing abstraction or recovery queue.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]** marks distinct-file work that can run together after its prerequisites.
+- **[USn]** retains the owning specification story identifier.
+- Paths identify implementation or its qualification source. Checked tasks record completed scope; remaining work stays unchecked.
+
+## Path Conventions
+
+- Pro behavior and focused `__tests__/` live in `apps/mobile/src/features/pro/`; use upstream SDK types at that native boundary and small feature presentation types only where their meaning differs.
+- Account/session and the shared invitation remain in F05's `apps/mobile/src/features/accounts/`, as defined by its [native tasks](../005-accounts-identity/tasks.md).
+- Composition stays in `apps/mobile/src/app/_layout.tsx` and the existing profile. The existing `pro-provider.tsx` owns a standard React Native Modal containing only official Paywall; no Pro route or app-owned commercial page remains. Shared tokens/theme/controls stay F13-owned in `apps/mobile/src/shared/`.
+- Actual provider/intervention instructions belong in `infra/operations/README.md`, with private evidence in the F10/F11 process. No public receipts, customer references, provider payloads or intervention records belong here.
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Consume the existing mobile workspace and selected native SDK pair.
+
+- [x] T001 Add paired `react-native-purchases` and `react-native-purchases-ui` 10.13.0 to `apps/mobile/package.json` and the existing lockfile after F13 T001–T017. Preserve their bundled native versions and the selected Expo SDK 58 / React Native 0.88 / React 19.3.0 stack; reuse Jest Expo/React Native Testing Library without a generic provider adapter, new state framework or direct native dependency override.
+- [x] T002 Declare environment-selected native platform/Test Store key inputs and the explicit existing `default` offering identifier in `apps/mobile/.env.example` and `apps/mobile/app.config.ts`. Keep provider identifiers as deployment configuration, use dedicated Test Store accounts in the existing project through the preproduction Debug preview and retain native sandbox access `Anybody`. Production candidates use their native platform keys. Actual provider changes and production-identity checks belong to T026/T027 and F14, not this setup.
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Establish the one current-account state agreement before story implementation, without waiting for complete cross-feature journeys.
+
+- [x] T003 Write failing state-consumption tests in `apps/mobile/src/features/pro/__tests__/pro-state.test.ts`: guest, association pending/failed, no usable state, SDK-active paid/gifted, SDK-inactive, unknown native values and SDK-pending payment and ordinary SDK results remain distinct. A failed read never fabricates inactivity; a cancelled/pending operation removes no independent valid entitlement. Verify meaningful current-session attribution using plain native-principal/business-UUID snapshots, not a new session registry.
+- [x] T004 Define the narrow state boundary in `apps/mobile/src/features/pro/pro-state.ts` and `apps/mobile/src/features/pro/index.ts`, making T003 pass with native `CustomerInfo.entitlements.active["Blockout Pro"]` as authority. Preserve the model literally: usable account context — “Available only after usable-account establishment. No email-derived ID. Changing session clears previous rights/UI and rejects its callbacks.”; entitlement — “SDK owns active/inactive status, cache and expiry. Show only known information; do not calculate an independent grant union or expiration deadline.” Reuse upstream SDK types rather than copying editable DTOs, expose only the current state needed by consumers and persist no derived entitlement.
+
+**Checkpoint**: The state boundary can be tested with controlled collaborators. All stories require this foundation; actual session association is implemented in US1.
+
+---
+
+## Phase 3: User Story 1 — Understand my access and recover my benefits (Priority: P1) 🎯 MVP
+
+**Goal**: Associate the usable account safely, keep public sport independent of Pro and provide the approved guest entry.
+
+**Scope**: A01–A05; FR-001–006, FR-010, FR-016–017, FR-033; SC-001.
+
+**Independent Test**: Cross current entitlement states with public sporting access and F11 eligibility, then delay identity/read completions across A → guest → B and A → guest → A. Guest sign-in neither reopens Pro nor retains purchase intent. Actual transaction and cross-platform proof completes with US3/US4.
+
+### Tests for User Story 1
+
+- [x] T005 [P] [US1] Write failing identity/lifecycle tests in `apps/mobile/src/features/pro/__tests__/pro-session.test.ts` with controlled native promises and the real native identity/private-lifetime boundary when available: configure only after a usable UUID, at most one in-flight native identity call, latest-target association after the prior call settles, skipped superseded targets, immediate local rights/UI clearing and current-target failure requiring explicit retry. Cover A → B, A → guest → B, A → guest → A, logout during configuration, accepted erasure, late reads and component cleanup; filtering a promise alone must not leave overlapping native identity mutations.
+- [x] T006 [P] [US1] Write failing consumer tests in `apps/mobile/src/features/pro/__tests__/pro-access.test.tsx` against the implemented F03/F11 consumers, controlling only their native/network boundaries: guest and authenticated inactive/active/unavailable outcomes leave pool maps and complete club calendars accessible, with no verification wait or purchase interruption. Keep SDK association, paid/gifted, expired/revoked and pending/error attribution in the existing state/session/refresh owners rather than repeating the full public journey for every native cause. Active paid/gifted suppress ads, unknown signed-in state suppresses ads and automatic Blockout purchase encouragement, inactive state delegates remaining eligibility to F11, and guests inherit no old exemption; personal/admin admission remains owner-controlled.
+- [x] T007 [P] [US1] Write failing semantic entry tests in `apps/mobile/src/features/pro/__tests__/pro-entry.test.tsx` for the profile's distinct Pro icon/row before Privacy, guest invitation copy without prices or provider lookup, dismissal preserving context and ordinary sign-in without a saved purchase/restore/reopen intention. Use controlled native presentation until US3, and test session change closing that presentation without claiming a store cancellation.
+
+### Implementation and qualification for User Story 1
+
+- [x] T008 [US1] Implement the focused native identity owner in `apps/mobile/src/features/pro/pro-session.ts`, using configure once, later native `logIn` and `logOut` successively. Preserve “Native identity calls complete successively; only successful current-session association permits rights/operations. Native logout may create an anonymous ID, which gives no Blockout guest rights or purchase permission.” Keep only the current desired session and one in-flight identity call in memory, apply the latest target after settlement, and leave failed current association unavailable until explicit retry. Never wait for RevenueCat before F05 native logout or explicit local clearing/navigation, automatically recreate an erased business account or add an identity queue/journal/retry service; make T005 pass.
+- [x] T009 [US1] Compose the owner in `apps/mobile/src/features/pro/pro-provider.tsx` and `apps/mobile/src/app/_layout.tsx`, consuming F05's usable UUID/native principal through its public session boundary. Read current native information after successful association and publish only while that same session is current; clear prior rights and unmount provider UI immediately on session change, including re-entry to the same UUID. Expose T004's narrow state/commands to actual consumers without a second backend or Query entitlement cache; F05 owns SDK authentication and the private React/Query lifetime.
+- [x] T010 [US1] Compose `components/pro-entry.tsx` with the Profile, preserving the shared F05 guest invitation and ordinary sign-in without automatic reopening. Existing connected entries call the Pro owner directly and use T025’s same official Paywall Modal for free, paid, gifted and unknown-rights accounts after useful account/SDK association. Do not add a commercial page, price, provider replica or retained purchase intent; T007 covers guest and connected entry behavior.
+      **Completion boundary**: Use the shared invitation and the same direct native Modal for guest/connected entry wiring. T006/T011 own actual [F03](../007-sporting-consultation/tasks.md) and [F11](../004-advertising-privacy-legal/tasks.md) consumer integration; [T032](#phase-6-user-story-4--restore-a-purchase-and-obtain-verified-assistance-priority-p1) owns configured native assistance observation and its actual limitations against [F10 T013/T014](../012-reports-feature-suggestions/tasks.md). Controlled navigation checks do not qualify native/store behavior.
+
+- [x] T011 [US1] Integrate the implemented F05/F11/F03 owners for the applicable T006 scenarios and make `apps/mobile/src/features/pro/__tests__/pro-access.test.tsx` pass; reuse F05 T017/T019 session-consumer and F11 T003/T004 eligibility evidence. Verify actual public consultation remains independent, known Pro avoids unnecessary advertising prompts under F11 and paid/gifted rights never acquire extra sporting benefits. These integrations wait only for the relevant owners, not their complete feature delivery.
+- [ ] T012 [US1] Execute focused native identity/account-switch cases from `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes` on compatible iOS/Android clients under F13 FR-029 with actual F05/F14 initialization and the applicable US3/US4 operations. Reuse T005/T013/F05 deterministic stale-callback and ordering evidence rather than precisely delaying every read/listener/purchase/restore callback. Observe ordinary account departure/return, successful native SDK identity ordering/storage, same-account cross-device/platform recovery and actual pending-store behavior. Keep local navigation/logout usable, honest feedback after SDK cancellation/failure and no old-session rights/dialogs; a session change proves no store cancellation or reassignment. Reuse applicable F05 T020 evidence and retain physical/store candidates where that boundary requires them.
+
+- [x] T046 Use `components/pro-profile-entry.tsx` as the direct connected command to the existing Pro owner. Resolve only the explicit offering needed for its Paywall Modal; missing/failed opening uses brief originating-screen feedback. Provide no commercial route, catalogue Query/read card or recovery destination. Preserve current owner/SDK identity, guest invitation, existing independent support and native payment facts. Cover origin return, no offering/open failure and real host teardown in the surviving entry/presentation tests; native/provider observations retain T012/T027/T042 boundaries.
+
+- [x] T050 [US1] Keep the existing `components/pro-offer.tsx` banner and shared tab composition: current usable SDK-inactive accounts without unresolved payment facts only, eight points above an already visible bar, shared FR-039 route coverage and measured clearance. Its direct command opens T025’s same paywall without a commercial route; do not add banners for guests, paid/gifted or unknown rights. Prove navigation/visibility and old-owner removal in `__tests__/pro-offer-navigation.test.tsx` and representative native banner/return journeys. Preserve the scoped F13 T221/T222 approvals and T223/T224 route qualification. Actual paywall configuration, commercial actions and broader appearance qualification retain T012/T026/T027/T042 ownership.
+
+Existing Account/guest/banner design references remain scoped to unchanged Blockout compositions. The Modal contains only provider content; removed catalogue/recovery pages receive no pending adoption task. Required native/configured actions retain their owning evidence boundaries and later material Blockout design changes retain the constitution’s gates.
+
+**Checkpoint**: US1 supplies the controlled-behavior MVP, including actual sporting/advertising owner composition under T006/T011. Native purchase/restore and distinct sporting/provider qualification remain with their named owners.
+
+---
+
+## Phase 4: User Story 2 — Continue during an outage without retaining an entitlement indefinitely (Priority: P1)
+
+**Goal**: Use ordinary SDK refresh/cache behavior with honest unavailable state and explicit recovery.
+
+**Scope**: A06–A11; FR-003–011, FR-027, FR-031, FR-033; SC-002–003, SC-008.
+
+**Independent Test**: Supply cached active/inactive and unavailable state, disable renewal while rights remain active, expire/revoke a grant, then delay update events across account changes. Only current native evidence governs rights; no elapsed-time rule makes unknown state free.
+
+### Tests for User Story 2
+
+- [x] T013 [P] [US2] Write failing refresh tests in `apps/mobile/src/features/pro/__tests__/pro-refresh.test.tsx` for first-configuration/foreground/listener reads and current supplied-operation evidence and listener registration/removal. A delayed A event after B association signals a current native read rather than publishing its payload; events during association need no replay because association reads current state. Reject late read results, preserve SDK-supplied cached state and leave SDK expiry/active grace authoritative without timers, forced invalidation or independent end-date arithmetic.
+- [x] T014 [P] [US2] Test failed association/no current SDK state, later explicit entry retry, active grace/renewal-disabled rights and reliable inactive/expired/revoked results with controlled native boundaries. Unknown state shows no ads, banner or inherited premium chrome while the voluntary Profile entry remains available after association. Source feedback and independent support remain reachable; no verification page, mandatory refresh-before-action or false cancellation/inactivity result is introduced.
+
+### Implementation and qualification for User Story 2
+
+- [x] T015 [US2] Extend `apps/mobile/src/features/pro/pro-provider.tsx` with the SDK's standard update listener and ordinary current-information reads at first configuration without supplied information, foreground and listener; a later explicit entry retries failed association; accept current logIn/purchase/restore information without a duplicate read; clean subscriptions up with their owner. Scope every accepted read to the successfully associated native principal and UUID, treat listener payloads only as read signals, and make T013 pass without polling, forced network refresh, a server-push promise, a refresh clock or a persisted evidence timestamp.
+- [x] T017 [US2] Add safe operational context at the existing native boundary in `apps/mobile/src/features/pro/pro-session.ts` and `apps/mobile/src/features/pro/pro-provider.tsx`, using F13's selected diagnostic path for real association/read failures and actual pending payment and ordinary failed operation outcomes. Distinguish verification recovery from eventual provider propagation, exclude customer IDs, receipts, complete SDK objects, secrets and raw error payloads, and avoid duplicate logs, new telemetry or a human-response/propagation deadline. Ordinary cancellation remains an ordinary outcome.
+- [x] T048 [US2] Accept current login/purchase/restore CustomerInfo in `apps/mobile/src/features/pro/pro-session.ts` without a duplicate read. In the owning tests, prove delayed prior completion cannot overwrite supplied evidence. Keep ordinary reads for first configuration without supplied information, foreground and listener events, sequential native identity and independent payment outcomes.
+- [x] T051 [US2] Keep read ordering private to `apps/mobile/src/features/pro/pro-session.ts` and expose the current evidence snapshot through its existing store and React provider. Use the controlled SDK and the existing subscription to verify that an attributed read sends zero notifications when it fails or supplies the same known evidence. Verify that failure reports the safe diagnostic and retains known rights. Verify the current projection for a newly mounted consumer and reuse the existing F05/F11 and Paywall boundaries for isolation and presentation.
+- [ ] T018 [US2] Execute focused outage/cache/listener/foreground cases in `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes` using compatible native builds and controlled connectivity on both platforms. Observe SDK-supplied cached active/inactive, no-state startup and ordinary foreground/listener refresh after effective changes; reuse T013/T014 for exhaustive application error/state and obsolete-event ordering variants. Verify public navigation and F11 eligibility without inventing inactivity or expiry. Record unavailable SDK/provider cases as pending; deterministic doubles do not establish native cache behavior.
+
+**Checkpoint**: SDK state remains authoritative through degraded operation; native lifecycle evidence is distinct from local state tests.
+
+---
+
+## Phase 5: User Story 3 — Purchase and manage my subscription without ambiguity (Priority: P1)
+
+**Goal**: Present the explicit native shared offer and supported management, while distinguishing payment from activation.
+
+**Scope**: A12–A16; FR-001, FR-005–008, FR-012–018, FR-031–034; SC-004, SC-008–009.
+
+**Independent Test**: Open available/missing/failed offers for eligible and ineligible contexts, then cancel, defer, confirm or interrupt a purchase. Only current active rights announce activation; management and dismissal preserve the profile and support route.
+
+### Tests and qualification cases for User Story 3
+
+- [x] T019 [P] [US3] Test `pro-offering.ts` explicit configured `default` selection with a different current offering, actual package passthrough, absent/empty offering and rejected lookup. Existing entries admit free, paid, gifted and unknown-rights accounts after useful association and reject obsolete owners. No fixed price, implicit current fallback, catalogue Query, retained intent or automatic payment.
+- [x] T020 [P] [US3] Test installed SDK purchase outcomes through `__tests__/pro-purchase.test.ts`: cancellation, SDK-pending payment, ordinary failure, confirmed payment and activated current rights remain distinct. Preserve independent paid/gifted rights and stale-owner rejection. Standard native failure feedback permits a later explicit SDK action without duplicate Blockout toasts or Verify/read prerequisite; no automatic payment replay, charge-absence claim, disposed-view reservation or activation from payment alone.
+- [x] T021 [P] [US3] Test the real Pro owner/Modal boundary in the surviving `__tests__/pro-presentation.test.tsx` and entry tests using controlled SDK components. Same official Paywall and explicit offering for free/paid/gifted/unknown rights; brief source feedback on absent/failed pre-presentation resolution or association; mounted provider errors stay native; dismissal/hardware-back returns to source; logout/accepted erasure/account replacement unmount the Modal; obsolete offering/results cannot reopen it or update another owner. No direct Customer Center, app recovery page, intermediate button or restore fallback. Actual provider actions/content remain T022/T027/T034 qualification.
+- [x] T022 [P] [US3] Prepare `quickstart.md#native-purchase-and-management-qualification` for the same direct Modal journey on each platform: explicit existing `default` offering, free/paid/gifted/unknown entry, actual subscriber propositions and standard original-store/action limitations, supported native restoration/management/assistance inside the configured journey, dismissal/source return and departure teardown. Preserve complete configuration review, representative formats, actual pending/confirmed payment, reviewer UUIDs and platform sandbox keys. Host and Test Store observations prove neither real store billing nor F14 pricing/continuity; reuse deterministic selection/owner ordering without mutating current.
+
+### Implementation and qualification for User Story 3
+
+- [x] T023 [US3] Resolve the configured `default` identifier to an actual native offering in `pro-offering.ts`; make T019 pass. Keep the existing project, products, entitlement, platform keys and published `Blockout Pro` Paywall selected by `REVENUECAT_OFFERING_ID=default`; pass provider price/terms through unchanged and fail opening briefly at its source if missing/unavailable. Remove catalogue Query/page/state and inactive-only admission; no current fallback, fixed price or endpoint. F14 retains price/cohort changes and V1 continuity.
+- [x] T024 [US3] Keep current-owner SDK purchase/restore outcomes in `pro-operations.ts` and its Pro owner. Accept supplied CustomerInfo directly, distinguishing native payment facts from current activation and preserving independent entitlements. Ordinary error keeps SDK-owned native feedback with later explicit native action and no duplicate Blockout toast; no Verify state, read prerequisite, replay, persistent journal or global busy reservation. Removed-view callbacks are not required; surviving listener/foreground reads establish current rights and reject obsolete owners. Make T020 pass without a charge-absence or store-cancellation claim.
+- [x] T025 [US3] Host only official `RevenueCatUI.Paywall` with explicit real offering inside one standard React Native `Modal` owned by `pro-provider.tsx`, using ordinary flex sizing. Connect all existing connected entries to the same host after useful account/current SDK association regardless of rights. Make T021 pass; native dismiss/hardware back closes to source and account departure removes the host. Remove `/pro`, Page/Header, catalogue/recovery screens, direct `CustomerCenterView` and app restore fallback. Restore/management/assistance use supported configured native actions; real public API/configuration limits stay explicit under T026/T027/T032.
+      **Delivery boundary**: T025 supplies the official Modal host; no unsupported Paywall assistance callback is assumed. [T032](#phase-6-user-story-4--restore-a-purchase-and-obtain-verified-assistance-priority-p1) owns observation of standard configured assistance and its limitations against [F10 T013/T014](../012-reports-feature-suggestions/tasks.md)’s real form/private process; the independent Profile support entry remains available. Host construction and assistance integration retain separate ownership; controlled navigation tests do not qualify native restoration/store behavior.
+
+- [ ] T026 [US3] With separate provider authorization, complete the existing-project review and shared `default` offering and published `Blockout Pro` Paywall action configuration under `quickstart.md#configuration-review-and-representative-native-formats`. Keep the same RevenueCat project, `default` identifier, existing published `Blockout Pro` Paywall, products, entitlement and native platform keys. Adapt its shared ad-free-only content/actions with V1 compatibility review; create no separate offering/paywall. Preserve transfer scope and sandbox access Anybody; leave actual prices unchanged until F14’s separately authorized V2 cutover. Configure and observe useful supported restoration, management/Customer Center and assistance within the standard paywall, including paid/gifted/no-active-purchase customers; no direct app fallback, extra support channel or retention flow. Observe actual subscriber content and report its standard controls, including any generic Buy control for active customers. Reuse valid configuration and deterministic explicit-selection proof without mutating current. Standard UI/action limitations are accepted and reported without a purchase interceptor, suppressed native controls or substitute; unobserved outcomes stay pending; this task grants no provider change authorization.
+- [ ] T027 [US3] Execute T022 on the relevant compatible native consumers with T026’s actual configured offering/actions; share valid evidence with its owner rather than wait for issue closure. Observe free/paid/gifted/unknown direct entry, actual subscriber propositions, standard original-store behavior and supported restoration/management/assistance inside the paywall, close/source return and real departure teardown. Report accepted native limits explicitly; do not replace or gate the standard native controls, intercept URLs or invent missing callbacks. Actual Apple/Google sandbox purchase, pending/confirmed payment, mappings/notifications, reviewer access and production-identity candidates retain their physical/store and F14 prerequisites; Test Store or mocked host checks do not qualify them. F14 alone owns 1.99 EUR cohort activation, billing/renewal and population continuity.
+
+- [x] T047 Protect the actual Paywall view lifetime in the Pro owner and surviving presentation/refresh tests. Native purchase/restore concurrency stays SDK-owned; no global busy reservation depends on disposed-view callbacks. Use the surviving CustomerInfo listener and foreground reads for current rights, including resolution of pending payment by current purchased rights. Guard queued offering/results against obsolete ownership without promising callback delivery after unmount. Deterministic I/O evidence completes no native/store qualification.
+
+**Checkpoint**: The direct Modal host has deterministic behavior evidence; configured actions, subscriber content, real native/store qualification and F14 continuity remain separate pending boundaries.
+
+---
+
+## Phase 6: User Story 4 — Restore a purchase and obtain verified assistance (Priority: P1)
+
+**Goal**: Restore explicitly through the native provider and use the existing private assistance process for unsupported or uncertain cases.
+
+**Scope**: A17–A24; FR-005–008, FR-010, FR-016–026, FR-028, FR-031–034; SC-005–006, SC-008.
+
+**Independent Test**: Distinguish no applicable purchase, current active restoration and ordinary failure; then qualify receipt-wide transfer, original-store limitations and delete/recreate with actual owners. Insufficient evidence authorizes neither a transfer nor a compensatory gift.
+
+### Tests and qualification cases for User Story 4
+
+- [x] T028 [P] [US4] Test native Paywall restore callbacks in `__tests__/pro-presentation.test.tsx` and `__tests__/transition-continuity.test.tsx`: current supplied inactive and active results, ordinary failed restore with another explicit action, independent payment facts and stale-owner rejection. No second restore, confirmation read, application fallback, Verify state or automatic replay. Explicit native restore remains independent of purchase inside the configured journey; its actual action/content requires T026/T034.
+- [x] T030 [US4] Prepare assisted-recovery and two-store lifecycle cases in `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes`: corroborated purchase/recipient/validity, contradictory or insufficient evidence, unsafe independent-entitlement effects, unknown provider outcome and unsupported cross-store operations. Identify the actual F05 erasure, F10 private process, F11 rights safeguards and F14 historical-reference prerequisites; synthetic cases can prepare the process but prove no real transfer.
+
+### Implementation and qualification for User Story 4
+
+- [x] T031 [US4] Consume official Paywall restoration callbacks through `pro-operations.ts` and the existing Pro owner, without an application `restorePurchases()` fallback. Make T028 pass: current returned CustomerInfo needs no second read, operation success without active rights is no activation, failure preserves known rights and permits a later explicit native action with standard SDK feedback and no duplicate Blockout toast. Keep receipt-wide provider scope, independent gifts and old-owner rejection; no new endpoint, profile merge, confirmation workflow or verification page.
+- [ ] T032 [US4] Observe the standard configured paywall assistance action and its real native return behavior using T026’s supported capabilities. The absent Paywall forwarding of Customer Center Custom Actions is an accepted limitation, not an app integration task: add no callback emulation, URL interception, custom routing or replacement journey. Keep the existing independent Profile F10 support entry and private process available; automatically transmit no CustomerInfo, receipt, SDK error or customer identifier. Record actual supported behavior and unavailable observations truthfully. Configuration/production actions retain their separate authorization; actual sending/storage/manual replies remain F10/F11-owned.
+- [x] T033 [US4] Add the bounded recovery procedure to `infra/operations/README.md`, referencing the private F10/F11 process: owner-only verification of request, authenticated usable recipient, actual purchase/current validity and corroborating ownership; inspect both beneficiaries/independent entitlements before and after a supported intervention. Keep request/operator/reason/necessary evidence/date/scope/outcome privately, explain missing evidence or refusal without disclosing another customer, reread uncertain results before repetition and use provider support for unsupported scope. No email-based merge, automatic gift, indefinite evidence retention or promised transfer of individual receipt purchases; later restoration by the paying store account can transfer again.
+- [ ] T034 [US4] Execute T030 with actual F05 erasure/recreation, F10 assistance and F14 retained historical references through `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes`, separately for Apple and Google. Observe both accounts after native refresh, same-account cross-platform recovery, unsupported cross-store assistance, receipt-wide effects and paid-only recovery after deletion, including failed/concurrent cleanup with ordinary manual resolution. Verify no old profile/follows/attribution/personal grants/gifts return, no billing cancellation or cleanup-pending gate is inferred. Complete independent-gift cases with US5 and reuse evidence instead of duplicating runs.
+
+**Checkpoint**: Verify local restoration and navigation independently; real transfer/erasure/assistance qualification requires the named owners and authorized environments.
+
+---
+
+## Phase 7: User Story 5 — Grant and withdraw a gifted benefit without changing billing (Priority: P2)
+
+**Goal**: Use owner-only native console operations and SDK state without a Blockout gift ledger.
+
+**Scope**: A25–A29; FR-002, FR-004, FR-007, FR-009, FR-022, FR-027–031, FR-034; SC-007–008.
+
+**Independent Test**: Exercise the supported operator procedure with focused native SDK reflection and paid/gift coexistence; reuse US4 transfer/erasure observations and deterministic application state/failure variants. Billing and independent rights remain intact; only observed provider results are reported.
+
+### Tests and qualification cases for User Story 5
+
+- [x] T035 [P] [US5] Test supported gift-state consumption in `apps/mobile/src/features/pro/__tests__/pro-state.test.ts`, `pro-gifts.test.ts` and `pro-presentation.test.tsx`: temporary/open-ended gift, expired/inactive and unknown state map from SDK evidence, and gift-active entries use the same Paywall host. Preserve paid rights when independent gift evidence ends and keep SDK-supplied origin/validity truthful without inventing billed renewal, a grant union, duration arithmetic or propagation. Actual independent paid/gift coexistence and billing effects remain native/provider T038 evidence.
+- [x] T036 [P] [US5] Prepare the supported owner-console procedure and focused native SDK reflection in `specs/006-pro-subscriptions/quickstart.md#owner-console-gifts`: verified recipient/authority, temporary/no-expiry validity, actual grant/change/revoke/expiry, paid/gift coexistence and uncertainty reread. Reuse deterministic application unknown/error/expired/gift states and US4 transfer/erasure evidence; do not inject an exhaustive provider-console failure matrix or repeat every operation on each platform. Actual operations require authorized dedicated accounts and a private record destination.
+
+### Implementation and qualification for User Story 5
+
+- [x] T037 [US5] Extend `infra/operations/README.md` with supported owner-console gift operations, making the model explicit: “Owner-only, verified recipient/scope, reread uncertain outcomes before repeating. No Blockout gift ledger; no sensitive evidence in public artifacts.” Record explicit expiry/no expiry and final validity in the existing private process without implicitly adding durations; verify paid rights/billing before and after, distinguish request/confirmed/failure/uncertain, and preserve T033's evidence restrictions. RevenueCat Support has broader powers than gifts; no Blockout moderator/support-record permission delegates these operations. No application gift API, administration screen or automatic compensatory grant is added.
+- [ ] T038 [US5] Execute T036’s supported operator procedure and focused iOS/Android SDK observations through `specs/006-pro-subscriptions/quickstart.md#owner-console-gifts`. On each platform observe gift-active origin/validity, a validity change and effective loss after ordinary refresh; across those observations cover temporary/no-expiry rendering, actual expiry/revocation and paid/gift coexistence without every operation × platform permutation. Verify independently valid paid rights and billing before/after the actual operations. Reuse T035 deterministic error/unknown/expired variants and T018 native cache evidence; no console-failure campaign. Reuse T034 actual transfer/F05 erasure and original-target cleanup evidence: gifts neither transfer as purchases nor reappear on a new UUID, and failed cleanup stays a private manual obligation. Missing provider/native observations remain unchecked; F14 alone rechecks the no-V1-gifts premise at cutover.
+
+**Checkpoint**: Gift operations remain native/manual, with evidence of their actual effect on current mobile state and independent billing.
+
+---
+
+## Phase 8: User Story 6 — Recognize my Pro experience without losing sports context (Priority: P2)
+
+**Goal**: Supply current Pro presentation to the shared theme without changing sporting colors or adding capabilities.
+
+**Scope**: A16, A30; FR-005, FR-017, FR-033, FR-035; SC-009.
+
+**Independent Test**: Test paid/gifted/cached-active, inactive/expired, guest and unknown variants deterministically; compare representative native active/neutral compositions, both themes and a live transition. Observe ordinary account departure and a reliable SDK entitlement change; gold never replaces division/match treatments.
+
+### Tests and qualification cases for User Story 6
+
+- [x] T039 [P] [US6] Protect the root's current-state-to-theme composition in `apps/mobile/src/features/pro/__tests__/pro-appearance.test.tsx`: inactive → SDK-active → guest changes membership presentation without changing sporting context or neutral surfaces. Keep entitlement meaning, cached-active versus unavailable evidence, owner replacement, accepted erasure and obsolete-result rejection in the existing `pro-state`, `pro-session`, `pro-refresh` and F05 session suites. F13's `theme-provider.test.tsx` owns light/dark palette changes and mounted-draft preservation. These boundaries jointly protect current-account appearance without repeating the SDK/session matrix through the root or creating another entitlement cache/test framework.
+- [x] T040 [P] [US6] Prepare representative approved guest entry, eligible free offer, current Pro Profile and active/neutral sporting comparisons in `specs/006-pro-subscriptions/quickstart.md#current-account-appearance-comparison`, using exact specification Figma references and F13 T066/T073. Across compatible iOS/Android cases cover both themes, a live system transition, compact width, enlarged French text, reduced motion, safe areas/back/ordinary focus and accessibility semantics. Reuse deterministic SDK/session accent variants and unchanged shared evidence; readability, scrolling, dismissal and actual provider actions within the configured paywall journey remain separate from Blockout design comparison, without every state × appearance × font × OS campaign.
+
+### Implementation and qualification for User Story 6
+
+- [x] T041 [US6] Connect current SDK-active presentation from `apps/mobile/src/features/pro/index.ts` at `apps/mobile/src/app/_layout.tsx` to F13's existing theme/consumer props, making T039 pass. Reuse F13 T067/T068 semantic tokens and system appearance plus F02 sporting context; shared modules never import Pro internals. Supply no accent for guest/inactive/unknown/old-session state, persist no membership decision and create no feature theme provider, palette or selector.
+- [ ] T042 [US6] Execute T040 on compatible native iOS/Android clients under F13 FR-029 through `specs/006-pro-subscriptions/quickstart.md#evidence-and-release-boundary`, reusing F13 T073 and actual owner screens. Compare representative app-owned invitation/entry/active/neutral chrome to exact approved Figma nodes; across those cases observe both themes and one live transition, narrow/enlarged text, ordinary names/roles/states/content order, keyboard focus, back and dismissal. Verify native account departure removes old gold and a reliable entitlement change preserves sporting colors; reuse deterministic remaining SDK/session variants and T012/T018 evidence. Qualify readability, scrolling, dismissal and actual provider actions within the configured paywall journey separately on each platform. Dedicated VoiceOver/TalkBack campaigns stay excluded under FR-030. Keep justified adaptations and unavailable evidence explicit; material visual changes retain existing approval gates.
+
+**Checkpoint**: Premium recognition is current-account presentation only; local tests do not certify visual fidelity or native provider accessibility.
+
+---
+
+## Phase 9: Polish & Cross-Cutting Concerns
+
+**Purpose**: Reconcile delivered behavior and its actual qualification without converting future evidence into completion.
+
+- [x] T043 Review touched code in `apps/mobile/src/features/pro/`, account/root integrations and `infra/operations/README.md` against the applicable React/native/testing, code-documentation and logging guidance. Keep native type signatures current to the selected SDK, meaningful safe failure ownership, French accessible feedback, feature-local responsibilities and no speculative wrapper, persisted rights, transaction journal or automatic recovery.
+- [ ] T044 Run the actual mobile formatting/lint/typecheck/Jest targets declared in `README.md`, affected F05/F11/F13 integration tests, Expo Doctor and relevant native build/launch checks for the SDK/configuration changes in `apps/mobile/package.json` and `apps/mobile/app.config.ts`. Verify paired versions, ignored native/generated outputs and both supported platform floors; record unavailable devices/store checks separately rather than invent commands or certify Expo Go/browser mocks.
+- [ ] T045 Reconcile A01–A30 and SC-001–009 evidence in the normal delivery records against `specs/006-pro-subscriptions/quickstart.md` and `specs/014-v1-v2-transition/quickstart.md`, retaining incomplete qualifications unchecked. Supply F14 the bounded native results for actual identities, offer/mapping/notification settings, receipts and independent gifts; F14 owns full population reconciliation, historical-reference preservation and price/cohort/publication changes. F11 privacy/restoration restrictions remain effective before restored data is exposed; an older state never regrants revoked rights. Keep sensitive evidence private and run the repository documentation checks and diff hygiene without claiming launch/provider approval.
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup**: T001 precedes T002. Consume F13 T001–T017, not completion of all shared operations.
+- **Foundation**: T003 precedes T004; both precede story implementation. F05 supplies native credential attribution and the private account lifetime. Controlled inputs permit isolated development before actual usable-account establishment.
+- **US1**: T008 precedes T009. T010 uses the actual F05 account/invitation owner and F13 T067–T069/T071 UI. T007/T010 guest and connected entry wiring completes with T025’s provider host; neither requires a second presentation path. T006/T011 complete together after the relevant actual F03/F11 consumers exist. T005 and the ready portions of T007 can use controlled native boundaries; T006 tests the real consumers. T012 requires real F05/F14 initialization and US3/US4 native operations, not a fabricated earlier qualification.
+- **US2**: T013/T014 can be written together after foundation; T015 extends the US1 owner, then T017 completes the diagnostics boundary. T018 uses actual native state and its relevant consumers; it need not wait for every later release operation.
+- **US3**: T019–T022 can run together after foundation. T023 and T024 follow their tests; T025 consumes the delivered guest/profile entry, US2’s existing rights owner and shared UI, completing the connected T007/T010 wiring and tests in the same implementation. Its host construction does not establish T032’s actual native assistance observation or remove its accepted API limitations. T026 requires prepared cases and separate provider authorization; T027 requires actual native/store candidates and applicable F14/F11 inputs.
+- **US4**: T028 prepares native restore-callback tests and T030 prepares assisted/native cases after foundation. T031 extends T024/T025; T032 observes standard configured assistance and its accepted limitations. T033 defines only the Pro-specific use of F10/F11's private process. T034 waits for the actual relevant F05/F10/F14 owners, with independent-gift execution completed alongside US5.
+- **US5**: T035/T036 can run together. T037 extends the existing T033 operating instructions; T038 needs actual SDK/UI and authorized console access, reusing T034 where scenarios coincide. These console capabilities introduce no new mobile/backend subsystem.
+- **US6**: T039/T040 can run together after foundation and shared theme readiness. T041 uses US1/US2's actual state and F13's existing public theme contract; T042 needs the actual UI/owners, and supplies rather than duplicates F13 native evidence.
+- **Polish**: T043–T045 reconcile implemented scope after its checks. An unavailable qualification remains unchecked; ready independent work may continue.
+
+### Cross-Feature Ownership
+
+- [F05](../005-accounts-identity/tasks.md) owns usable UUIDs, native principal credentials, private QueryClient lifetime and authentication/invitation, local-first erasure and original-target cleanup. F09's native identity calls consume session changes and never hold up F05 logout. Full F05 consumer qualification and F09 transaction qualification follow their implementations; neither requires the other feature wholly complete to start.
+- [F13](../003-shared-quality/tasks.md) owns workspace/native tooling, shared tokens/system theme/controls and diagnostics. F09 supplies current Pro presentation; F02 owns sporting colors. Unrelated infrastructure or all-consumer validation is not a prerequisite for the first Pro slice.
+- [F11](../004-advertising-privacy-legal/tasks.md) consumes current rights and owns all remaining ad/privacy eligibility, distribution and private evidence restrictions. F09 does not duplicate its ad counter, consent or age logic.
+- [F10](../012-reports-feature-suggestions/plan.md) owns the one support form and private complete-receipt process. Controlled navigation supports early Pro tests; real assistance qualification waits for that implemented destination and its private-provider evidence.
+- [F14](../014-v1-v2-transition/plan.md) owns early installation initialization, production identities, historical-population reconciliation, indispensable references, store price/cohort changes and activation. Early initialization is an actual runtime prerequisite; the full cutover is not an authoring or isolated implementation prerequisite. Native/provider mutations need their applicable authorization.
+
+### Parallel Examples by Story
+
+- **US1**: T005 identity tests, T006 access tests and T007 entry tests are distinct files. Implement T008 before T009; do not parallelize edits to their shared owner.
+- **US2**: T013 listener/cache tests and T014 degraded-presentation tests can proceed together. T015/T017 both touch the provider and are serialized.
+- **US3**: T019 offering, T020 payment and T021 provider-host tests can proceed together while T022 prepares native cases. T025 consumes their implemented boundaries.
+- **US4**: T028 restoration tests and T030 manual-case preparation can proceed together. T031 implements native callback consumption; T032 observes the actual standard configured assistance behavior without an app workaround.
+- **US5**: T035 gift-consumption tests and T036 console qualification cases are independent. T037 follows the existing private recovery procedure; T038 is an authorized actual qualification.
+- **US6**: T039 appearance behavior and T040 native comparison preparation are independent. T041 precedes actual T042 evidence.
+
+Shared-file edits, especially `pro-provider.tsx`, root composition, the profile, quickstart and operations instructions, are serialized across stories even when their tests are parallelizable.
+
+## Implementation Strategy
+
+1. Deliver setup/foundation and US1's controlled MVP: current-account association, state isolation, free public sport and guest invitation. Do not advertise native transaction/continuity proof before the corresponding qualifications.
+2. Add US2 SDK lifecycle, then US3 direct explicit native paywall journey and US4 restoration/assistance. Verify each local increment before qualifying its real dependencies.
+3. Add US5 owner-console evidence and US6 shared-theme consumption; reuse the same native runs when they establish identical boundaries for F05/F11/F13/F14.
+4. Complete the applicable two-store/device/private-support evidence and cross-feature checks before release. Leave unavailable evidence explicit; no task list, mock or passing documentation CI authorizes provider changes, production activation or an unreviewed recovery mechanism.

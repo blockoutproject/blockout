@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="746" viewBox="0 0 390 746" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="login" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(208 357.776) scale(185.714 380.612)">
+      <stop offset="0" stop-color="#666665" />
+      <stop offset="68%" stop-color="#363635" />
+      <stop offset="100%" stop-color="#232323" />
+    </radialGradient>
+  </defs>
+  <rect width="390" height="746" fill="url(#login)" />
+</svg>

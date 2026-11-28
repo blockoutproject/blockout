@@ -2,9 +2,9 @@
 
 ## Startup settings
 
-For a new durable application use Pydantic Settings with an application-owned settings class. Validate before opening clients, starting tasks or scheduling jobs. Required settings have no fictional defaults. Validate positive limits/timeouts and relevant URL/choice constraints. Small scripts may use argparse and direct checks.
+Use the application's configuration mechanism to validate settings before opening clients, starting tasks or scheduling jobs. Required settings have no fictional defaults. Validate positive limits/timeouts and relevant URL/choice constraints. Small scripts may use argparse and direct checks.
 
-Select the local dotenv path explicitly, and keep the safe `.env.example` consistent with the actual loader. Do not assume `.env.local` is discovered by every tool. Retain and document the application's source precedence; use normal supported Pydantic Settings sources rather than a custom loader framework. In a new simple application, environment variables override the explicitly selected dotenv file; constructor overrides may be used for controlled composition/tests. Test this policy with synthetic values.
+When the project reads a dotenv file, select its path explicitly. Preserve the declared source precedence and test it with synthetic values. In a project using Pydantic Settings, use its supported source configuration.
 
 Environment strings legitimately need declared conversions to numbers/booleans. That does not authorize permissive coercion of unrelated API JSON. Keep secret values out of reprs, logs and user-facing failures. Use secret-aware fields where appropriate, but do not assume they sanitize every raw input in validation errors. Do not print `ValidationError`, its raw input/context, an environment dump or the complete settings object. Render a bounded safe diagnostic identifying the failed setting/constraint without its value, preserving useful causes internally.
 
@@ -44,7 +44,7 @@ Keep parsing, pure normalization and mapping synchronous. Use async I/O inside a
 
 The executable owns `asyncio.run`; internal functions neither start another loop nor use nested run_until_complete. Use one client per compatible lifecycle scope, with explicit close/async context management, not one client per record. The scope may be an application lifetime or a controlled run. Bind clients to their actual event loop and credentials/configuration; do not share them across incompatible loops.
 
-Set project-owned connect/read/write/pool timeouts and connection limits. HTTP client limits, the number of active tasks and a whole-operation deadline solve different problems. Keep TLS verification enabled by default; an existing explicit environment exception is not a reusable global convention. Respect the actual generated client's lifecycle and supported HTTPX injection hooks; do not patch generated code to take ownership.
+Set project-owned connect/read/write/pool timeouts and connection limits. HTTP client limits, the number of active tasks and a whole-operation deadline solve different problems. Keep TLS verification enabled by default; an existing explicit environment exception is not a reusable global convention. If using a generated client, use its supported transport and lifecycle hooks.
 
 Bound both active work and pending work. A semaphore limits active operations but still allows unbounded task allocation if used around a huge gather. For a small known batch, bounded tasks may suffice; for a large/streaming source use a bounded worker/queue or incremental-batch pattern justified by that workload. Avoid implementing a general scheduler framework.
 
@@ -64,4 +64,4 @@ A later scheduled run can repeat an uncertain write even if it is called a new r
 
 Test invalid startup configuration before operations; environment/file precedence; safe failure rendering; client closure; successive-run independence; cancellation; partial-result safety; and bounded concurrency when affected. Use controlled transports and synchronization events rather than real services or arbitrary sleeps.
 
-Mechanics: [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/), [asyncio tasks](https://docs.python.org/3/library/asyncio-task.html), [HTTPX async clients](https://www.python-httpx.org/async/) and [timeouts](https://www.python-httpx.org/advanced/timeouts/). Actual versions, defaults and operational limits remain project-owned.
+See the [asyncio task documentation](https://docs.python.org/3/library/asyncio-task.html) for cancellation and task groups. Projects using Pydantic Settings can check [source configuration](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) for their version.

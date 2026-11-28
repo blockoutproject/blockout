@@ -1,0 +1,622 @@
+package com.blockout.backend.sporting.api;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.blockout.backend.collection.api.CollectionExceptionHandler;
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.config.HttpConfiguration;
+import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.backend.shared.http.ApiExceptionHandler;
+import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
+import com.blockout.backend.sporting.application.model.StandingsObservation;
+import com.blockout.backend.sporting.application.service.AcceptCalendar;
+import com.blockout.backend.sporting.application.service.AcceptCatalog;
+import com.blockout.backend.sporting.application.service.AcceptClubDetails;
+import com.blockout.backend.sporting.application.service.AcceptClubLocality;
+import com.blockout.backend.sporting.application.service.AcceptMatchObservation;
+import com.blockout.backend.sporting.application.service.AcceptSourceImage;
+import com.blockout.backend.sporting.application.service.AcceptStandings;
+import com.blockout.backend.sporting.application.service.ValidateSportingImage;
+import com.blockout.backend.sporting.support.SportingImageFixture;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+/** Actual generated request binding; acceptance collaborators are isolated in the MVC slice. */
+@WebMvcTest(SportingIngestionController.class)
+@AutoConfigureMockMvc
+@Import({
+  com.blockout.backend.sporting.application.service.ValidateSportingImage.class,
+  HttpConfiguration.class,
+  SecurityConfiguration.class,
+  ApiExceptionHandler.class,
+  CollectionExceptionHandler.class,
+  SportingExceptionHandler.class,
+  SportingObservationMapperImpl.class,
+  SportingPresentationMapperImpl.class,
+  SportingObservationValidator.class,
+  SportingPresentationValidator.class,
+  IngestionBodyLimitAdvice.class
+})
+@DisplayName("Sporting ingestion HTTP boundary")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
+class SportingIngestionWebMvcTest {
+  @Autowired private MockMvc mvc;
+  @MockitoBean private AcceptMatchObservation matches;
+  @MockitoBean private AcceptCalendar calendars;
+  @MockitoBean private AcceptCatalog catalogs;
+  @MockitoBean private AcceptStandings standings;
+  @MockitoBean private AcceptClubDetails clubObservations;
+
+  @MockitoBean private AcceptClubLocality localities;
+
+  @MockitoBean private AcceptSourceImage images;
+
+  @Test
+  @DisplayName("Refuses a calendar whose combined collections exceed 1000 entries")
+  void refusesCombinedOverflow() throws Exception {
+    // Given
+    String slot = "{\"sourceReference\":\"bye\",\"kind\":\"bye\"}";
+    String slots = String.join(",", Collections.nCopies(1000, slot));
+    String body =
+        """
+        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,
+        "observedAt":"2026-10-19T12:00:00Z"},"complete":true,"matches":[],
+        "contextSlots":[%s],"failures":[{"sourceReference":"bad","reasonType":"urn:test:bad"}]}
+        """
+            .formatted(slots);
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/pools/00000000-0000-4000-8000-000000000002/calendar-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body));
+
+    // Then
+    response.andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Refuses more than 8 MiB before parsing or invoking an acceptance service")
+  void refusesOversizedJson() throws Exception {
+    // Given
+    byte[] body = new byte[8 * 1024 * 1024 + 1];
+    Arrays.fill(body, (byte) ' ');
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/source-bindings/00000000-0000-4000-8000-000000000002/catalog-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body));
+
+    // Then
+    response
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "pools/00000000-0000-4000-8000-000000000002/calendar-observations",
+        "pools/00000000-0000-4000-8000-000000000002/standings-observations",
+        "source-bindings/00000000-0000-4000-8000-000000000002/catalog-observations",
+        "matches/00000000-0000-4000-8000-000000000002/detail-observations",
+        "clubs/00000000-0000-4000-8000-000000000002/detail-observations",
+        "clubs/00000000-0000-4000-8000-000000000002/locality-observations"
+      })
+  @DisplayName("Every JSON ingestion envelope requires its generated mandatory context")
+  void validatesEnvelope(String path) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/" + path).with(collector()).contentType("application/json").content("{}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"future\":\"private-synthetic-value\"}",
+        "{\"result\":{\"state\":\"final\",\"future\":true}}",
+        "{\"sets\":[{\"home\":25,\"away\":20,\"future\":true}]}",
+        "{\"sets\":[{\"home\":25}]}",
+        "{\"sets\":[null]}",
+        "{\"referees\":[null]}",
+        "{\"result\":{\"state\":\"future\"}}",
+        "{\"result\":{}}",
+        "{\"result\":{\"state\":\"final\",\"homeSets\":\"3\"}}",
+        "{\"localDate\":\"2026-02-31\"}",
+        "{\"localTime\":\"25:00\"}",
+        "{\"timeZone\":null}"
+      })
+  @DisplayName("Rejects invalid or unknown nested facts before application mapping")
+  void rejectsInvalidFacts(String facts) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+            {"context":{"cycleId":"00000000-0000-4000-8000-000000000002","readOrdinal":7,
+            "observedAt":"2026-10-18T18:00:00Z"},"facts":%s}
+            """
+                    .formatted(facts));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(content().string(not(containsString("private-synthetic-value"))));
+    verifyNoInteractions(matches);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"facts\":{}}",
+        "{\"context\":null,\"facts\":{}}",
+        "{\"context\":{},\"facts\":{}}",
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000002\",\"readOrdinal\":7,\"observedAt\":\"bad-date\"},\"facts\":{}}",
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000002\",\"readOrdinal\":7,\"observedAt\":\"2026-10-18T18:00:00Z\",\"future\":true},\"facts\":{}}"
+      })
+  @DisplayName("Requires valid collection context independently from optional facts")
+  void rejectsInvalidContext(String body) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(matches);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "[]"})
+  @DisplayName("Keeps omitted and withdrawn facts distinct through binding and mapping")
+  void preservesPresenceThroughHttp(String sets) throws Exception {
+    // Given
+    UUID matchId = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    when(matches.detail(any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "M1", ObservationOutcomeEnum.ACCEPTED, matchId, null, null, null));
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+            {"context":{"cycleId":"00000000-0000-4000-8000-000000000002","readOrdinal":7,
+            "observedAt":"2026-10-18T18:00:00Z"},"facts":{"result":null,"sets":%s,"referees":null}}
+            """
+                    .formatted(sets));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
+    ArgumentCaptor<MatchObservation> submitted = ArgumentCaptor.forClass(MatchObservation.class);
+    Mockito.verify(matches).detail(submitted.capture());
+    MatchObservation observation = submitted.getValue();
+    Assertions.assertThat(observation.matchId()).isEqualTo(matchId);
+    Assertions.assertThat(observation.context().readOrdinal()).isEqualTo(7L);
+    Assertions.assertThat(observation.facts().localDate().isUndefined()).isTrue();
+    Assertions.assertThat(observation.facts().result()).isEqualTo(JsonNullable.of(null));
+    Assertions.assertThat(observation.facts().referees()).isEqualTo(JsonNullable.of(null));
+    Assertions.assertThat(observation.facts().sets())
+        .isEqualTo(sets.equals("null") ? JsonNullable.of(null) : JsonNullable.of(List.of()));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"mobile-test", "collector-other-environment"})
+  @DisplayName("A mobile or another environment's client cannot invoke sporting ingestion")
+  void refusesWrongClient(String client) throws Exception {
+    // Given
+    RequestPostProcessor wrongClient =
+        jwt()
+            .jwt(token -> token.claim("azp", client))
+            .authorities(new SimpleGrantedAuthority("SCOPE_sporting:ingest"));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/pools/00000000-0000-4000-8000-000000000002/calendar-observations")
+                .with(wrongClient)
+                .contentType("application/json")
+                .content("{}"));
+
+    // Then
+    response.andExpect(status().isForbidden());
+    verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
+  }
+
+  @Test
+  @DisplayName(
+      "Returns canonical synchronous per-item outcomes without a job or multi-status response")
+  void returnsCalendarOutcomes() throws Exception {
+    // Given
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    when(calendars.accept(eq(pool), any()))
+        .thenReturn(
+            new ObservationOutcome.Calendar(
+                List.of(
+                    new ObservationOutcome(
+                        "M1", ObservationOutcomeEnum.ACCEPTED, pool, null, null, null, false, true),
+                    ObservationOutcome.refused("M2", false)),
+                1,
+                0,
+                0,
+                1,
+                false));
+    String body =
+        """
+        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,
+        "observedAt":"2026-10-19T12:00:00Z"},"complete":true,"matches":[],"contextSlots":[],"failures":[]}
+        """;
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/pools/" + pool + "/calendar-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.outcomes[0].sourceReference").value("M1"))
+        .andExpect(jsonPath("$.outcomes[0].finalResultChanged").value(true))
+        .andExpect(jsonPath("$.outcomes[1].outcome").value("rejected"))
+        .andExpect(jsonPath("$.acceptedCount").value(1))
+        .andExpect(jsonPath("$.unchangedCount").value(0))
+        .andExpect(jsonPath("$.staleCount").value(0))
+        .andExpect(jsonPath("$.rejectedCount").value(1))
+        .andExpect(jsonPath("$.absenceReconciled").value(false));
+  }
+
+  @Test
+  @DisplayName("An invalid cycle scope is a non-cacheable conflict before item acceptance")
+  void refusesInvalidCycleScope() throws Exception {
+    // Given
+    when(calendars.accept(any(), any()))
+        .thenThrow(new CollectionConflictException("invalid-cycle-context"));
+    String body =
+        """
+        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,
+        "observedAt":"2026-10-19T12:00:00Z"},"complete":true,"matches":[],"contextSlots":[],"failures":[]}
+        """;
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/pools/00000000-0000-4000-8000-000000000002/calendar-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body));
+
+    // Then
+    response
+        .andExpect(status().isConflict())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-cycle-context"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "\"publicationState\":\"not-published\",\"columns\":[\"Points\"],\"rows\":[]",
+        "\"publicationState\":\"published\",\"columns\":[],\"rows\":[{\"sourceName\":\"Synthetic\",\"statistics\":{\"Points\":\"9\"}}]"
+      })
+  @DisplayName(
+      "Refuses contradictory non-publication and undeclared statistic columns before writes")
+  void refusesInvalidStandings(String table) throws Exception {
+    // Given
+    String body =
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000001\",\"readOrdinal\":1,\"observedAt\":\"2026-10-19T12:00:00Z\"},"
+            + table
+            + "}";
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/pools/00000000-0000-4000-8000-000000000002/standings-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body));
+
+    // Then
+    response
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(standings);
+  }
+
+  @Test
+  @DisplayName(
+      "Maps a published table through the generated HTTP boundary with source column order")
+  void acceptsStandings() throws Exception {
+    // Given
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    when(standings.accept(eq(pool), any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "POOL", ObservationOutcomeEnum.ACCEPTED, pool, null, null, null));
+    String body =
+        """
+        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,"observedAt":"2026-10-19T12:00:00Z"},
+        "publicationState":"published","columns":["Ratio","Points"],"rows":[{"sourceName":"Synthetic","position":7,"statistics":{"Ratio":"∞"}}]}
+        """;
+
+    // When
+    mvc.perform(
+            post("/ingestion/pools/" + pool + "/standings-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.outcome").value("accepted"));
+
+    // Then
+    ArgumentCaptor<StandingsObservation> submitted =
+        ArgumentCaptor.forClass(StandingsObservation.class);
+    Mockito.verify(standings).accept(eq(pool), submitted.capture());
+    Assertions.assertThat(submitted.getValue().columns()).containsExactly("Ratio", "Points");
+    Assertions.assertThat(submitted.getValue().rows().getFirst().statistics())
+        .containsEntry("Ratio", "∞")
+        .hasSize(1);
+  }
+
+  @Test
+  @DisplayName(
+      "Preserves omitted and explicit-null club fields through generated ingestion binding")
+  void bindsClubDetailPresence() throws Exception {
+    // Given
+    UUID club = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    when(clubObservations.accept(eq(club), any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "00193", ObservationOutcomeEnum.ACCEPTED, club, null, null, null));
+    String body =
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000001\",\"readOrdinal\":1,\"observedAt\":\"2026-10-24T12:00:00Z\"},\"email\":null,\"city\":\"Paris\"}";
+
+    // When
+    mvc.perform(
+            post("/ingestion/clubs/{id}/detail-observations", club)
+                .with(collector())
+                .contentType("application/json")
+                .content(body))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"));
+
+    // Then
+    ArgumentCaptor<SportingPresentation.ClubObservation> observation =
+        ArgumentCaptor.forClass(SportingPresentation.ClubObservation.class);
+    Mockito.verify(clubObservations).accept(eq(club), observation.capture());
+    Assertions.assertThat(
+            observation
+                .getValue()
+                .fields()
+                .get(SportingPresentation.ContactField.EMAIL)
+                .isPresent())
+        .isTrue();
+    Assertions.assertThat(
+            observation.getValue().fields().get(SportingPresentation.ContactField.EMAIL).get())
+        .isNull();
+    Assertions.assertThat(
+            observation
+                .getValue()
+                .fields()
+                .get(SportingPresentation.ContactField.PHONE)
+                .isPresent())
+        .isFalse();
+  }
+
+  @Test
+  @DisplayName("Binds exact locality revision and paired coordinates through generated ingestion")
+  void bindsClubLocality() throws Exception {
+    // Given
+    UUID club = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    when(localities.accept(eq(club), any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "00193", ObservationOutcomeEnum.ACCEPTED, club, null, null, null));
+    String body =
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000001\",\"readOrdinal\":1,\"observedAt\":\"2026-10-24T12:00:00Z\"},\"localityRevision\":\"7\",\"outcome\":\"located\",\"latitude\":48.86,\"longitude\":2.34}";
+
+    // When
+    mvc.perform(
+            post("/ingestion/clubs/{id}/locality-observations", club)
+                .with(collector())
+                .contentType("application/json")
+                .content(body))
+        .andExpect(status().isOk());
+
+    // Then
+    ArgumentCaptor<SportingPresentation.LocalityObservation> observation =
+        ArgumentCaptor.forClass(SportingPresentation.LocalityObservation.class);
+    Mockito.verify(localities).accept(eq(club), observation.capture());
+    Assertions.assertThat(observation.getValue().localityRevision()).isEqualTo("7");
+    Assertions.assertThat(observation.getValue().latitude()).isEqualTo(48.86);
+    Assertions.assertThat(observation.getValue().longitude()).isEqualTo(2.34);
+  }
+
+  @Test
+  @DisplayName("Accepts actual source-image bytes independently from their declared PNG/JPEG type")
+  void bindsSourceImageBytes() throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    byte[] content = SportingImageFixture.image("PNG", 0x112233);
+    when(images.acceptSource(eq(team), any(), any()))
+        .thenReturn(
+            new ObservationOutcome("193", ObservationOutcomeEnum.ACCEPTED, team, null, null, null));
+
+    // When
+    mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .queryParam("providerPublishedAt", "2026-10-23T12:00:00Z")
+                .contentType("image/jpeg")
+                .content(content))
+        .andExpect(status().isOk());
+
+    // Then
+    ArgumentCaptor<SportingPresentation.Image> image =
+        ArgumentCaptor.forClass(SportingPresentation.Image.class);
+    ArgumentCaptor<MatchObservation.Context> context =
+        ArgumentCaptor.forClass(MatchObservation.Context.class);
+    Mockito.verify(images).acceptSource(eq(team), context.capture(), image.capture());
+    Assertions.assertThat(image.getValue().bytes()).isEqualTo(content);
+    Assertions.assertThat(image.getValue().mediaType()).isEqualTo("image/png");
+    Assertions.assertThat(context.getValue().providerPublishedAt())
+        .isEqualTo(java.time.Instant.parse("2026-10-23T12:00:00Z"));
+  }
+
+  @Test
+  @DisplayName("Refuses source-image authorization before decoding invalid bytes")
+  void refusesUnauthorizedSourceImage() throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("not permitted"))
+        .when(images)
+        .requireSource(eq(team), any());
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .contentType("image/png")
+                .content(new byte[] {1, 2, 3}));
+
+    // Then
+    response
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:forbidden"));
+    Mockito.verify(images, Mockito.never()).acceptSource(any(), any(), any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"application/json", "image/gif"})
+  @DisplayName("Rejects unsupported source-image media types without an image transaction")
+  void refusesUnsupportedSourceImageMedia(String type) throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .contentType(type)
+                .content("bad"));
+
+    // Then
+    response.andExpect(status().isUnsupportedMediaType());
+    verifyNoInteractions(images);
+  }
+
+  @Test
+  @DisplayName("Rejects oversized source-image bytes before invoking any image use case")
+  void boundsSourceImageBeforeConversion() throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    byte[] oversized = new byte[ValidateSportingImage.MAX_BYTES + 1];
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .contentType("image/png")
+                .content(oversized));
+
+    // Then
+    response.andExpect(status().isPayloadTooLarge());
+    verifyNoInteractions(images);
+  }
+
+  /**
+   * Supplies the dedicated validated client identity; signature validation has its owning suite.
+   *
+   * @return native security test identity with the actual ingestion authority
+   */
+  private RequestPostProcessor collector() {
+    return jwt()
+        .jwt(token -> token.claim("azp", "collector-test"))
+        .authorities(new SimpleGrantedAuthority("SCOPE_sporting:ingest"));
+  }
+}

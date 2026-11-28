@@ -1,0 +1,197 @@
+openapi: 3.0.4
+info:
+  title: Blockout mobile API
+  version: 0.1.0
+  description:
+    Backend API for application access, account lifecycle, public sporting consultation, discovery,
+    personal following, notifications, private support and administration.
+servers:
+  - url: /
+    description: Same-origin backend; deployment supplies its environment URL.
+tags:
+  - name: Support
+    description: Private problems and suggestions from guests or signed-in people.
+  - name: CollectionSources
+    description: Read-only official source catalogues and explicit season activation.
+  - name: Collection
+    description: Collection controls and current operational evidence.
+  - name: ApplicationAccess
+    description: Public admission settings and separately authorized maintenance/version management.
+  - name: Accounts
+    description: Private account establishment, profile changes and erasure.
+  - name: Sporting
+    description: Sporting identities, presentation, classification and authorized corrections.
+  - name: Discovery
+    description: Public club, team and pool discovery and sporting search options.
+  - name: SportingPresentation
+    description: Atomic sporting presentation and private contact correction.
+  - name: SportingClassification
+    description: Pack and pool mapping and atomic acquisition classification corrections.
+  - name: DivisionAdministration
+    description: Configured divisions, creation and explicit activity commands.
+  - name: Following
+    description: Personal team/pool follows, public counts and personal match selection.
+  - name: StreamContributions
+    description: Owned stream links, exact-version reports and authorized video moderation.
+  - name: Notifications
+    description: Private inbox, read state and unread totals.
+  - name: PushSubscriptions
+    description: Current private push destination associations.
+security:
+  - MobileToken: []
+paths:
+  /support-requests:
+    $ref: ./support/paths.yaml#/Collection
+  /accounts/{accountId}/notifications:
+    $ref: ./notifications/paths.yaml#/Collection
+  /accounts/{accountId}/notifications/{notificationId}:
+    $ref: ./notifications/paths.yaml#/Member
+  /accounts/{accountId}/push-subscriptions/{subscriptionId}:
+    $ref: ./notifications/paths.yaml#/Subscription
+  /accounts/{accountId}/team-follows:
+    $ref: ./following/paths.yaml#/TeamFollows
+  /accounts/{accountId}/team-follows/{teamId}:
+    $ref: ./following/paths.yaml#/TeamFollow
+  /teams/{teamId}/follower-count:
+    $ref: ./following/paths.yaml#/TeamFollowerCount
+  /accounts/{accountId}/pool-follows:
+    $ref: ./following/paths.yaml#/PoolFollows
+  /accounts/{accountId}/pool-follows/{poolId}:
+    $ref: ./following/paths.yaml#/PoolFollow
+  /pools/{poolId}/follower-count:
+    $ref: ./following/paths.yaml#/PoolFollowerCount
+  /accounts/{accountId}/follow-options:
+    $ref: ./following/paths.yaml#/Options
+  /accounts/{accountId}/matches:
+    $ref: ./following/paths.yaml#/Matches
+  /clubs:
+    $ref: ./discovery/paths.yaml#/Clubs
+  /teams:
+    $ref: ./discovery/paths.yaml#/Teams
+  /pools:
+    $ref: ./discovery/paths.yaml#/Pools
+  /sporting-search-options:
+    $ref: ./discovery/paths.yaml#/Options
+  /clubs/{clubId}:
+    $ref: ./consultation/paths.yaml#/Club
+  /clubs/{clubId}/teams:
+    $ref: ./consultation/paths.yaml#/ClubTeams
+  /clubs/{clubId}/logo:
+    $ref: ./consultation/paths.yaml#/ClubLogo
+  /teams/{teamId}:
+    $ref: ./consultation/paths.yaml#/Team
+  /teams/{teamId}/logo:
+    $ref: ./consultation/paths.yaml#/TeamLogo
+  /divisions/{divisionId}/logo:
+    $ref: ./consultation/paths.yaml#/DivisionLogo
+  /pools/{poolId}:
+    $ref: ./consultation/paths.yaml#/Pool
+  /pools/{poolId}/standings:
+    $ref: ./consultation/paths.yaml#/Standings
+  /pools/{poolId}/participants:
+    $ref: ./consultation/paths.yaml#/Participants
+  /matches:
+    $ref: ./consultation/paths.yaml#/Matches
+  /matches/{matchId}:
+    $ref: ./consultation/paths.yaml#/Match
+  /matches/{matchId}/documents/{documentKind}:
+    $ref: ./consultation/paths.yaml#/Document
+  /administration/collection-seasons:
+    $ref: ./collection/paths.yaml#/Seasons
+  /administration/collection-seasons/{seasonId}:
+    $ref: ./collection/paths.yaml#/Season
+  /administration/collection-seasons/{seasonId}/closure:
+    $ref: ./collection/paths.yaml#/Closure
+  /administration/collection-seasons/{seasonId}/activation:
+    $ref: ./collection/paths.yaml#/Activation
+  /administration/collection-seasons/{seasonId}/source-launches:
+    $ref: ./collection/paths.yaml#/Launch
+  /administration/collection-seasons/{seasonId}/source-bindings:
+    $ref: ./collection/paths.yaml#/Sources
+  /administration/source-bindings/{sourceBindingId}:
+    $ref: ./collection/paths.yaml#/Source
+  /administration/source-bindings/{sourceBindingId}/candidate:
+    $ref: ./collection/paths.yaml#/Candidate
+  /administration/source-bindings/{sourceBindingId}/validations:
+    $ref: ./collection/paths.yaml#/Validation
+  /administration/source-bindings/{sourceBindingId}/season-confirmation:
+    $ref: ./collection/paths.yaml#/Confirmation
+  /administration/collection-controls:
+    $ref: ./collection/paths.yaml#/Controls
+  /administration/collection-controls/{controlId}:
+    $ref: ./collection/paths.yaml#/Control
+  /administration/collection-controls/{controlId}/activity:
+    $ref: ./collection/paths.yaml#/Activity
+  /administration/collection-controls/{controlId}/requests:
+    $ref: ./collection/paths.yaml#/Requests
+  /administration/collection-controls/{controlId}/results:
+    $ref: ./collection/paths.yaml#/Results
+  /application-access:
+    $ref: ./access/paths.yaml#/Public
+  /administration/maintenance:
+    $ref: ./access/paths.yaml#/Maintenance
+  /administration/maintenance/activation:
+    $ref: ./access/paths.yaml#/Activation
+  /administration/application-versions:
+    $ref: ./access/paths.yaml#/Versions
+  /accounts:
+    $ref: ./accounts/paths.yaml#/Collection
+  /accounts/me:
+    $ref: ./accounts/paths.yaml#/Current
+  /accounts/{accountId}:
+    $ref: ./accounts/paths.yaml#/Member
+  /accounts/{accountId}/photo:
+    $ref: ./accounts/paths.yaml#/Photo
+  /administration/clubs/{clubId}/presentation:
+    $ref: ./sporting/paths.yaml#/ClubPresentation
+  /administration/teams/{teamId}/presentation:
+    $ref: ./sporting/paths.yaml#/TeamPresentation
+  /administration/pools/{poolId}/presentation:
+    $ref: ./sporting/paths.yaml#/PoolPresentation
+  /administration/packs:
+    $ref: ./sporting/paths.yaml#/MappingPacks
+  /administration/packs/filter-options:
+    $ref: ./sporting/paths.yaml#/MappingFilterOptions
+  /administration/packs/{packId}:
+    $ref: ./sporting/paths.yaml#/MappingPack
+  /administration/packs/{packId}/classification:
+    $ref: ./sporting/paths.yaml#/PackClassification
+  /administration/pools/{poolId}/classification:
+    $ref: ./sporting/paths.yaml#/PoolClassification
+  /administration/clubs/{clubId}/contacts:
+    $ref: ./sporting/paths.yaml#/ClubContacts
+  /administration/divisions:
+    $ref: ./sporting/paths.yaml#/Divisions
+  /administration/divisions/{divisionId}:
+    $ref: ./sporting/paths.yaml#/Division
+  /administration/divisions/{divisionId}/presentation:
+    $ref: ./sporting/paths.yaml#/DivisionPresentation
+  /administration/divisions/{divisionId}/activity:
+    $ref: ./sporting/paths.yaml#/DivisionActivity
+  /accounts/{accountId}/matches/{matchId}/stream-contributions:
+    $ref: ./contributions/paths.yaml#/OwnCollection
+  /accounts/{accountId}/matches/{matchId}/stream-contributions/{contributionId}:
+    $ref: ./contributions/paths.yaml#/OwnMember
+  /accounts/{accountId}/stream-contributions/{contributionId}/report:
+    $ref: ./contributions/paths.yaml#/OwnReport
+  /administration/stream-moderation:
+    $ref: ./contributions/paths.yaml#/Moderation
+  /administration/matches/{matchId}/stream-contributions:
+    $ref: ./contributions/paths.yaml#/AdministrationCollection
+  /administration/matches/{matchId}/stream-contributions/{contributionId}:
+    $ref: ./contributions/paths.yaml#/AdministrationMember
+  /administration/matches/{matchId}/stream-contributions/{contributionId}/reactivations:
+    $ref: ./contributions/paths.yaml#/Reactivations
+  /administration/matches/{matchId}/stream-contributions/{contributionId}/reports:
+    $ref: ./contributions/paths.yaml#/Reports
+components:
+  securitySchemes:
+    MobileToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description:
+        Bearer token issued to an allowed mobile client for this environment. The backend validates
+        issuer, audience, expiry and client identity, then checks current global action grants and resource
+        conditions. Ordinary membership, moderation or collector credentials grant no implicit administrative
+        permission.

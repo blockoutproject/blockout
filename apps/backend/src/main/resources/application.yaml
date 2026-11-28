@@ -1,0 +1,167 @@
+spring:
+  application:
+    name: blockout-backend
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  datasource:
+    hikari:
+      connection-timeout: 3000
+      validation-timeout: 1000
+      data-source-properties:
+        # Actuator's JDBC check uses isValid(0), so pool timeouts alone cannot bound it.
+        socketTimeout: 5
+  servlet:
+    multipart:
+      max-file-size: 5242880B
+      max-request-size: 27262976B
+      # Keep bounded accepted parts in memory; profile photos have no staged upload on disk.
+      file-size-threshold: 5242880B
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+  http:
+    clients:
+      connect-timeout: 3s
+      read-timeout: 5s
+      redirects: dont-follow
+
+server:
+  tomcat:
+    # Drain bounded rejected multipart requests so clients can receive the canonical 413.
+    max-swallow-size: 27MB
+
+blockout:
+  images:
+    bucket: ${BLOCKOUT_IMAGES_BUCKET:}
+    region: ${AWS_REGION:}
+  notifications:
+    push:
+      # Opt-in only after isolated credentials and project ownership are qualified.
+      enabled: ${BLOCKOUT_NOTIFICATIONS_PUSH_ENABLED:false}
+      project-id: ${BLOCKOUT_NOTIFICATIONS_PUSH_PROJECT_ID:}
+      access-token: ${BLOCKOUT_NOTIFICATIONS_PUSH_ACCESS_TOKEN:}
+    # One ordinary pass per UTC day; Spring's '-' value is for isolated tests only.
+    retention-cron: ${BLOCKOUT_NOTIFICATIONS_RETENTION_CRON:0 0 3 * * *}
+  consultation:
+    documents:
+      information-url: https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php
+      connect-timeout: 3s
+      read-timeout: 5s
+      max-bytes: 20971520
+      max-redirects: 3
+      # Empty by default: no provider origin is activated by the foundation.
+      allowed-origins: []
+  accounts:
+    cleanup:
+      revenue-cat-base-url: https://api.revenuecat.com/v2
+      revenue-cat-project-id: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_PROJECT_ID:}
+      revenue-cat-secret-key: ${BLOCKOUT_ACCOUNTS_CLEANUP_REVENUECAT_SECRET_KEY:}
+      connect-timeout: 3s
+      read-timeout: 5s
+    auth0:
+      audience: ${BLOCKOUT_ACCOUNTS_AUTH0_AUDIENCE:}
+      connect-timeout: 3s
+      read-timeout: 5s
+  search:
+    projection:
+      full-rebuild-delay: ${BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY:1h}
+    indexes:
+      prefix: ${BLOCKOUT_SEARCH_INDEX_PREFIX:blockout-local-search}
+    enabled: false
+    endpoint: ${BLOCKOUT_SEARCH_ENDPOINT:}
+    username: ${BLOCKOUT_SEARCH_USERNAME:}
+    password: ${BLOCKOUT_SEARCH_PASSWORD:}
+    ssl-bundle: opensearch
+    connect-timeout-millis: 3000
+    request-timeout-millis: 5000
+  support:
+    # Set destination.* only for a qualified private destination; credentials stay external.
+    connect-timeout: 3s
+    read-timeout: 5s
+    process-timeout: 30s
+  security:
+    # Empty fallbacks let Bean Validation reject absent inputs instead of binding placeholder text.
+    issuer: ${BLOCKOUT_SECURITY_ISSUER:}
+    mobile-audience: ${BLOCKOUT_SECURITY_MOBILE_AUDIENCE:}
+    mobile-client-id: ${BLOCKOUT_SECURITY_MOBILE_CLIENT_ID:}
+    ingestion-audience: ${BLOCKOUT_SECURITY_INGESTION_AUDIENCE:}
+    ingestion-client-id: ${BLOCKOUT_SECURITY_INGESTION_CLIENT_ID:}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  endpoint:
+    health:
+      status:
+        order: down,out-of-service,unknown,up
+        http-mapping:
+          down: 503
+          out-of-service: 503
+          unknown: 503
+      group:
+        readiness:
+          include: readinessState,db
+          additional-path: server:/health
+
+logging:
+  level:
+    # The upstream Java SDK has a raw response-body DEBUG log; never enable it here.
+    com.niamedtech.expo.exposerversdk: "OFF"
+  structured:
+    format:
+      console: ecs
+    json:
+      # Free-form messages, throwables and arbitrary MDC may contain private values.
+      include:
+        - "@timestamp"
+        - log
+        - log.level
+        - log.logger
+        - service
+        - service.name
+        - service.environment
+        - error
+        - error.type
+        - operation
+        - stage
+        - scope
+        - outcome
+        - provider
+        - reason
+        - affected_count
+        - partial_count
+        - last_success_at
+        - phase
+        - collection_control
+        - collection_season
+        - collection_cycle_order
+        - collection_read_ordinal
+        - collection_observed_at
+        - collection_actionable
+        - collection_subject
+        - collection_destination
+        - collection_count_capped
+        - account_cleanup
+        - account_cleanup.original_account_id
+        - account_cleanup.auth0_subject
+        - account_cleanup.revenuecat_app_user_id
+        - account_cleanup.s3_bucket
+        - account_cleanup.s3_object_key
+
+---
+spring:
+  config:
+    activate:
+      on-profile: initial-reconstruction
+  main:
+    web-application-type: none
+blockout:
+  notifications:
+    retention-cron: "-"
+    link-announcements-cron: "-"

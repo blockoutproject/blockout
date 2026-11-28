@@ -1,0 +1,1003 @@
+import {
+  useLayoutEffect,
+  useState,
+  type PropsWithChildren,
+  type ComponentType,
+} from "react";
+import {
+  act,
+  cleanup,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { renderRouter } from "expo-router/testing-library";
+import { Stack, router } from "expo-router";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { Alert, Text } from "react-native";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { OwnContributionsScreen } from "../screens/own-contributions-screen";
+import { ContributionScreen } from "../screens/contribution-screen";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
+import { ownContributions } from "../test-support/contribution-data";
+import { MatchScreen } from "@/features/sporting/screens/match-screen";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import SignInInvitationRoute from "@/app/(ordinary)/sign-in-invitation";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, init?: RequestInit) => mockFetch(url, init),
+}));
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+let match: ReturnType<typeof matchDetail>;
+const previous = { ...process.env };
+let client = createQueryClient();
+let privateClient: ReturnType<typeof createQueryClient>;
+beforeEach(() => {
+  match = matchDetail();
+  client = createQueryClient();
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "mobile-audience",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|synthetic"));
+  mockAuth0.webAuth
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|synthetic"));
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  mockFetch.mockReset().mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/application-access")) {
+      return Response.json(applicationAccessResponse());
+    }
+    if (path.endsWith("/me")) {
+      return Response.json(accountResponse());
+    }
+    if (path === "/accounts" && init?.method === "POST") {
+      return Response.json(accountResponse(), { status: 201 });
+    }
+    if (path.includes("/stream-contributions")) {
+      return Response.json(
+        init?.method === "POST"
+          ? {
+              revision: "next",
+              contribution: {
+                id: "00000000-0000-4000-8000-000000000003",
+                url: "https://youtu.be/example",
+                platform: "youtube",
+                state: "active",
+                submittedAt: "2026-10-28T10:00:00Z",
+                canWithdraw: true,
+              },
+            }
+          : ownContributions(),
+        { status: init?.method === "POST" ? 201 : 200 },
+      );
+    }
+    return Response.json(match);
+  });
+});
+afterEach(async () => {
+  await act(async () => {
+    await privateClient.cancelQueries();
+  });
+  await cleanup();
+  client.clear();
+  privateClient?.clear();
+  process.env = { ...previous };
+  jest.restoreAllMocks();
+});
+
+/** Keeps the actual router, discard guard, form, Query and session; native I/O, alerts and HTTP alone are controlled. */
+function Layout() {
+  return (
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>
+                <Stack />
+              </AccountFeedbackProvider>
+            </PrivateQueries>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+/** Supplies the real F12 ordinary admission to the production F05 route, as the application root does. */
+function InvitationRoute() {
+  return (
+    <AccessAdmissionProvider>
+      <SignInInvitationRoute />
+    </AccessAdmissionProvider>
+  );
+}
+
+it.each([
+  { name: "first submission", state: undefined, canSubmit: true },
+  { name: "pending proposal", state: "pending", canSubmit: false },
+  { name: "terminal proposal", state: "rejected", canSubmit: false },
+  { name: "published proposal", state: "active", canSubmit: false },
+] as const)(
+  "opens the dedicated form or management screen from the match card for $name",
+  async ({ state, canSubmit }) => {
+    // Given
+    jest.replaceProperty(
+      proSessionModule,
+      "proSession",
+      proSessionModule.createProSession(),
+    );
+    prepareProNativeIO();
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
+    const versionId = "00000000-0000-4000-8000-000000000004";
+    mockFetch.mockImplementation((url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path === `/matches/${match.match.id}`) {
+        return Promise.resolve(
+          Response.json({
+            ...match,
+            ...(state === "active"
+              ? {
+                  streamUrl: "https://youtu.be/personal",
+                  streamContributionId: versionId,
+                }
+              : {}),
+          }),
+        );
+      }
+      if (path.includes("/stream-contributions")) {
+        return Promise.resolve(
+          Response.json(
+            ownContributions({
+              proposalCount: state ? 1 : 0,
+              eligibility: { canSubmit, requiresApproval: false },
+              ...(state === "active"
+                ? {
+                    activeContribution: {
+                      id: versionId,
+                      url: "https://youtu.be/personal",
+                      platform: "youtube",
+                      state: "active",
+                      submittedAt: "2026-10-28T09:00:00Z",
+                      canWithdraw: true,
+                    },
+                  }
+                : {}),
+              items: state
+                ? [
+                    {
+                      id: versionId,
+                      url: "https://youtu.be/personal",
+                      platform: "youtube",
+                      state,
+                      submittedAt: "2026-10-28T09:00:00Z",
+                      canWithdraw: state === "active",
+                    },
+                  ]
+                : [],
+            }),
+          ),
+        );
+      }
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await renderRouter(
+      {
+        _layout: Layout,
+        index: () => (
+          <AdvertisingProviders>
+            <MatchScreen matchId={match.match.id} />
+          </AdvertisingProviders>
+        ),
+        "matches/[matchId]/contributions": () => (
+          <OwnContributionsScreen matchId={match.match.id} />
+        ),
+        "matches/[matchId]/contribution": () => (
+          <ContributionScreen matchId={match.match.id} />
+        ),
+      },
+      { initialUrl: "/" },
+    );
+    let entryLabel = "Proposer un lien";
+    if (state === "active") {
+      entryLabel = "Modifier le lien";
+    } else if (state) {
+      entryLabel = "Gérer mes propositions";
+    }
+    const entry = await screen.findByRole("button", {
+      name: entryLabel,
+    });
+    expect(
+      screen.getByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Mes contributions")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Gérer mes propositions")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Lien de diffusion" }),
+    ).not.toBeOnTheScreen();
+    if (state !== "active") {
+      expect(
+        screen.getByText("Aucun lien disponible pour ce match."),
+      ).toBeOnTheScreen();
+    }
+
+    expect(
+      screen.queryByRole("link", { name: /^Regarder / }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Signaler le lien" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await user.press(entry);
+
+    // Then
+    if (state) {
+      expect(
+        await screen.findByRole("header", { name: "Mes propositions (1)" }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(
+        await screen.findByLabelText("Adresse du lien"),
+      ).toHaveDisplayValue("");
+      expect(
+        screen.queryByRole("header", { name: "Mes propositions (0)" }),
+      ).not.toBeOnTheScreen();
+    }
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.some(
+        ([, init]) => init?.method === "POST" || init?.method === "PATCH",
+      ),
+    ).toBe(false);
+  },
+);
+
+async function openGuestMatch() {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  await renderRouter(
+    {
+      _layout: Layout,
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "sign-in-invitation": InvitationRoute,
+    },
+    { initialUrl: `/matches/${match.match.id}` },
+  );
+}
+
+it.each([
+  {
+    action: "Proposer un lien",
+    publicLink: {},
+    description: "Aucun lien disponible pour ce match.",
+    invitation: "Connectez-vous pour proposer un lien de diffusion",
+  },
+  {
+    action: "Signaler le lien",
+    publicLink: {
+      streamUrl: "https://youtu.be/published",
+      streamContributionId: "00000000-0000-4000-8000-000000000004",
+    },
+    description: "youtu.be",
+    invitation: "Connectez-vous pour signaler ce lien de diffusion",
+  },
+])(
+  "signs in from the contextual $action invitation without replaying the protected action",
+  async ({ action, publicLink, description, invitation }) => {
+    // Given
+    match = { ...match, ...publicLink };
+    const user = userEvent.setup();
+    await openGuestMatch();
+    const entry = await screen.findByRole("button", { name: action });
+    const [firstSection, nextSection] = screen.getAllByRole("header", {
+      name: /^(Lien de diffusion|Informations)$/,
+    });
+    expect(firstSection).toHaveTextContent("Lien de diffusion");
+    expect(nextSection).toHaveTextContent("Informations");
+    expect(screen.getByText(description)).toBeOnTheScreen();
+
+    // When
+    await user.press(entry);
+
+    // Then
+    expect(await screen.findByText(invitation)).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Se connecter" }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).includes("/stream-contributions"),
+      ),
+    ).toBe(false);
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen).toHavePathname(`/matches/${match.match.id}`),
+    );
+    expect(
+      await screen.findByRole("header", { name: "Lien de diffusion" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(invitation)).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .filter(([, init]) => init?.method === "POST")
+        .map(([url]) => new URL(String(url)).pathname),
+    ).toEqual(["/accounts"]);
+  },
+);
+
+it("lets the active match keep navigation when a dismissed invitation settles", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  if (!peer) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  mockFetch.mockImplementation((url, init) =>
+    init?.method === "POST" && new URL(String(url)).pathname === "/accounts"
+      ? response.promise
+      : peer(url, init),
+  );
+  const user = userEvent.setup();
+  await openGuestMatch();
+  await user.press(
+    await screen.findByRole("button", { name: "Proposer un lien" }),
+  );
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
+  try {
+    // When: the ordinary entry remains mounted as its explicit connection waits for establishment.
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/accounts$/),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeBusy();
+    await user.press(screen.getByRole("button", { name: "Fermer" }));
+    expect(screen).toHavePathname(`/matches/${match.match.id}`);
+  } finally {
+    await act(() =>
+      response.resolve(Response.json(accountResponse(), { status: 201 })),
+    );
+  }
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Lien de diffusion" }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname(`/matches/${match.match.id}`);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(1);
+});
+
+it("keeps history revoked when a refused match opens it before technical mount reads fail", async () => {
+  // Given: the real match screen keeps its F08 observer mounted after public data is refused.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
+  let phase: "authorized" | "refused" | "unavailable" = "authorized";
+  let ownReads = 0;
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}` && phase !== "authorized") {
+      const status = phase === "refused" ? 404 : 500;
+      return Response.json({ status }, { status });
+    }
+    if (path.includes("/stream-contributions")) {
+      ownReads++;
+      if (phase === "unavailable") {
+        return Response.json({ status: 500 }, { status: 500 });
+      }
+      return Response.json(
+        ownContributions({
+          proposalCount: 1,
+          items: [
+            {
+              id: "00000000-0000-4000-8000-000000000004",
+              url: "https://youtu.be/private-history",
+              platform: "youtube",
+              state: "active",
+              submittedAt: "2026-10-28T09:00:00Z",
+              canWithdraw: true,
+            },
+          ],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await screen.findByRole("button", { name: "Gérer mes propositions" });
+
+  // When: a foreground public read refuses the match before the history route is opened.
+  phase = "refused";
+  await act(async () => {
+    await privateClient.refetchQueries({
+      predicate: (query) =>
+        query.queryKey.includes(`/matches/${match.match.id}`),
+    });
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+  phase = "unavailable";
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await screen.findByText("Lien de diffusion");
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+
+  // Then: technical mount failures cannot restore details revoked by the previous observer.
+  expect(
+    screen.queryByText("https://youtu.be/private-history"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+
+  // When: the public refusal can cancel a mount read; an explicit retry now reaches both failing endpoints.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(ownReads).toBeGreaterThan(1));
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    screen.queryByText("https://youtu.be/private-history"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+
+  // When: current successful reads authorize the match and its personal history again.
+  phase = "authorized";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("https://youtu.be/private-history"),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "https://youtu.be/private-history",
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled(),
+  );
+});
+
+it("confirms publication on the match without asking to discard the acknowledged address", async () => {
+  // Given
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => <Text>Unrelated origin</Text>,
+      "matches/[matchId]": () => <Text>Match origin</Text>,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  const user = userEvent.setup();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/example",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByText("Match origin")).toBeOnTheScreen(),
+  );
+  expect(
+    screen.getByRole("alert", { name: "Votre lien est publié." }),
+  ).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it("discards an unsent contribution draft when its route is removed", async () => {
+  // Given
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => <Text>Match origin</Text>,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  const user = userEvent.setup();
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/unsent",
+  );
+  // When
+  await act(() => router.replace("/"));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.style === "destructive");
+  if (discard) {
+    await act(async () => discard.onPress?.());
+  }
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  // Then
+  expect(await screen.findByLabelText("Adresse du lien")).toHaveDisplayValue(
+    "",
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(0);
+});
+
+it("keeps a new visit's draft when an older detached submission completes", async () => {
+  // Given
+  const user = userEvent.setup();
+  const response = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  if (!peer) {
+    throw new Error("Synthetic HTTP is required");
+  }
+  mockFetch.mockImplementation((url, init) =>
+    init?.method === "POST" ? response.promise : peer(url, init),
+  );
+  await renderRouter(
+    {
+      _layout: Layout,
+      index: () => <Text>Match origin</Text>,
+      "matches/[matchId]/contribution": () => (
+        <ContributionScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: "/" },
+  );
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/original",
+  );
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+
+  // When
+  await act(() => router.replace("/"));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.style === "destructive");
+  if (discard) {
+    await act(async () => discard.onPress?.());
+  }
+  await screen.findByText("Match origin");
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contribution",
+      params: { matchId: match.match.id },
+    }),
+  );
+  await screen.findByLabelText("Adresse du lien");
+  await waitFor(() =>
+    expect(screen.getByLabelText("Adresse du lien")).toBeEnabled(),
+  );
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/new-draft",
+  );
+  expect(
+    screen.getByDisplayValue("https://youtu.be/new-draft"),
+  ).toBeOnTheScreen();
+  await act(async () =>
+    response.resolve(
+      Response.json(
+        {
+          revision: "next",
+          contribution: {
+            id: "00000000-0000-4000-8000-000000000003",
+            url: "https://youtu.be/original",
+            platform: "youtube",
+            state: "active",
+            submittedAt: "2026-10-28T10:00:00Z",
+            canWithdraw: true,
+          },
+        },
+        { status: 201 },
+      ),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.getByDisplayValue("https://youtu.be/new-draft"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: "Votre lien est publié." }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "POST"),
+  ).toHaveLength(1);
+});
+
+it("confirms a pending replacement on the match even when its owner read fails", async () => {
+  // Given
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
+  let acknowledged = false;
+  let failOwnerRead = true;
+  let submissions = 0;
+  const previous = {
+    id: "00000000-0000-4000-8000-000000000004",
+    url: "https://youtu.be/previous",
+    platform: "youtube" as const,
+    state: "active" as const,
+    submittedAt: "2026-10-28T09:00:00Z",
+    canWithdraw: true,
+  };
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}`) {
+      return Response.json({
+        ...match,
+        streamUrl: previous.url,
+        streamContributionId: previous.id,
+      });
+    }
+    if (path.includes("/stream-contributions")) {
+      if (init?.method === "POST") {
+        submissions++;
+        acknowledged = true;
+        return Response.json(
+          {
+            revision: "next",
+            contribution: {
+              ...previous,
+              id: "00000000-0000-4000-8000-000000000005",
+              url: "https://youtu.be/example",
+              state: "pending",
+              canWithdraw: false,
+            },
+          },
+          { status: 201 },
+        );
+      }
+      if (acknowledged && failOwnerRead) {
+        throw new TypeError("Controlled owner read failure");
+      }
+      return Response.json(
+        ownContributions({
+          proposalCount: 1,
+          activeContribution: previous,
+          items: [previous],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: `/matches/${match.match.id}` },
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/example",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen).toHavePathname(`/matches/${match.match.id}`),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.getByRole("alert", {
+      name: "Votre lien est en attente de validation.",
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: /^Regarder / }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() =>
+    router.push({
+      pathname: "/matches/[matchId]/contributions",
+      params: { matchId: match.match.id },
+    }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(
+      /Les modifications déjà confirmées restent enregistrées/,
+    ),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer la lecture" }),
+  ).not.toBeOnTheScreen();
+  expect(submissions).toBe(1);
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When: a safe owner read restores the editor without replaying the accepted replacement.
+  failOwnerRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+  expect(submissions).toBe(1);
+});
+
+it("returns to the exact match and confirms withdrawal of the active link", async () => {
+  // Given: the acknowledgement removes the public editor while the retained draft is dirty.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
+  const active = {
+    id: "00000000-0000-4000-8000-000000000004",
+    url: "https://youtu.be/public",
+    platform: "youtube" as const,
+    state: "active" as const,
+    submittedAt: "2026-10-28T09:00:00Z",
+    canWithdraw: true,
+  };
+  let withdrawn = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    if (path === `/matches/${match.match.id}`) {
+      return Response.json({
+        ...match,
+        ...(withdrawn
+          ? {}
+          : { streamUrl: active.url, streamContributionId: active.id }),
+      });
+    }
+    if (path.includes("/stream-contributions")) {
+      if (init?.method === "PATCH") {
+        withdrawn = true;
+        return Response.json({
+          revision: "withdrawn",
+          contribution: { ...active, state: "withdrawn", canWithdraw: false },
+        });
+      }
+      return Response.json(
+        ownContributions({
+          proposalCount: 1,
+          activeContribution: withdrawn ? undefined : active,
+          items: [
+            {
+              ...active,
+              ...(withdrawn ? { state: "withdrawn", canWithdraw: false } : {}),
+            },
+          ],
+        }),
+      );
+    }
+    return boundary(url, init);
+  });
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: Layout,
+      "matches/[matchId]": () => (
+        <AdvertisingProviders>
+          <MatchScreen matchId={match.match.id} />
+        </AdvertisingProviders>
+      ),
+      "matches/[matchId]/contributions": () => (
+        <OwnContributionsScreen matchId={match.match.id} />
+      ),
+    },
+    { initialUrl: `/matches/${match.match.id}` },
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/unsaved",
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retirer" }));
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls[0]?.[2]?.find((button) => button.text === "Retirer le lien")
+      ?.onPress?.(),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen).toHavePathname(`/matches/${match.match.id}`),
+  );
+  expect(
+    await screen.findByRole("button", { name: "Proposer un lien" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("alert", { name: "Lien retiré." })).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+/** Uses one-shot read failures and keeps unused mutation GC timers out of the Jest process. */
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
+  const cache = useQueryClient();
+  useState(() => {
+    cache.setQueryDefaults([], { retry: false });
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  });
+  useLayoutEffect(() => {
+    privateClient = cache;
+  }, [cache]);
+  return children;
+}

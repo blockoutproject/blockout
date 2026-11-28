@@ -1,0 +1,226 @@
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import {
+  changeApplicationVersionSettings,
+  getAccountPhoto,
+  getApplicationAccess,
+  getGetApplicationAccessQueryOptions,
+  getMyAccount,
+} from "../../../../.generated/mobile";
+import { createQueryClient } from "@/shared/query/query-client";
+
+const accountId = "00000000-0000-4000-8000-000000000001";
+const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
+}));
+
+const account = accountResponse({
+  accountId,
+  username: "Synthetic",
+  email: "fixture@example.invalid",
+  permissions: {},
+});
+
+beforeEach(() => {
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  mockFetch.mockReset();
+});
+afterEach(() => {
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
+});
+
+it("accepts complete nullable groups and additive response fields", async () => {
+  // Given
+  const body = applicationAccessResponse();
+  mockFetch.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        ...body,
+        future: true,
+        versions: {
+          ...body.versions,
+          ios: { ...body.versions.ios, future: true },
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      },
+    ),
+  );
+
+  // When
+  const result = await getApplicationAccess();
+
+  // Then
+  expect(result).toStrictEqual(body);
+});
+
+it.each<[string, unknown]>([
+  [
+    "missing maintenance",
+    { ...applicationAccessResponse(), maintenance: undefined },
+  ],
+  ["missing versions", { ...applicationAccessResponse(), versions: undefined }],
+  [
+    "missing platform",
+    {
+      ...applicationAccessResponse(),
+      versions: { ...applicationAccessResponse().versions, ios: undefined },
+    },
+  ],
+  [
+    "missing nullable field",
+    {
+      ...applicationAccessResponse(),
+      versions: { ...applicationAccessResponse().versions, message: undefined },
+    },
+  ],
+])("rejects %s before Query admission", async (_scenario, body) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  const client = createQueryClient();
+  const options = getGetApplicationAccessQueryOptions();
+
+  try {
+    // When
+    const request = client.fetchQuery(options);
+
+    // Then
+    await expect(request).rejects.toMatchObject({ kind: "schema" });
+    expect(client.getQueryData(options.queryKey)).toBeUndefined();
+  } finally {
+    client.clear();
+  }
+});
+
+it.each([
+  ["absent", {}],
+  ["false", { manageMaintenance: false }],
+  ["true", { manageMaintenance: true }],
+])(
+  "preserves %s capabilities without inferring other rights",
+  async (_scenario, permissions) => {
+    // Given
+    mockFetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...account,
+          permissions: { ...permissions, future: true },
+          future: true,
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    // When
+    const result = await getMyAccount();
+
+    // Then
+    expect(result.permissions).toStrictEqual(permissions);
+    expect(result.permissions.bypassMaintenance).toBeUndefined();
+  },
+);
+
+it.each([
+  ["missing permissions", undefined],
+  ["null permissions", null],
+  ["null capability", { manageMaintenance: null }],
+  ["string capability", { manageMaintenance: "true" }],
+  ["numeric capability", { manageMaintenance: 1 }],
+])("rejects %s instead of granting access", async (_scenario, permissions) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify({ ...account, permissions }), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  // When
+  const request = getMyAccount();
+
+  // Then
+  await expect(request).rejects.toMatchObject({ kind: "schema" });
+});
+
+it.each([
+  ["omission", { ios: {} }],
+  [
+    "explicit removal",
+    {
+      ios: { minimumVersion: null, storeUrl: null },
+      message: null,
+    },
+  ],
+])("preserves %s in generated partial requests", async (_scenario, change) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify(applicationAccessResponse().versions), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  // When
+  await changeApplicationVersionSettings(change);
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledWith(
+    "https://api.example.invalid/administration/application-versions",
+    expect.objectContaining({ method: "PATCH", body: JSON.stringify(change) }),
+  );
+});
+
+it.each([
+  ["unavailable", undefined],
+  [
+    "maintenance",
+    {
+      active: true,
+      message: "Maintenance en cours",
+      imageUrl: null,
+    },
+  ],
+])("retains the canonical %s refusal", async (category, maintenance) => {
+  // Given
+  const problem = {
+    type: `urn:blockout:problem:${category}`,
+    title: "Service Unavailable",
+    status: 503,
+    ...(maintenance ? { maintenance } : {}),
+  };
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify(problem), {
+      status: 503,
+      headers: {
+        "Content-Type": "application/problem+json",
+        "Cache-Control": "no-store",
+      },
+    }),
+  );
+
+  // When
+  const request = getAccountPhoto(accountId);
+
+  // Then
+  await expect(request).rejects.toMatchObject({
+    kind: "http",
+    status: 503,
+    problem,
+  });
+});

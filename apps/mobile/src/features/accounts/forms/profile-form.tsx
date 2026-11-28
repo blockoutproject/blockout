@@ -1,0 +1,324 @@
+import { ImageValidationError } from "@/shared/images/image-validation-error";
+import type { File } from "expo-file-system";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
+import { useImageSelection } from "@/shared/images/use-image-selection";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
+import { StyleSheet, View } from "react-native";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { SingleImageField } from "@/shared/components/single-image-field";
+import { PageContent } from "@/shared/components/page";
+import {
+  FormScrollView,
+  type FormScrollViewProps,
+} from "@/shared/components/form-scroll-view";
+
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { tokens } from "@/shared/theme/tokens";
+import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
+import { copySelectedImage } from "@/shared/images/copy-selected-image";
+import { profileSchema, type ProfileValues } from "../schemas/profile-schema";
+import { profileValues } from "./profile-values";
+import { toProfileBody } from "../api/profile-request";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+
+const PHOTO_TOO_LARGE = "La photo dépasse la limite de 5 Mio.";
+
+/** An editable snapshot of this original account; parent native principal changes remount it. */
+export interface ProfileFormProps {
+  /** Native refresh remains available for an authorized account independently of its optional photo. */
+  refreshControl: FormScrollViewProps["refreshControl"];
+  account: AccountResponse;
+  /** Prevents personal edits while required account/session authority is unavailable. */
+  disabled: boolean;
+  /** Replaces the fields while keeping RHF, prepared files and native scroll ancestors mounted. */
+  readFeedback?: ReactNode;
+  /** Ordinary route departure; the shared dirty-form guard owns cancellation confirmation. */
+  onCancel: () => void;
+  /** Called only after a current acknowledged save resets the draft. */
+  onSaved: () => void;
+}
+
+/** Keeps mounted input through ordinary save failures and preserves each submitted photo until settlement. */
+export function ProfileForm({
+  refreshControl,
+  account,
+  disabled,
+  readFeedback,
+  onCancel,
+  onSaved,
+}: Readonly<ProfileFormProps>) {
+  const feedback = useActionFeedback({ retainSuccessOnUnmount: true });
+  const { save } = useProfileEditing(account.accountId);
+  const active = useRef(true);
+  const uploading = useRef<File | undefined>(undefined);
+  const selection = useImageSelection({
+    mode: "crop",
+    canSelect: () => !disabled && !save.isPending,
+    onSelect: async ([selected]) => {
+      try {
+        const prepared = await copySelectedImage(selected);
+        if (active.current) {
+          replacePhoto({ action: "replace", prepared });
+        } else {
+          deleteOwnedImage(prepared);
+        }
+      } catch (error) {
+        if (!active.current) {
+          return;
+        }
+        if (!(error instanceof ImageValidationError)) {
+          throw error;
+        }
+        if (error.reason === "too-large") {
+          showPhotoSizeError();
+        } else {
+          setError("photo", {
+            message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
+          });
+        }
+      }
+    },
+  });
+  const busy = selection.pending || save.isPending;
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    setError,
+    clearErrors,
+    reset,
+  } = useForm<ProfileValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: profileValues(account),
+    // RHF refreshes clean fields only after native preparation, writes and original-target reads settle.
+    values: busy ? undefined : profileValues(account),
+    resetOptions: {
+      keepDirtyValues: true,
+      keepDirty: true,
+      keepErrors: true,
+    },
+  });
+  const { isDirty, dirtyFields } = useFormState({ control });
+  useDiscardChanges(isDirty, () => {
+    const photo = getValues("photo");
+    reset(profileValues(account), {
+      keepDirtyValues: false,
+      keepDirty: false,
+      keepErrors: false,
+    });
+    if (photo.action === "replace" && photo.prepared !== uploading.current) {
+      deleteOwnedImage(photo.prepared);
+    }
+  });
+  const draft = useWatch({ control, name: "photo" });
+  const photo = useProfilePhoto(
+    account.accountId,
+    !disabled && account.hasPhoto && draft.action === "keep",
+  );
+  let photoUri: string | undefined;
+  if (draft.action === "replace") {
+    photoUri = draft.prepared.uri;
+  } else if (draft.action === "keep" && account.hasPhoto && photo.data) {
+    photoUri = photo.data;
+  }
+  const image =
+    photoUri === undefined
+      ? undefined
+      : { id: "profile-photo", uri: photoUri, label: "Photo de profil" };
+  const hasPhoto =
+    draft.action === "replace" || (draft.action === "keep" && account.hasPhoto);
+  useEffect(() => {
+    active.current = true;
+
+    /** Unmount releases the draft, while a sent upload keeps its own file until settlement. */
+    function releasePhoto() {
+      const photo = getValues("photo");
+      if (photo.action === "replace" && photo.prepared !== uploading.current) {
+        deleteOwnedImage(photo.prepared);
+      }
+    }
+
+    return () => {
+      active.current = false;
+      releasePhoto();
+    };
+  }, [getValues]);
+
+  /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
+  function replacePhoto(next: ProfileValues["photo"]) {
+    const previous = getValues("photo");
+    feedback.clear();
+    setValue("photo", next, { shouldDirty: true, shouldValidate: true });
+    if (
+      previous.action === "replace" &&
+      (next.action !== "replace" || next.prepared !== previous.prepared) &&
+      previous.prepared !== uploading.current
+    ) {
+      deleteOwnedImage(previous.prepared);
+    }
+  }
+
+  function showPhotoSizeError() {
+    clearErrors("photo");
+    feedback.error(PHOTO_TOO_LARGE);
+  }
+
+  /** Submits the captured profile intent without automatic write retries. */
+  async function submit(values: ProfileValues) {
+    if (disabled || selection.isPending() || !active.current) {
+      return;
+    }
+    const file =
+      values.photo.action === "replace" ? values.photo.prepared : undefined;
+    feedback.clear();
+    const attempt = save.mutateAsync(toProfileBody(values, dirtyFields));
+    uploading.current = file;
+    try {
+      const accepted = await attempt;
+      if (active.current) {
+        reset(profileValues(accepted), {
+          keepDirtyValues: false,
+          keepDirty: false,
+          keepErrors: false,
+        });
+        feedback.success("Profil enregistré.");
+        onSaved();
+      }
+    } catch (error) {
+      if (!active.current) {
+        return;
+      }
+      switch (error instanceof ApiError ? error.problem?.type : undefined) {
+        case "urn:blockout:problem:username-unavailable":
+          setError("username", { message: "Ce pseudo est déjà utilisé." });
+          break;
+        case "urn:blockout:problem:payload-too-large":
+          showPhotoSizeError();
+          break;
+        case "urn:blockout:problem:invalid-image":
+        case "urn:blockout:problem:unsupported-media-type":
+          setError("photo", {
+            message:
+              "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
+          });
+          break;
+        default:
+          feedback.error();
+      }
+    } finally {
+      uploading.current = undefined;
+      const current = getValues("photo");
+      if (
+        !active.current ||
+        current.action !== "replace" ||
+        current.prepared !== file
+      ) {
+        deleteOwnedImage(file);
+      }
+    }
+  }
+
+  return (
+    <FormScrollView refreshControl={refreshControl}>
+      {readFeedback}
+      <PageContent
+        style={readFeedback ? styles.hidden : undefined}
+        accessibilityElementsHidden={!!readFeedback}
+        importantForAccessibility={
+          readFeedback ? "no-hide-descendants" : "auto"
+        }
+      >
+        <View style={styles.form}>
+          <Controller
+            control={control}
+            name="photo"
+            render={({ fieldState }) => (
+              <SingleImageField
+                label="Photo de profil"
+                appearance="photo"
+                image={image}
+                readRevision={
+                  draft.action === "keep" ? photo.dataUpdatedAt : undefined
+                }
+                hasImage={hasPhoto}
+                loading={
+                  draft.action === "keep" && account.hasPhoto && photo.isLoading
+                }
+                selection={selection}
+                disabled={disabled || busy}
+                addLabel="Ajouter une photo"
+                editLabel="Modifier la photo"
+                chooseLabel="Choisir une photo"
+                removeLabel="Supprimer la photo"
+                helper="PNG/JPEG - 5 Mio maximum"
+                error={fieldState.error?.message}
+                onRemove={
+                  hasPhoto
+                    ? () => replacePhoto({ action: "remove" })
+                    : undefined
+                }
+              />
+            )}
+          />
+          <Surface>
+            <View style={styles.form}>
+              <Controller
+                control={control}
+                name="username"
+                render={({ field, fieldState }) => (
+                  <TextField
+                    ref={field.ref}
+                    label="Pseudo"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!disabled && !busy}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+              <TextField
+                label="Adresse e-mail"
+                value={account.email}
+                readOnly
+                helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
+              />
+            </View>
+          </Surface>
+
+          <View style={styles.actions}>
+            <Button
+              label="Enregistrer"
+              fullWidth
+              onPress={() => void handleSubmit(submit)()}
+              disabled={!isDirty || disabled || busy}
+              loading={save.isPending}
+            />
+            <Button
+              label="Annuler"
+              variant="secondary"
+              fullWidth
+              disabled={busy}
+              onPress={onCancel}
+            />
+          </View>
+        </View>
+      </PageContent>
+    </FormScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
+  form: { gap: tokens.layout.form.gap },
+  hidden: { display: "none" },
+});

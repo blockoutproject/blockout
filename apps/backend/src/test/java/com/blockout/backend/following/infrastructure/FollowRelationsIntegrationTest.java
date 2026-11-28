@@ -1,0 +1,567 @@
+package com.blockout.backend.following.infrastructure;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.accounts.application.PrincipalReader;
+import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
+import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Target;
+import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.FollowState;
+import com.blockout.backend.following.application.FollowStore;
+import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.following.application.ReadFollowEligibility;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * Generated HTTP handlers and real relation commits/locks with controlled account-row removal.
+ * F05's actual erasure orchestration is qualified by EraseAccountIntegrationTest.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@DisplayName("Durable team and pool follows on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class FollowRelationsIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000010");
+  private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000011");
+  private static final UUID PACK = UUID.fromString("00000000-0000-4000-8000-000000000012");
+  // Deliberately equal UUIDs in different owner tables must remain distinct typed targets.
+  private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000013");
+  @Autowired private JdbcTemplate sql;
+  @Autowired private MockMvc mvc;
+  @Autowired private FollowState state;
+  @Autowired private FollowStore store;
+  @Autowired private ReadFollowEligibility eligibility;
+  @Autowired private AccountAccess accounts;
+  @Autowired private PlatformTransactionManager transactions;
+  @MockitoBean private PrincipalReader provider;
+
+  /**
+   * Resets only this container and creates synthetic, currently viewable F02/F05 identities.
+   *
+   * @throws Exception when fixture setup fails
+   */
+  @BeforeEach
+  void owners() throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement fixture = connection.createStatement()) {
+      fixture.execute("TRUNCATE sporting_season, sporting_division, account CASCADE");
+    }
+    sql.update(
+        "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'one', 'first', 'one@example.invalid'), (?, 'https://identity.example.invalid/', 'two', 'second', 'two@example.invalid')",
+        ACCOUNT,
+        OTHER);
+    sql.update(
+        "INSERT INTO sporting_season(id, start_year, label) VALUES (?, 2026, '2026/2027')", SEASON);
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic', TRUE, '#112233')",
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'LNV', 'synthetic', 'pack')",
+        PACK,
+        SEASON);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, division_id, format, gender) VALUES (?, ?, ?, 'LNV', 'synthetic', 'competition', 'pool', 'Synthetic pool', ?, '_6X6', 'MIXED')",
+        TARGET,
+        SEASON,
+        PACK,
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, division_id, format, gender) VALUES (?, ?, 'LNV', 'synthetic', 'competition', 'home', 'Home', 'home', ?, '_6X6', 'MIXED')",
+        TARGET,
+        SEASON,
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000101"),
+        TARGET,
+        TARGET);
+  }
+
+  @ParameterizedTest
+  @EnumSource(TargetType.class)
+  @DisplayName("Preserves UUID on repeated true and assigns a new UUID after removal")
+  void replacesIdempotently(TargetType type) throws Exception {
+    // Given
+    FollowContext context = context(type);
+    mvc.perform(
+            get(memberPath(type))
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("one")
+                                    .claim("azp", "mobile-test"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.following").value(false));
+    replaceMember(type, true);
+    UUID original = relationId(type);
+
+    // When
+    replaceMember(type, true);
+    UUID retained = relationId(type);
+    replaceMember(type, false);
+    replaceMember(type, false);
+    boolean presentAfterRemoval = store.exists(context);
+    replaceMember(type, true);
+    UUID recreated = relationId(type);
+
+    // Then
+    assertThat(retained).isEqualTo(original);
+    assertThat(presentAfterRemoval).isFalse();
+    assertThat(state.read(context)).isTrue();
+    assertThat(recreated).isNotEqualTo(original);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(1L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
+    verifyNoInteractions(provider);
+  }
+
+  /**
+   * Sends the scenario's explicit desired state through generated MVC/security and real owners.
+   *
+   * @param type exact typed target sharing this fixture's UUID
+   * @param following complete requested state, never a toggle
+   * @throws Exception if dispatch or its confirmed response fails
+   */
+  private void replaceMember(TargetType type, boolean following) throws Exception {
+    mvc.perform(
+            put(memberPath(type))
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("one")
+                                    .claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":" + following + "}"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.following").value(following));
+  }
+
+  /**
+   * Names the actual generated member route for the original account and typed sporting identity.
+   *
+   * @param type exact relation kind
+   * @return canonical member path without performing a request
+   */
+  private static String memberPath(TargetType type) {
+    return "/accounts/"
+        + ACCOUNT
+        + (type == TargetType.TEAM ? "/team-follows/" : "/pool-follows/")
+        + TARGET;
+  }
+
+  @Test
+  @DisplayName("Removes only the exact owner's typed association")
+  void isolatesOwnersAndKinds() {
+    // Given
+    state.replace(context(TargetType.TEAM), true);
+    assertThat(state.read(context(TargetType.POOL))).isFalse();
+    state.replace(context(TargetType.POOL), true);
+    FollowContext other = new FollowContext(OTHER, context(TargetType.TEAM).target());
+    state.replace(other, true);
+
+    // When
+    state.replace(context(TargetType.TEAM), false);
+
+    // Then
+    assertThat(state.read(context(TargetType.TEAM))).isFalse();
+    assertThat(state.read(context(TargetType.POOL))).isTrue();
+    assertThat(state.read(other)).isTrue();
+  }
+
+  @ParameterizedTest
+  @EnumSource(TargetType.class)
+  @DisplayName("Enforces non-null owners/targets, foreign keys and pair uniqueness in PostgreSQL")
+  void enforcesConstraints(TargetType type) {
+    // Given
+    String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
+    String column = type == TargetType.TEAM ? "team_id" : "pool_id";
+    String insert = "INSERT INTO " + table + "(id, account_id, " + column + ") VALUES (?, ?, ?)";
+    UUID duplicateRelationId = UUID.fromString("00000000-0000-4000-8000-000000000111");
+    UUID nullOwnerRelationId = UUID.fromString("00000000-0000-4000-8000-000000000112");
+    UUID nullTargetRelationId = UUID.fromString("00000000-0000-4000-8000-000000000113");
+    UUID missingOwnerRelationId = UUID.fromString("00000000-0000-4000-8000-000000000114");
+    UUID missingOwner = UUID.fromString("00000000-0000-4000-8000-000000000115");
+    UUID missingTargetRelationId = UUID.fromString("00000000-0000-4000-8000-000000000116");
+    UUID missingTarget = UUID.fromString("00000000-0000-4000-8000-000000000117");
+    state.replace(context(type), true);
+
+    // When / Then: each statement commits independently, so every rejection reaches SQL.
+    assertThatThrownBy(() -> sql.update(insert, duplicateRelationId, ACCOUNT, TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    assertThatThrownBy(() -> sql.update(insert, nullOwnerRelationId, null, TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    assertThatThrownBy(() -> sql.update(insert, nullTargetRelationId, ACCOUNT, null))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    assertThatThrownBy(() -> sql.update(insert, missingOwnerRelationId, missingOwner, TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    assertThatThrownBy(() -> sql.update(insert, missingTargetRelationId, ACCOUNT, missingTarget))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class)).isEqualTo(1L);
+  }
+
+  @ParameterizedTest
+  @EnumSource(TargetType.class)
+  @DisplayName("Retains a hidden relation and restores its identity when F02 permits viewing again")
+  void retainsHiddenRelations(TargetType type) {
+    // Given
+    state.replace(context(type), true);
+    UUID original = relationId(type);
+    sql.update(
+        "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?", TARGET);
+
+    // When / Then
+    assertThatThrownBy(() -> state.read(context(type)))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+
+    // When / Then
+    assertThatThrownBy(() -> state.replace(context(type), false))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+    assertThat(relationId(type)).isEqualTo(original);
+
+    // Given
+    sql.update(
+        "UPDATE sporting_pool SET catalog_eligible=TRUE, calendar_empty=FALSE WHERE id=?", TARGET);
+    sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
+
+    // When / Then
+    assertThatThrownBy(() -> state.read(context(type)))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+
+    // Given
+    sql.update("UPDATE sporting_division SET active=TRUE WHERE id=?", DIVISION);
+
+    // When
+    boolean restored = state.read(context(type));
+
+    // Then
+    assertThat(restored).isTrue();
+    assertThat(relationId(type)).isEqualTo(original);
+  }
+
+  @Test
+  @DisplayName(
+      "Keeps corrections on the original identity without transferring to homonyms in another season")
+  void preservesIdentityAcrossCorrections() {
+    // Given
+    state.replace(context(TargetType.TEAM), true);
+    UUID original = relationId(TargetType.TEAM);
+    UUID nextSeason = UUID.fromString("00000000-0000-4000-8000-000000000102");
+    UUID nextTeam = UUID.fromString("00000000-0000-4000-8000-000000000103");
+    sql.update(
+        "INSERT INTO sporting_season(id, start_year, label) VALUES (?, 2027, '2027/2028')",
+        nextSeason);
+    sql.update(
+        "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, division_id, format, gender) SELECT ?, ?, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, division_id, format, gender FROM sporting_team WHERE id=?",
+        nextTeam,
+        nextSeason,
+        TARGET);
+
+    // When
+    sql.update(
+        "UPDATE sporting_team SET source_name='Corrected', comparison_name='corrected', gender='MALE' WHERE id=?",
+        TARGET);
+
+    // Then
+    assertThat(state.read(context(TargetType.TEAM))).isTrue();
+    assertThat(relationId(TargetType.TEAM)).isEqualTo(original);
+    assertThat(store.exists(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
+        .isFalse();
+    assertThat(eligibility.recipients(Set.of(context(TargetType.TEAM).target())))
+        .containsExactly(ACCOUNT);
+  }
+
+  @ParameterizedTest
+  @EnumSource(TargetType.class)
+  @DisplayName("Rejects unknown targets without creating a relationship")
+  void refusesMissingTarget(TargetType type) {
+    // Given
+    UUID missingTarget = UUID.fromString("00000000-0000-4000-8000-000000000118");
+    FollowContext missing = new FollowContext(ACCOUNT, new Target(type, missingTarget));
+
+    // When / Then
+    assertThatThrownBy(() -> state.replace(missing, true))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+    assertThat(store.exists(missing)).isFalse();
+  }
+
+  @Test
+  @DisplayName("Rolls back all relation changes on a later transactional failure")
+  void rollsBack() {
+    // Given
+    state.replace(context(TargetType.POOL), true);
+    UUID original = relationId(TargetType.POOL);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      state.replace(context(TargetType.POOL), false);
+                      state.replace(context(TargetType.TEAM), true);
+                      throw new IllegalStateException("Controlled rollback");
+                    }))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(store.exists(context(TargetType.TEAM))).isFalse();
+    assertThat(relationId(TargetType.POOL)).isEqualTo(original);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"true,true", "true,false", "false,true", "false,false"})
+  @DisplayName("Serializes two devices so the last server-recorded state wins")
+  void serializesDevices(boolean first, boolean last) throws Exception {
+    // Given
+    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<Boolean> waiting =
+          transaction.execute(
+              status -> {
+                accounts.lock(ACCOUNT);
+                Future<Boolean> second =
+                    worker.submit(
+                        () ->
+                            transaction.execute(
+                                inner -> {
+                                  waitingPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  return state.replace(context(TargetType.TEAM), last);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
+                state.replace(context(TargetType.TEAM), first);
+                return second;
+              });
+
+      // When
+      boolean confirmed = waiting.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(confirmed).isEqualTo(last);
+      assertThat(state.read(context(TargetType.TEAM))).isEqualTo(last);
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class))
+          .isEqualTo(last ? 1L : 0L);
+      verifyNoInteractions(provider);
+    }
+  }
+
+  @Test
+  @DisplayName("A member snapshot completes while another transaction holds the account write lock")
+  void readsWithoutAccountWriteLock() {
+    // Given
+    state.replace(context(TargetType.TEAM), true);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When: the native read must finish before this competing transaction releases its lock.
+      Boolean following =
+          transaction.execute(
+              status -> {
+                accounts.lock(ACCOUNT);
+                sql.update("UPDATE account SET username='pending-name' WHERE id=?", ACCOUNT);
+                return CompletableFuture.supplyAsync(
+                        () -> state.read(context(TargetType.TEAM)), worker)
+                    .orTimeout(10, TimeUnit.SECONDS)
+                    .join();
+              });
+
+      // Then
+      assertThat(following).isTrue();
+      assertThat(store.exists(context(TargetType.TEAM))).isTrue();
+      verifyNoInteractions(provider);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "A waiting original-account write cannot recreate relations after controlled row deletion")
+  void deletionWins(boolean recreate) throws Exception {
+    // Given
+    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<Boolean> waiting =
+          transaction.execute(
+              status -> {
+                accounts.lock(ACCOUNT);
+                Future<Boolean> writer =
+                    worker.submit(
+                        () ->
+                            transaction.execute(
+                                inner -> {
+                                  waitingPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  return state.replace(context(TargetType.TEAM), true);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
+                sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
+                return writer;
+              });
+      if (recreate) {
+        sql.update(
+            "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'one', 'replacement', 'replacement@example.invalid')",
+            UUID.fromString("00000000-0000-4000-8000-000000000104"));
+      }
+
+      // When
+      Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));
+
+      // Then
+      assertThat(observedFailure).hasCauseInstanceOf(AccountNotFoundException.class);
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM team_follow", Long.class)).isZero();
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM pool_follow", Long.class)).isZero();
+      verifyNoInteractions(provider);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "A controlled deletion waits for the writer then removes its relation in the same transaction")
+  void writerWins() throws Exception {
+    // Given
+    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<?> deletion =
+          transaction.execute(
+              status -> {
+                state.replace(context(TargetType.POOL), true);
+                Future<?> remover =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                inner -> {
+                                  waitingPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  accounts.lock(ACCOUNT);
+                                  // Controlled fixture only: T011/F05 own the real participant and
+                                  // erasure wiring.
+                                  sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
+                                  sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
+                return remover;
+              });
+
+      // When
+      deletion.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(store.exists(context(TargetType.POOL))).isFalse();
+
+      // When / Then
+      assertThatThrownBy(() -> state.replace(context(TargetType.POOL), true))
+          .isInstanceOf(AccountNotFoundException.class);
+      verifyNoInteractions(provider);
+    }
+  }
+
+  @Test
+  @DisplayName("Current typed follow remains eligible after relation recreation")
+  void readsEligibility() {
+    // Given
+    UUID homeTeam = UUID.fromString("00000000-0000-4000-8000-000000000014");
+    state.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.POOL), true);
+    UUID original = relationId(TargetType.TEAM);
+    Set<UUID> recipients =
+        eligibility.recipients(
+            Set.of(context(TargetType.TEAM).target(), context(TargetType.POOL).target()));
+
+    // When
+    state.replace(context(TargetType.TEAM), false);
+    state.replace(context(TargetType.TEAM), true);
+    state.replace(context(TargetType.POOL), false);
+
+    // Then
+    assertThat(recipients).containsExactly(ACCOUNT);
+    assertThat(relationId(TargetType.TEAM)).isNotEqualTo(original);
+    assertThat(eligibility.followsMatch(ACCOUNT, homeTeam, TARGET, TARGET)).isTrue();
+    assertThat(eligibility.followsMatch(OTHER, homeTeam, TARGET, TARGET)).isFalse();
+  }
+
+  /**
+   * Builds the explicit original owner and exact typed target for the scenario.
+   *
+   * @param type exact association kind
+   * @return admitted original owner/target
+   */
+  private FollowContext context(TargetType type) {
+    return new FollowContext(ACCOUNT, new Target(type, TARGET));
+  }
+
+  /**
+   * Reads the stored lifecycle UUID for this original owner and exact typed target.
+   *
+   * @param type exact association kind
+   * @return UUID of the fixture's currently present relation
+   */
+  private UUID relationId(TargetType type) {
+    String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
+    String column = type == TargetType.TEAM ? "team_id" : "pool_id";
+    return sql.queryForObject(
+        "SELECT id FROM " + table + " WHERE account_id=? AND " + column + "=?",
+        UUID.class,
+        ACCOUNT,
+        TARGET);
+  }
+}

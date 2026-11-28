@@ -1,0 +1,197 @@
+# Research: Notifications, inbox and push
+
+## Expo delivery through the existing Java backend
+
+**Decision.** Use the Java SDK currently listed by Expo, `io.github.hlspablo:expo-server-sdk-java:3.1.6`, and SDK-compatible `expo-notifications` on native clients. Expo labels this SDK community-maintained; its Node SDK alone is maintained by the Expo team. Keep ordinary system permissions/channels, an explicit SDK handler suppressing foreground presentation and default provider delivery lifetime. The backend sends after commit, without automatic resend. Inspect tickets/receipts once through in-memory work.
+
+**Rationale.** One provider boundary serves the existing Expo application without another deployable or copied provider protocol model. Use the SDK’s public builder, `PushNotification`, ticket/receipt types and serializer. A generated mechanical mapper supplies safe F07 fields; response decisions remain local application evidence, not new SDK DTOs. Expo documents message batches of 100, receipt batches of 1,000, a project rate of 600 messages/second, 4 KiB payloads and receipt inspection around fifteen minutes later. Its recommended receipt window is limited; a ticket/receipt confirms acceptance at a provider boundary, not receipt on a phone. A restart may lose unsent push and receipt work while the database inbox remains available. A native Spring task executor/scheduler is sufficient; no delivery status table is justified by the accepted best-effort behavior.
+
+**Alternatives considered.** The provider-listed Java SDK owns its protocol representation and HTTP transport. Direct APNs/FCM adds two server integrations. A Node sender adds a service only for transport. A persistent outbox, receipt journal and automatic retries improve recovery that the owner explicitly does not require. Short live-specific expiry was rejected in favor of ordinary provider delivery after prolonged offline use; wording must remain factual rather than claim a live stream is currently running.
+
+**Evidence.** [Expo sending](https://docs.expo.dev/push-notifications/sending-notifications/), [FAQ](https://docs.expo.dev/push-notifications/faq/), [native setup](https://docs.expo.dev/push-notifications/push-notifications-setup/), [SDK 58 notifications](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/), [FCM message lifetime](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan). The SDK page lists the compatible package family; resolve its compatible patch through the ordinary Expo installation procedure during implementation, without upgrading the shared stack. These are documented capabilities, not an integrated Java/mobile qualification. Expo Go is not native push evidence.
+
+### Bounded sender construction
+
+The official send/setup/SDK pages define the request/rate/payload/receipt
+limits and enhanced-security bearer header. Expo's
+retry recommendations are not delivery requirements: this implementation deliberately retains the
+approved single attempt and single delayed receipt observation. Support for some emulators/simulators
+does not supersede the accepted physical iOS/Android qualification.
+
+`AfterCommitAnnouncements` uses the existing push activation setting before reading destinations.
+When enabled, a single projection for the selected accounts captures the original association rows
+inside the producer transaction. One statement gives those accounts a common read snapshot under
+[PostgreSQL Read Committed](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED).
+The account filter binds one UUID array so the capture keeps that snapshot without expanding to one
+SQL parameter per recipient.
+Registrations committed after that read cannot receive this work through the captured context. A
+deployment with push disabled publishes the allocations with no destinations and skips the read.
+
+The `DeliverPush` consumer handles the immutable event through Spring’s
+`@TransactionalEventListener(AFTER_COMMIT)` with highest precedence and its safe handoff failure
+boundary. It returns immediately when the captured destination map is empty. No wrapper event or
+republication stage is needed. Java 25 `Gatherers.windowFixed` owns
+ordered send/projection batching. `ReadPushEligibility`
+uses the existing current inbox/F03/F08 projection and one account-scoped F06 existence read in a
+new repeatable-read transaction per captured device. A follow change committed between device
+checks affects the next device even when they share an account. Destination row identity, revision
+and address protect the exact association. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
+transactional exception that has already marked its enclosing read transaction rollback-only.
+No owner repository/entity is imported across feature boundaries.
+
+The [SDK listed by Expo](https://docs.expo.dev/push-notifications/sending-notifications/#send-push-notifications-using-a-server)
+is [published on Maven Central](https://github.com/hlspablo/expo-server-sdk-java#installation). Version 3.1.6
+accepts a `CloseableHttpClient`, base URI and access token through its public builder. Its native
+optional badge/TTL/expiration values remain null and are omitted by its own serializer. Expo owns
+payload-size admission; no second application serialization pass measures the 4 KiB provider bound.
+The SDK performs synchronous calls with no application retry machinery.
+
+Use Spring Boot’s native `HttpComponentsHttpClientBuilder` with the configured HTTP settings and
+Apache’s `disableAutomaticRetries()`: native 429/503 recovery would otherwise replay a JSON POST.
+The SDK owns HTTP status/JSON decoding. Its parsed `ErrorResponseException` means refusal; an
+empty or non-JSON error body may remain unknown, including a 401/403 without a dedicated
+configuration alert. F07 never parses private SDK exception messages. Decoding failures do
+not cause resend, reconstructed responses or a replacement parser. Spring owns and closes the
+HTTP pool. The SDK declares an annotated `UNKNOWN` receipt-error value but does not enable its
+native Jackson fallback; a documented `MismatchSenderId` otherwise rejects an entire mixed response,
+including an independent `DeviceNotRegistered`. At SDK startup, enable the standard
+`READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE` on its public mapper. This uses the SDK’s own value
+without a model/parser patch and preserves the known invalidation signal. Qualify SDK serialization/decoding and single-attempt refusal through the production HTTP
+client. Boot manages the existing Apache/Jackson/logging versions;
+no framework upgrade is selected. The SDK’s raw response DEBUG logger is disabled through ordinary
+Spring logging configuration, leaving only F07’s safe evidence categories/counts.
+
+One ordinary `ThreadPoolTaskExecutor` worker, 100 queued batches of up to 100 targets and a 200 ms
+minimum interval keep a single project's rate at or below 500 messages/second. This conservative
+pacing satisfies the 600 limit without a custom token bucket. The environment must have only one
+enabled sender for that Expo project; this is no distributed rate guarantee across replicas.
+One native scheduler retains at most 100 receipt callbacks (100 tickets each), bounded by a native
+semaphore. Each callback runs once around fifteen minutes after acceptance; no SQL transaction
+spans either HTTP operation. Shutdown/rejection discards only transient work. These local bounds
+are implementation limits, not a capacity promise or recovery mechanism. A worker preparation
+failure counts captured device attempts in the unsent batch. An unexpected exception from the
+provider boundary leaves the outcome unknown and counts the messages submitted for sending or the
+ticket IDs submitted for observation. HTTP transmission remains unconfirmed. The Expo adapter owns
+returned ticket and receipt evidence, including partial and unknown responses. See the
+[operations guide](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits)
+for exact input names and safe diagnostics.
+
+## Transactional inbox and approximate start-time announcements
+
+**Decision.** Once an announcement category is actually allocated, select its audience once and invoke required F07 writes in the producer's local database transaction. Keep the match lock and required actor/quota/attribution locks; add no audience account locks. Do no audience work for private, unchanged or nonallocating submissions. After commit, submit only best-effort external work. Use one ordinary scheduled eligibility pass every minute for links published before H; process later publications and results through accepted transitions.
+
+**Rationale.** Match facts prevent duplicates even with no recipient and after inbox purge. Current follows at actual processing avoid an exact-H subscription history. Short per-match transactions preserve independently accepted matches. A correction affects derived content and never creates another notification. The match lock fixes result/link composition once. It also protects the active version just written by F08, so the publication participant can use that fact directly. Result composition and due processing establish current link presence under the lock when needed for their decisions. Existing account/inbox foreign keys and deletion cascades preserve selected-account integrity without audience locks. An insertion that fails against concurrent account erasure still rolls back the producer; no orphan or erased personal data may survive. A follow arriving after selection is neither added nor a reason to fail acceptance/publication. There is no second audience read, audience-equality conflict or replacement synchronization.
+
+Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and dirty checking for existing match facts. Spring Data's [default new-state detection](https://docs.spring.io/spring-data/jpa/reference/jpa/entity-persistence.html) treats these non-null, unversioned IDs as existing and calls `merge`; re-creating a retained entry through merge can reset its read state. Direct JPA insertion preserves the focused application port without an artificial version, new-state flag or empty CRUD repositories. The inbox repository owns scalar reads, keyset selection and bounded bulk updates; assigned-ID lifecycle operations remain in the same feature adapter without a forwarding repository fragment.
+
+F06 recipient construction uses one supported [HQL set operation](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/)
+for team/pool origins. PostgreSQL [READ COMMITTED](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED)
+provides a snapshot per statement, so two separate origin reads could invent an empty union during
+committed turnover. A single `UNION` deduplicates that audience in the F06 Spring Data repository without a separate
+transaction, later account lock or replay. Qualify this boundary with the selected Hibernate/PostgreSQL versions through the [quickstart](quickstart.md#atomic-producer-and-link-qualification).
+
+**Alternatives considered.** Rereading the audience and rejecting new concurrent followers creates an unrelated producer failure without a required benefit. Captured follow UUID continuity rejects an already selected person who currently follows again; the current qualifying follow is sufficient. Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
+
+**Evidence.** [Spring scheduling](https://docs.spring.io/spring-framework/reference/integration/scheduling.html), [transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html), [Spring Data locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html), and the accepted [F02 concurrency contract](../002-sporting-data/plan.md#acceptance-and-concurrency). Native mechanisms are documented; rollback, lock ordering and process-loss boundaries still require actual PostgreSQL/Spring tests.
+
+## Current projections, retention and continuation
+
+**Decision.** Keep entry identity/time/family/variant/read state, deriving current sporting presentation. Use twenty-entry keyset windows with date/UUID keys, without an all-page unread aggregate or earliest-expiry projection. Server reads and sends exclude entries at 29 elapsed days; physical daily purge retains the existing normal maximum of 30 days. Apply one native JPQL DELETE at a fixed inclusive creation cutoff inside one effective transaction. Refuse ambient transactions at the scheduler boundary and report completion/count only after confirmed commit.
+
+**Rationale.** Keyset boundaries remain usable after anchor deletion and avoid page offsets shifting after new entries/purges. The inbox has no count consumer. Local age filtering uses ordinary inbox reads, opening and foreground return, including offline; an unchanged page may retain its projection between those events. One server age cutoff preserves logical retention independently of the daily physical deletion. No active-page timer or replacement scheduler is needed. Consumed non-personal match facts are independent of personal retention. Notification rows have no removal callback or dependent child lifecycle requiring entity-by-entity deletion. A definite transaction refusal rolls back the whole pass; a lost commit acknowledgement can leave the entire pass committed but unconfirmed. Diagnostics claim neither zero effects nor a count without confirmation. The next ordinary predicate or manual intervention safely handles remaining due rows.
+
+**Alternatives considered.** Numbered pages are simpler where shifting is allowed but do not meet this inbox's accepted traversal behavior. A whole-inbox snapshot, stored cursor registry, copied sporting text and synchronized count introduce unnecessary state. Repeated purge retries add no required benefit over the next daily pass and manual intervention. Independent batches retain intra-pass progress but require selected IDs, a loop and partial-progress subtransactions; one atomic pass instead accepts a larger row-lock/WAL/rollback unit. No observed volume or duration requirement warrants that protocol. Reconsider batching only after a concrete locking/deletion-duration problem.
+
+**Evidence.** [Spring Data scrolling](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html#jpa.query-methods.scroll) and [specification fluent queries](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html) document keyset scrolling and specification-based fluent reads. Use that supported path; string-based `@Query` scrolling is not supported. Non-null sort properties must be available in the selected projection. The opaque HTTP cursor is a focused mapping of those keys, not a new pagination engine. Criteria joins, index use, timestamp precision and generated serialization remain integration qualifications.
+
+### Bounded inbox construction
+
+`ConsultationMatchSelection` supplies F03-owned scalar Criteria subqueries for filtering before
+F07 keyset paging, and bounded detached match summaries. This explicit database
+composition boundary avoids importing sporting entities/repositories into F07, materializing all
+eligible match IDs, or duplicating sporting state in personal rows. The same F03 summary mapping
+serves ordinary match consultation. A fetched to-one graph and one F08 active-link presence query
+hydrate each selected window; no per-notification owner reads are required. Multi-query GETs use
+a short read-only repeatable-read transaction; they promise no snapshot across HTTP requests.
+
+The installed Spring Data JPA 4.1.1 fluent specification API supplies the selected projected
+keyset operations; both persisted sort values remain in the scalar projection. Separate
+`Notifications`/`PushSubscriptions` generator tags let each owning controller implement only its
+actual operations, without changing wire routes, operation IDs or shapes or adding placeholders.
+
+Read commands reuse the existing season → division → match → account locks before reselecting
+current owner/age/visibility. After the conditional update confirms success, the response reuses
+that authorized projection with read=true; rehydrating the same sporting/link facts adds no
+freshness guarantee under these locks. Already-read entries return unchanged; the update never
+merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers with a small input-size bound. There is no canonical re-encoding or duplicate timestamp/UUID grammar; native supported spellings are accepted, while emitted positions remain valid. Qualify actual scheduled purge, F05 erasure and restoration through [T052 and T051](tasks.md).
+
+### Ordinary mobile read state
+
+**Decision**: Use the existing native Query inbox reads and invalidation. Already-loaded public sporting cards/titles may remain old until their next ordinary inbox read, opening or foreground refresh. Opening Match always reads current server authority. Keep actual private refusal and account departure separate from public sporting freshness.
+
+| Current observation                                            | Owner and retained action                                                                                                                                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Inbox 401/403/404                                              | `notifications/api/inbox-queries.ts` withdraws the forbidden private inbox in the original F05 client, cancels pending reads as needed and retains ordinary error/retry.                               |
+| F03 public match refusal or successful detail without a stream | Only that destination updates. Do not subscribe to the event, cancel inbox reads, remove other cached cards or reconstruct their titles. The next ordinary inbox read supplies its current projection. |
+| Notification PATCH 404                                         | `notifications/api/inbox-mutations.ts` removes the addressed entry after cancelling the inbox read. Account refusal uses the existing inbox withdrawal.                                                |
+| Home season omission/closure                                   | No F07 action: F06's season filter is not a notification preference and seasonal closure alone does not hide authorized history.                                                                       |
+| Ordinary network/503 failure                                   | No authorization revocation. Retain still-authorized pages and ordinary stale/error/retry behavior.                                                                                                    |
+
+**Rationale and alternatives**: Immediate public title/visibility propagation required a Query-cache subscription, query metadata, cancellation and cross-page rewrites. That precision adds no required user benefit: a stale public title grants no access, while the destination reads current server authority. Removing the propagation requires no observer, event bus, mirror or replacement synchronization. Actual privacy refusal differs: invalidation alone can leave forbidden data after a failed reread, so the existing exact/account withdrawal stays. Persisted editorial variants, ordinary-event original-createdAt filtering, server purge, old-push current-account navigation and mandatory transactional inbox creation retain their existing owners.
+
+A native true-only mutation inherits the existing F13 client factory’s mutation defaults and invalidates the current inbox query from its resource-specific mutation options, so completion survives removal of its initiating screen. Active observers consume invalidation; inactive screens recover on focus. No local monotone true overlay or uncertain-write GET acknowledgement is retained. Current server reads may briefly show an older read flag; a lost response permits later explicit safe true repetition. The private QueryClient follows F05's actual native identity lifetime, while ordinary-event original-createdAt filtering and known owner/access refusal retain their distinct responsibilities. Cache staleTime/gcTime does not enforce retention. Persisted true-only intent remains authoritative.
+
+## Association identity and native lifecycle
+
+Construction separates the public sign-in UUID from the [native JPA-generated row identity](https://docs.hibernate.org/orm/7.4/introduction/html_single/#identifiers).
+A native version restarts when a deleted row is recreated; matching the private generated row UUID
+as well as revision/address prevents that old receipt tuple from becoming valid again. This uses
+ordinary `GenerationType.UUID` and `@Version`, without version seeding, a tombstone, revocation
+registry or retained invalid-address row. Replacement writes remove only the exact owner/connection
+bindings reselected under account locks; a conflict arriving after that selection is left to native
+uniqueness and rollback, rather than discovered and deleted by a later broad predicate.
+
+The native token callback passes its APNs/FCM value only as the SDK's `devicePushToken` input to
+`getExpoPushTokenAsync`; only the resulting Expo address is posted. The [SDK warning](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/#pushtokenlistenertoken)
+explains why reacquiring a native token from that callback can recursively emit the listener.
+The process-level handler is installed while loading the native lifecycle module, before F14's
+asynchronous initialization, so the SDK's foreground-presenting default cannot fill that wait.
+
+**Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Public Match tap navigation waits for F12/SDK/Router readiness only, independently of first account GET success or business UUID. A currently usable matching account alone permits private read acknowledgement from a tap. The [association lifecycle](plan.md#expo-handoff-and-association-lifecycle) owns volatile dispatch evidence for retirement. Keep no account-specific badge state. Clear a previous app-controlled native value with the standard nonblocking zero operation at the native lifecycle owner, without a migration flag or coordinator. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.
+
+**Rationale.** An address rotates and proves no ownership. A distinct association prevents an old logout or receipt from removing a newer binding, including returning to the same account. Native events and ordinary lifecycle refresh satisfy best-effort synchronization without polling or background tasks. A push from a former account does not justify requesting that account's inbox.
+
+**Alternatives considered.** OS-version identities can collide. A device cleanup credential, server session registry, offline write queue, silent badge push or periodic mobile reconciliation would add machinery beyond the accepted requirement. Failed logout or an older registration arriving last can leave the old association in place until a successful ordinary current-account registration. This explicit F05/F07 limit can temporarily lose current-account push; stronger global request ordering would require additional coordination not retained here. Private inbox access remains isolated. Native dismissal is available but optional: imposing it at account changes adds a behavior and qualification obligation without the owner’s requested benefit. No notification-center synchronization or replacement foreground alert is retained. Push-carried badge values remain omitted and `shouldSetBadge` remains false. No counter or summary read replaces them; launcher-owned indicators follow platform behavior. Delaying a public tap until account GET success duplicates the removed F05 admission gate and adds no authorization: routing uses the current public target, while acknowledgement/registration retain their own matching-owner prerequisites.
+
+**Evidence.** The [Expo SDK token APIs](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/#getexpopushtokenasyncoptions) distinguish native token-change events from `getExpoPushTokenAsync`, which supplies the Expo delivery address. Its [presentation handler documentation](https://docs.expo.dev/versions/v58.0.0/sdk/notifications/#setnotificationhandlerhandler) requires explicit suppression on SDK 58, whose default presents foreground notifications. Return false for `shouldShowBanner`, `shouldShowList`, `shouldPlaySound` and `shouldSetBadge` to preserve the accepted absence of foreground UI/sound and the absence of app-controlled badge updates. Receive/tap listeners remain available independently. `setBadgeCountAsync(0)` clears the supported badge; last-response clearing consumes remembered tap context rather than removing displayed notifications. Expo exposes dismissal as an explicit API, not an account sign-out policy. Background presentation and launcher-owned indicators depend on platform capabilities; a native zero clear does not promise control over launcher indicators or recall of system messages. [TanStack React Native integration](https://tanstack.com/query/latest/docs/framework/react/react-native) documents lifecycle inputs. Exact native behavior, token rotations, account changes and stale callbacks require physical devices. Prototype interactions prove only the reviewed web experience.
+
+## Contract and evidence boundaries
+
+**Decision.** Extend the existing mobile OpenAPI source, reusing current sporting summaries and shared errors. Keep server generation, Orval/Zod validation and admitted-client compatibility under [F13](../003-shared-quality/plan.md#http-generation-errors-and-compatibility). No independent collector or provider-contract copy.
+
+**Rationale.** F07 adds a private domain capability to the same backend. Existing projections have the same public sporting meaning; private ownership/read/family data stays in F07. A read-only true intent is repeatable, and the connection association is a resource with PUT/DELETE semantics. No task resource is needed for best-effort push.
+
+The selected Java generator does not enforce the boolean enum, so the F07 boundary must explicitly require true. Zod's native `.strict()` validates request properties. Orval's multiple-success-status registration function needs the generated `PushSubscriptionResponse` supplied through F13's existing `schema` request option, as for F05 establishment. Java server serialization is not a generated Java response-decoder boundary; mobile response validation remains the selected consumer boundary.
+
+**Evidence limits.** Official documentation and accepted source plans support the design. Generated boundary checks do not qualify F07 business integration, native push, restoration or provider configuration. The [quickstart](quickstart.md) names those qualifications. Design approvals are recorded separately in the plan and cannot be inferred from these sources.
+
+## Native inbox navigation composition
+
+**Decision.** Use the installed `expo-router/ui` Tabs, TabSlot, TabList and TabTrigger
+for the ordinary tab group. Native flex wrapping supplies the enlarged-text
+rows; the Router supplies selection, focus, history and trigger events. Query remains the sole
+inbox-data owner; the navigation entry has no counter. No navigation state mirror, event dispatcher or scroll mechanism is introduced.
+
+**Rationale and alternative.** The standard styled tab bar fits the ordinary single row, but its
+public styles do not expose wrapping of its inner item container. The approved [notification composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1062-9325)
+and its enlarged-text behavior require reachable navigation, including two-row cases. The documented headless composition provides
+that layout without a second navigation implementation or dependency. It also preserves the
+[two-entry guest variant](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library?node-id=3305-1849).
+Keep route definitions for hidden personal triggers so guest initial entry still reaches the
+existing independent age/discovery gates before public search.
+
+**Evidence and limits.** [Expo's custom tab documentation](https://docs.expo.dev/router/advanced/custom-tabs/)
+documents these components and their focus/press forwarding, and labels the API experimental.
+The SDK 58 declarations define the consumed API;
+qualify its integration through the actual Router without changing the selected dependency or accepted behavior. Native layout, safe-area and accessibility
+inspection remain separate from those tests. Existing UI Library navigation labels supply the semantic token values.

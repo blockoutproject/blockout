@@ -1,0 +1,567 @@
+CollectionSeasonResponse:
+  title: CollectionSeasonResponse
+  type: object
+  description: Canonical season and current acquisition lifecycle.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable season identity.
+      format: uuid
+    label:
+      type: string
+      description: Canonical season label, also used for exact closure confirmation.
+    startYear:
+      $ref: ../../common/scalars.yaml#/SportingStartYear
+    state:
+      $ref: ../../common/collection-enums.yaml#/CollectionSeasonStateEnum
+  required:
+    - id
+    - label
+    - startYear
+    - state
+CollectionSeasonListResponse:
+  title: CollectionSeasonListResponse
+  type: object
+  description:
+    All known seasons, newest start year first, UUID as tie-breaker; no pagination for this
+    configuration list.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Known seasons, including preparing and closed.
+      items:
+        $ref: "#/CollectionSeasonResponse"
+  required:
+    - items
+SourceBindingResponse:
+  title: SourceBindingResponse
+  type: object
+  description:
+    Official source reference and catalogue evidence within one season. The binding retains
+    legacy preparation fields for existing clients.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable source-binding identity.
+      format: uuid
+    seasonId:
+      type: string
+      description: Owning season.
+      format: uuid
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description:
+        Native organizer or supported professional championship identity; preserves leading
+        zeros.
+    label:
+      type: string
+      description: Source display label, using the provider and recorded native reference when only those are retained.
+    scope:
+      $ref: ../../common/collection-enums.yaml#/CollectionSourceScopeEnum
+    candidateUrl:
+      type: string
+      description: Proposed HTTP URL without credentials; qualification verifies official scope. Null when missing.
+      format: uri
+      nullable: true
+    acceptedUrl:
+      type: string
+      description: Qualified official reference, available before season activation when discovered. Null when no reference has been accepted.
+      format: uri
+      nullable: true
+    locked:
+      type: boolean
+      description: Retained reference is immutable, including during pause and after closure.
+    validation:
+      $ref: ../../common/collection-enums.yaml#/SourceValidationStateEnum
+    validatedAt:
+      type: string
+      description: Last candidate validation completion; null if never validated.
+      format: date-time
+      nullable: true
+    seasonEvidence:
+      type: string
+      description: Safe attributable seasonal evidence; null if absent.
+      nullable: true
+    reason:
+      type: string
+      description: Safe explanation of missing/invalid evidence; null when unnecessary.
+      nullable: true
+    launched:
+      type: boolean
+      description: Whether the source participates in ordinary catalogue refresh. Season state owns periodic sporting activation.
+    catalog:
+      $ref: "#/SourceCatalogReadResponse"
+  required:
+    - id
+    - seasonId
+    - provider
+    - organizerReference
+    - label
+    - candidateUrl
+    - acceptedUrl
+    - locked
+    - validation
+    - validatedAt
+    - seasonEvidence
+    - reason
+    - launched
+SourceCatalogReadResponse:
+  title: SourceCatalogReadResponse
+  type: object
+  description: Latest official catalogue evidence. Partial or unavailable reads preserve the last known entries.
+  additionalProperties: true
+  properties:
+    status:
+      $ref: "#/SourceCatalogStatusEnum"
+    observedAt:
+      type: string
+      format: date-time
+      description: Time of the most recent catalogue read, omitted while waiting for the first read.
+    lastCompleteAt:
+      type: string
+      format: date-time
+      description: Time of the most recent authoritative complete read accepted for this source, omitted when unproven.
+    reason:
+      type: string
+      description: Safe factual explanation of an incomplete or unavailable read, omitted when unknown.
+  required:
+    - status
+SourceCatalogStatusEnum:
+  title: SourceCatalogStatusEnum
+  type: string
+  description: >
+    Not-read means there is no recorded read. Complete means the latest read established the
+    catalogue. Partial means the latest read supplied incomplete evidence. Unavailable means
+    there is no usable evidence from that read.
+  enum:
+    - not-read
+    - complete
+    - partial
+    - unavailable
+SourceBindingListResponse:
+  title: SourceBindingListResponse
+  type: object
+  description:
+    Supported roots for one season, ordered by provider, organizer reference and UUID; no classification
+    readiness.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Known and missing supported references.
+      items:
+        $ref: "#/SourceBindingResponse"
+  required:
+    - items
+CreateSourceBindingRequest:
+  title: CreateSourceBindingRequest
+  type: object
+  description:
+    Add an unqualified candidate before launch. Existing provider/organizer identity conflicts.
+    The collector must verify supported scope, structure and season before launch; this is not
+    arbitrary scraping configuration.
+  additionalProperties: false
+  properties:
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description: Expected native organizer or championship reference; qualification establishes supported scope.
+      minLength: 1
+    candidateUrl:
+      type: string
+      description: Proposed HTTP URL without credentials; qualification verifies supported official scope.
+      format: uri
+  required:
+    - provider
+    - organizerReference
+    - candidateUrl
+SetSourceCandidateRequest:
+  title: SetSourceCandidateRequest
+  type: object
+  description:
+    Replace the entire candidate URL and clear its prior validation; locked/closed sources
+    refuse changes.
+  additionalProperties: false
+  properties:
+    candidateUrl:
+      type: string
+      description: Proposed HTTP candidate without credentials; qualification verifies supported official scope.
+      format: uri
+  required:
+    - candidateUrl
+ConfirmSourceSeasonRequest:
+  title: ConfirmSourceSeasonRequest
+  type: object
+  description: Confirm missing seasonal attribution only after compatible source structure was established.
+  additionalProperties: false
+  properties:
+    seasonLabel:
+      type: string
+      description: Exact canonical label of the owning season.
+      minLength: 1
+  required:
+    - seasonLabel
+LaunchCollectionSourcesRequest:
+  title: LaunchCollectionSourcesRequest
+  type: object
+  description:
+    Atomically launch explicitly selected qualified sources in an open season. Existing periodically
+    launched bindings remain unchanged; no mapping is created. The selected list is configuration-sized
+    and bounded by the 8 MiB JSON request limit; it is not a generic batch dispatcher. Qualified references
+    locked by initial reconstruction may be activated without editing their accepted URL.
+  additionalProperties: false
+  properties:
+    sourceBindingIds:
+      type: array
+      description:
+        Distinct selected source bindings belonging to this season; unqualified input refuses
+        the whole command.
+      items:
+        type: string
+        description: Selected source identity.
+        format: uuid
+      minItems: 1
+      uniqueItems: true
+  required:
+    - sourceBindingIds
+CloseCollectionSeasonRequest:
+  title: CloseCollectionSeasonRequest
+  type: object
+  description: Irreversibly close this season; cancel unstarted work and let admitted cycles finish once.
+  additionalProperties: false
+  properties:
+    confirmation:
+      type: string
+      description: Exact displayed canonical season label.
+      minLength: 1
+  required:
+    - confirmation
+CollectionCycleSummaryResponse:
+  title: CollectionCycleSummaryResponse
+  type: object
+  description: Current confirmed execution; request acceptance alone creates no running cycle.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Cycle identity.
+      format: uuid
+    state:
+      $ref: ../../common/collection-enums.yaml#/CollectionCycleStateEnum
+    mode:
+      $ref: ../../common/collection-enums.yaml#/CollectionModeEnum
+    startedAt:
+      type: string
+      description: Backend-confirmed logical start.
+      format: date-time
+    completedAt:
+      type: string
+      description: Terminal time if known; absent while running or when interruption time is unknown.
+      format: date-time
+  required:
+    - id
+    - state
+    - mode
+    - startedAt
+CollectionControlResponse:
+  title: CollectionControlResponse
+  type: object
+  description:
+    Desired activity, pending intent and confirmed execution are independent. Reads never trigger
+    work.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Control identity.
+      format: uuid
+    family:
+      $ref: ../../common/collection-enums.yaml#/CollectionFamilyEnum
+    seasonId:
+      type: string
+      description: Season identity for competition controls; absent for club sheets and geocoding.
+      format: uuid
+    enabled:
+      type: boolean
+      description: Desired periodic eligibility; running work drains after false.
+    pendingRequestId:
+      type: string
+      description: Accepted unstarted manual request; null when none.
+      format: uuid
+      nullable: true
+    cycle:
+      $ref: "#/CollectionCycleSummaryResponse"
+    lastAttemptAt:
+      type: string
+      description: Last actual attempt, null if never attempted.
+      format: date-time
+      nullable: true
+    lastSuccessAt:
+      type: string
+      description:
+        Last fully successful control pass, null if none; partial success does not advance
+        it.
+      format: date-time
+      nullable: true
+  required:
+    - id
+    - family
+    - enabled
+    - pendingRequestId
+    - lastAttemptAt
+    - lastSuccessAt
+CollectionControlListResponse:
+  title: CollectionControlListResponse
+  type: object
+  description: Requested configuration controls, ordered by family then UUID; no execution history.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Competition controls for the selected season, or the two seasonless controls.
+      items:
+        $ref: "#/CollectionControlResponse"
+  required:
+    - items
+SetCollectionActivityRequest:
+  title: SetCollectionActivityRequest
+  type: object
+  description:
+    Replace desired activity; pause cancels an unstarted request and resume never restores
+    it.
+  additionalProperties: false
+  properties:
+    enabled:
+      type: boolean
+      description: Desired eligibility; a closed season cannot resume.
+  required:
+    - enabled
+CollectionResultResponse:
+  title: CollectionResultResponse
+  type: object
+  description: Latest evidence for one stable domain scope, stage and acquisition/integration phase, retained independently of pause and results elsewhere.
+  additionalProperties: true
+  properties:
+    scopeId:
+      type: string
+      description: >-
+        Stable domain UUID: binding for discovery, pool for calendar/standings, match for details,
+        club for club-sheet/geocoding, team for logo. Reused across cycles.
+      format: uuid
+    scopeLabel:
+      type: string
+      description: Human-readable scope from known evidence or a neutral unknown-scope label.
+    source:
+      $ref: "#/CollectionResultSourceResponse"
+    stage:
+      $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
+    phase:
+      $ref: ../../common/collection-enums.yaml#/CollectionPhaseEnum
+    outcome:
+      $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
+    observedAt:
+      type: string
+      description: Actual attempt/observation completion time.
+      format: date-time
+    lastSuccessAt:
+      type: string
+      description: Last usable success for this exact scope, stage and phase, null if absent.
+      format: date-time
+      nullable: true
+    reasonType:
+      type: string
+      description: Stable safe machine problem type when available. It does not establish a cause or a timeout.
+      format: uri
+    reason:
+      type: string
+      description: Known safe factual explanation. A structured category is available separately in reasonType when supplied.
+    obtainedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known obtained items; absent when not measured.
+    rejectedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known rejected items; absent when not measured.
+  required:
+    - scopeId
+    - scopeLabel
+    - stage
+    - phase
+    - outcome
+    - observedAt
+    - lastSuccessAt
+CollectionResultSourceResponse:
+  title: CollectionResultSourceResponse
+  type: object
+  description: Known catalogue attribution inside the selected control. Omitted when no authorized source link is established.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Source binding identity shared with the catalogue and source filter.
+    label:
+      type: string
+      description: Source binding label. Uses the provider and recorded organizer reference when only those are retained.
+    packId:
+      type: string
+      format: uuid
+      description: Known FFVB pack identity in this source, omitted when unknown or inapplicable.
+    poolId:
+      type: string
+      format: uuid
+      description: Known FFVB pool identity in this source, omitted when unknown or inapplicable.
+    phaseReference:
+      type: string
+      description: Known native LNV phase reference within this source, omitted when unknown or inapplicable.
+  required:
+    - id
+    - label
+CollectionResultSummaryResponse:
+  title: CollectionResultSummaryResponse
+  type: object
+  description: Whole-control counts of current results by outcome across both phases, independent of search, filters and pagination.
+  additionalProperties: true
+  properties:
+    success:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current successful results.
+    partial:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current partial results.
+    failed:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current failed results.
+    unconfirmed:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current unconfirmed results.
+  required:
+    - success
+    - partial
+    - failed
+    - unconfirmed
+CollectionResultPageResponse:
+  title: CollectionResultPageResponse
+  type: object
+  description:
+    Current results ordered by latest attempt descending, then by scope UUID, stage and phase.
+    Concurrent updates may change later pages.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Results on this page.
+      items:
+        $ref: "#/CollectionResultResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based page index.
+    hasNext:
+      type: boolean
+      description: Another page was present when read.
+    summary:
+      $ref: "#/CollectionResultSummaryResponse"
+  required:
+    - items
+    - page
+    - hasNext
+SourceCatalogueResponse:
+  title: SourceCatalogueResponse
+  description: Official source and its complete retained catalogue for the selected season.
+  allOf:
+    - $ref: "#/SourceBindingResponse"
+    - type: object
+      additionalProperties: true
+      properties:
+        packs:
+          type: array
+          description: All discovered FFVB packs in display order. Empty for LNV or when no packs were discovered.
+          items:
+            $ref: "#/SourceCataloguePackResponse"
+        phases:
+          type: array
+          description: Distinct discovered LNV phases in display order. Empty for FFVB or when no phases were discovered.
+          items:
+            $ref: "#/SourceCataloguePhaseResponse"
+      required:
+        - packs
+        - phases
+SourceCataloguePackResponse:
+  title: SourceCataloguePackResponse
+  type: object
+  description: Discovered FFVB pack in the source catalogue.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable pack identity.
+      format: uuid
+    label:
+      type: string
+      description: Display label of the pack.
+    pools:
+      type: array
+      minItems: 1
+      description: All discovered pools in the pack in display order.
+      items:
+        $ref: "#/SourceCataloguePoolResponse"
+  required:
+    - id
+    - label
+    - pools
+SourceCataloguePoolResponse:
+  title: SourceCataloguePoolResponse
+  type: object
+  description: Discovered pool within a FFVB pack.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable pool identity.
+      format: uuid
+    label:
+      type: string
+      description: Display label of the pool.
+  required:
+    - id
+    - label
+SourceCataloguePhaseResponse:
+  title: SourceCataloguePhaseResponse
+  type: object
+  description: Discovered phase within a LNV championship.
+  additionalProperties: true
+  properties:
+    reference:
+      type: string
+      description: Native reference shared by the groups in this phase.
+    label:
+      type: string
+      description: Published phase name, omitted when no name is known.
+  required:
+    - reference

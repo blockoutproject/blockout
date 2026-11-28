@@ -1,0 +1,58 @@
+{
+  "name": "mobile",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/mobile/src",
+  "targets": {
+    "serve": {
+      "command": "npm run start --workspace=@blockout/mobile",
+      "continuous": true,
+      "dependsOn": ["generate"]
+    },
+    "android": {
+      "command": "npm run android --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "ios": {
+      "command": "npm run ios --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "build": {
+      "command": "npm run build --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "test": {
+      "command": "npm run test --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "typecheck": {
+      "command": "npm run typecheck --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "lint": {
+      "command": "npm run lint --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "format-check": {
+      "command": "npm run format:check --workspace=@blockout/mobile"
+    },
+    "doctor": {
+      "command": "npm run doctor --workspace=@blockout/mobile"
+    },
+    "verify": {
+      "executor": "nx:noop",
+      "dependsOn": ["lint", "typecheck", "test", "build", "doctor"]
+    },
+    "generate": {
+      "command": "npm run generate --workspace=@blockout/mobile",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ],
+      "outputs": ["{projectRoot}/.generated"]
+    }
+  },
+  "implicitDependencies": ["http-contracts"]
+}

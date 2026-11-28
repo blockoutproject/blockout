@@ -3,17 +3,19 @@
 - Speak French in chat. Write repository and GitHub prose in English; preserve exact provider values, proper names and validation data.
 - Apply the [constitution](.specify/memory/constitution.md) and the installed official Spec Kit procedure. Check official documentation for the installed version before changing Spec Kit behavior; do not reproduce its procedures here or in issues.
 - Use native Spec Kit artifacts for specifications, planning and tasks. Do not create a parallel documentation catalogue for these responsibilities. Ordinary repository maintenance does not need an invented feature specification.
-- Keep each native Spec Kit artifact focused on the purpose defined by its official procedure. Present the current applicable state; retain rationale, precise references and evidence limits where they support decisions or verification. Prefer links to owning sources over duplicated content, and keep routine session or delivery narration in the conversation or GitHub. Remove repetition without weakening requirements, decisions or validation.
+- Keep commit identifiers, issue/PR links, CI runs, captures and delivery chronology outside `specs/`; project traceability there uses native Spec Kit owner links, without a parallel catalogue or revision journal. Keep necessary official technical documentation, Figma sources, implementation paths and exact functional URL values; these sources do not replace native Spec Kit requirement ownership.
 - Load only relevant skills. Personal skills supply technical expertise and delivery mechanics; their presence selects no stack and authorizes no migration or service installation.
-- Apply `karpathy-guidelines` to changed handwritten code and `code-documentation` throughout touched handwritten code files, with the applicable language/testing skills. Keep official upstream imports intact.
+- Apply `karpathy-guidelines` to changed handwritten code and `code-documentation` to non-obvious contracts, reasons and effects, correcting comments affected by the change, with the applicable language/testing skills. Keep official upstream imports intact.
+- Follow the [code readability conventions](README.md#code-readability). Use standard formatter/linter rules; omit unsupported checks rather than add custom analyzers or mandatory manual formatting rules.
 - Use `github-delivery` for authorized issues and publication under the Git delivery policy below. Existing authorization remains valid; issue labels do not switch Codex modes.
 - Never inspect an archived or independent repository without an explicit human request. Links are references, not permission.
 
 ## Repository context
 
-- V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. No production stack or runtime is initialized.
+- V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. The initial executable workspace contains backend, collector and native mobile launchers; owning feature lots implement business behavior.
 - This repository has independent history. Historical references retain their `blockout-legacy` identity; they authorize no inspection of other repositories or production/provider changes.
 - F10 requires a private support destination. Never put private diagnostics or attachments in this public repository.
+- Until mandatory V2 data retention, maintain the current initial Liquibase schema, with final columns, defaults, keys and indexes in its creation definitions. Preserve hosted preproduction data between ordinary deployments; an exceptional reset requires an explicit owner decision. [F13](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture and the freeze of applied history before retained-data changes require incremental migrations. Never clear checksums or reset automatically.
 
 ## Design inputs
 
@@ -23,16 +25,16 @@
 
 ## Select by task
 
-- Significant requirement/technical tradeoffs or structural friction: `proportionate-design`; keep routine implementation choices autonomous within accepted constraints.
+- Requirements and implementation that add behavior, state, safeguards or custom mechanisms: `proportionate-design`; assess necessity from the first addition and during ordinary review. Keep useful responsibilities and recognizable patterns for comparable needs. Routine choices stay autonomous within accepted constraints, without a separate design review.
 - Prototype construction/review: `design-prototyping`. Figma organization/evidence: `figma-design-governance` plus the applicable Figma tool skill. The constitution owns prerequisites.
 - Java/Spring/JPA: `java-spring`; JVM/database tests: `java-testing`.
 - HTTP contracts and generation: `openapi-codegen`; Liquibase changes only: `liquibase-schema`.
 - React feature/state/form boundaries: `react-feature-architecture` plus the selected platform/testing skills.
-- Logging: `application-logging`. Container configuration: `docker-conventions`.
+- Logging: `application-logging`; apply the explicit F05/F11 exception only to private original-target references needed for manual account cleanup, as defined in their owning specifications. It permits no public identifier, credential or payload disclosure. Container configuration: `docker-conventions`.
 - Nx: the relevant official workspace, generation, task, linking, plugin, import or CI skill; do not enable Nx Cloud/MCP or upgrade Nx implicitly.
 - If Expo is selected: `react-native-expo` and `expo-testing`. Python: `python-development` and `python-testing`; load ingestion references only for ingestion work.
 
-Identity, session and authorization work reads its owning specifications and applicable approved plans. Concrete paths, versions and executable commands belong to this repository, not portable skills.
+Identity, session and authorization work reads its owning specifications and applicable approved plans. Concrete paths, versions and executable commands belong to this repository, not portable skills. F05 account lifecycle work uses the [owning verification and setup guide](specs/005-accounts-identity/quickstart.md#prerequisites).
 
 ## Git delivery
 
@@ -44,10 +46,26 @@ For an explicitly authorized history rewrite, verify the clean starting state an
 
 Keep normal branch protections active; there is no planning bypass. Do not weaken protections without explicit owner authorization. After any authorized temporary exception, restore the normal protections and verify them. Delivery does not widen the issue's scope or waive specification validation and design gates.
 
-On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced: true`), force-push bypass actors are empty (`bypassForcePushActorIds: []`), unrestricted force pushes remain disabled (`allowsForcePushes: false`) and deletion prevention remains enabled. Preserve every other protection: `main` requires the up-to-date `verify` check, conversation resolution and stale-review dismissal, with zero required approvals; `develop` retains its existing check and review settings.
+On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced: true`), force-push bypass actors are empty (`bypassForcePushActorIds: []`), unrestricted force pushes remain disabled (`allowsForcePushes: false`) and deletion prevention remains enabled. Both branches require the up-to-date `verify` check from GitHub Actions. Preserve the remaining protections, including conversation resolution, stale-review dismissal and zero required approvals on `main`, and the existing review settings on `develop`.
+
+## Code Review Rules
+
+- For a defect, trace the observed behavior to the owner of the failing rule, data or lifecycle before choosing a fix. Inspect comparable consumers for the same cause, including outside the diff. Fix the cause at its owner and verify the affected paths.
+- Before adding state, a wrapper or a recovery path, check whether the existing component or the installed library's public API already provides the required guarantee. Keep distinct lifecycles where their guarantees differ. Remove the path the change replaces.
+- Review every code change before handing off the draft PR. Ask for an independent read when it changes a shared rule or lifecycle, introduces a custom mechanism, overlaps another change on the same path, or leaves a consequential verification gap. Give the reader the issue, base, revision and available evidence. Reuse a review that already covers the question. Report confirmed findings and material limits in the PR. A review can conclude that no further edit is justified.
 
 ## Verification
 
-This foundation has no application runtime. Use the [README verification commands](README.md#verification) and committed [documentation CI](.github/workflows/ci.yml). Check structure, links, formatting and the intended behavior of changed guidance; do not invent application scripts or run unrelated runtimes.
+Follow [F13 FR-030's accessibility qualification scope](specs/003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity): do not add VoiceOver/TalkBack qualification to current or future tasks without an explicit human request.
 
-Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.
+Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
+
+Physical-device testing belongs to the owner, who reports findings. Agents prepare installable builds and use emulators or simulators for automated native checks.
+
+For agent-driven native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
+
+Reuse compatible development builds and task-owned services/devices. Prefer standalone Android Emulator and compact Device Hub windows, and serialize desktop interactions.
+
+Use the actual [README verification commands](README.md#verification), Nx npm/Maven targets and committed [CI](.github/workflows/ci.yml). Check structure, links and formatting for guidance changes, and execute the affected application checks for source/configuration changes. Applications run on the host; local Compose owns PostgreSQL infrastructure. Keep generated outputs ignored and use native development builds for mobile runtime evidence.
+
+Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks, application startup and mobile JavaScript exports do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.

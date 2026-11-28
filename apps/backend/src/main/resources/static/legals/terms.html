@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conditions d’utilisation - Blockout</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --canvas: #fcfcfd;
+        --text: #1c1c1e;
+        --secondary-text: #62646a;
+        --border: #20212424;
+        --focus: #555;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --canvas: #0d0d0e;
+          --text: #f7f7f8;
+          --secondary-text: #b8b8bc;
+          --border: #ffffff2e;
+          --focus: #f7f7f8;
+        }
+      }
+      body {
+        box-sizing: border-box;
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: clamp(1rem, 4vw, 2rem);
+        background: var(--canvas);
+        color: var(--text);
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      header {
+        padding: clamp(1.5rem, 5vw, 2.5rem);
+        border-radius: 1.375rem;
+        background: linear-gradient(145deg, #171717, #383837);
+        color: #fff;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.25;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 4.5vw, 2.25rem);
+        letter-spacing: -0.02em;
+      }
+      header p {
+        margin: 0.25rem 0 0;
+        color: #dcdcdf;
+        font-size: 0.875rem;
+      }
+      header p:first-of-type {
+        margin-top: 0.875rem;
+      }
+      h2 {
+        margin: 1.75rem 0 0.5rem;
+        font-size: 1.25rem;
+      }
+      h3 {
+        margin: 1.5rem 0 0.5rem;
+        font-size: 1rem;
+      }
+      article p {
+        margin: 0.5rem 0 0;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 0.18em;
+      }
+      a:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+        border-radius: 0.125rem;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border);
+        color: var(--secondary-text);
+        font-size: 0.875rem;
+      }
+      nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Conditions d’utilisation - Blockout</h1>
+      <p data-version="V2">Version : V2</p>
+      <p>
+        Dernière modification :
+        <time datetime="2026-11-25">25 novembre 2026</time>
+      </p>
+    </header>
+    <main>
+      <article>
+        <h2>Utiliser Blockout</h2>
+        <p>
+          Blockout vous permet de consulter les calendriers, scores et résultats
+          de volley-ball sans compte. Les fonctions personnelles, comme le suivi
+          d’équipes et les contributions de liens de diffusion, nécessitent un
+          compte. Pour les horaires ou résultats qui déterminent un déplacement
+          ou une participation, vérifiez les informations auprès de
+          l’organisateur.
+        </p>
+        <p>
+          Le service est réservé à un usage personnel, sans usage commercial.
+          L’extraction et la réutilisation massives des données sont interdites.
+          Respectez les droits des tiers et partagez uniquement les liens et
+          informations que vous êtes autorisé à publier. Vous pouvez signaler un
+          lien depuis le match si vous êtes connecté, ou nous écrire. Les
+          personnes chargées de la modération peuvent retirer un lien contraire
+          à ces règles. Les sites et diffusions externes relèvent de leurs
+          propres éditeurs.
+        </p>
+        <h2>Publicité et Blockout Pro</h2>
+        <p>
+          L’accès gratuit peut comporter des publicités. Un droit Blockout Pro
+          valide retire les publicités de Blockout.
+        </p>
+        <p>
+          Le prix, la durée et les conditions de renouvellement sont indiqués
+          avant de souscrire dans l’App Store ou Google Play. Vous pouvez gérer
+          ou résilier l’abonnement et demander un remboursement auprès du
+          magasin utilisé pour l’achat, selon ses conditions et vos droits
+          légaux. Pensez à résilier séparément votre abonnement si vous
+          supprimez votre compte Blockout.
+        </p>
+        <h2>Assistance et confidentialité</h2>
+        <p>
+          Pour une question ou pour signaler une erreur, écrivez à
+          <a href="mailto:blockoutproject@gmail.com"
+            >blockoutproject@gmail.com</a
+          >. Retrouvez les
+          <a href="/legals/imprint">coordonnées de l’éditeur</a> et la
+          <a href="/legals/privacy">politique de confidentialité</a>, qui
+          explique vos choix et la
+          <a href="/legals/privacy#account-deletion"
+            >suppression du compte sans connexion</a
+          >.
+        </p>
+      </article>
+    </main>
+    <nav aria-label="Documents légaux">
+      <a href="/legals/imprint">Mentions légales</a>
+      <a href="/legals/privacy">Confidentialité</a>
+    </nav>
+  </body>
+</html>

@@ -1,0 +1,179 @@
+import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { FieldSkeleton } from "@/shared/components/form-loading";
+import { FilterSheetActionsSkeleton } from "@/shared/components/filter-sheet-form";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { EntryGroupSeparator } from "@/shared/components/entry-group";
+import { Fragment } from "react";
+import { MatchSurface } from "@/features/sporting/match-consultation";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+
+/** Two decorative match cards reserve the first read of the moderation queue. */
+export function ModerationQueueLoading() {
+  return (
+    <LoadingGroup
+      label="Chargement de la file de modération"
+      style={styles.stack}
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <MatchPlaceholder key={index} queue />
+      ))}
+    </LoadingGroup>
+  );
+}
+
+/** Detail pages retain the context/editor or context/version-list anatomy without inventing data or actions. */
+export function ModerationMatchLoading({
+  editor = false,
+}: Readonly<{
+  editor?: boolean;
+}>) {
+  return (
+    <LoadingGroup label="Chargement des liens du match" style={styles.stack}>
+      <MatchPlaceholder />
+      <VersionPlaceholder editor={editor} />
+      {!editor && <VersionPlaceholder />}
+    </LoadingGroup>
+  );
+}
+
+/** Three decorative date/reason rows reserve the dedicated report page's first read, never its continuation. */
+export function ModerationReportsLoading() {
+  return (
+    <LoadingGroup label="Chargement des signalements">
+      <View style={styles.reportHeading}>
+        <TextSkeleton width="42%" role="navigation" />
+      </View>
+      {Array.from({ length: 3 }, (_, index) => (
+        <Fragment key={index}>
+          {index > 0 && <EntryGroupSeparator />}
+          <View style={styles.report}>
+            <TextSkeleton width="42%" role="metadata" />
+            <TextSkeleton width="90%" />
+          </View>
+        </Fragment>
+      ))}
+    </LoadingGroup>
+  );
+}
+
+/** Canonical filter metadata loads with the field/action shape used by the existing search filter sheet. */
+export function ModerationFiltersLoading() {
+  return (
+    <LoadingGroup label="Chargement des filtres des liens" style={styles.form}>
+      {["season", "platform", "state"].map((field) => (
+        <FieldSkeleton key={field} labelWidth="30%" />
+      ))}
+      <FilterSheetActionsSkeleton />
+    </LoadingGroup>
+  );
+}
+
+/** Private moderation context retains its date inside the body; queue rows also reserve their count badges. */
+function MatchPlaceholder({ queue = false }: Readonly<{ queue?: boolean }>) {
+  const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  return (
+    <MatchSurface>
+      <View style={[styles.ribbon, { backgroundColor: colors.skeletonHeader }]}>
+        <Skeleton
+          width={tokens.size.media.row}
+          height={tokens.size.media.row}
+          shape="rectangle"
+        />
+        <View style={styles.copy}>
+          <TextSkeleton width="85%" />
+        </View>
+      </View>
+      <View style={styles.contextBody}>
+        <TextSkeleton role="metadata" width="64%" />
+        {[0, 1].map((index) => (
+          <View key={index} style={styles.row}>
+            <Skeleton
+              width={tokens.size.media.row}
+              height={tokens.size.media.row}
+              shape="rectangle"
+            />
+            <View style={styles.copy}>
+              <TextSkeleton width={index === 0 ? "85%" : "72%"} />
+            </View>
+            <TextSkeleton role="heading" width={12 * fontScale} />
+          </View>
+        ))}
+        <View>
+          <TextSkeleton role="metadata" width="85%" />
+          {fontScale >= 1.6 && <TextSkeleton role="metadata" width="60%" />}
+        </View>
+        {queue && (
+          <View style={[styles.badges, { borderColor: colors.border }]}>
+            <Skeleton
+              width={
+                64 * fontScale + 2 * (tokens.spacing.sm + tokens.border.thin)
+              }
+              height={
+                tokens.typography.metadata.lineHeight * fontScale +
+                2 * (tokens.spacing.xs + tokens.border.thin)
+              }
+              shape="rectangle"
+            />
+          </View>
+        )}
+      </View>
+    </MatchSurface>
+  );
+}
+
+/** Uses the approved soft version surface and, for an editor, the real control dimensions. */
+function VersionPlaceholder({
+  editor = false,
+}: Readonly<{ editor?: boolean }>) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.insetSurface }]}>
+      <View style={styles.row}>
+        <TextSkeleton width="28%" />
+        <TextSkeleton width="22%" />
+      </View>
+      <TextSkeleton width="64%" role="metadata" />
+      {editor ? (
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      ) : (
+        <TextSkeleton />
+      )}
+      {editor && (
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      )}
+      <TextSkeleton width="45%" role="metadata" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  stack: { gap: tokens.spacing.md },
+  form: { gap: tokens.layout.form.gap },
+  card: {
+    padding: tokens.layout.surface.inset,
+    borderRadius: tokens.radius.control,
+    gap: tokens.spacing.md,
+  },
+  row: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
+  ribbon: {
+    padding: tokens.spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+  contextBody: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
+  copy: { flex: 1, minWidth: 0 },
+  badges: {
+    borderTopWidth: tokens.border.thin,
+    paddingTop: tokens.spacing.sm,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.sm,
+  },
+  reportHeading: { paddingBottom: tokens.spacing.lg },
+  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.md },
+});

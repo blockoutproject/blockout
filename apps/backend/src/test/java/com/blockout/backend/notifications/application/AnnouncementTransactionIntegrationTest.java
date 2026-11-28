@@ -1,0 +1,632 @@
+package com.blockout.backend.notifications.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.following.application.ReadFollowEligibility;
+import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
+import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
+import com.blockout.backend.notifications.domain.NotificationFamily;
+import com.blockout.backend.notifications.domain.NotificationVariant;
+import com.blockout.backend.notifications.infrastructure.NotificationEntity;
+import com.blockout.backend.sporting.application.model.MatchObservation.Result;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.testsupport.PostgresTestConfiguration;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManager;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/** Real F07/F06/F05 SQL and public-link reads with controlled sporting, link and account writes. */
+@SpringBootTest(properties = "blockout.notifications.push.enabled=false")
+@DisplayName("Atomic announcement and recipient transactions on PostgreSQL")
+@Import(PostgresTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+class AnnouncementTransactionIntegrationTest {
+  @Autowired private PostgreSQLContainer database;
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID OTHER = UUID.fromString("00000000-0000-4000-8000-000000000002");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000010");
+  private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000011");
+  private static final UUID PACK = UUID.fromString("00000000-0000-4000-8000-000000000012");
+  private static final UUID POOL = UUID.fromString("00000000-0000-4000-8000-000000000013");
+  private static final UUID HOME = UUID.fromString("00000000-0000-4000-8000-000000000014");
+  private static final UUID AWAY = UUID.fromString("00000000-0000-4000-8000-000000000015");
+  private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000000016");
+  private static final UUID SECOND = UUID.fromString("00000000-0000-4000-8000-000000000017");
+  private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000018");
+  private static final UUID LINK = UUID.fromString("00000000-0000-4000-8000-000000000019");
+  private static final Instant ORIGIN = Instant.parse("2026-10-24T12:00:00Z");
+  @Autowired private JdbcTemplate sql;
+  @Autowired private ProcessResultAnnouncement processor;
+  @Autowired private AfterCommitAnnouncements handoff;
+  @Autowired private NotificationStore notifications;
+  @Autowired private EntityManager entities;
+  @Autowired private AccountAccess accounts;
+  @Autowired private PlatformTransactionManager transactions;
+  @Autowired private ChangePushSubscriptions registrations;
+  @MockitoSpyBean private ReadFollowEligibility follows;
+  @MockitoSpyBean private PushSubscriptionStore subscriptions;
+
+  @MockitoBean(name = "pushExecutor")
+  private ThreadPoolTaskExecutor executor;
+
+  /**
+   * Creates synthetic accepted identities and confirmed follows, with no provider input.
+   *
+   * @throws Exception when fixture preparation fails
+   */
+  @BeforeEach
+  void owners() throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Statement fixture = connection.createStatement()) {
+      fixture.execute(
+          "TRUNCATE sporting_season, sporting_division, sporting_club, account CASCADE");
+    }
+    sql.update(
+        "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', 'one', 'first', 'one@example.invalid'), (?, 'https://identity.example.invalid/', 'two', 'second', 'two@example.invalid')",
+        ACCOUNT,
+        OTHER);
+    sql.update(
+        "INSERT INTO sporting_season(id,start_year,label) VALUES (?,2026,'2026/2027')", SEASON);
+    sql.update(
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic',TRUE,'#112233')",
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_club(id,provider,reference,source_name) VALUES (?,'FFVB','000042','Synthetic club')",
+        CLUB);
+    sql.update(
+        "INSERT INTO sporting_pack(id,season_id,provider,organizer_reference,reference) VALUES (?,?,'FFVB','synthetic','pack')",
+        PACK,
+        SEASON);
+    sql.update(
+        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,division_id,format,gender) VALUES (?,?,?,'FFVB','synthetic','competition','pool','Pool',?,'_6X6','MIXED')",
+        POOL,
+        SEASON,
+        PACK,
+        DIVISION);
+    for (UUID team : List.of(HOME, AWAY)) {
+      sql.update(
+          "INSERT INTO sporting_team(id,season_id,provider,organizer_reference,competition_reference,club_id,source_name,comparison_name,division_id,format,gender) VALUES (?,?,'FFVB','synthetic','competition',?,'Team',?,?,'_6X6','MIXED')",
+          team,
+          SEASON,
+          CLUB,
+          team.toString(),
+          DIVISION);
+    }
+    sql.update(
+        "INSERT INTO sporting_participation(id,team_id,pool_id,current) VALUES (?,?,?,TRUE),(?,?,?,TRUE)",
+        UUID.fromString("00000000-0000-4000-8000-000000000020"),
+        HOME,
+        POOL,
+        UUID.fromString("00000000-0000-4000-8000-000000000021"),
+        AWAY,
+        POOL);
+    for (UUID match : List.of(MATCH, SECOND)) {
+      sql.update(
+          "INSERT INTO sporting_match(id,pool_id,reference,home_team_id,away_team_id,local_date) VALUES (?,?,?,?,?,?)",
+          match,
+          POOL,
+          match.toString(),
+          HOME,
+          AWAY,
+          LocalDate.of(2026, 10, 24));
+    }
+    UUID homeFollow = UUID.fromString("00000000-0000-4000-8000-000000002851");
+    UUID awayFollow = UUID.fromString("00000000-0000-4000-8000-000000002852");
+    UUID poolFollow = UUID.fromString("00000000-0000-4000-8000-000000002853");
+    sql.update(
+        "INSERT INTO team_follow(id,account_id,team_id) VALUES (?,?,?),(?,?,?)",
+        homeFollow,
+        ACCOUNT,
+        HOME,
+        awayFollow,
+        ACCOUNT,
+        AWAY);
+    sql.update(
+        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", poolFollow, ACCOUNT, POOL);
+  }
+
+  @Test
+  @DisplayName("Creates one unread entry for the three-origin union")
+  void deduplicatesRecipients() {
+    // Given: OTHER has no confirmed follow; no request state establishes one.
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When
+    List<AllocateAnnouncements.Entry> created =
+        transaction.execute(
+            status -> {
+              roots(MATCH);
+              return processor.process(transition(MATCH));
+            });
+
+    // Then
+    assertThat(created)
+        .singleElement()
+        .satisfies(
+            entry -> {
+              assertThat(entry.accountId()).isEqualTo(ACCOUNT);
+              assertThat(entry.createdAt()).isEqualTo(ORIGIN);
+            });
+    assertThat(count("notification")).isEqualTo(1);
+    assertThat(sql.queryForObject("SELECT is_read FROM notification", Boolean.class)).isFalse();
+    assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
+        .isTrue();
+  }
+
+  @Test
+  @DisplayName("Commits the result, allowance and inbox without capturing disabled push")
+  void commitsWithoutCapturingDisabledPush() {
+    // Given
+    UUID connection = UUID.fromString("00000000-0000-4000-8000-000000002855");
+    registrations.replace(new Registration(connection, connection, ACCOUNT, "Expo[disabled]"));
+
+    // When
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              roots(MATCH);
+              sql.update(
+                  "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                  MATCH);
+              handoff.submit(processor.process(transition(MATCH)));
+            });
+
+    // Then
+    assertThat(sql.queryForList("SELECT account_id FROM notification", UUID.class))
+        .containsExactly(ACCOUNT);
+    assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
+        .isTrue();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isEqualTo("FINAL");
+    verify(subscriptions, never()).targets(anyList());
+    verifyNoInteractions(executor);
+  }
+
+  @Test
+  @DisplayName(
+      "Rolls back one producer's sporting state, facts and entries on required SQL failure")
+  void rollsBackOnlyFailedMatch() {
+    // Given
+    UUID conflictingNotification = UUID.fromString("00000000-0000-4000-8000-000000002854");
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    transaction.executeWithoutResult(
+        status -> {
+          roots(SECOND);
+          processor.process(transition(SECOND));
+        });
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      sql.update(
+                          "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                          MATCH);
+                      processor.process(transition(MATCH));
+                      // A distinct UUID still violates the required owner/match/family invariant.
+                      notifications.create(
+                          new AllocateAnnouncements.Entry(
+                              conflictingNotification,
+                              ACCOUNT,
+                              MATCH,
+                              NotificationFamily.PLAIN_RESULT,
+                              NotificationVariant.FIRST,
+                              ORIGIN));
+                    }))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(count("notification")).isEqualTo(1);
+    assertThat(count("match_announcement")).isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isNull();
+    assertThat(sql.queryForObject("SELECT match_id FROM notification", UUID.class))
+        .isEqualTo(SECOND);
+  }
+
+  @Test
+  @DisplayName("An external after-commit failure preserves the committed producer and inbox")
+  void preservesCommittedEffects() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      sql.update(
+                          "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                          MATCH);
+                      processor.process(transition(MATCH));
+                      TransactionSynchronizationManager.registerSynchronization(
+                          new TransactionSynchronization() {
+                            /** {@inheritDoc} */
+                            @Override
+                            public void afterCommit() {
+                              throw new IllegalStateException("Controlled after-commit failure");
+                            }
+                          });
+                    }))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(count("notification")).isEqualTo(1);
+    assertThat(count("match_announcement")).isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isEqualTo("FINAL");
+  }
+
+  @Test
+  @DisplayName("Deletion after selection makes the required inbox failure roll back the producer")
+  void rollsBackWhenSelectedAccountDisappears() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    doAnswer(
+            invocation -> {
+              Object selected = invocation.callRealMethod();
+              independent.executeWithoutResult(
+                  status -> {
+                    sql.update("DELETE FROM team_follow WHERE account_id=?", ACCOUNT);
+                    sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
+                    sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
+                  });
+              return selected;
+            })
+        .when(follows)
+        .recipients(anySet());
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      sql.update(
+                          "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                          MATCH);
+                      processor.process(transition(MATCH));
+                    }))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(count("account")).isEqualTo(1);
+    assertThat(count("notification")).isZero();
+    assertThat(count("match_announcement")).isZero();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isNull();
+  }
+
+  @Test
+  @DisplayName("Purge and corrections preserve consumed result composition and read origin")
+  void preservesLifetime() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(transition(MATCH));
+        });
+    UUID original = sql.queryForObject("SELECT id FROM notification", UUID.class);
+    transaction.executeWithoutResult(
+        status -> {
+          NotificationEntity entry = entities.find(NotificationEntity.class, original);
+          entry.markRead();
+          entry.markRead();
+        });
+
+    Transition correction =
+        new Transition(
+            match(MATCH),
+            new Result(ResultStateEnum.FINAL, 3, 1, null),
+            new Result(ResultStateEnum.FINAL, 1, 3, null),
+            false,
+            false,
+            ORIGIN);
+
+    // When
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          publishLink();
+          processor.process(correction);
+        });
+
+    // Then
+    assertThat(sql.queryForObject("SELECT id FROM notification", UUID.class)).isEqualTo(original);
+    assertThat(sql.queryForObject("SELECT is_read FROM notification", Boolean.class)).isTrue();
+    assertThat(
+            sql.queryForObject("SELECT created_at FROM notification", OffsetDateTime.class)
+                .toInstant())
+        .isEqualTo(ORIGIN);
+    sql.update("DELETE FROM notification");
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(correction);
+        });
+    assertThat(count("notification")).isZero();
+    assertThat(
+            sql.queryForObject("SELECT result_composition FROM match_announcement", String.class))
+        .isEqualTo(NotificationFamily.PLAIN_RESULT.name());
+  }
+
+  @Test
+  @DisplayName("Creating an existing notification UUID cannot reset its retained read state")
+  void rejectsExistingPersonalIdentity() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    AllocateAnnouncements.Entry original =
+        transaction.execute(
+            status -> {
+              roots(MATCH);
+              return processor.process(transition(MATCH)).getFirst();
+            });
+    transaction.executeWithoutResult(
+        status -> {
+          accounts.lock(ACCOUNT);
+          entities.find(NotificationEntity.class, original.id()).markRead();
+        });
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      accounts.lock(ACCOUNT);
+                      notifications.create(original);
+                    }))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT is_read FROM notification WHERE id=?", Boolean.class, original.id()))
+        .isTrue();
+    assertThat(count("notification")).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Zero-recipient processing cannot backfill a follow added later")
+  void recordsEmptyAudience() {
+    // Given
+    UUID laterFollow = UUID.fromString("00000000-0000-4000-8000-000000002855");
+    sql.update("DELETE FROM team_follow");
+    sql.update("DELETE FROM pool_follow");
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(transition(MATCH));
+        });
+
+    // When
+    sql.update(
+        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", laterFollow, OTHER, POOL);
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          publishLink();
+          processor.process(transition(MATCH));
+        });
+
+    // Then
+    assertThat(count("notification")).isZero();
+    assertThat(
+            sql.queryForObject("SELECT result_composition FROM match_announcement", String.class))
+        .isEqualTo("PLAIN_RESULT");
+    assertThat(
+            sql.queryForObject(
+                "SELECT post_result_processed FROM match_announcement", Boolean.class))
+        .isFalse();
+  }
+
+  @ParameterizedTest(name = "First discovery: {0}")
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Silent final discovery or reconstruction with a link preserves the later-publication allowance")
+  void preservesUnusedPostResultCategory(boolean discovery) {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    publishLink();
+    Transition silent =
+        new Transition(
+            match(MATCH),
+            null,
+            new Result(ResultStateEnum.FINAL, 3, 1, null),
+            discovery,
+            !discovery,
+            ORIGIN);
+
+    // When
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(silent);
+        });
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(transition(MATCH));
+        });
+
+    // Then
+    assertThat(count("notification")).isZero();
+    assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
+        .isTrue();
+    assertThat(
+            sql.queryForObject(
+                "SELECT post_result_processed FROM match_announcement", Boolean.class))
+        .isFalse();
+    assertThat(
+            sql.queryForObject("SELECT result_composition FROM match_announcement", String.class))
+        .isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "Controlled deletion waits for creation and removes entries while retaining match facts")
+  void deletionAfterCreation() throws Exception {
+    // Given
+    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<?> waiting =
+          transaction.execute(
+              status -> {
+                roots(MATCH);
+                processor.process(transition(MATCH));
+                entities.flush();
+                Future<?> deletion =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                inner -> {
+                                  waitingPid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  accounts.lock(ACCOUNT);
+                                  sql.update("DELETE FROM team_follow WHERE account_id=?", ACCOUNT);
+                                  sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
+                                  sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
+                return deletion;
+              });
+
+      // When
+      waiting.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(count("notification")).isZero();
+      assertThat(count("match_announcement")).isEqualTo(1);
+    }
+  }
+
+  @Test
+  @DisplayName("PostgreSQL enforces owner/match/family uniqueness and required allocation values")
+  void enforcesAllocationConstraints() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(transition(MATCH));
+        });
+    String insert =
+        "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'PLAIN_RESULT','FIRST',?,FALSE)";
+    UUID duplicateAllocation = UUID.fromString("00000000-0000-4000-8000-000000002857");
+    UUID undatedAllocation = UUID.fromString("00000000-0000-4000-8000-000000002858");
+    UUID unownedAllocation = UUID.fromString("00000000-0000-4000-8000-000000002859");
+    UUID missingOwner = UUID.fromString("00000000-0000-4000-8000-000000002860");
+
+    // When / Then: independent statements reach PostgreSQL, rather than parsing migration text.
+    assertThatThrownBy(
+            () -> sql.update(insert, duplicateAllocation, ACCOUNT, MATCH, Timestamp.from(ORIGIN)))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    // When / Then
+    assertThatThrownBy(() -> sql.update(insert, undatedAllocation, OTHER, MATCH, null))
+        .isInstanceOf(DataIntegrityViolationException.class);
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(insert, unownedAllocation, missingOwner, MATCH, Timestamp.from(ORIGIN)))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(count("notification")).isEqualTo(1);
+  }
+
+  /**
+   * Controlled producer acquires every necessary F02 root before entering F07/account work.
+   *
+   * @param match scenario's original match UUID
+   */
+  private void roots(UUID match) {
+    sql.queryForObject("SELECT id FROM sporting_season WHERE id=? FOR UPDATE", UUID.class, SEASON);
+    sql.queryForObject(
+        "SELECT id FROM sporting_division WHERE id=? FOR UPDATE", UUID.class, DIVISION);
+    sql.queryForObject("SELECT id FROM sporting_match WHERE id=? FOR UPDATE", UUID.class, match);
+  }
+
+  private Transition transition(UUID match) {
+    return new Transition(
+        match(match), null, new Result(ResultStateEnum.FINAL, 3, 1, null), false, false, ORIGIN);
+  }
+
+  private MatchView match(UUID match) {
+    return new MatchView(match, POOL, match.toString(), HOME, AWAY);
+  }
+
+  /**
+   * Writes the active version so F07 reads actual PostgreSQL availability under the shared lock.
+   */
+  private void publishLink() {
+    sql.update(
+        "INSERT INTO contribution_version(id,match_id,address,platform,state,created_at,quota_participating) VALUES (?,?,'https://youtube.com/watch?v=demo','YOUTUBE','ACTIVE',?,FALSE)",
+        LINK,
+        MATCH,
+        Timestamp.from(ORIGIN));
+  }
+
+  /**
+   * Counts only fixed feature-owned table names supplied in this test.
+   *
+   * @param table fixed local table name
+   * @return committed row count
+   */
+  private long count(String table) {
+    return sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);
+  }
+}

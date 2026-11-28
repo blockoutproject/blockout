@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Undeployed V2 creation baseline for disposable databases. Define the final schema directly
+       in its creation changeSets; do not accumulate schema-evolution steps before deployment. -->
+  <include file="sporting.xml" relativeToChangelogFile="true"/>
+  <include file="collection.xml" relativeToChangelogFile="true"/>
+  <include file="accounts.xml" relativeToChangelogFile="true"/>
+  <include file="access.xml" relativeToChangelogFile="true"/>
+  <include file="contributions.xml" relativeToChangelogFile="true"/>
+  <include file="following.xml" relativeToChangelogFile="true"/>
+  <include file="notifications.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>

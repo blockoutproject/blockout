@@ -1,0 +1,1293 @@
+package com.blockout.backend.sporting.infrastructure;
+
+import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.MappingFilterDimensionEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
+import com.blockout.backend.shared.image.ImageObjects;
+import com.blockout.backend.shared.image.ImageObjects.Category;
+import com.blockout.backend.shared.pagination.OffsetPage;
+import com.blockout.backend.shared.pagination.PageOffset;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
+import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.CalendarState;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.MatchDetails;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchSchedule;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingFilterOption;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPack;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPackFilters;
+import com.blockout.backend.sporting.application.model.SportingMapping.MappingPool;
+import com.blockout.backend.sporting.application.model.SportingMapping.PackMappingDetail;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
+import com.blockout.backend.sporting.application.model.SportingPresentation.LogoObject;
+import com.blockout.backend.sporting.application.model.SportingViews;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePack;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePhase;
+import com.blockout.backend.sporting.application.model.SportingViews.CataloguePool;
+import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PackView;
+import com.blockout.backend.sporting.application.model.SportingViews.ParticipationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.SourceCatalogueEntries;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.StandingsView;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.application.port.SportingStore;
+import jakarta.persistence.EntityManager;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Native JPA sporting persistence adapter; writes and locks require the application-owned
+ * transaction. Read projections never open an independent mutation boundary.
+ */
+@Repository
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
+public class JpaSportingStore implements SportingStore {
+  private final EntityManager entityManager;
+  private final CatalogRepository catalogs;
+  private final StandingsRepository standings;
+  private final SeasonRepository seasons;
+  private final ClubRepository clubs;
+  private final DivisionRepository divisions;
+  private final PackRepository packs;
+  private final PoolRepository pools;
+  private final SportingMappingRepository mapping;
+  private final TeamRepository teams;
+  private final ParticipationRepository participations;
+  private final MatchRepository matches;
+  private final SportingPersistenceMapper mapper;
+  private final SportingProjectionChanges changes;
+  private final ImageObjects imageObjects;
+
+  /** {@inheritDoc} */
+  @Override
+  public OffsetPage<MappingPack> mappingPacks(MappingPackFilters filters, long page, int size) {
+    if (page > PageOffset.maxPage(size)) {
+      return OffsetPage.empty(page);
+    }
+    Slice<MappingPack> slice =
+        mapping
+            .packs(
+                filters.search(),
+                filters.status() == null ? null : filters.status().name(),
+                filters.sourceId(),
+                filters.seasonId(),
+                PageRequest.of((int) page, size))
+            .map(SportingMappingRepository.PackRow::toPack);
+    return new OffsetPage<>(slice.getContent(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PackMappingDetail> mappingPack(UUID packId, long page, int size) {
+    return mapping
+        .pack(packId)
+        .map(
+            row -> {
+              MappingPack pack = row.toPack();
+              if (page > PageOffset.maxPage(size)) {
+                return new PackMappingDetail(pack, OffsetPage.empty(page));
+              }
+              Slice<MappingPool> slice =
+                  mapping
+                      .pools(packId, PageRequest.of((int) page, size))
+                      .map(pool -> pool.toPool(pack));
+              return new PackMappingDetail(
+                  pack, new OffsetPage<>(slice.getContent(), page, slice.hasNext()));
+            });
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public OffsetPage<MappingFilterOption> mappingFilterOptions(
+      MappingFilterDimensionEnum dimension, long page, int size) {
+    if (page > PageOffset.maxPage(size)) {
+      return OffsetPage.empty(page);
+    }
+    PageRequest request = PageRequest.of((int) page, size);
+    Slice<MappingFilterOption> slice =
+        switch (dimension) {
+          case SOURCE ->
+              mapping.sources(request).map(SportingMappingRepository.SourceRow::toOption);
+          case SEASON ->
+              mapping.seasons(request).map(SportingMappingRepository.SeasonRow::toOption);
+        };
+    return new OffsetPage<>(slice.getContent(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SourceCatalogueEntries sourceCatalogueEntries(Source source) {
+    return switch (source.provider()) {
+      case FFVB -> new SourceCatalogueEntries(ffvbCataloguePacks(source), List.of());
+      case LNV -> new SourceCatalogueEntries(List.of(), lnvCataloguePhases(source));
+    };
+  }
+
+  private List<CataloguePack> ffvbCataloguePacks(Source source) {
+    Map<PackEntity, List<CataloguePool>> byPack =
+        pools
+            .cataloguePools(source.seasonId(), source.provider(), source.organizerReference())
+            .stream()
+            .collect(
+                Collectors.groupingBy(
+                    PoolEntity::getPack,
+                    LinkedHashMap::new,
+                    Collectors.mapping(
+                        pool -> new CataloguePool(pool.getId(), pool.getSourceName()),
+                        Collectors.toList())));
+    return byPack.entrySet().stream()
+        .map(
+            entry ->
+                new CataloguePack(
+                    entry.getKey().getId(),
+                    entry.getKey().getReference(),
+                    List.copyOf(entry.getValue())))
+        .toList();
+  }
+
+  private List<CataloguePhase> lnvCataloguePhases(Source source) {
+    Map<String, String> labels =
+        catalogs.findById(source.id()).map(CatalogEntity::getPhaseLabels).orElseGet(Map::of);
+    return pools
+        .cataloguePhaseReferences(source.seasonId(), source.provider(), source.organizerReference())
+        .stream()
+        .map(reference -> new CataloguePhase(reference, labels.get(reference)))
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<AcquisitionReference> acquisitionPools(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      boolean initialImport,
+      Instant now,
+      UUID afterId) {
+    List<PoolEntity> selected =
+        pools.acquisitionPools(
+            seasonId, provider, organizerReference, initialImport, afterId, PageRequest.of(0, 200));
+    if (selected.isEmpty()) {
+      return List.of();
+    }
+    Map<UUID, Instant> windows =
+        matches
+            .findLatestMatchStartsInWindow(
+                selected.stream().map(PoolEntity::getId).toList(),
+                now.minus(Duration.ofHours(4)),
+                now.plus(Duration.ofHours(1)))
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    PoolMatchStart::getPoolId,
+                    value -> value.getLatestStart().plus(Duration.ofHours(4))));
+    List<AcquisitionReference> references = new ArrayList<>();
+    for (PoolEntity pool : selected) {
+      if (pool.getCalendarUrl() != null) {
+        references.add(
+            acquisitionReference(
+                pool,
+                CollectionTargetKindEnum.CALENDAR,
+                pool.getId(),
+                null,
+                null,
+                pool.getCalendarUrl(),
+                windows.get(pool.getId())));
+      }
+      if (pool.getStandingsUrl() != null) {
+        references.add(
+            acquisitionReference(
+                pool,
+                CollectionTargetKindEnum.STANDINGS,
+                pool.getId(),
+                null,
+                null,
+                pool.getStandingsUrl(),
+                windows.get(pool.getId())));
+      }
+    }
+    return references;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<AcquisitionReference> acquisitionDetails(UUID poolId, Instant now, int page) {
+    return matches.acquisitionDetails(poolId, PageRequest.of(page, 200)).stream()
+        .map(
+            match -> {
+              Instant start = match.getReliableStart();
+              Instant end =
+                  start == null
+                          || now.isBefore(start.minus(Duration.ofHours(1)))
+                          || now.isAfter(start.plus(Duration.ofHours(4)))
+                      ? null
+                      : start.plus(Duration.ofHours(4));
+              return acquisitionReference(
+                  match.getPool(),
+                  CollectionTargetKindEnum.DETAILS,
+                  match.getId(),
+                  match.getId(),
+                  match.getReference(),
+                  match.getDetailUrl(),
+                  end);
+            })
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, UUID afterId) {
+    return clubs.acquisitionClubs(geocoding, afterId, PageRequest.of(0, 200)).stream()
+        .map(mapper::toAcquisitionReference)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds) {
+    return clubs.findAllById(clubIds).stream()
+        .collect(Collectors.toMap(ClubEntity::getId, mapper::toLocalityView));
+  }
+
+  /**
+   * Combines a qualified native reference with effective acquisition settings, never published
+   * fallbacks.
+   *
+   * @param pool eligible contextual owner
+   * @param kind read purpose
+   * @param scopeId stable pool or match identity
+   * @param matchId detail identity, otherwise absent
+   * @param reference native detail reference, otherwise absent
+   * @param url current qualified read URL
+   * @param windowEnd current reliable fast window end, otherwise absent
+   * @return detached nonpersonal acquisition context
+   */
+  private AcquisitionReference acquisitionReference(
+      PoolEntity pool,
+      CollectionTargetKindEnum kind,
+      UUID scopeId,
+      UUID matchId,
+      String reference,
+      String url,
+      Instant windowEnd) {
+    SportingClassification setting =
+        SportingClassification.effective(
+            mapper.toClassification(pool.getSetting()),
+            () -> mapper.toClassification(pool.getPack().getSetting()));
+    return new AcquisitionReference(
+        scopeId,
+        kind,
+        mapper.toKey(pool),
+        pool.getPack().getReference(),
+        pool.getId(),
+        matchId,
+        setting,
+        url,
+        windowEnd,
+        pool.getProvider(),
+        reference);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingViews.CollectionSeasonView> collectionSeason(UUID id) {
+    return seasons.findById(id).map(mapper::toCollectionView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<SportingViews.CollectionSeasonView> collectionSeasons() {
+    return seasons.findAllByOrderByStartYearDescIdAsc().stream()
+        .map(mapper::toCollectionView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids) {
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
+    return seasons.findAllById(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(SeasonEntity::getId, mapper::toCollectionView));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SportingViews.CollectionSeasonView activateCollectionSeason(UUID id) {
+    SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
+    return mapper.toCollectionView(season);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SportingViews.CollectionSeasonView closeCollectionSeason(UUID id) {
+    SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    season.setCollectionState(CollectionSeasonStateEnum.CLOSED);
+    return mapper.toCollectionView(season);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SeasonView> seasonByYear(long year) {
+    return seasons.findByStartYear(year);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SeasonView createSeason(long year, String label) {
+    return mapper.toView(seasons.save(new SeasonEntity(year, label)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SeasonView> season(UUID id) {
+    return seasons.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockSeason(UUID id) {
+    seasons
+        .findByIdForUpdate(id)
+        .orElseThrow(() -> new UnresolvedSportingIdentityException("Unknown canonical season"));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockPoolSeason(UUID poolId) {
+    lockSeason(
+        pools.findSeasonId(poolId).orElseThrow(() -> new SportingResourceNotFoundException()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<DivisionView> division(UUID id) {
+    return divisions.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PoolView> pool(PoolKey key) {
+    return pools.findByKey(key).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PoolView> pool(UUID id) {
+    return pools.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public PoolView createPool(
+      PoolKey key, String packReference, String sourceName, SportingClassification classification) {
+    return mapper.toView(saveNewPool(key, packReference, sourceName, classification));
+  }
+
+  private PoolEntity saveNewPool(
+      PoolKey key, String packReference, String sourceName, SportingClassification classification) {
+    SeasonEntity season = seasons.getReferenceById(key.seasonId());
+    PackEntity pack =
+        packs
+            .findByProviderAndSeasonIdAndOrganizerReferenceAndReference(
+                key.provider(), key.seasonId(), key.organizerReference(), packReference)
+            .orElseGet(
+                () ->
+                    packs.save(
+                        new PackEntity(
+                            season, key.provider(), key.organizerReference(), packReference)));
+    return pools.save(
+        new PoolEntity(
+            season,
+            pack,
+            key.provider(),
+            key.organizerReference(),
+            key.competitionReference(),
+            key.tourReference(),
+            key.groupReference(),
+            key.reference(),
+            sourceName,
+            classification == null ? null : divisions.getReferenceById(classification.divisionId()),
+            classification == null ? null : classification.format(),
+            classification == null ? null : classification.gender()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<ClubView> club(CollectionProviderEnum provider, String reference) {
+    return clubs.findByProviderAndReference(provider, reference).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<ClubView> club(UUID id) {
+    return clubs.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public ClubView createClub(CollectionProviderEnum provider, String reference, String sourceName) {
+    ClubView club = mapper.toView(clubs.save(new ClubEntity(provider, reference, sourceName)));
+    changes.submit(Kind.CLUB, club.id());
+    return club;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<TeamView> ffvbTeam(
+      UUID seasonId, UUID clubId, SportingClassification classification, String name) {
+    return teams
+        .findByProviderAndSeasonIdAndClubIdAndDivisionIdAndFormatAndGenderAndComparisonName(
+            CollectionProviderEnum.FFVB,
+            seasonId,
+            clubId,
+            classification.divisionId(),
+            classification.format(),
+            classification.gender(),
+            name)
+        .map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<TeamView> teamAlias(PoolView pool, UUID clubId, String name) {
+    return teams.findByVerifiedAlias(pool, clubId, name).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<TeamView> lnvTeam(PoolView pool, String reference) {
+    return teams
+        .findByProviderAndSeasonIdAndOrganizerReferenceAndCompetitionReferenceAndNativeReference(
+            CollectionProviderEnum.LNV,
+            pool.key().seasonId(),
+            pool.key().organizerReference(),
+            pool.key().competitionReference(),
+            reference)
+        .map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<TeamView> team(UUID id) {
+    return teams.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public TeamView createTeam(
+      PoolView pool, UUID clubId, TeamCandidate candidate, String comparisonName) {
+    SportingClassification classification = pool.classification();
+    return mapper.toView(
+        teams.save(
+            new TeamEntity(
+                seasons.getReferenceById(pool.key().seasonId()),
+                pool.key().provider(),
+                pool.key().organizerReference(),
+                pool.key().competitionReference(),
+                candidate.nativeReference(),
+                candidate.sourceName(),
+                comparisonName,
+                clubId == null ? null : clubs.getReferenceById(clubId),
+                divisions.getReferenceById(classification.divisionId()),
+                classification.format(),
+                classification.gender())));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void updateTeamSourceName(UUID id, String sourceName) {
+    TeamEntity team = teams.findById(id).orElseThrow();
+    if (!Objects.equals(team.getSourceName(), sourceName)) {
+      team.setSourceName(sourceName);
+      changes.submit(Kind.TEAM, id);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void participate(UUID teamId, UUID poolId) {
+    ParticipationEntity existing =
+        participations.findByTeamIdAndPoolId(teamId, poolId).orElse(null);
+    if (existing == null) {
+      participations.save(
+          new ParticipationEntity(
+              teams.getReferenceById(teamId), pools.getReferenceById(poolId), true));
+      changes.submit(Kind.POOL, poolId);
+    } else if (!existing.isCurrent()) {
+      existing.setCurrent(true);
+      changes.submit(Kind.POOL, poolId);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<MatchView> match(UUID poolId, String reference) {
+    return matches.findByPoolIdAndReference(poolId, reference).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<MatchView> match(UUID id) {
+    return matches.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<UUID> matchPoolId(UUID id) {
+    return matches.findPoolId(id);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public MatchView createMatch(UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId) {
+    return mapper.toView(
+        matches.save(
+            new MatchEntity(
+                pools.getReferenceById(poolId),
+                reference,
+                teams.getReferenceById(homeTeamId),
+                teams.getReferenceById(awayTeamId))));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockPackSeason(UUID packId) {
+    lockSeason(packs.findSeasonId(packId).orElseThrow(SportingResourceNotFoundException::new));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PackView> pack(UUID id) {
+    return packs.findById(id).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<PoolClassificationView> poolClassification(UUID id) {
+    return pools.findById(id).map(mapper::toClassificationView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<PoolClassificationView> packPools(UUID packId) {
+    return pools.findByPackId(packId).stream().map(mapper::toClassificationView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<TeamView> teamsInPools(List<UUID> poolIds) {
+    return poolIds.isEmpty()
+        ? List.of()
+        : teams.findParticipatingIn(poolIds).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<ParticipationView> participations(List<UUID> teamIds) {
+    return teamIds.isEmpty()
+        ? List.of()
+        : participations.findByTeamIdIn(teamIds).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<UUID> teamPoolIds(UUID teamId) {
+    return participations.findPoolIdsByTeamId(teamId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void setPackClassification(UUID id, SportingClassification setting) {
+    packs.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void setPoolClassification(UUID id, SportingClassification setting) {
+    pools.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void correctClassification(
+      List<UUID> poolIds, List<UUID> teamIds, SportingClassification classification) {
+    DivisionEntity division = divisions.getReferenceById(classification.divisionId());
+    for (PoolEntity pool : pools.findAllById(poolIds)) {
+      pool.setDivision(division);
+      pool.setFormat(classification.format());
+      pool.setGender(classification.gender());
+      changes.submit(Kind.POOL, pool.getId());
+    }
+    for (TeamEntity team : teams.findAllById(teamIds)) {
+      team.setDivision(division);
+      team.setFormat(classification.format());
+      team.setGender(classification.gender());
+      changes.submit(Kind.TEAM, team.getId());
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Optional<DivisionDetail> lockDivision(UUID id) {
+    return divisions.findByIdForUpdate(id).map(mapper::toDetail);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<DivisionDetail> divisionDetail(UUID id) {
+    return divisions.findSummaryById(id).map(mapper::toDetail);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<DivisionDetail> divisions(boolean includeInactive) {
+    return divisions.findConfigured(includeInactive).stream().map(mapper::toDetail).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public DivisionDetail createDivision(
+      String name, String color, List<String> gradient, Image image) {
+    try {
+      DivisionEntity division =
+          new DivisionEntity(
+              name,
+              color,
+              gradient,
+              image == null ? null : replaceLogo(Category.DIVISIONS, null, image, image.sha256()));
+      return mapper.toDetail(divisions.saveAndFlush(division));
+    } catch (DataIntegrityViolationException failure) {
+      if (failure.getCause() instanceof ConstraintViolationException constraint
+          && "uk_division_name".equals(constraint.getConstraintName())) {
+        throw new SportingConflictException("conflict", List.of());
+      }
+      throw failure;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public DivisionDetail setDivisionActive(UUID id, boolean active) {
+    DivisionEntity division = divisions.findById(id).orElseThrow();
+    division.setActive(active);
+    changes.submit(Kind.DIVISION, id);
+    return mapper.toDetail(division);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<UUID> classificationCollisions(List<UUID> teamIds, SportingClassification target) {
+    return teamIds.isEmpty() ? List.of() : teams.findClassificationCollisions(teamIds, target);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CalendarState calendarState(UUID poolId) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    return new CalendarState(
+        mapper.toOrder(pool.getCalendarCycleOrder(), pool.getCalendarReadOrdinal()),
+        mapper.toOrder(pool.getCompletedCycleOrder(), pool.getCompletedReadOrdinal()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void beginCalendar(UUID poolId, ObservationOrder order) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    pool.setCalendarCycleOrder(order.cycleOrder());
+    pool.setCalendarReadOrdinal(order.readOrdinal());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void completeCalendar(
+      UUID poolId, ObservationOrder order, Set<String> presentReferences, boolean empty) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    boolean changed = pool.isCalendarEmpty() != empty;
+    pool.setCalendarEmpty(empty);
+    Set<UUID> presentTeams = new HashSet<>();
+    for (MatchEntity match : matches.findByPoolId(poolId)) {
+      boolean present = presentReferences.contains(match.getReference());
+      changed |= match.isPresent() != present;
+      match.setPresent(present);
+      if (present) {
+        presentTeams.add(match.getHomeTeam().getId());
+        presentTeams.add(match.getAwayTeam().getId());
+      }
+    }
+    for (ParticipationEntity participation : participations.findByPoolId(poolId)) {
+      boolean present = presentTeams.contains(participation.getTeam().getId());
+      changed |= participation.isCurrent() != present;
+      participation.setCurrent(present);
+    }
+    pool.setCompletedCycleOrder(order.cycleOrder());
+    pool.setCompletedReadOrdinal(order.readOrdinal());
+    if (changed) {
+      changes.submit(Kind.POOL, poolId);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public boolean restoreCalendarPresence(UUID matchId) {
+    MatchEntity match = matches.findById(matchId).orElseThrow();
+    PoolEntity pool = match.getPool();
+    boolean changed = !match.isPresent() || pool.isCalendarEmpty();
+    match.setPresent(true);
+    pool.setCalendarEmpty(false);
+    if (changed) {
+      changes.submit(Kind.POOL, pool.getId());
+    }
+    return changed;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder matchOrder(UUID poolId, String reference) {
+    return matches
+        .findByPoolIdAndReference(poolId, reference)
+        .map(match -> mapper.toOrder(match.getAcceptedCycleOrder(), match.getAcceptedReadOrdinal()))
+        .orElse(null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockMatch(UUID matchId) {
+    requireLockedMatch(matchId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public MatchSchedule lockMatchSchedule(UUID matchId) {
+    return mapper.toSchedule(requireLockedMatch(matchId));
+  }
+
+  private MatchEntity requireLockedMatch(UUID matchId) {
+    return matches.findByIdForUpdate(matchId).orElseThrow(SportingResourceNotFoundException::new);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public MatchSchedule matchSchedule(UUID matchId) {
+    return mapper.toSchedule(
+        matches.findById(matchId).orElseThrow(SportingResourceNotFoundException::new));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveMatchSchedule(MatchSchedule schedule) {
+    mapper.updateSchedule(schedule, matches.findById(schedule.id()).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder catalogOrder(UUID sourceId) {
+    return catalogs
+        .findById(sourceId)
+        .map(value -> mapper.toOrder(value.getCycleOrder(), value.getReadOrdinal()))
+        .orElse(null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, CatalogObservation.Evidence> catalogEvidence(List<UUID> sourceIds) {
+    return catalogs.findAllById(sourceIds).stream()
+        .collect(
+            Collectors.toUnmodifiableMap(CatalogEntity::getSourceId, mapper::toCatalogEvidence));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate) {
+    PoolEntity pool =
+        pools
+            .findByKey(key)
+            .orElseGet(
+                () -> saveNewPool(key, candidate.packReference(), candidate.sourceName(), null));
+    if (!pool.getPack().getReference().equals(candidate.packReference())) {
+      throw new SportingConflictException("identity-conflict", List.of());
+    }
+    boolean changed =
+        !pool.isCatalogEligible() || !Objects.equals(pool.getSourceName(), candidate.sourceName());
+    pool.setSourceName(candidate.sourceName());
+    pool.setCatalogEligible(true);
+    if (changed) {
+      changes.submit(Kind.POOL, pool.getId());
+    }
+    if (candidate.calendarUrl() != null) {
+      pool.setCalendarUrl(candidate.calendarUrl().toString());
+    }
+    if (candidate.standingsUrl() != null) {
+      pool.setStandingsUrl(candidate.standingsUrl().toString());
+    }
+    return pool.getId();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void finishCatalog(
+      Source source,
+      Set<UUID> presentIds,
+      boolean authoritative,
+      ObservationOrder order,
+      CatalogObservation observation) {
+    if (authoritative) {
+      for (PoolEntity pool :
+          pools.findBySeasonIdAndProviderAndOrganizerReferenceAndCatalogEligibleTrue(
+              source.seasonId(), source.provider(), source.organizerReference())) {
+        if (!presentIds.contains(pool.getId())) {
+          pool.setCatalogEligible(false);
+          changes.submit(Kind.POOL, pool.getId());
+        }
+      }
+    }
+    CatalogEntity catalog = catalogs.findById(source.id()).orElse(null);
+    boolean created = catalog == null;
+    if (created) {
+      catalog = new CatalogEntity(source.id());
+    }
+    MatchObservation.Context context = observation.context();
+    catalog.setCycleOrder(order.cycleOrder());
+    catalog.setReadOrdinal(order.readOrdinal());
+    catalog.setObservedAt(context.observedAt());
+    catalog.setProviderPublishedAt(context.providerPublishedAt());
+    catalog.setComplete(authoritative);
+    if (authoritative) {
+      catalog.setLastCompleteReadAt(context.observedAt());
+      if (observation.phaseLabels() != null) {
+        catalog.replacePhaseLabels(observation.phaseLabels());
+      }
+    }
+    // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
+    if (created) {
+      entityManager.persist(catalog);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public MatchObservation.Result matchResult(UUID matchId) {
+    return mapper.toResult(matches.findById(matchId).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public MatchDetails matchDetails(UUID matchId) {
+    return mapper.toDetails(matches.findById(matchId).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveMatchDetails(MatchDetails details) {
+    mapper.updateDetails(details, matches.findById(details.id()).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<StandingsView> standings(UUID poolId) {
+    return standings.findById(poolId).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveStandings(StandingsView value) {
+    StandingsEntity entity = standings.findById(value.poolId()).orElse(null);
+    boolean created = entity == null;
+    if (created) {
+      entity = new StandingsEntity(value.poolId());
+    }
+    mapper.updateStandings(value, entity);
+    if (value.publicationState() == StandingsPublicationStateEnum.PUBLISHED) {
+      if (!entity.getColumns().equals(value.columns())) {
+        entity.getColumns().clear();
+        entity.getColumns().addAll(value.columns());
+      }
+      if (!mapper.toRowViews(entity.getRows()).equals(value.rows())) {
+        entity.getRows().clear();
+        entity.getRows().addAll(mapper.toRows(value.rows()));
+      }
+    }
+    // A first publication inserts the assigned pool key and its owned rows once.
+    if (created) {
+      entityManager.persist(entity);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<TeamView> currentPoolTeams(UUID poolId) {
+    return teams.findCurrentIn(poolId).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockPresentation(Kind kind, UUID id) {
+    switch (kind) {
+      case CLUB -> clubs.findByIdForUpdate(id).orElseThrow(SportingResourceNotFoundException::new);
+      case POOL -> lockPoolSeason(id);
+      case TEAM -> {
+        UUID season = teams.findSeasonId(id).orElseThrow(SportingResourceNotFoundException::new);
+        lockSeason(season);
+      }
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingPresentation.View> presentation(Kind kind, UUID id) {
+    return switch (kind) {
+      case CLUB -> clubs.findById(id).map(mapper::toPresentation);
+      case TEAM -> teams.findById(id).map(mapper::toPresentation);
+      case POOL -> pools.findById(id).map(mapper::toPresentation);
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, SportingPresentation.View> presentations(Kind kind, Set<UUID> ids) {
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
+    List<SportingPresentationRow> rows =
+        switch (kind) {
+          case CLUB -> clubs.findPresentations(ids);
+          case TEAM -> teams.findPresentations(ids);
+          case POOL -> pools.findPresentations(ids);
+          default -> throw new IllegalArgumentException("Unsupported presentation kind");
+        };
+    return rows.stream()
+        .collect(
+            Collectors.toUnmodifiableMap(
+                SportingPresentationRow::id, row -> mapper.toPresentation(row, kind)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SportingPresentation.View savePresentation(
+      Kind kind, UUID id, SportingPresentation.Edit edit) {
+    SportingPresentation.View before =
+        presentation(kind, id).orElseThrow(SportingResourceNotFoundException::new);
+    boolean nameChanged =
+        !Objects.equals(before.names().manualName(), edit.manualName())
+            || !Objects.equals(before.names().manualShortName(), edit.manualShortName());
+    Image next = edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+    String digest = next == null ? null : next.sha256();
+    switch (kind) {
+      case CLUB -> {
+        ClubEntity club = clubs.findById(id).orElseThrow();
+        boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, club.getLogo());
+        if (nameChanged || logoChanged) {
+          club.setManualName(edit.manualName());
+          if (logoChanged) {
+            SportingLogo previousOwned = club.getLogoBucket() == null ? club.getLogo() : null;
+            club.setLogo(replaceLogo(Category.CLUBS, previousOwned, next, digest));
+            club.setLogoBucket(null);
+          }
+          changes.submit(kind, id);
+        }
+      }
+      case TEAM -> {
+        TeamEntity team = teams.findById(id).orElseThrow();
+        boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, team.getLogo());
+        if (nameChanged || logoChanged) {
+          team.setManualName(edit.manualName());
+          team.setManualShortName(edit.manualShortName());
+          if (logoChanged) {
+            team.setLogo(replaceLogo(Category.TEAMS, team.getLogo(), next, digest));
+          }
+          changes.submit(kind, id);
+        }
+      }
+      case POOL -> {
+        if (nameChanged) {
+          PoolEntity pool = pools.findById(id).orElseThrow();
+          pool.setManualName(edit.manualName());
+          pool.setManualShortName(edit.manualShortName());
+          changes.submit(kind, id);
+        }
+      }
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
+    return presentation(kind, id).orElseThrow();
+  }
+
+  private static boolean changesManualLogo(
+      LogoActionEnum action, Image replacement, String digest, SportingLogo previous) {
+    return switch (action) {
+      case KEEP -> false;
+      case AUTOMATIC -> previous != null;
+      case REPLACE -> previous == null || !previous.matches(replacement.mediaType(), digest);
+    };
+  }
+
+  private SportingLogo replaceLogo(
+      Category category, SportingLogo previous, Image replacement, String digest) {
+    String mediaType = replacement == null ? null : replacement.mediaType();
+    String key =
+        imageObjects.replace(
+            category,
+            previous == null ? null : previous.objectKey(),
+            replacement == null ? null : replacement.bytes(),
+            mediaType);
+    return key == null ? null : new SportingLogo(key, mediaType, digest);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public DivisionDetail saveDivisionPresentation(UUID id, SportingPresentation.DivisionEdit edit) {
+    DivisionEntity division = divisions.findById(id).orElseThrow();
+    Image next = edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+    String digest = next == null ? null : next.sha256();
+    boolean logoChanged = changesManualLogo(edit.logoAction(), next, digest, division.getLogo());
+    boolean changed =
+        !Objects.equals(division.getName(), edit.name())
+            || !Objects.equals(division.getColor(), edit.color())
+            || !Objects.equals(
+                mapper.toGradient(
+                    division.getGradientStart(),
+                    division.getGradientMiddle(),
+                    division.getGradientEnd()),
+                edit.gradient())
+            || logoChanged;
+    if (changed) {
+      division.setName(edit.name());
+      division.setColor(edit.color());
+      division.setGradientStart(edit.gradient() == null ? null : edit.gradient().get(0));
+      division.setGradientMiddle(edit.gradient() == null ? null : edit.gradient().get(1));
+      division.setGradientEnd(edit.gradient() == null ? null : edit.gradient().get(2));
+      if (logoChanged) {
+        division.setLogo(replaceLogo(Category.DIVISIONS, division.getLogo(), next, digest));
+      }
+      changes.submit(Kind.DIVISION, id);
+      try {
+        // Resolve the named uniqueness constraint before returning the accepted presentation.
+        divisions.flush();
+      } catch (DataIntegrityViolationException failure) {
+        if (failure.getCause() instanceof ConstraintViolationException constraint
+            && "uk_division_name".equals(constraint.getConstraintName())) {
+          throw new SportingConflictException("conflict", List.of());
+        }
+        throw failure;
+      }
+    }
+    return mapper.toDetail(division);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingPresentation.Contacts clubContacts(UUID id) {
+    ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return mapper.toContacts(club);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName) {
+    ClubEntity club = clubs.findById(contacts.clubId()).orElseThrow();
+    Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> before =
+        mapper.toContactValues(club.contactValues());
+    boolean contactChanged = !before.equals(contacts.fields());
+    String addressBefore = before.get(SportingPresentation.ContactField.ADDRESS).effectiveValue();
+    String cityBefore = before.get(SportingPresentation.ContactField.CITY).effectiveValue();
+    String postalBefore =
+        before.get(SportingPresentation.ContactField.POSTAL_CODE).effectiveValue();
+    club.replaceContacts(mapper.toContactEntities(contacts.fields()));
+    boolean nameChanged = sourceName != null && !Objects.equals(sourceName, club.getSourceName());
+    if (nameChanged) {
+      club.setSourceName(sourceName);
+    }
+    if (!Objects.equals(
+            addressBefore,
+            contacts.fields().get(SportingPresentation.ContactField.ADDRESS).effectiveValue())
+        || !Objects.equals(
+            cityBefore,
+            contacts.fields().get(SportingPresentation.ContactField.CITY).effectiveValue())
+        || !Objects.equals(
+            postalBefore,
+            contacts
+                .fields()
+                .get(SportingPresentation.ContactField.POSTAL_CODE)
+                .effectiveValue())) {
+      club.setLocalityRevision(club.getLocalityRevision() + 1);
+      club.setLatitude(null);
+      club.setLongitude(null);
+      club.setGeocodedRevision(null);
+    }
+    if (contactChanged || nameChanged) {
+      changes.submit(Kind.CLUB, club.getId());
+    }
+    club.setDetailCycleOrder(contacts.order() == null ? null : contacts.order().cycleOrder());
+    club.setDetailReadOrdinal(contacts.order() == null ? null : contacts.order().readOrdinal());
+    club.setDetailObservedAt(contacts.observedAt());
+    club.setDetailPublishedAt(contacts.providerPublishedAt());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingPresentation.Locality locality(UUID id) {
+    ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return mapper.toLocality(club);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void saveLocality(
+      UUID id, SportingPresentation.LocalityObservation observation, ObservationOrder order) {
+    ClubEntity club = clubs.findById(id).orElseThrow();
+    boolean changed =
+        !Objects.equals(club.getLatitude(), observation.latitude())
+            || !Objects.equals(club.getLongitude(), observation.longitude());
+    club.setLatitude(observation.latitude());
+    club.setLongitude(observation.longitude());
+    club.setGeocodedRevision(club.getLocalityRevision());
+    club.setLocalityCycleOrder(order.cycleOrder());
+    club.setLocalityReadOrdinal(order.readOrdinal());
+    if (changed) {
+      changes.submit(Kind.CLUB, id);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder sourceLogoOrder(UUID id) {
+    TeamEntity team = teams.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return mapper.toOrder(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public boolean saveSourceLogo(
+      UUID id,
+      SportingPresentation.Image image,
+      ObservationOrder order,
+      MatchObservation.Context context) {
+    TeamEntity team = teams.findById(id).orElseThrow();
+    String digest = image.sha256();
+    SportingLogo previous = team.getSourceLogo();
+    boolean changed = previous == null || !previous.matches(image.mediaType(), digest);
+    if (changed) {
+      team.setSourceLogo(replaceLogo(Category.TEAMS, previous, image, digest));
+      changes.submit(Kind.TEAM, id);
+    }
+    team.setLogoCycleOrder(order.cycleOrder());
+    team.setLogoReadOrdinal(order.readOrdinal());
+    team.setLogoObservedAt(context.observedAt());
+    team.setLogoPublishedAt(context.providerPublishedAt());
+    return changed;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<LogoObject> effectiveLogo(Kind kind, UUID id) {
+    return switch (kind) {
+      case CLUB -> clubs.findById(id).map(club -> logoObject(club.getLogo(), club.getLogoBucket()));
+      case DIVISION -> divisions.findById(id).map(division -> logoObject(division.getLogo(), null));
+      case TEAM -> teamLogo(id, TeamLogoSelectionEnum.EFFECTIVE);
+      default -> Optional.empty();
+    };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<LogoObject> teamLogo(UUID id, TeamLogoSelectionEnum selection) {
+    return teams
+        .findById(id)
+        .flatMap(
+            team -> {
+              if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null) {
+                return Optional.of(logoObject(team.getLogo(), null));
+              }
+              if (team.getProvider() == CollectionProviderEnum.LNV
+                  && team.getSourceLogo() != null) {
+                return Optional.of(logoObject(team.getSourceLogo(), null));
+              }
+              return team.getClub() == null
+                  ? Optional.empty()
+                  : effectiveLogo(Kind.CLUB, team.getClub().getId());
+            });
+  }
+
+  private static LogoObject logoObject(SportingLogo logo, String legacyBucket) {
+    return logo == null ? null : new LogoObject(legacyBucket, logo.objectKey(), logo.mediaType());
+  }
+}

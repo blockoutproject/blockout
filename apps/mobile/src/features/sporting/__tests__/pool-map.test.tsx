@@ -1,0 +1,1627 @@
+import {
+  useLayoutEffect,
+  useState as useQueryFixtureState,
+  type PropsWithChildren as QueryFixtureProps,
+} from "react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import { QueryClientProvider } from "@tanstack/react-query";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { Platform } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  getGetPoolStandingsQueryKey,
+  getListPoolParticipantsQueryKey,
+} from "../../../../.generated/mobile";
+import type {
+  ClubLocationResponse,
+  PoolParticipantResponse,
+  PoolParticipantsResponse,
+  PoolStandingsResponse,
+} from "../../../../.generated/schemas/index.zod";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { matchDetail, sportingId } from "../test-support/consultation-data";
+import { PoolScreen } from "../screens/pool-screen";
+import { PoolMap, usePoolMapParticipants } from "../components/pool-map";
+import { nativeMapCommands } from "../test-support/native-maps";
+import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
+
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
+  useIsFocused: () => true,
+  useNavigation: () => ({ isFocused: () => true }),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (...args: unknown[]) => mockFetch(...args),
+}));
+const mockFetch = jest.fn();
+const mockPush = jest.fn();
+const environment = { ...process.env };
+const pool = matchDetail().match.pool;
+const secondTeamId = "00000000-0000-4000-8000-000000002152";
+const thirdTeamId = "00000000-0000-4000-8000-000000002153";
+const professionalId = "00000000-0000-4000-8000-000000002154";
+let client: QueryClient;
+let publicClient = createQueryClient();
+let participants: PoolParticipantsResponse;
+let table: PoolStandingsResponse;
+let participantsFailure: number | undefined;
+let standingsFailure: number | undefined;
+
+/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
+  const current = useQueryClient();
+  // Configure this fresh real client before descendant consultation observers start their first request.
+  useQueryFixtureState(() => {
+    current.setQueryDefaults([], { retry: false });
+    return true;
+  });
+  useLayoutEffect(() => {
+    client = current;
+  }, [current]);
+  return children;
+}
+
+beforeEach(() => {
+  jest.useFakeTimers({ doNotFake: ["Date"] });
+  publicClient = createQueryClient();
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
+  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "test-client";
+  jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  mockPush.mockReset();
+  for (const command of Object.values(nativeMapCommands)) {
+    command.mockClear();
+  }
+  participantsFailure = undefined;
+  standingsFailure = undefined;
+  participants = { poolId: pool.pool.id, items: [] };
+  table = {
+    poolId: pool.pool.id,
+    availability: "not-published",
+    columns: [],
+    rows: [],
+  };
+  mockFetch.mockReset().mockImplementation(mapResponse);
+});
+
+/** Serves synthetic resource responses through the real generated clients; each scenario declares its outcome above. */
+function mapResponse(url: string) {
+  const parsed = new URL(url);
+  if (parsed.pathname === "/application-access") {
+    return Promise.resolve(Response.json(applicationAccessResponse()));
+  }
+  if (parsed.pathname.endsWith("/participants")) {
+    return Promise.resolve(
+      participantsFailure
+        ? Response.json({}, { status: participantsFailure })
+        : Response.json(participants),
+    );
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Promise.resolve(
+      standingsFailure
+        ? Response.json({}, { status: standingsFailure })
+        : Response.json(table),
+    );
+  }
+  if (parsed.pathname === `/pools/${pool.pool.id}`) {
+    return Promise.resolve(Response.json({ pool }));
+  }
+  return Promise.reject(
+    new Error(`Unexpected synthetic path ${parsed.pathname}`),
+  );
+}
+
+afterEach(async () => {
+  await cleanup();
+  client?.clear();
+  publicClient.clear();
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
+  process.env = { ...environment };
+  jest.restoreAllMocks();
+});
+
+/** Supplies the required current-team context; each scenario owns identity, geography and professional status. */
+function participant(
+  id: string,
+  name: string,
+  location?: ClubLocationResponse,
+  professional = false,
+): PoolParticipantResponse {
+  return {
+    team: {
+      team: { id, name },
+      season: pool.season,
+      classification: {},
+      professional,
+      ...(professional ? {} : { club: { id, name: `Club ${name}` } }),
+    },
+    ...(location ? { location } : {}),
+  };
+}
+
+/** Supplies a published official row; each scenario owns literal columns and raw statistics. */
+function publishedTable(
+  statistics: Record<string, string>,
+  columns = ["Jou.", "Gag.", "Per."],
+): PoolStandingsResponse {
+  return {
+    poolId: pool.pool.id,
+    availability: "available",
+    observedAt: "2026-10-20T12:00:00Z",
+    columns,
+    rows: [
+      {
+        sourceName: "Rives",
+        team: { id: sportingId, name: "Rives" },
+        statistics,
+      },
+    ],
+  };
+}
+
+/** Real cache, generated decoder, session, admission, theme and advertising; only HTTP and native I/O are controlled. */
+function open(content = panel()) {
+  return render(content, {
+    wrapper: ({ children }: Readonly<QueryFixtureProps>) => (
+      <GestureHandlerRootView>
+        <SafeAreaProvider
+          initialMetrics={{
+            frame: { x: 0, y: 0, width: 390, height: 844 },
+            insets: { top: 0, left: 0, right: 0, bottom: 0 },
+          }}
+        >
+          <QueryClientProvider client={publicClient}>
+            <ThemeProvider>
+              <ActionFeedbackProvider scopeKey="map-test">
+                <ApplicationAccessProvider>
+                  <AccountSessionProvider>
+                    <PrivateQueries>
+                      <AdvertisingProviders>{children}</AdvertisingProviders>
+                    </PrivateQueries>
+                  </AccountSessionProvider>
+                </ApplicationAccessProvider>
+              </ActionFeedbackProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    ),
+  });
+}
+
+function TestPoolMap({ active = true }: Readonly<{ active?: boolean }>) {
+  const participantRead = usePoolMapParticipants(pool.pool.id);
+  return (
+    <PoolMap pool={pool} active={active} participantRead={participantRead} />
+  );
+}
+
+/** Supplies the existing native tab owner without replacing the component's read lifecycle. */
+function panel(active = true) {
+  return (
+    <PagedTabs
+      selected="map"
+      onSelect={() => undefined}
+      tabs={[
+        {
+          id: "map",
+          label: "Carte",
+          fullHeight: true,
+          content: <TestPoolMap active={active} />,
+        },
+      ]}
+    />
+  );
+}
+
+it("opens independent participants lazily after the admitted standings pane fails", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+    participant(secondTeamId, "Marais", {
+      latitude: 46.32,
+      longitude: -0.46,
+      label: "Niort",
+    }),
+    participant(thirdTeamId, "Localité invalidée"),
+    participant(professionalId, "Professionnelle sans club", undefined, true),
+  ];
+  const user = userEvent.setup();
+  await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Carte" });
+  await screen.findByRole("header", {
+    name: "Pas de classement pour cette phase",
+  });
+  standingsFailure = 503;
+
+  // When: a native Query background reread fails after a successful Empty admitted the table.
+  await act(async () =>
+    client.invalidateQueries({
+      queryKey: getGetPoolStandingsQueryKey(pool.pool.id),
+      exact: true,
+    }),
+  );
+
+  // Then: the failed pane masks its controls while independent navigation remains available.
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(pool.pool.name)).toBeOnTheScreen();
+  expect(screen.getByRole("tab", { name: "Carte" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(url).pathname.endsWith("/participants"),
+    ),
+  ).toBe(false);
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/participants"),
+    ),
+  ).toHaveLength(1);
+  expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+    "scrollEnabled",
+    false,
+  );
+  expect(screen.queryByText("4 équipes, dont 2 localisées")).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Niort: Marais" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", {
+      name: /Localité invalidée|Professionnelle sans club/,
+    }),
+  ).toBeNull();
+  expect(
+    screen.queryByText("Localisation à la commune, pas au gymnase."),
+  ).toBeNull();
+});
+
+it.each(["success", "known error", "in flight", "never loaded"] as const)(
+  "opens Map with one standings GET when the shared query is %s",
+  async (state) => {
+    // Given: real Query observers share the generated standings key; HTTP alone controls its outcome.
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 0,
+        longitude: 0,
+        label: "Test city",
+      }),
+    ];
+    table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+    standingsFailure = state === "known error" ? 503 : undefined;
+    const pending = Promise.withResolvers<Response>();
+    if (state === "in flight") {
+      mockFetch.mockImplementation((url: string) =>
+        new URL(url).pathname.endsWith("/standings")
+          ? pending.promise
+          : mapResponse(url),
+      );
+    }
+    const user = userEvent.setup();
+    await open(
+      state === "never loaded" ? panel() : <PoolScreen poolId={pool.pool.id} />,
+    );
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    if (state === "known error") {
+      await screen.findByRole("button", { name: "Réessayer" });
+    } else if (state === "success") {
+      await screen.findByRole("radio", { name: "Afficher en cartes" });
+    }
+
+    // When
+    if (state !== "never loaded") {
+      await user.press(await screen.findByRole("tab", { name: "Carte" }));
+    }
+    await fireEvent(
+      await screen.findByRole("button", { name: "Test city: Rives" }),
+      "press",
+      { stopPropagation: jest.fn() },
+    );
+    if (state === "in flight") {
+      await act(async () => pending.resolve(Response.json(table)));
+    }
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then: cached success/error and the existing attempt are reused; an untouched query still loads once.
+    if (state === "known error") {
+      expect(await screen.findByText("Bilan indisponible")).toBeOnTheScreen();
+    } else {
+      expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
+    }
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/participants"),
+      ),
+    ).toHaveLength(1);
+  },
+);
+
+it("opens the existing card without team choices for a single resolved location", async () => {
+  // Given: the public city label carries no address precision or fallback state.
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.160001,
+      longitude: -1.150001,
+      label: "La Rochelle",
+    }),
+  ];
+  table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+  const user = userEvent.setup();
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+
+  // Then: the same team card, optional record and Close remain available without a choice rail.
+  expect(screen.queryByLabelText("Équipes à cette localisation")).toBeNull();
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("link", { name: "Rives" }));
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: sportingId },
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "La Rochelle: Rives" }),
+  ).toBeOnTheScreen();
+});
+
+it("updates the selected point's rail when same-city clubs join and leave after refresh", async () => {
+  // Given: two clubs in Paris have distinct points, and Rives is selected alone.
+  const first = { latitude: 48.8566, longitude: 2.3522, label: "Paris" };
+  const second = { latitude: 48.87, longitude: 2.32, label: "Paris" };
+  participants.items = [
+    participant(sportingId, "Rives", first),
+    participant(secondTeamId, "Marais", second),
+  ];
+  const user = userEvent.setup();
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  expect(
+    (await screen.findByRole("button", { name: "Paris: Rives" })).props
+      .coordinate,
+  ).toEqual({ latitude: first.latitude, longitude: first.longitude });
+  expect(
+    screen.getByRole("button", { name: "Paris: Marais" }).props.coordinate,
+  ).toEqual({ latitude: second.latitude, longitude: second.longitude });
+  await fireEvent(
+    screen.getByRole("button", { name: "Paris: Rives" }),
+    "press",
+    {
+      stopPropagation: jest.fn(),
+    },
+  );
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+
+  // When: a current club location makes the selected point shared.
+  participants.items = [
+    participant(sportingId, "Rives", first),
+    participant(secondTeamId, "Marais", first),
+  ];
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
+
+  // Then: selection survives and the new choice becomes available.
+  expect(
+    await screen.findByRole("radio", { name: "Rives", checked: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("radio", { name: "Marais" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // When: the other team leaves, while the selected participant remains current.
+  participants.items = [participant(sportingId, "Rives", first)];
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
+  await screen.findByRole("button", { name: "Paris: Rives" });
+
+  // Then: the singleton retains its card and exact destination without a stale rail.
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
+  await user.press(screen.getByRole("link", { name: "Rives" }));
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: sportingId },
+  });
+});
+
+it.each([
+  {
+    resolution: "address",
+    latitude: 46.160001,
+    nearbyLatitude: 46.160002,
+    firstCity: "Commune A",
+    secondCity: "Commune B",
+    markerName: "Commune A - Commune B: Rives, Marais",
+  },
+  {
+    resolution: "municipality fallback",
+    latitude: 46.16,
+    nearbyLatitude: 46.160001,
+    firstCity: "La Rochelle",
+    secondCity: "La Rochelle",
+    markerName: "La Rochelle: Rives, Marais",
+  },
+])(
+  "keeps each coincident $resolution team selectable without merging a nearby point or requiring a logo",
+  async ({ latitude, nearbyLatitude, firstCity, secondCity, markerName }) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude,
+        longitude: -1.150001,
+        label: firstCity,
+      }),
+      participant(secondTeamId, "Marais", {
+        latitude,
+        longitude: -1.150001,
+        label: secondCity,
+      }),
+      participant(thirdTeamId, "Voisine", {
+        latitude: nearbyLatitude,
+        longitude: -1.150001,
+        label: "Commune C",
+      }),
+    ];
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    const shared = await screen.findByRole("button", {
+      name: markerName,
+    });
+
+    // When
+    // MarkerPress is a native map event, outside userEvent's Pressable interaction contract.
+    await fireEvent(shared, "press", { stopPropagation: jest.fn() });
+    await user.press(screen.getByRole("radio", { name: "Marais" }));
+    await user.press(screen.getByRole("link", { name: "Marais" }));
+    await user.press(screen.getByRole("radio", { name: "Rives" }));
+    await user.press(screen.getByRole("link", { name: "Rives" }));
+
+    // Then
+    expect(
+      screen.getByLabelText("Équipes à cette localisation"),
+    ).toBeOnTheScreen();
+    expect(shared.props.coordinate).toEqual({
+      latitude,
+      longitude: -1.150001,
+    });
+    expect(
+      screen.getByRole("button", { name: "Commune C: Voisine" }).props
+        .coordinate,
+    ).toEqual({
+      latitude: nearbyLatitude,
+      longitude: -1.150001,
+    });
+    expect(
+      screen.getByRole("radio", { name: "Marais", checked: false }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("radio", { name: "Rives", checked: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getAllByRole("image", { name: "Logo absent : Marais" }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Marais")).toBeNull();
+    expect(mockPush).toHaveBeenNthCalledWith(1, {
+      pathname: "/teams/[teamId]",
+      params: { teamId: secondTeamId },
+    });
+    expect(mockPush).toHaveBeenNthCalledWith(2, {
+      pathname: "/teams/[teamId]",
+      params: { teamId: sportingId },
+    });
+  },
+);
+
+it("distinguishes no usable locations from no participating teams", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Localité absente"),
+    participant(professionalId, "Professionnelle sans club", undefined, true),
+  ];
+
+  // When
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+
+  // Then
+  expect(
+    await screen.findByText("Aucune localisation disponible"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("2 équipes")).toBeNull();
+  expect(
+    screen
+      .queryAllByRole("button")
+      .filter((node) => node.props.coordinate !== undefined),
+  ).toHaveLength(0);
+  expect(screen.queryByText(/Aucune équipe/)).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser la carte" }),
+  ).not.toBeOnTheScreen();
+  const background = Promise.withResolvers<Response>();
+  mockFetch.mockImplementationOnce(() => background.promise);
+
+  // When: a normal invalidation rereads the empty participants in the background.
+  await act(() => {
+    void client.invalidateQueries({
+      queryKey: getListPoolParticipantsQueryKey(pool.pool.id),
+      exact: true,
+    });
+  });
+  await waitFor(() => expect(client.isFetching()).toBe(1));
+
+  // Then: network work does not impersonate the Actualiser gesture.
+  expect(
+    screen.getByRole("button", { name: "Actualiser", busy: false }),
+  ).toBeOnTheScreen();
+  await act(() => background.resolve(Response.json(participants)));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When: missing geography is reloaded through the existing map read action.
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then: participant and optional record owners remain independent and no map is invented.
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(url).pathname).sort(),
+  ).toEqual([
+    `/pools/${pool.pool.id}/participants`,
+    `/pools/${pool.pool.id}/standings`,
+  ]);
+  await screen.findByRole("button", { name: "Actualiser", busy: false });
+  expect(screen.getByText("Aucune localisation disponible")).toBeOnTheScreen();
+});
+
+it.each([
+  { state: "no locations", failure: undefined, action: "Actualiser" },
+  { state: "a failed read", failure: 503, action: "Réessayer" },
+])(
+  "allows paging from Map with $state until locations are shown",
+  async ({ failure, action }) => {
+    // Given: the real Pool screen has no displayed map and retains its scoped recovery action.
+    participants.items = [participant(sportingId, "Rives")];
+    participantsFailure = failure;
+    const user = userEvent.setup();
+    await open(<PoolScreen poolId={pool.pool.id} />);
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await user.press(screen.getByRole("tab", { name: "Carte" }));
+    const recovery = await screen.findByRole("button", { name: action });
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/participants")
+        ? pending.promise
+        : mapResponse(url),
+    );
+
+    // When: explicit recovery is pending and then returns one usable location.
+    await user.press(recovery);
+    await screen.findByRole("button", { name: action, busy: true });
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      true,
+    );
+    await act(() =>
+      pending.resolve(
+        Response.json({
+          ...participants,
+          items: [
+            participant(sportingId, "Rives", {
+              latitude: 46.16,
+              longitude: -1.15,
+              label: "La Rochelle",
+            }),
+          ],
+        }),
+      ),
+    );
+
+    // Then: the displayed map takes over horizontal gestures.
+    expect(
+      await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("native-tabs-pager")).toHaveProp(
+      "scrollEnabled",
+      false,
+    );
+  },
+);
+
+it("matches optional standings by exact team UUID without borrowing a source-name match", async () => {
+  // Given: participants own identity/location; only the exact resolved official row owns its record.
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 0,
+      longitude: 0,
+      label: "Commune publiée",
+    }),
+  ];
+  table = {
+    poolId: pool.pool.id,
+    availability: "available",
+    observedAt: "2026-10-20T12:00:00Z",
+    columns: ["Jou.", "Gag.", "Per.", "Pts"],
+    rows: [
+      {
+        sourceName: "Rives",
+        statistics: { "Jou.": "99", "Gag.": "99", "Per.": "0", Pts: "999" },
+      },
+      {
+        sourceName: "Rives",
+        team: { id: secondTeamId, name: "Rives" },
+        statistics: { "Jou.": "8", "Gag.": "1", "Per.": "7" },
+      },
+      {
+        sourceName: "Official Rives",
+        team: { id: sportingId, name: "Published name" },
+        position: 7,
+        statistics: { "Jou.": "8", "Gag.": "7", "Per.": "1", Pts: "999" },
+      },
+    ],
+  };
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "Commune publiée: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+
+  // Then
+  expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Gagnés : 7")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Perdus : 1")).toBeOnTheScreen();
+  expect(screen.getByText("Rives")).toBeOnTheScreen();
+  expect(screen.queryByText(pool.pool.name)).toBeNull();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: "Voir l’équipe" })).toBeNull();
+  expect(screen.queryByText("Pts")).toBeNull();
+  expect(screen.queryByText("999")).toBeNull();
+  expect(screen.queryByText("Official Rives")).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Commune publiée: Rives" }).props
+      .coordinate,
+  ).toEqual({ latitude: 0, longitude: 0 });
+});
+
+it("opens participant identity and navigation while the optional standings response is still pending", async () => {
+  // Given: only the optional HTTP response is held; providers and both Query observers remain real.
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 0,
+      longitude: 0,
+      label: "Test city",
+    }),
+  ];
+  const pendingStandings = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/standings")
+      ? pendingStandings.promise
+      : mapResponse(url),
+  );
+  const user = userEvent.setup();
+  await open(panel());
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "Test city: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await user.press(screen.getByRole("link", { name: "Rives" }));
+
+  // Then
+  expect(screen.getByText("Rives")).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: sportingId },
+  });
+  expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
+  await act(async () => pendingStandings.resolve(Response.json(table)));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+});
+
+it.each([
+  "initial failure",
+  "declared unavailable",
+  "not published",
+  "unmatched row",
+] as const)(
+  "keeps markers and the exact team action available with optional standings %s",
+  async (state) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 0,
+        longitude: 0,
+        label: "Test city",
+      }),
+    ];
+    if (state === "initial failure") {
+      standingsFailure = 503;
+    }
+    if (state === "declared unavailable") {
+      table.availability = "unavailable";
+    }
+    if (state === "unmatched row") {
+      table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+      table.rows[0].team = { id: secondTeamId, name: "Rives" };
+    }
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await waitFor(() =>
+      expect(
+        client.getQueryState(getGetPoolStandingsQueryKey(pool.pool.id))?.status,
+      ).toBe(state === "initial failure" ? "error" : "success"),
+    );
+
+    // When
+    await fireEvent(
+      await screen.findByRole("button", { name: "Test city: Rives" }),
+      "press",
+      { stopPropagation: jest.fn() },
+    );
+    await user.press(screen.getByRole("link", { name: "Rives" }));
+
+    // Then
+    expect(screen.getByText("Rives")).toBeOnTheScreen();
+    if (state === "initial failure" || state === "declared unavailable") {
+      expect(screen.getByText("Bilan indisponible")).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByText("Bilan indisponible")).not.toBeOnTheScreen();
+    }
+    expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
+    expect(screen.queryByLabelText(/^Gagnés :/)).toBeNull();
+    expect(screen.queryByLabelText(/^Perdus :/)).toBeNull();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/teams/[teamId]",
+      params: { teamId: sportingId },
+    });
+  },
+);
+
+it("preserves published partial LNV match values without substituting set counts or zero losses", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 0,
+      longitude: 0,
+      label: "Test city",
+    }),
+  ];
+  table = publishedTable(
+    {
+      "Matchs / Joués": "0",
+      "Matchs / Gagnés": "  F  ",
+      "Matchs / Perdus": "  ",
+      "Sets / Gagnés": "12",
+      "Sets / Perdus": "4",
+    },
+    [
+      "Matchs / Joués",
+      "Matchs / Gagnés",
+      "Matchs / Perdus",
+      "Sets / Gagnés",
+      "Sets / Perdus",
+    ],
+  );
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "Test city: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+
+  // Then
+  expect(await screen.findByLabelText("Joués : 0")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Gagnés :   F  ")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Perdus : indisponible")).toBeOnTheScreen();
+  expect(screen.queryByText("12")).toBeNull();
+  expect(screen.queryByText("4")).toBeNull();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+});
+
+it("closes the selected summary without changing participants or needing a tile-ready event", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+  ];
+  standingsFailure = 503;
+  const user = userEvent.setup();
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await screen.findByRole("link", { name: "Rives" });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole("radio")).toBeNull();
+  const reads = mockFetch.mock.calls.length;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "La Rochelle: Rives" }),
+  ).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(reads);
+});
+
+it("keeps local selection changes independent of standings reads", async () => {
+  // Given
+  const location = { latitude: 46.16, longitude: -1.15, label: "La Rochelle" };
+  participants.items = [
+    participant(sportingId, "Rives", location),
+    participant(secondTeamId, "Marais", location),
+  ];
+  standingsFailure = 503;
+  const user = userEvent.setup();
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+  mockFetch.mockClear();
+
+  // When
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await user.press(screen.getByRole("radio", { name: "Marais" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await fireEvent(
+    screen.getByRole("button", { name: "La Rochelle: Rives, Marais" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+});
+
+it("retains an admitted map selection when returning from standings without rereading either resource", async () => {
+  // Given: actual shared scenes admit standings first, then independent participants.
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+  ];
+  const user = userEvent.setup();
+  await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Carte" });
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await screen.findByRole("link", { name: "Rives" });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const admittedReads = mockFetch.mock.calls.length;
+
+  // When: the same mounted map is covered by another retained scene and selected again.
+  await user.press(screen.getByRole("tab", { name: "Classement" }));
+  expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
+
+  // Then: selection and exact action survive; the native camera/offset still need device evidence.
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(admittedReads);
+});
+
+it("refreshes both resources and drops a selected invalidated locality", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+    participant(secondTeamId, "Marais", {
+      latitude: 46.32,
+      longitude: -0.46,
+      label: "Niort",
+    }),
+  ];
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await screen.findByRole("link", { name: "Rives" });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  participants.items = [
+    participant(sportingId, "Rives"),
+    participants.items[1],
+  ];
+  mockFetch.mockClear();
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "La Rochelle: Rives" }),
+    ).toBeNull(),
+  );
+  expect(
+    screen.getByRole("button", { name: "Niort: Marais" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(url).pathname).sort(),
+  ).toEqual([
+    `/pools/${pool.pool.id}/participants`,
+    `/pools/${pool.pool.id}/standings`,
+  ]);
+});
+
+it("keeps markers and selection usable with a simple unavailable record after a standings refresh failure", async () => {
+  // Given
+  table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 46.16,
+      longitude: -1.15,
+      label: "La Rochelle",
+    }),
+  ];
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await screen.findByLabelText("Joués : 8");
+  standingsFailure = 503;
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Actualiser la carte" }),
+  );
+
+  // Then: retained facts stay in Query while only this optional display changes.
+  expect(await screen.findByText("Bilan indisponible")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "La Rochelle: Rives" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  expect(screen.queryByLabelText(/^Joués :/)).not.toBeOnTheScreen();
+  expect(
+    client.getQueryData(getGetPoolStandingsQueryKey(pool.pool.id)),
+  ).toEqual(table);
+});
+
+it.each(["initial", "refresh"] as const)(
+  "keeps the participant error card during delayed Retry after %s failure and restores valid selection",
+  async (origin) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+    ];
+    participantsFailure = origin === "initial" ? 503 : undefined;
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    if (origin === "refresh") {
+      await fireEvent(
+        await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+        "press",
+        { stopPropagation: jest.fn() },
+      );
+      await screen.findByRole("link", { name: "Rives" });
+      const nativeMap = screen.getByTestId("native-map-boundary");
+      await fireEvent(nativeMap, "mapReady");
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+      });
+      expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+      participantsFailure = 503;
+      await user.press(
+        screen.getByRole("button", { name: "Actualiser la carte" }),
+      );
+    }
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    expect(
+      screen.queryByRole("button", { name: "Actualiser la carte" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/participants")
+        ? pending.promise
+        : mapResponse(url),
+    );
+    mockFetch.mockClear();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: the same failed region owns its explicit attempt, including with cached participants.
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Actualiser la carte" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "La Rochelle: Rives" }),
+    ).not.toBeOnTheScreen();
+    if (origin === "refresh") {
+      expect(
+        screen.queryByRole("link", { name: "Rives" }),
+      ).not.toBeOnTheScreen();
+    }
+    expect(
+      screen.queryByLabelText("Chargement des participants"),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+    expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      `/pools/${pool.pool.id}/participants`,
+    ]);
+
+    // When: another failure leaves a usable Retry, then a later explicit read succeeds.
+    await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    participantsFailure = undefined;
+    mockFetch.mockImplementation(mapResponse);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    ).toBeEnabled();
+    // The real access provider may recheck admission after 503; Retry owns only these pool reads.
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url).pathname)
+        .filter((path) => path.startsWith(`/pools/${pool.pool.id}/`)),
+    ).toEqual([
+      `/pools/${pool.pool.id}/participants`,
+      `/pools/${pool.pool.id}/participants`,
+    ]);
+    if (origin === "refresh") {
+      expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+      await fireEvent(screen.getByTestId("native-map-boundary"), "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+      });
+      expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+    }
+  },
+);
+
+it.each([401, 403, 404])(
+  "withdraws a refused optional record (%i) without hiding participants or reviving it on later 503",
+  async (status) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 0,
+        longitude: 0,
+        label: "Test city",
+      }),
+    ];
+    table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await fireEvent(
+      await screen.findByRole("button", { name: "Test city: Rives" }),
+      "press",
+      { stopPropagation: jest.fn() },
+    );
+    await screen.findByLabelText("Joués : 8");
+    standingsFailure = status;
+
+    // When
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
+    await screen.findByText("Bilan indisponible");
+    standingsFailure = 503;
+    mockFetch.mockClear();
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1);
+    expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Test city: Rives" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  },
+);
+
+it.each([401, 403, 404])(
+  "withdraws refused participants (%i) and never revives their markers or action after later 503",
+  async (status) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 0,
+        longitude: 0,
+        label: "Test city",
+      }),
+    ];
+    table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await fireEvent(
+      await screen.findByRole("button", { name: "Test city: Rives" }),
+      "press",
+      { stopPropagation: jest.fn() },
+    );
+    await screen.findByLabelText("Joués : 8");
+    participantsFailure = status;
+
+    // When
+    await userEvent.press(
+      screen.getByRole("button", { name: "Actualiser la carte" }),
+    );
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    participantsFailure = 503;
+    mockFetch.mockClear();
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/participants"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "Test city: Rives" }),
+    ).toBeNull();
+    expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+    expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+  },
+);
+
+it("replaces cached empty geography with a read error and restores it only after a successful retry", async () => {
+  // Given
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  await screen.findByText("Aucune localisation disponible");
+  participantsFailure = 503;
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  participantsFailure = undefined;
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucune localisation disponible"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it.each([
+  ["ready-first", 1],
+  ["layout-first", 1],
+  ["ready-first", 2],
+  ["layout-first", 2],
+] as const)(
+  "waits for both native readiness and nonzero layout (%s, %i points)",
+  async (order, count) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+      ...(count === 2
+        ? [
+            participant(secondTeamId, "Marais", {
+              latitude: 46.32,
+              longitude: -0.46,
+              label: "Niort",
+            }),
+          ]
+        : []),
+    ];
+    const user = userEvent.setup();
+    await open(<TestPoolMap />);
+    // The controlled native boundary has no semantic action for its lifecycle callbacks.
+    const nativeMap = await screen.findByTestId("native-map-boundary");
+    const frame = nativeMapCommands.fitToCoordinates;
+    await fireEvent(nativeMap, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 0, height: 0 } },
+    });
+    await user.press(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    );
+    expect(frame).not.toHaveBeenCalled();
+    if (order === "ready-first") {
+      await fireEvent(nativeMap, "mapReady");
+    } else {
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
+      });
+    }
+    await user.press(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    );
+    expect(frame).not.toHaveBeenCalled();
+
+    // When
+    if (order === "ready-first") {
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
+      });
+    } else {
+      await fireEvent(nativeMap, "mapReady");
+    }
+
+    // Then
+    expect(frame).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+    ).toBeEnabled();
+  },
+);
+
+it.each(["ios", "android"] as const)(
+  "reserves the navigation capsule once for the %s map provider",
+  async (platform) => {
+    // Given
+    jest.replaceProperty(Platform, "OS", platform);
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+    ];
+    await open(
+      <BottomContentInsetContext value={80}>
+        <TestPoolMap />
+      </BottomContentInsetContext>,
+    );
+    const map = await screen.findByTestId("native-map-boundary");
+
+    // When
+    await fireEvent(map, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 600 } },
+    });
+    await fireEvent(map, "mapReady");
+
+    // Then: Google adds its base map padding to the camera fit; Apple's label insets leave the camera unchanged.
+    if (platform === "ios") {
+      expect(map.props.legalLabelInsets.bottom).toBe(80);
+      expect(map.props.appleLogoInsets.bottom).toBe(80);
+    } else {
+      expect(map.props.mapPadding.bottom).toBe(80);
+    }
+    expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({
+        edgePadding: expect.objectContaining({
+          bottom: platform === "ios" ? 144 : 64,
+        }),
+      }),
+    );
+  },
+);
+
+it("keeps the lone location frame until Show all explicitly clears and reframes selection", async () => {
+  // Given
+  const location = { latitude: 0, longitude: 0, label: "Test city" };
+  participants.items = [
+    participant(sportingId, "Rives", location),
+    participant(secondTeamId, "Marais", location),
+  ];
+  const user = userEvent.setup();
+  await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  const nativeMap = await screen.findByTestId("native-map-boundary");
+  await fireEvent(nativeMap, "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+  });
+  await fireEvent(nativeMap, "mapReady");
+  expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+  expect(nativeMapCommands.fitToCoordinates.mock.calls[0][0]).toEqual([
+    { latitude: 0.075, longitude: 0.075 },
+    { latitude: -0.075, longitude: -0.075 },
+  ]);
+  nativeMapCommands.fitToCoordinates.mockClear();
+  expect(nativeMap).toHaveProp("moveOnMarkerPress", false);
+
+  // When: selection, dismissal and refreshed names/coordinates leave the camera where the user left it.
+  await fireEvent(
+    screen.getByRole("button", { name: "Test city: Rives, Marais" }),
+    "press",
+    {
+      stopPropagation: jest.fn(),
+    },
+  );
+  await user.press(screen.getByRole("radio", { name: "Marais" }));
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await fireEvent(
+    screen.getByRole("button", { name: "Test city: Rives, Marais" }),
+    "press",
+    {
+      stopPropagation: jest.fn(),
+    },
+  );
+  const updatedLocation = { latitude: 1, longitude: 2, label: "Test city" };
+  participants.items = [
+    participant(
+      sportingId,
+      "Rives with a much longer published name",
+      updatedLocation,
+    ),
+    participant(secondTeamId, "Marais", updatedLocation),
+  ];
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/participants")
+      ? pending.promise
+      : mapResponse(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Actualiser la carte" }));
+
+  // Then: the explicit button shows progress and retains the current selection until the fresh read arrives.
+  expect(
+    await screen.findByRole("button", {
+      name: "Actualiser la carte",
+      busy: true,
+    }),
+  ).toBeDisabled();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  await act(async () => pending.resolve(Response.json(participants)));
+  await screen.findByText("Rives with a much longer published name");
+  expect(
+    await screen.findByRole("button", {
+      name: "Actualiser la carte",
+      busy: false,
+    }),
+  ).toBeEnabled();
+
+  // Club markers remain exact; only an explicit Show all requests another native frame.
+  expect(nativeMapCommands.fitToCoordinates).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", {
+      name: "Test city: Rives with a much longer published name, Marais",
+    }).props.coordinate,
+  ).toEqual({ latitude: 1, longitude: 2 });
+  await user.press(
+    screen.getByRole("button", { name: "Afficher toutes les équipes" }),
+  );
+  expect(
+    screen.queryByRole("link", {
+      name: "Rives with a much longer published name",
+    }),
+  ).toBeNull();
+  expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+  expect(nativeMapCommands.fitToCoordinates.mock.calls[0][0]).toEqual([
+    { latitude: 1.075, longitude: 2.075 },
+    { latitude: 0.925, longitude: 1.925 },
+  ]);
+});
+
+it("ignores an already pending zoom and team action after the map becomes inactive", async () => {
+  // Given
+  participants.items = [
+    participant(sportingId, "Rives", {
+      latitude: 0,
+      longitude: 0,
+      label: "Test city",
+    }),
+  ];
+  const pendingCamera = Promise.withResolvers<{
+    altitude: number;
+    zoom: number;
+  }>();
+  nativeMapCommands.getCamera.mockImplementationOnce(
+    () => pendingCamera.promise,
+  );
+  const user = userEvent.setup();
+  const rendered = await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
+  const nativeMap = await screen.findByTestId("native-map-boundary");
+  await fireEvent(nativeMap, "layout", {
+    nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+  });
+  await fireEvent(nativeMap, "mapReady");
+  await fireEvent(
+    screen.getByRole("button", { name: "Test city: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+  await user.press(screen.getByRole("button", { name: "Zoomer" }));
+  expect(nativeMapCommands.getCamera).toHaveBeenCalledTimes(1);
+
+  // When
+  await rendered.rerender(panel(false));
+  await user.press(screen.getByRole("link", { name: "Rives" }));
+  await act(async () => pendingCamera.resolve({ altitude: 10000, zoom: 8 }));
+
+  // Then
+  expect(nativeMapCommands.animateCamera).not.toHaveBeenCalled();
+  expect(nativeMapCommands.setCamera).not.toHaveBeenCalled();
+  expect(mockPush).not.toHaveBeenCalled();
+});

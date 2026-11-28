@@ -1,0 +1,381 @@
+import { homeHref } from "@/shared/native/home-href";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { useEffect } from "react";
+import {
+  act,
+  cleanup,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { Text } from "react-native";
+import { renderRouter } from "expo-router/testing-library";
+import Purchases from "react-native-purchases";
+import type { AccountSession } from "@/features/accounts";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "@/features/accounts/session/account-session-provider";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { SignInInvitationScreen } from "@/features/accounts/screens/sign-in-invitation-screen";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { mockPurchases } from "../test-support/native-purchases";
+import * as proSessionModule from "../pro-session";
+import { customerInfo, entitlement } from "../test-support/customer-info";
+import { prepareProNativeIO } from "../test-support/pro-harness";
+import { ProProfileEntry } from "../components/pro-profile-entry";
+import { ProProvider } from "../pro-provider";
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { revenueCat: { iosApiKey: "test_public" } } },
+  },
+}));
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: {
+    ...jest.requireActual("../test-support/native-purchases").mockPurchases,
+    getOfferings: jest.fn(),
+  },
+}));
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => mockRouter,
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL) => {
+    if (String(url).endsWith("/accounts/me") && mockAccountId !== undefined) {
+      return Promise.resolve(
+        Response.json(
+          mockAccountResponse({
+            accountId: mockAccountId,
+          }),
+        ),
+      );
+    }
+    return String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : Promise.reject(new Error("Unexpected HTTP request"));
+  },
+}));
+// Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  back: jest.fn(),
+  canGoBack: jest.fn(() => true),
+};
+const previousEnvironment = { ...process.env };
+let mockAccountId: string | undefined;
+let account: AccountSession;
+let client = createQueryClient();
+const message = "Connectez-vous pour utiliser Blockout Pro";
+beforeEach(() => {
+  mockAccountId = undefined;
+  client = createQueryClient();
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_AUTH0_AUDIENCE: "mobile-audience",
+  });
+  jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|entry-test"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset();
+  mockRouter.canGoBack.mockReturnValue(true);
+});
+afterEach(async () => {
+  await cleanup();
+  client.clear();
+  jest.restoreAllMocks();
+  process.env = { ...previousEnvironment };
+});
+
+/** Captures the real session API without granting a usable business account. */
+function SessionProbe() {
+  useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
+  const session = useAccountSession();
+  useEffect(() => {
+    account = session;
+  }, [session]);
+  return <Text>Session: {session.status}</Text>;
+}
+
+/** Mounts focused real owners; routing remains an explicitly controlled command boundary. */
+async function mount(content: React.ReactNode) {
+  await renderRouter(
+    { index: () => <>{content}</> },
+    {
+      initialUrl: "/",
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>
+                  <SessionProbe />
+                  {children}
+                </AccountSessionProvider>
+              </ApplicationAccessProvider>
+            </ActionFeedbackProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
+    },
+  );
+}
+
+it("opens the guest Pro invitation from the admitted profile", async () => {
+  // Given
+  await mount(
+    <ProProvider>
+      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
+    </ProProvider>,
+  );
+  await screen.findByText("Session: guest");
+  // When
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  // Then
+  expect(mockRouter.push).toHaveBeenCalledWith({
+    pathname: "/sign-in-invitation",
+    params: { returnTo: "/" },
+  });
+  expect(screen.getByText("Blockout Pro")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Politique de confidentialité" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Besoin d’aide ?" }),
+  ).toBeOnTheScreen();
+  expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
+  expect(Purchases.getOfferings).not.toHaveBeenCalled();
+});
+it("keeps Pro and its direct invitation behind ordinary F12 admission", async () => {
+  // Given
+  const admitted = false;
+  // When
+  await mount(
+    <>
+      <ProProvider>
+        <ProfileScreen admitted={admitted} proEntry={<ProProfileEntry />} />
+      </ProProvider>
+      <SignInInvitationScreen admitted={admitted} message={message} />
+    </>,
+  );
+  await screen.findByText("Session: guest");
+  // Then
+  expect(
+    screen.queryByRole("button", { name: "Blockout Pro" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(message)).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
+});
+it("requests dismissal of the price-free invitation without consulting native offers", async () => {
+  // Given
+  await mount(
+    <>
+      <Text>Poule conservée</Text>
+      <SignInInvitationScreen admitted message={message} />
+    </>,
+  );
+  await screen.findByText("Session: guest");
+  // When
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  // Then
+  expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(screen.getByText("Poule conservée")).toBeOnTheScreen();
+  expect(screen.getByText(message)).toBeOnTheScreen();
+  expect(screen.queryByText(/€|EUR|acheter|restaurer/i)).not.toBeOnTheScreen();
+  expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
+  expect(mockPurchases.logIn).not.toHaveBeenCalled();
+});
+it("starts hosted sign-in without opening Pro and keeps the invitation on cancellation", async () => {
+  // Given
+  mockAuth0.webAuth.mockRejectedValueOnce({
+    code: "a0.session.user_cancelled",
+  });
+  await mount(<SignInInvitationScreen admitted message={message} />);
+  await screen.findByText("Session: guest");
+  // When
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+  // Then
+  await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1));
+  expect(
+    await screen.findByRole("button", { name: "Se connecter" }),
+  ).toBeEnabled();
+  expect(screen.getByText(message)).toBeOnTheScreen();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(mockRouter.push).not.toHaveBeenCalled();
+  expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
+});
+
+it("shows membership only from verified current-session rights and clears it when the native principal changes", async () => {
+  // Given
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  const inactive = prepareProNativeIO();
+  const read =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof Purchases.getCustomerInfo>>
+    >();
+  mockPurchases.getCustomerInfo.mockReturnValue(read.promise);
+  try {
+    await mount(
+      <ProProvider>
+        <ProProfileEntry />
+      </ProProvider>,
+    );
+    await screen.findByText("Session: authenticated");
+    mockAccountId = "00000000-0000-4000-8000-000000000246";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() =>
+      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
+    );
+    await waitFor(() =>
+      expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(1),
+    );
+    // Then: pending or unavailable evidence must not be presented as free membership.
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+    // When
+    await act(() => read.resolve(inactive));
+    // Then
+    expect(await screen.findByText("Compte gratuit")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+        value: { text: "Compte gratuit" },
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+    // Given
+    const right = entitlement();
+    mockPurchases.getCustomerInfo.mockResolvedValue(
+      customerInfo({
+        active: { "Blockout Pro": right },
+        all: { "Blockout Pro": right },
+        verification: right.verification,
+      }),
+    );
+    // When
+    await act(async () => {
+      await proSessionModule.proSession.refresh(account);
+    });
+    // Then
+    expect(await screen.findByText("Compte Pro")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+        value: { text: "Compte Pro" },
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+    // When
+    await act(() => account.clearCredentials());
+    // Then
+    expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
+  } finally {
+    await act(() => read.resolve(inactive));
+  }
+});
+
+it("keeps the signed-in profile after cancelled browser logout, then returns home after successful SDK logout", async () => {
+  // Given
+  await mount(
+    <ProProvider>
+      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
+    </ProProvider>,
+  );
+  await screen.findByText("Session: guest");
+  mockAccountId = "00000000-0000-4000-8000-000000000246";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() =>
+    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
+  );
+  mockAuth0.webAuthLogout
+    .mockReset()
+    .mockRejectedValueOnce({
+      code: "a0.session.user_cancelled",
+      message: "Cancelled",
+    })
+    .mockResolvedValue();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Se déconnecter" }),
+  );
+
+  // Then
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+  expect(account.status).toBe("authenticated");
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(mockRouter.replace).not.toHaveBeenCalledWith(homeHref);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se déconnecter" }));
+
+  // Then
+  await waitFor(() => expect(account.status).toBe("guest"));
+  expect(mockAuth0.webAuthLogout).toHaveBeenCalledTimes(2);
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledWith(homeHref);
+});

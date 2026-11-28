@@ -1,0 +1,14 @@
+{
+  "name": "http-contracts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "contracts/http",
+  "projectType": "library",
+  "targets": {
+    "bundle": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run bundle:contracts"
+      }
+    }
+  }
+}

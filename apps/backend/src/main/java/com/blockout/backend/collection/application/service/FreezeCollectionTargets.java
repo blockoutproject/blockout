@@ -1,0 +1,273 @@
+package com.blockout.backend.collection.application.service;
+
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionStageMapper;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
+import com.blockout.backend.collection.application.model.CollectionState.Cycle;
+import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.Target;
+import com.blockout.backend.collection.application.model.CollectionWorkMapper;
+import com.blockout.backend.collection.application.model.InitialCoverage;
+import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+/**
+ * Freezes current eligible targets in bounded owner pages, keeping personal locality out of
+ * snapshots.
+ */
+@Service
+@RequiredArgsConstructor
+public class FreezeCollectionTargets {
+  private final CollectionStore store;
+  private final CollectionWorkMapper mapper;
+  private final ReadSportingAcquisition acquisitionReads;
+  private final ReadClubAcquisition clubs;
+  private final CollectionStageMapper stages;
+
+  /**
+   * Persists the due or explicitly requested scope inside the admission transaction. Mutable club
+   * and pool eligibility advances by identity so changes behind a visited boundary cannot repeat or
+   * skip retained resources; newly eligible earlier identities wait for the next admission.
+   *
+   * @param cycle current admitted context, not yet returned to the collector
+   * @param control locked family and exact pending selections
+   * @param season locked canonical season, absent for the two seasonless families
+   * @throws CollectionConflictException when the selected family or source configuration is invalid
+   */
+  @org.springframework.transaction.annotation.Transactional(
+      propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+  public void freeze(Cycle cycle, Control control, CollectionSeasonView season) {
+    if (season == null) {
+      if (control.family() != CollectionFamilyEnum.CLUB_SHEETS
+          && control.family() != CollectionFamilyEnum.GEOCODING) {
+        throw invalid();
+      }
+      UUID afterClub = null;
+      while (true) {
+        ReadClubAcquisition.TargetBatch references =
+            clubs.targets(control, cycle.mode() != CollectionModeEnum.PERIODIC, afterClub);
+        if (references.lastClubId() == null) {
+          break;
+        }
+        retainScheduled(cycle, references.items());
+        afterClub = references.lastClubId();
+      }
+      return;
+    }
+    CollectionProviderEnum provider = control.competitionProvider();
+    if (provider == null) {
+      throw invalid();
+    }
+    boolean initialImport = cycle.mode() == CollectionModeEnum.INITIAL_IMPORT;
+    List<Source> sources =
+        initialImport
+            ? store.sources(season.id()).stream()
+                .filter(source -> source.provider() == provider)
+                .filter(source -> control.sourceBindingIds().contains(source.id()))
+                .toList()
+            : store.ordinarySources(season.id(), provider);
+    if (sources.isEmpty()
+        || (initialImport && sources.size() != control.sourceBindingIds().size())) {
+      throw invalid();
+    }
+    for (Source candidate : sources) {
+      Source source;
+      if (!candidate.hasQualifiedReference()) {
+        throw invalid();
+      }
+      if (!candidate.locked()) {
+        CollectionRevision.requireAdvance(candidate.revision());
+        source = store.lockAcceptedSource(candidate);
+      } else {
+        source = candidate;
+      }
+      retainScheduled(
+          cycle, withAttempts(control, List.of(mapper.toDiscoveryTarget(source, season))));
+      if (!initialImport && !CollectionLifecycle.activeOrSeasonless(season)) {
+        continue;
+      }
+      UUID afterPool = null;
+      while (true) {
+        List<AcquisitionReference> references =
+            acquisitionReads.acquisitionPools(
+                season.id(),
+                provider,
+                source.organizerReference(),
+                initialImport,
+                cycle.startedAt(),
+                afterPool);
+        if (references.isEmpty()) {
+          break;
+        }
+        List<Target> pools =
+            withAttempts(
+                control,
+                references.stream()
+                    .map(reference -> mapper.toTarget(reference, source, season))
+                    .toList());
+        List<Target> scheduled = retainScheduled(cycle, pools);
+        if (provider == CollectionProviderEnum.LNV) {
+          Set<UUID> scorePools = new HashSet<>();
+          scheduled.stream()
+              .filter(target -> target.kind() == CollectionTargetKindEnum.CALENDAR)
+              .map(Target::poolId)
+              .forEach(scorePools::add);
+          for (UUID poolId :
+              references.stream().map(AcquisitionReference::poolId).distinct().toList()) {
+            for (int detailPage = 0; ; detailPage++) {
+              List<AcquisitionReference> details =
+                  acquisitionReads.acquisitionDetails(poolId, cycle.startedAt(), detailPage);
+              if (details.isEmpty()) {
+                break;
+              }
+              List<Target> detailTargets =
+                  withAttempts(
+                      control,
+                      details.stream()
+                          .map(reference -> mapper.toTarget(reference, source, season))
+                          .toList());
+              if (!retainScheduled(cycle, detailTargets).isEmpty()) {
+                scorePools.add(poolId);
+              }
+            }
+          }
+          if (cycle.mode() == CollectionModeEnum.PERIODIC) {
+            store.addTargets(
+                cycle.id(),
+                pools.stream()
+                    .filter(target -> target.kind() == CollectionTargetKindEnum.STANDINGS)
+                    .filter(
+                        target ->
+                            scorePools.contains(target.poolId()) && !due(target, cycle.startedAt()))
+                    .map(target -> target.toBuilder().afterFinalScoreOnly(true).build())
+                    .toList());
+          }
+        }
+        afterPool = references.getLast().poolId();
+      }
+    }
+  }
+
+  /** Applies the control's exact selection and attaches evidence used for scheduling. */
+  private List<Target> withAttempts(Control control, List<Target> targets) {
+    Map<AttemptKey, CollectionAttempt> attempts =
+        store
+            .attempts(control.id(), targets.stream().map(Target::scopeId).distinct().toList())
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    attempt -> new AttemptKey(attempt.scopeId(), attempt.stage()),
+                    Function.identity()));
+    return targets.stream()
+        .filter(
+            target -> control.scopeIds().isEmpty() || control.scopeIds().contains(target.scopeId()))
+        .map(
+            target -> {
+              CollectionAttempt attempt =
+                  attempts.get(new AttemptKey(target.scopeId(), stages.toStage(target.kind())));
+              return attempt == null
+                  ? target
+                  : target.toBuilder()
+                      .lastAttemptAt(attempt.lastAttemptAt())
+                      .lastSuccessAt(attempt.lastSuccessAt())
+                      .build();
+            })
+        .toList();
+  }
+
+  /** Persists the ordinarily selected work and its initial-import coverage. */
+  private List<Target> retainScheduled(Cycle cycle, List<Target> targets) {
+    List<Target> selected =
+        targets.stream()
+            .filter(
+                target ->
+                    cycle.mode() != CollectionModeEnum.PERIODIC || due(target, cycle.startedAt()))
+            .toList();
+    store.addTargets(cycle.id(), selected);
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) {
+      for (Target target : selected) {
+        for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+          store.saveInitialCoverage(
+              new InitialCoverage(
+                  target.sourceBindingId(),
+                  target.scopeId(),
+                  stages.toStage(target.kind()),
+                  phase,
+                  InitialCoverage.Status.REQUESTED,
+                  cycle.id(),
+                  cycle.cycleOrder(),
+                  0,
+                  null,
+                  null));
+        }
+      }
+    }
+    return selected;
+  }
+
+  /**
+   * Selects attempted competition work only at its scheduled cadence opportunity, allowing
+   * admission delay within the current five-minute poll. Read duration never shifts that schedule,
+   * and missed opportunities are skipped. Seasonless work retains its full actual-attempt delay.
+   *
+   * @param target qualified target with actual prior attempt
+   * @param now current admission instant
+   * @return whether its current cadence is due; a never-attempted target is immediately eligible
+   */
+  static boolean due(Target target, Instant now) {
+    if (target.lastAttemptAt() == null) {
+      return true;
+    }
+    Duration cadence =
+        switch (target.kind()) {
+          case DISCOVERY -> Duration.ofMinutes(30);
+          case CALENDAR, STANDINGS ->
+              Duration.ofMinutes(target.fastWindowEndsAt() == null ? 30 : 5);
+          case DETAILS -> Duration.ofMinutes(target.fastWindowEndsAt() == null ? 60 : 5);
+          case CLUB_SHEET -> Duration.ofDays(1);
+          case GEOCODING -> Duration.ofHours(1);
+        };
+    if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET
+        || target.kind() == CollectionTargetKindEnum.GEOCODING) {
+      return !now.isBefore(target.lastAttemptAt().plus(cadence));
+    }
+    long periodSeconds = cadence.toSeconds();
+    long opportunitySeconds = Duration.ofMinutes(5).toSeconds();
+    long opportunity = Math.floorDiv(now.getEpochSecond(), opportunitySeconds);
+    return Math.floorMod(opportunity, periodSeconds / opportunitySeconds) == 0
+        && Math.floorDiv(now.getEpochSecond(), periodSeconds)
+            > Math.floorDiv(target.lastAttemptAt().getEpochSecond(), periodSeconds);
+  }
+
+  /** Scope/stage distinguishes independent actual attempts in one bounded lookup. */
+  private record AttemptKey(UUID scopeId, CollectionStageEnum stage) {}
+
+  /**
+   * Creates the canonical incomplete-configuration refusal.
+   *
+   * @return safe refusal for incomplete or conflicting acquisition configuration
+   */
+  private CollectionConflictException invalid() {
+    return new CollectionConflictException("invalid-cycle-context");
+  }
+}

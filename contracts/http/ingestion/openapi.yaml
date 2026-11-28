@@ -1,0 +1,65 @@
+openapi: 3.0.4
+info:
+  title: Blockout ingestion API
+  version: 0.1.0
+  description: >-
+    Collector API for submitting contextual sporting observations. Requests use an authorized
+    collection cycle; the backend owns accepted sporting identities and state. JSON request bodies
+    are limited to 8388608 bytes. Oversized input is rejected before writes, never truncated or
+    automatically split; image bodies have their own documented limit.
+servers:
+  - url: /
+    description: Same-origin backend; deployment supplies its environment URL.
+tags:
+  - name: CollectorOperations
+    description: Current collector registration and admitted acquisition context.
+  - name: Collection
+    description: Source qualification, collection control and current operational evidence.
+  - name: Sporting
+    description: >-
+      Sporting observations and their acceptance outcomes.
+security:
+  - CollectorToken: []
+paths:
+  /ingestion/collector-runtime:
+    $ref: ./collection/paths.yaml#/Runtime
+  /ingestion/collection-work:
+    $ref: ./collection/paths.yaml#/Work
+  /ingestion/collection-cycles:
+    $ref: ./collection/paths.yaml#/Cycles
+  /ingestion/collection-cycles/{cycleId}:
+    $ref: ./collection/paths.yaml#/Cycle
+  /ingestion/collection-cycles/{cycleId}/targets:
+    $ref: ./collection/paths.yaml#/Targets
+  /ingestion/collection-cycles/{cycleId}/results:
+    $ref: ./collection/paths.yaml#/Results
+  /ingestion/collection-cycles/{cycleId}/completion:
+    $ref: ./collection/paths.yaml#/Completion
+  /ingestion/source-bindings/{sourceBindingId}/validation:
+    $ref: ./collection/paths.yaml#/Validation
+  /ingestion/season-source-observations:
+    $ref: ./collection/paths.yaml#/SeasonDiscovery
+  /ingestion/source-bindings/{sourceBindingId}/catalog-observations:
+    $ref: ./sporting/paths.yaml#/CatalogObservations
+  /ingestion/pools/{poolId}/calendar-observations:
+    $ref: ./sporting/paths.yaml#/CalendarObservations
+  /ingestion/matches/{matchId}/detail-observations:
+    $ref: ./sporting/paths.yaml#/MatchDetailObservations
+  /ingestion/pools/{poolId}/standings-observations:
+    $ref: ./sporting/paths.yaml#/StandingsObservations
+  /ingestion/clubs/{clubId}/detail-observations:
+    $ref: ./sporting/paths.yaml#/ClubDetailObservations
+  /ingestion/clubs/{clubId}/locality-observations:
+    $ref: ./sporting/paths.yaml#/ClubLocalityObservations
+  /ingestion/teams/{teamId}/source-logo-observations:
+    $ref: ./sporting/paths.yaml#/TeamLogoObservations
+components:
+  securitySchemes:
+    CollectorToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Bearer token for the dedicated collector client in this environment, with sporting:ingest
+        scope. The backend validates issuer, audience, expiry and client identity. Mobile tokens
+        cannot authorize ingestion.

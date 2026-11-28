@@ -1,0 +1,657 @@
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { ApplicationAccessProvider } from "../queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  cleanup,
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
+import { Pressable, Text } from "react-native";
+import { useLayoutEffect, useState, type PropsWithChildren } from "react";
+import { renderRouter } from "expo-router/testing-library";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "@/features/accounts/session/account-session-provider";
+import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "@/features/accounts/test-support/native-auth0";
+import { AdministrationEntry } from "../components/administration-entry";
+import { AdministrationScreen } from "../screens/administration-screen";
+import AdministrationRoute from "@/app/(operations)/administration";
+
+// The installed library controls native keyboard I/O; profile and admission behavior remain real.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "@/features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
+// Navigation is an external boundary here; the discard guard has real-router coverage in its owning suite.
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRoute: () => ({ key: "profile" }),
+  useIsFocused: () => true,
+  usePreventRemove: jest.fn(),
+  useRouter: () => ({
+    replace: jest.fn(),
+    back: mockBack,
+    canGoBack: () => true,
+  }),
+}));
+jest.mock("expo/fetch", () => ({
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : mockFetch(url, options),
+}));
+
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
+const mockBack = jest.fn();
+let publicClient = createQueryClient();
+let client = publicClient;
+let clients = new Set([publicClient]);
+const environment = { ...process.env };
+const account = accountResponse({
+  accountId: "00000000-0000-4000-8000-000000000174",
+  username: "Player_174",
+  email: "player@example.invalid",
+  permissions: {},
+});
+
+beforeEach(() => {
+  publicClient = createQueryClient();
+  client = publicClient;
+  clients = new Set([publicClient]);
+  publicClient.setMutationDefaults([], { gcTime: Infinity });
+  Object.assign(process.env, {
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+  });
+  jest.mocked(initializeV2Installation).mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|operator"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|operator"));
+  mockFetch.mockReset().mockImplementation(async () => json(account));
+});
+afterEach(async () => {
+  await cleanup();
+  for (const cache of clients) {
+    cache.clear();
+  }
+  clients.clear();
+  jest.restoreAllMocks();
+  process.env = { ...environment };
+});
+
+/** Real session, query, theme and generated transport; only native credentials and HTTP are controlled. */
+async function renderAdministration(
+  content = (
+    <>
+      <AdministrationEntry />
+      <AdministrationScreen admitted />
+    </>
+  ),
+) {
+  return render(content, { wrapper: AdministrationProviders });
+}
+
+/** Shared real providers for component and Router cases; each scenario controls only native/HTTP I/O. */
+function AdministrationProviders({ children }: Readonly<PropsWithChildren>) {
+  return (
+    <QueryClientProvider client={publicClient}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <PrivateQueries>
+              <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+            </PrivateQueries>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+/** Observes the actual private cache; one-failure cases deliberately disable unrelated retry backoff. */
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
+  const cache = useQueryClient();
+  useState(() => {
+    cache.setQueryDefaults([], { retry: false });
+    cache.setMutationDefaults([], { gcTime: Infinity });
+  });
+  useLayoutEffect(() => {
+    clients.add(cache);
+    client = cache;
+  }, [cache]);
+  return children;
+}
+
+/** Exposes explicit refresh and sign-out through the existing owners, without a second session fixture. */
+function AccountActions() {
+  const session = useAccountSession();
+  const query = useCurrentAccount();
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Relire le compte"
+        onPress={() => void query.refetch()}
+      >
+        <Text>Relire</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Quitter la session"
+        onPress={() => void session.clearCredentials()}
+      >
+        <Text>Quitter</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Rouvrir la session"
+        onPress={() => void session.signIn("mobile-test")}
+      >
+        <Text>Rouvrir</Text>
+      </Pressable>
+    </>
+  );
+}
+
+it.each([
+  {},
+  {
+    manageMaintenance: false,
+    manageApplicationVersions: false,
+    manageCollection: false,
+  },
+  { bypassMaintenance: true },
+  {
+    manageSportingClassification: false,
+    manageDivisionLifecycle: false,
+    moderateStreamLinks: true,
+  },
+  { isAdmin: true, owner: true, futureAction: true },
+])(
+  "does not infer technical commands from unrelated or missing capabilities: %j",
+  async (permissions) => {
+    // Given
+    mockFetch.mockImplementation(async () => json({ ...account, permissions }));
+
+    // When
+    await renderAdministration();
+
+    // Then
+    expect(
+      await screen.findByText("Une erreur est survenue"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Administration technique" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Maintenance" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Versions minimales" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Collectes" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Divisions" }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it.each([
+  ["manageMaintenance", "Maintenance"],
+  ["manageApplicationVersions", "Versions minimales"],
+  ["manageCollection", "Collectes"],
+])(
+  "presents only the dedicated command granted by %s",
+  async (capability, label) => {
+    // Given
+    mockFetch.mockImplementation(async () =>
+      json({
+        ...account,
+        permissions: { [capability]: true, futureAction: true },
+      }),
+    );
+
+    // When
+    await renderAdministration();
+
+    // Then
+    expect(
+      screen.queryByRole("link", { name: "Administration technique" }),
+    ).not.toBeOnTheScreen();
+    // Both the direct Profile entry and the retained gate index respect this same literal grant.
+    expect(await screen.findAllByRole("link", { name: label })).toHaveLength(2);
+    expect(
+      screen.queryByRole("link", { name: "Divisions" }),
+    ).not.toBeOnTheScreen();
+    for (const other of [
+      "Maintenance",
+      "Versions minimales",
+      "Collectes",
+    ].filter((value) => value !== label)) {
+      expect(screen.queryByRole("link", { name: other })).not.toBeOnTheScreen();
+    }
+    expect(
+      mockFetch.mock.calls.every(
+        ([, request]) =>
+          request?.method === "GET" &&
+          !new Headers(request.headers).has("Blockout-Maintenance-Bypass"),
+      ),
+    ).toBe(true);
+    expect(
+      screen.queryByText(/Pro|publication légale|permissions/i),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it("removes a revoked command independently while retaining another current grant", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({
+      ...account,
+      permissions: { manageMaintenance: true, manageApplicationVersions: true },
+    }),
+  );
+  const user = userEvent.setup();
+  await renderAdministration(
+    <>
+      <AccountActions />
+      <AdministrationEntry />
+      <AdministrationScreen admitted />
+    </>,
+  );
+  await screen.findAllByRole("link", { name: "Maintenance" });
+  mockFetch.mockImplementation(async () =>
+    json({
+      ...account,
+      permissions: {
+        manageMaintenance: false,
+        manageApplicationVersions: true,
+      },
+    }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Maintenance" }),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(
+    screen.getAllByRole("link", { name: "Versions minimales" }),
+  ).toHaveLength(2);
+  expect(
+    screen.queryByRole("link", { name: "Administration technique" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("hides retained capabilities after a refused account refresh behind an opaque read card", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({
+      ...account,
+      permissions: {
+        manageMaintenance: true,
+        manageCollection: true,
+        manageSportingClassification: true,
+      },
+    }),
+  );
+  const user = userEvent.setup();
+  await renderAdministration(
+    <>
+      <AccountActions />
+      <AdministrationEntry />
+      <AdministrationScreen admitted />
+    </>,
+  );
+  await screen.findAllByRole("link", { name: "Maintenance" });
+  mockFetch.mockImplementation(async () =>
+    json({ type: "about:blank", title: "Forbidden", status: 403 }, 403),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+
+  // Then
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Une erreur est survenue",
+  );
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("link", { name: "Maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Administration technique" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryAllByRole("link", { name: "Divisions" })).toHaveLength(0);
+  expect(screen.queryAllByRole("link", { name: "Collectes" })).toHaveLength(0);
+});
+
+it("keeps a detached account response out of the native guest lifetime", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockReturnValue(response.promise);
+  const user = userEvent.setup();
+  await renderAdministration(
+    <>
+      <AccountActions />
+      <AdministrationEntry />
+      <AdministrationScreen admitted />
+    </>,
+  );
+  await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+  await act(async () =>
+    response.resolve(
+      json({ ...account, permissions: { manageMaintenance: true } }),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.queryByRole("link", { name: "Maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Administration technique" }),
+  ).not.toBeOnTheScreen();
+  expect(client.getQueriesData({}).map(([, data]) => data)).not.toContainEqual(
+    expect.objectContaining({ permissions: { manageMaintenance: true } }),
+  );
+});
+
+it("offers no commands to a guest and performs no current-account read", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+
+  // When
+  await renderAdministration();
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryAllByRole("link")).toHaveLength(0);
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("uses its fresh private account read after native guest departure and login", async () => {
+  // Given
+  const oldResponse = Promise.withResolvers<Response>();
+  mockFetch
+    .mockReturnValueOnce(oldResponse.promise)
+    .mockImplementation(async () =>
+      json({ ...account, permissions: { manageApplicationVersions: true } }),
+    );
+  const user = userEvent.setup();
+  await renderAdministration(
+    <>
+      <AccountActions />
+      <AdministrationEntry />
+      <AdministrationScreen admitted />
+    </>,
+  );
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+  await user.press(screen.getByRole("button", { name: "Rouvrir la session" }));
+  await screen.findAllByRole("link", { name: "Versions minimales" });
+  await act(async () =>
+    oldResponse.resolve(
+      json({
+        ...account,
+        permissions: {
+          manageMaintenance: true,
+          manageSportingClassification: true,
+        },
+      }),
+    ),
+  );
+
+  // Then
+  expect(
+    screen.queryByRole("link", { name: "Maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getAllByRole("link", { name: "Versions minimales" }),
+  ).toHaveLength(2);
+  expect(screen.queryAllByRole("link", { name: "Divisions" })).toHaveLength(0);
+});
+
+it("recovers current command presentation only after an explicit successful retry", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({ type: "about:blank", title: "Unavailable", status: 503 }, 503),
+  );
+  const user = userEvent.setup();
+  await renderAdministration();
+  await screen.findByRole("alert");
+  expect(
+    screen.queryByRole("link", { name: "Administration technique" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, permissions: { manageMaintenance: true } }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findAllByRole("link", { name: "Maintenance" }),
+  ).toHaveLength(2);
+  expect(
+    screen.queryByRole("link", { name: "Administration technique" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("keeps direct route admission closed with no F12 composition, even with a management grant", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, permissions: { manageMaintenance: true } }),
+  );
+
+  // When
+  await renderAdministration(
+    <>
+      <AdministrationEntry />
+      <AdministrationRoute />
+    </>,
+  );
+  await screen.findByRole("link", { name: "Maintenance" });
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.getAllByRole("link", { name: "Maintenance" })).toHaveLength(1);
+});
+
+it("inserts the administration entry without replacing the current profile or its public links", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, permissions: { manageMaintenance: true } }),
+  );
+
+  // When
+  await renderAdministration(<ProfileScreen admitted proEntry={null} />);
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "Maintenance" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByText(account.email)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Politique de confidentialité" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Se déconnecter" }),
+  ).toBeOnTheScreen();
+});
+
+/** Synthetic generated-response input; never contacts a provider or real account. */
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+it.each([
+  "manageSportingClassification",
+  "manageDivisionLifecycle",
+  "manageSportingPresentation",
+])(
+  "offers divisions without a technical index or collection entry under the dedicated %s grant",
+  async (grant) => {
+    // Given
+    mockFetch.mockImplementation(async () =>
+      json({ ...account, permissions: { [grant]: true } }),
+    );
+
+    // When
+    await renderAdministration();
+
+    // Then
+    expect(
+      screen.queryByRole("link", { name: "Administration technique" }),
+    ).not.toBeOnTheScreen();
+    // Both real consumers retain their destination: the profile shortcut and technical administration.
+    expect(
+      await screen.findAllByRole("link", { name: "Divisions" }),
+    ).toHaveLength(2);
+    if (grant === "manageSportingClassification") {
+      expect(
+        screen.getByRole("link", { name: "Mapping des poules" }),
+      ).toBeEnabled();
+    } else {
+      expect(
+        screen.queryByRole("link", { name: "Mapping des poules" }),
+      ).not.toBeOnTheScreen();
+    }
+    expect(
+      screen.queryByRole("link", { name: "Liens vidéo" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Collectes" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Maintenance" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Versions minimales" }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it("keeps Mapping and video moderation available together for both grants", async () => {
+  // Given
+  mockFetch.mockImplementation(async () =>
+    json({
+      ...account,
+      permissions: {
+        manageSportingClassification: true,
+        moderateStreamLinks: true,
+      },
+    }),
+  );
+
+  // When
+  await renderAdministration(<AdministrationEntry />);
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "Mapping des poules" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("link", { name: "Liens vidéo" })).toBeEnabled();
+  expect(screen.getByRole("link", { name: "Divisions" })).toBeEnabled();
+});
+
+it.each([
+  ["manageCollection", "Collectes", "/collection"],
+  [
+    "manageSportingClassification",
+    "Mapping des poules",
+    "/administration/mapping",
+  ],
+  ["manageMaintenance", "Maintenance", "/administration/maintenance"],
+  [
+    "manageApplicationVersions",
+    "Versions minimales",
+    "/administration/application-versions",
+  ],
+])(
+  "opens the granted %s destination directly from Profile",
+  async (capability, label, path) => {
+    // Given: destination probes observe Router handoff; domain screens retain their own existing qualifications.
+    mockFetch.mockImplementation(async () =>
+      json({ ...account, permissions: { [capability]: true } }),
+    );
+    const user = userEvent.setup();
+    await renderRouter(
+      {
+        index: () => <AdministrationEntry />,
+        collection: () => <Text>Destination collectes</Text>,
+        "administration/mapping": () => <Text>Destination mapping</Text>,
+        "administration/maintenance": () => (
+          <Text>Destination maintenance</Text>
+        ),
+        "administration/application-versions": () => (
+          <Text>Destination versions</Text>
+        ),
+      },
+      { initialUrl: "/", wrapper: AdministrationProviders },
+    );
+
+    // When
+    await user.press(await screen.findByRole("link", { name: label }));
+
+    // Then
+    expect(screen).toHavePathname(path);
+    expect(
+      screen.queryByRole("link", { name: "Administration technique" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+    ).toBe(true);
+  },
+);

@@ -1,0 +1,29 @@
+SportFormatEnum:
+  title: SportFormatEnum
+  type: string
+  description: >-
+    Sporting format; 2x2 does not imply beach volleyball.
+  enum:
+    - 6x6
+    - 4x4
+    - 2x2
+SportGenderEnum:
+  title: SportGenderEnum
+  type: string
+  description: >-
+    Gender category of the sporting classification.
+  enum:
+    - female
+    - male
+    - mixed
+ResultStateEnum:
+  title: ResultStateEnum
+  type: string
+  description: >-
+    Result finality from the designated source. Provisional is explicitly temporary; final is definitive;
+    unconfirmed means the publication does not establish finality. A special notation does not determine
+    this state, and elapsed time never changes it.
+  enum:
+    - provisional
+    - final
+    - unconfirmed

@@ -1,0 +1,47 @@
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    profiles: [search]
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    env_file:
+      - ./local/opensearch/backend.env
+    ports:
+      - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+      - ./infra/opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ./local/opensearch/tls:/usr/share/opensearch/config/tls:ro
+      - ./local/opensearch/security:/usr/share/opensearch/config/opensearch-security:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent --show-error --max-time 10 --cacert config/tls/ca.pem --user "$${BLOCKOUT_SEARCH_USERNAME}:$${BLOCKOUT_SEARCH_PASSWORD}" --output /dev/null 'https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s'
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 30s
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-admin-only
+      POSTGRES_DB: postgres
+      BLOCKOUT_APP_PASSWORD: local-app-only
+      BLOCKOUT_MIGRATION_PASSWORD: local-migration-only
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./infra/postgres/init-roles.sql:/docker-entrypoint-initdb.d/10-blockout.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d blockout"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  opensearch-data:
+  postgres-data:

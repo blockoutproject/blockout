@@ -1,0 +1,64 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: ${{ github.ref_name == 'main' && 'production' || 'preproduction' }}
+    steps:
+      - name: Require successful push CI for the selected revision
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          count=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
+            --branch "$GITHUB_REF_NAME" --commit "$GITHUB_SHA" --event push --status success \
+            --json databaseId --jq 'length')
+          test "$count" -gt 0
+
+      - name: Authenticate to the private registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Require all three existing images without rebuilding
+        run: |
+          for image in blockout-backend blockout-collector blockout-backend-migrations; do
+            docker manifest inspect "ghcr.io/$GITHUB_REPOSITORY_OWNER/$image:$GITHUB_SHA" > /dev/null
+          done
+
+      - name: Update only the image and queue backend then collector
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          BACKEND_ID: ${{ vars.DOKPLOY_BACKEND_ID }}
+          COLLECTOR_ID: ${{ vars.DOKPLOY_COLLECTOR_ID }}
+        # A queued request is not readiness; migration and infrastructure startup stay explicit.
+        run: |
+          test -n "$DOKPLOY_URL" && test -n "$DOKPLOY_TOKEN"
+          test -n "$BACKEND_ID" && test -n "$COLLECTOR_ID"
+          for application in "backend:$BACKEND_ID" "collector:$COLLECTOR_ID"; do
+            image="ghcr.io/$GITHUB_REPOSITORY_OWNER/blockout-${application%%:*}:$GITHUB_SHA"
+            application_id="${application#*:}"
+            jq -n --arg id "$application_id" --arg image "$image" \
+              '{applicationId: $id, dockerImage: $image}' |
+              curl --fail --silent --show-error --max-time 30 --output /dev/null \
+                -H "x-api-key: $DOKPLOY_TOKEN" -H 'Content-Type: application/json' \
+                --data-binary @- "$DOKPLOY_URL/api/application.update"
+            jq -n --arg id "$application_id" '{applicationId: $id}' |
+              curl --fail --silent --show-error --max-time 30 --output /dev/null \
+                -H "x-api-key: $DOKPLOY_TOKEN" -H 'Content-Type: application/json' \
+                --data-binary @- "$DOKPLOY_URL/api/application.deploy"
+          done

@@ -1,0 +1,68 @@
+import Purchases, {
+  type CustomerInfo,
+  type PURCHASES_ERROR_CODE,
+} from "react-native-purchases";
+import { activeProEntitlement, type ProOperation } from "./pro-state";
+
+function hasUnresolvedPurchase(operation: ProOperation) {
+  return ["purchased", "pending", "already-owned"].includes(operation);
+}
+
+/**
+ * Uses documented SDK purchase outcomes; no error itself grants or withdraws rights.
+ * Errors release this attempt for ordinary feedback and a later explicit SDK action.
+ * Store errors may have charged; this classification never claims cancellation or retries payment.
+ * The SDK still owns an original operation reported as already in progress.
+ * @see https://www.revenuecat.com/docs/test-and-launch/errors
+ */
+export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
+  const codes = Purchases.PURCHASES_ERROR_CODE;
+  if (code === codes.PURCHASE_CANCELLED_ERROR) {
+    return "cancelled";
+  }
+  if (code === codes.PAYMENT_PENDING_ERROR) {
+    return "pending";
+  }
+  if (
+    code === codes.PRODUCT_ALREADY_PURCHASED_ERROR ||
+    code === codes.RECEIPT_ALREADY_IN_USE_ERROR ||
+    code === codes.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR
+  ) {
+    return "already-owned";
+  }
+  return "failed";
+}
+
+/**
+ * Current SDK-purchased rights settle pending/confirmed/owned presentation without correlating a historical request.
+ * An independent gift or unknown origin does not establish purchased rights.
+ */
+export function verifiedProOperation(
+  operation: ProOperation,
+  customerInfo: CustomerInfo | null,
+): ProOperation {
+  const entitlement = activeProEntitlement(customerInfo);
+  return hasUnresolvedPurchase(operation) &&
+    entitlement?.ownershipType === "PURCHASED" &&
+    ["APP_STORE", "PLAY_STORE", "TEST_STORE"].includes(entitlement.store)
+    ? "completed"
+    : operation;
+}
+
+/** Restoration errors use ordinary failure feedback; cancellation stays quiet and neither outcome grants rights. */
+export function restoreErrorOutcome(error: unknown): ProOperation {
+  return typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
+    ? "cancelled"
+    : "failed";
+}
+
+/** Restoration cannot erase unresolved payment evidence or encourage a second payment. */
+export function restoredProOperation(
+  current: ProOperation,
+  outcome: ProOperation,
+): ProOperation {
+  return hasUnresolvedPurchase(current) ? current : outcome;
+}
