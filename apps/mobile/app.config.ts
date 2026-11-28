@@ -78,6 +78,7 @@ const config: ExpoConfig = {
   name: applicationName,
   slug: easSlug ?? "blockout-local",
   version: "2.0.0",
+  icon: "./assets/app-icon.png",
   userInterfaceStyle: "automatic",
   ...(!production && !preview ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
@@ -100,7 +101,11 @@ const config: ExpoConfig = {
     "@config-plugins/react-native-pdf",
     [
       "expo-notifications",
-      { defaultChannel: "default", enableBackgroundRemoteNotifications: false },
+      {
+        icon: "./assets/notification-icon.png",
+        defaultChannel: "default",
+        enableBackgroundRemoteNotifications: false,
+      },
     ],
     [
       "react-native-maps",
@@ -230,6 +235,11 @@ const config: ExpoConfig = {
   },
   android: {
     package: applicationId,
+    adaptiveIcon: {
+      foregroundImage: "./assets/app-icon-foreground.png",
+      backgroundImage: "./assets/app-icon-background.png",
+      monochromeImage: "./assets/app-icon-monochrome.png",
+    },
     // Private file input supplied by the authorized build environment, never committed.
     googleServicesFile: process.env.FCM_GOOGLE_SERVICES_FILE,
   },
