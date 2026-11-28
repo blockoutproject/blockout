@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { createLucideIcon } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import {
   useAccountSession,
@@ -13,7 +13,7 @@ import {
 
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { useSingleContentReveal } from "@/shared/components/content-reveal";
-import { BrandMark } from "@/shared/components/brand-mark";
+import { BrandTitle } from "@/shared/components/brand-title";
 import { IconButton } from "@/shared/components/icon-button";
 import { SupportFlagAction } from "@/features/support";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -115,22 +115,12 @@ export function PersonalScreen() {
 
 /** Keeps Home branding and its adjacent actions together in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
-  const { colors } = useTheme();
+  const { colors, proAccent } = useTheme();
   const handoff = useNativeHandoff("https://www.instagram.com/hugoecken");
   return (
     <View style={styles.header}>
-      <View style={styles.brand} accessible accessibilityLabel="Blockout">
-        <BrandMark />
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={[
-            tokens.typography.headingXl,
-            { color: colors.text, flexShrink: 1 },
-          ]}
-        >
-          Blockout
-        </Text>
+      <View style={styles.brand}>
+        <BrandTitle pro={proAccent} />
       </View>
       <View style={styles.actions}>
         <IconButton
@@ -278,13 +268,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
-  brand: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
+  brand: { flex: 1, minWidth: 0 },
   actions: { flexDirection: "row", alignItems: "center" },
   controls: {
     paddingTop: tokens.spacing.sm,

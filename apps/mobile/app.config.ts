@@ -88,7 +88,7 @@ const config: ExpoConfig = {
       "expo-splash-screen",
       {
         image: "./assets/splash-brand-light.png",
-        imageWidth: 100,
+        imageWidth: 144,
         backgroundColor: "#FCFCFD",
         dark: {
           image: "./assets/splash-brand-dark.png",
@@ -231,13 +231,17 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: applicationId,
     deploymentTarget: "16.4",
+    icon: {
+      light: "./assets/app-icon.png",
+      dark: "./assets/app-icon-dark.png",
+    },
     supportsTablet: false,
   },
   android: {
     package: applicationId,
     adaptiveIcon: {
       foregroundImage: "./assets/app-icon-foreground.png",
-      backgroundImage: "./assets/app-icon-background.png",
+      backgroundColor: "#303034",
       monochromeImage: "./assets/app-icon-monochrome.png",
     },
     // Private file input supplied by the authorized build environment, never committed.

@@ -184,8 +184,18 @@ export const membershipColors = {
   },
   dark: { fill: "#F1F1F2", content: reference.neutral900, border: "#FFFFFF2E" },
   pro: {
-    light: { fill: "#E7D39B", content: "#201E19", border: "#C1AA68" },
-    dark: { fill: "#E2C985", content: "#201E19", border: "#A99662" },
+    light: {
+      fill: "#E7D39B",
+      content: "#201E19",
+      border: "#C1AA68",
+      text: "#886820",
+    },
+    dark: {
+      fill: "#E2C985",
+      content: "#201E19",
+      border: "#A99662",
+      text: "#E2C985",
+    },
   },
 };
 
@@ -259,7 +269,6 @@ export const tokens = {
     },
   },
   size: {
-    brandMark: 28,
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
     media: { row: 40, entity: 48, match: 32, profile: 64 },
