@@ -9,13 +9,16 @@ export interface BrandMarkProps {
 export function BrandMark({
   size = tokens.size.brandMark,
 }: Readonly<BrandMarkProps>) {
-  const { colors } = useTheme();
+  const { scheme } = useTheme();
   return (
     <Image
       accessible={false}
-      source={require("../../../assets/brand-mark.svg")}
+      source={
+        scheme === "dark"
+          ? require("../../../assets/brand-mark-white.svg")
+          : require("../../../assets/brand-mark-black.svg")
+      }
       contentFit="contain"
-      tintColor={colors.text}
       style={{ width: size, height: size }}
     />
   );
