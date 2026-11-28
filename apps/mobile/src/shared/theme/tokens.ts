@@ -235,7 +235,7 @@ export const tokens = {
   // Safe-area and keyboard measurements remain native; these are content roles only.
   layout: {
     header: 48,
-    brandHeader: 69,
+    accessHeaderClearance: 69,
     width: { compact: 320 },
     content: { start: spacing.sm, end: spacing.lg },
     form: { gap: spacing.lg, labelGap: spacing.tight },

@@ -13,7 +13,7 @@ import {
 
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { useSingleContentReveal } from "@/shared/components/content-reveal";
-import { BrandTitle } from "@/shared/components/brand-title";
+import { BrandHeader } from "@/shared/components/brand-header";
 import { IconButton } from "@/shared/components/icon-button";
 import { SupportFlagAction } from "@/features/support";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -118,10 +118,7 @@ function PersonalHeader() {
   const { colors, proAccent } = useTheme();
   const handoff = useNativeHandoff("https://www.instagram.com/hugoecken");
   return (
-    <View style={styles.header}>
-      <View style={styles.brand}>
-        <BrandTitle pro={proAccent} />
-      </View>
+    <BrandHeader pro={proAccent}>
       <View style={styles.actions}>
         <IconButton
           label="Instagram"
@@ -136,7 +133,7 @@ function PersonalHeader() {
         </IconButton>
         <SupportFlagAction origin={{ screen: "home" }} />
       </View>
-    </View>
+    </BrandHeader>
   );
 }
 
@@ -261,14 +258,6 @@ const tabs = [
 ] as const;
 const styles = StyleSheet.create({
   guest: { justifyContent: "center" },
-  header: {
-    minHeight: tokens.layout.header,
-    marginHorizontal: tokens.spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
-  },
-  brand: { flex: 1, minWidth: 0 },
   actions: { flexDirection: "row", alignItems: "center" },
   controls: {
     paddingTop: tokens.spacing.sm,

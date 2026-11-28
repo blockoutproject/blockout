@@ -62,7 +62,7 @@ function GateView({
       <Page fullBleed>
         <PageViewport
           header={<BrandHeader />}
-          headerMinHeight={tokens.layout.brandHeader}
+          headerMinHeight={tokens.layout.accessHeaderClearance}
         >
           <PageScrollView>
             <ScreenState>

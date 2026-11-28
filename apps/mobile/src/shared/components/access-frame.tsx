@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type Ref } from "react";
+import { useContext, useState, type ReactNode, type Ref } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tokens } from "@/shared/theme/tokens";
 import { AccessClubBand } from "./access-club-band";
 import { BrandHeader } from "./brand-header";
+import { NavigationSafeAreaContext } from "./navigation-backdrop";
 import { Page } from "./page";
 import { Surface } from "./surface";
 
@@ -21,47 +22,54 @@ interface AccessFrameProps {
   footer?: ReactNode;
 }
 
+export function AccessFrame(props: Readonly<AccessFrameProps>) {
+  return (
+    <Page edges={["top", "left", "right"]} fullBleed>
+      <AccessStage {...props} />
+    </Page>
+  );
+}
+
 /** The larger measured chrome and safe-area reservation applies at both ends, so the stage holds the viewport midpoint. */
-export function AccessFrame({
+function AccessStage({
   children,
   headerAction,
   footer,
 }: Readonly<AccessFrameProps>) {
-  const safeArea = useSafeAreaInsets();
-  const [headerHeight, setHeaderHeight] = useState(tokens.layout.brandHeader);
+  const top = useContext(NavigationSafeAreaContext);
+  const { bottom } = useSafeAreaInsets();
+  const [headerHeight, setHeaderHeight] = useState(tokens.layout.header);
   const [footerHeight, setFooterHeight] = useState(tokens.size.control.default);
   const clearance = Math.max(
-    safeArea.top + headerHeight,
-    safeArea.bottom + (footer ? footerHeight : 0),
+    top + Math.max(headerHeight, tokens.layout.accessHeaderClearance),
+    bottom + (footer ? footerHeight : 0),
   );
 
   return (
-    <Page edges={["left", "right"]}>
-      <View style={[styles.frame, { paddingVertical: clearance }]}>
+    <View style={[styles.frame, { paddingVertical: clearance }]}>
+      <View
+        onLayout={({ nativeEvent }) =>
+          setHeaderHeight(nativeEvent.layout.height)
+        }
+        style={[styles.chrome, { top }]}
+      >
+        <BrandHeader>{headerAction}</BrandHeader>
+      </View>
+      <View style={styles.stage}>
+        <AccessClubBand />
+        {children}
+      </View>
+      {footer && (
         <View
           onLayout={({ nativeEvent }) =>
-            setHeaderHeight(nativeEvent.layout.height)
+            setFooterHeight(nativeEvent.layout.height)
           }
-          style={[styles.chrome, { top: safeArea.top }]}
+          style={[styles.chrome, { bottom }]}
         >
-          <BrandHeader>{headerAction}</BrandHeader>
+          {footer}
         </View>
-        <View style={styles.stage}>
-          <AccessClubBand />
-          {children}
-        </View>
-        {footer && (
-          <View
-            onLayout={({ nativeEvent }) =>
-              setFooterHeight(nativeEvent.layout.height)
-            }
-            style={[styles.chrome, { bottom: safeArea.bottom }]}
-          >
-            {footer}
-          </View>
-        )}
-      </View>
-    </Page>
+      )}
+    </View>
   );
 }
 
